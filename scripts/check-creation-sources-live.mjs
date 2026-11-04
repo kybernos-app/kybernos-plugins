@@ -9,6 +9,10 @@ import { mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { openLivePage, waitFor } from './live-page.mjs'
+import { frozenOff } from './lib-live-bundles.mjs'
+
+// --frozen: Apps (kybernos-db) is off in the soft-takeoff freeze, so it has no tile: only the Dashboards source is played.
+const appsOff = frozenOff().has('kybernos-db')
 
 const authority = process.env.KB_HOST || '127.0.0.1:3080'
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -38,12 +42,12 @@ try {
   await sleep(4000)
   const dashCount = await tileCount('Dashboards')
   const appsCount = await tileCount('Apps')
-  check('Creations draws a tile for the Dashboards and one for the Apps, with a count', dashCount !== null && appsCount !== null, JSON.stringify({ dashCount, appsCount }))
-  const real = await q(`Promise.all([fetch('/kybernos-dashboards/list').then((r) => r.json()), fetch('/kybernos-db/state').then((r) => r.json())]).then(([d, a]) => ({ dashboards: (d.dashboards || []).length, apps: (a.dbs || []).length }))`)
-  check('the counts are what the two plugins report', real && real.dashboards === dashCount && real.apps === appsCount, JSON.stringify({ real, dashCount, appsCount }))
+  check(appsOff ? 'Creations draws a tile for the Dashboards, with a count (Apps is off in this frozen build)' : 'Creations draws a tile for the Dashboards and one for the Apps, with a count', dashCount !== null && (appsCount !== null || appsOff), JSON.stringify({ dashCount, appsCount }))
+  const real = await q(`Promise.all([fetch('/kybernos-dashboards/list').then((r) => r.json()), ${appsOff} ? { dbs: [] } : fetch('/kybernos-db/state').then((r) => r.json())]).then(([d, a]) => ({ dashboards: (d.dashboards || []).length, apps: (a.dbs || []).length }))`)
+  check('the counts are what the two plugins report', real && real.dashboards === dashCount && (real.apps === appsCount || appsOff), JSON.stringify({ real, dashCount, appsCount }))
   await page.shot(join(shotDir, 'creations-tiles.png'))
 
-  for (const [name, count] of [['Dashboards', dashCount], ['Apps', appsCount]]) {
+  for (const [name, count] of [['Dashboards', dashCount], ['Apps', appsCount]].filter(([name]) => !(appsOff && name === 'Apps'))) {
     const id = name.toLowerCase()
     await q(`${tile(name)}.click()`)
     await sleep(1200)

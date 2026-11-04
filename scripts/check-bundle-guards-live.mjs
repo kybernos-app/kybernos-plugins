@@ -21,8 +21,10 @@ import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { openLivePage, openSettings, goToSettingsPage, waitFor } from './live-page.mjs'
 import { cookieDeSession } from './cdp-lib.mjs'
+import { frozenOff, routeIsOff } from './lib-live-bundles.mjs'
 
 const args = process.argv.slice(2)
+const OFF = frozenOff() // --frozen: the routes and the page of a bundle the plan switches off (Servers) are not played (absent by design)
 const HOST = process.env.KB_HOST || '127.0.0.1:3080'
 if (HOST === '127.0.0.1:3080' && !args.includes('--allow-real')) {
   console.error('✗ this check writes to the instance it talks to, and that is the real DSH (127.0.0.1:3080).')
@@ -127,7 +129,7 @@ try {
   console.log('1. every write route of the eight bundles: refused to a local program, answered to the page')
   const origin = 'http://' + HOST
   const cookie = session.nom + '=' + session.valeur
-  for (const [path, body, fromThePage] of ROUTES) {
+  for (const [path, body, fromThePage] of ROUTES.filter(([path]) => !routeIsOff(OFF, path))) {
     const a = await ask('POST', path, {}, body)
     const b = await ask('POST', path, { origin: 'http://evil.example', cookie }, body)
     const c = await ask('POST', path, { origin }, body)
@@ -182,7 +184,8 @@ try {
 
     // Servers: « + Add a server », an address that nobody answers, « Check ».
     n = mark()
-    if (await goToSettingsPage(page, 'Servers', { settleMs: 1500 }) !== true) check('Servers: the page opens', false)
+    if (OFF.has('kybernos-servers')) console.log('  ○ Servers is off in this frozen build: its page is not played')
+    else if (await goToSettingsPage(page, 'Servers', { settleMs: 1500 }) !== true) check('Servers: the page opens', false)
     else {
       await waitFor(page, `!!document.querySelector('[data-kb="servers-add-open"]')`, 10000)
       check('Servers: « + Add a server » is clicked', await clickSel('[data-kb="servers-add-open"]') === true)

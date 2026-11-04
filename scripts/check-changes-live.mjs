@@ -21,7 +21,7 @@
 // Exit code 0 / 1 / 3.
 import { readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { openLivePage } from './live-page.mjs'
+import { openLivePage, chooseWorkspace } from './live-page.mjs'
 
 const args = process.argv.slice(2)
 const shotDir = args.includes('--shots') ? args[args.indexOf('--shots') + 1] : null
@@ -79,6 +79,7 @@ const clickText = async (_page, text) => {
 // A fresh sandbox has no chat: send a first message from the empty composer. No model is configured there, so the turn
 // fails (that is fine); what matters is that DSH now holds a real session in this repository's folder.
 const createSession = async () => {
+  if ((await chooseWorkspace(page)) !== true) return false
   const pos = await val(`(() => { const e = document.querySelector('[contenteditable="true"], textarea'); if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.x + 40, y: r.y + r.height / 2 }) })()`)
   if (typeof pos !== 'string') return false
   const { x, y } = JSON.parse(pos)

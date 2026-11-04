@@ -13,16 +13,18 @@
 //   node scripts/check-all-live.mjs               # whole battery, serial, 180 s per check
 //   node scripts/check-all-live.mjs --only connectors,language --timeout 120
 //   node scripts/check-all-live.mjs --out /tmp/recette-checks --fail-fast
+//   node scripts/check-all-live.mjs --frozen      # a sandbox frozen as docs/tests/soft-takeoff/plugins.json says: the checks of an « off » bundle are `skipped`
 //
 // RULES
 //   · KB_HOST is mandatory and must NOT be the user's DSH (127.0.0.1:3080).
-//   · Each check gets a timeout; a killed check is reported `timeout`, never silently skipped.
+//   · Each check gets a timeout (at least LIVE_MIN_SECONDS for the few that need longer alone); a killed check is reported `timeout`, never silently skipped.
 //   · A file named STOP in the output folder (or $RECETTE_STOP_FILE) stops the run between checks.
 //   · Exit 0 when every check passed, 1 when one failed/timed out, 2 on a guard refusal.
 import { spawn } from 'node:child_process'
-import { readdirSync, mkdirSync, writeFileSync, existsSync } from 'node:fs'
+import { readdirSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { LIVE_NEEDS, FROZEN_AWARE, LIVE_MIN_SECONDS } from './lib-live-bundles.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const REPO = dirname(HERE)
@@ -53,6 +55,7 @@ if (host === REAL_HOST) {
 const out = value('--out', join('/tmp', 'recette-checks'))
 const perCheck = Number(value('--timeout', '180')) * 1000
 const failFast = flag('--fail-fast')
+const frozen = flag('--frozen')
 const only = (value('--only', '') || '').split(',').map((s) => s.trim()).filter(Boolean)
 const stopFile = process.env.RECETTE_STOP_FILE || join(out, 'STOP')
 mkdirSync(out, { recursive: true })
@@ -71,6 +74,8 @@ function extraArgs(file) {
     const home = process.env.DSH_HOME !== undefined && process.env.DSH_HOME !== '' ? process.env.DSH_HOME : join(process.env.HOME || '', '.dsh')
     return ['--dsh-port', port, '--dsh-home', home]
   }
+  // These know how to skip the page of a bundle that is off (Atlas, Language…) instead of reading its absence as a defect.
+  if (frozen && FROZEN_AWARE.has(file)) return ['--frozen']
   return []
 }
 
@@ -93,7 +98,7 @@ function runOne(file) {
       timedOut = true
       try { process.kill(-child.pid, 'SIGTERM') } catch { /* gone */ }
       setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL') } catch { /* gone */ } }, 5000)
-    }, perCheck)
+    }, Math.max(perCheck, (LIVE_MIN_SECONDS[file] || 0) * 1000))
     // 'exit', not 'close': a grandchild (Chrome) can hold the pipes open after the check died.
     child.on('exit', (code) => {
       clearTimeout(timer)
@@ -107,6 +112,12 @@ function runOne(file) {
     })
   })
 }
+
+// --frozen: the bundles the soft-takeoff plan switches off. A check of one of them is not run (it would only read « 404 »); it is listed as `skipped`, never as a pass.
+const planOff = frozen
+  ? new Set(Object.entries(JSON.parse(readFileSync(join(REPO, 'docs', 'tests', 'soft-takeoff', 'plugins.json'), 'utf8')).bundles).filter(([, e]) => e.state === 'off').map(([dir]) => dir))
+  : new Set()
+const offBundlesOf = (file) => (LIVE_NEEDS[file] || []).filter((b) => planOff.has(b))
 
 const all = discover()
 const list = only.length ? all.filter((f) => only.some((o) => f.includes(o))) : all
@@ -123,13 +134,14 @@ for (const file of list) {
     break
   }
   process.stdout.write(`  ${file} … `)
-  const r = await runOne(file)
+  const off = offBundlesOf(file)
+  const r = off.length > 0 ? { file, status: 'skipped', code: null, ms: 0, tail: `bundle off in the freeze: ${off.join(', ')}` } : await runOne(file)
   results.push(r)
   console.log(`${r.status} (${r.ms} ms)${r.status === 'pass' ? '' : '\n    ' + r.tail.replace(/\n/g, '\n    ')}`)
-  if (failFast && r.status !== 'pass') break
+  if (failFast && r.status !== 'pass' && r.status !== 'skipped') break
 }
 
 const counts = results.reduce((a, r) => { a[r.status] = (a[r.status] || 0) + 1; return a }, {})
 writeFileSync(join(out, 'results.json'), JSON.stringify({ at: new Date().toISOString(), host, perCheck, counts, results }, null, 2))
 console.log(`\nsummary: ${JSON.stringify(counts)} → ${join(out, 'results.json')}`)
-process.exit(results.some((r) => r.status !== 'pass') ? 1 : 0)
+process.exit(results.some((r) => r.status !== 'pass' && r.status !== 'skipped') ? 1 : 0)

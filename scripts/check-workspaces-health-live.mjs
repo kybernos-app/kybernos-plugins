@@ -21,6 +21,8 @@ const shotDir = args.includes('--shots') ? args[args.indexOf('--shots') + 1] : n
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 let pass = 0
 let fail = 0
+let skipped = 0
+const skip = (name, why) => { skipped += 1; console.log('  ○ not played: ' + name + ' (' + why + ')') }
 const check = (name, ok, detail) => {
   if (ok) { pass += 1; console.log('  ✓ ' + name) } else { fail += 1; console.log('  ✗ ' + name + (detail === undefined ? '' : ' — ' + JSON.stringify(detail))) }
 }
@@ -37,7 +39,11 @@ try {
   const shaped = rows !== null && rows.every((r) => r !== null && typeof r === 'object' && typeof r.workspaceId === 'string' && typeof r.path === 'string' && typeof r.exists === 'boolean')
   check('every row is { workspaceId, path, exists }', shaped === true, rows === null ? 'no rows' : rows.length)
   const gone = rows === null ? [] : rows.filter((r) => r.exists === false)
-  check('a registered workspace whose folder is gone is reported as such', gone.length > 0, gone.map((r) => r.path))
+  // A gone folder is a fact of the instance, not of the page: a sandbox cloned from a profile whose folders all exist has none. The branches that need one are
+  // not played there, and the summary says so (a skip is never a pass); with none gone, the page is still checked for « no banner, no badge ».
+  const noneGone = gone.length === 0
+  if (noneGone) skip('a registered workspace whose folder is gone is reported as such', 'every registered folder exists in this instance')
+  else check('a registered workspace whose folder is gone is reported as such', true)
 
   // 2. The page: the banner shows exactly when the host reported a missing folder.
   const opened = await clickText(page, 'Workspaces')
@@ -78,9 +84,10 @@ try {
 
   // 4. Theme tokens only: the badge and the banner take their colours from the theme, never a literal.
   const hex = await val(page, `(() => { const e = document.querySelector('[data-kb="project-missing"]'); if (e === null) return null; const s = getComputedStyle(e); return { bg: s.backgroundColor, fg: s.color } })()`)
-  check('the badge paints with theme colours', hex !== null && hex.bg !== 'rgba(0, 0, 0, 0)' && hex.fg !== hex.bg, hex)
+  if (noneGone) skip('the badge paints with theme colours', 'no badge on the page')
+  else check('the badge paints with theme colours', hex !== null && hex.bg !== 'rgba(0, 0, 0, 0)' && hex.fg !== hex.bg, hex)
 } finally {
   await live.close()
 }
-console.log((fail === 0 ? '✓ ' : '✗ ') + pass + ' passed, ' + fail + ' failed')
+console.log((fail === 0 ? '✓ ' : '✗ ') + pass + ' passed, ' + fail + ' failed' + (skipped > 0 ? ', ' + skipped + ' not played' : ''))
 process.exit(fail === 0 ? 0 : 1)

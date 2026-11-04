@@ -6,6 +6,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { LIVE_NEEDS, FROZEN_AWARE, LIVE_MIN_SECONDS } from './lib-live-bundles.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const PLAN = 'docs/tests/soft-takeoff'
@@ -110,6 +111,25 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
   const all = ['README.md', 'cases.json', 'plugins.json', 'tester-brief.md', 'ledger.md'].map((f) => load(`${PLAN}/${f}`)).join('\n')
   check('no personal path in the plan', !/\/Users\/[A-Za-z]/.test(all))
   check('the matrix leads with what is visible: W1 holds the walkthroughs and W0 the gates', real.cases.cases.filter((c) => c.wave === 'W1' && c.runner === 'agent').length >= 3 && real.cases.cases.filter((c) => c.wave === 'W0').length >= 4)
+
+  // `check-all-live.mjs --frozen` skips a check by this table: a stale row would skip nothing, or the wrong thing
+  const needsBad = []
+  for (const [file, dirs] of Object.entries(LIVE_NEEDS)) {
+    if (!existsSync(join(REPO, 'scripts', file))) needsBad.push(`${file} does not exist`)
+    for (const d of dirs) if (!real.plugins.bundles[d]) needsBad.push(`${file}: ${d} is not a classified package`)
+  }
+  check('every check of the frozen-skip table exists and names a classified package', needsBad.length === 0, needsBad.slice(0, 4).join('; '))
+  const offUnmapped = Object.entries(real.plugins.bundles).filter(([, e]) => e.state === 'off').map(([d]) => d)
+    .filter((d) => !Object.values(LIVE_NEEDS).some((l) => l.includes(d)) && readdirSync(join(REPO, 'scripts')).some((f) => new RegExp(`^check-${d.replace(/^kybernos-/, '')}.*-live\\.mjs$`).test(f)))
+  check('an off bundle that has a live check of its own is in the frozen-skip table', offUnmapped.length === 0, offUnmapped.join(', '))
+
+  // the runner hands `--frozen` to the checks of FROZEN_AWARE only: a check that reads the flag and is not listed would never get it
+  const readsFrozen = readdirSync(join(REPO, 'scripts')).filter((f) => /^check-.*-live\.mjs$/.test(f) && f !== 'check-all-live.mjs' && /'--frozen'|frozenOff\(/.test(load(`scripts/${f}`)))
+  const awareBad = [...readsFrozen.filter((f) => !FROZEN_AWARE.has(f)).map((f) => `${f} reads --frozen and is not in FROZEN_AWARE`), ...[...FROZEN_AWARE].filter((f) => !readsFrozen.includes(f)).map((f) => `${f} is in FROZEN_AWARE and never reads --frozen`)]
+  check('the checks that read --frozen are exactly the ones the runner hands it to', awareBad.length === 0, awareBad.slice(0, 4).join('; '))
+
+  const slowBad = Object.entries(LIVE_MIN_SECONDS).filter(([f, n]) => !existsSync(join(REPO, 'scripts', f)) || !Number.isFinite(n) || n < 150).map(([f]) => f)
+  check('every check with its own time limit exists and asks for more than the default', slowBad.length === 0, slowBad.join(', '))
 
   // the checker must fail on a plan that is wrong (otherwise it proves nothing)
   const clone = () => JSON.parse(JSON.stringify({ cases: real.cases, plugins: real.plugins }))

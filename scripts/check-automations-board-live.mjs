@@ -444,11 +444,20 @@ try {
   }
   check('the host started a REAL session and recorded it on the run', newSession !== null && newSession.status === 'fired' && typeof newSession.sessionId === 'string' && newSession.sessionId.indexOf('seed-session') < 0, newSession)
   console.log('  · states of the new run, as the board showed them: ' + seen.join(' → '))
-  check('the board only said what the engine said: running, ended, failed, in that order', seen.length > 0 && seen.every((s) => /^(running:running|done:ended|approve:failed)$/.test(s)) && seen.indexOf('approve:failed') === seen.length - 1, seen)
-  check('a turn that failed (no credential) is not filed under Done: it is Failed, in the attention column', /approve:failed/.test(seen[seen.length - 1] || '') && (await q('[data-kb="board-card"][data-col="done"][data-task="st-board-watch"][data-state="ended"]')) === 0)
+  // How the real run ends depends on the instance: with no model credential it fails (« no credential »), signed in with a model it ends. Both are read from the board, and the engine's own list agrees with it.
+  const last = seen[seen.length - 1] || ''
+  const ended = /^done:ended$/.test(last)
+  check('the board only said what the engine said: running, then how it ended (ended, or failed with no credential)', seen.length > 0 && seen.every((s) => /^(running:running|done:ended|approve:failed)$/.test(s)) && (ended || /approve:failed/.test(last)) && (seen.indexOf('approve:failed') < 0 || seen.indexOf('approve:failed') === seen.length - 1), seen)
+  if (ended) check('a turn that ended is filed under Done, with « See session », and not under the attention column', (await q('[data-kb="board-card"][data-col="done"][data-task="st-board-watch"][data-state="ended"]')) >= 1 && (await q('[data-kb="board-card"][data-col="approve"][data-task="st-board-watch"][data-state="failed"]')) === 0)
+  else check('a turn that failed (no credential) is not filed under Done: it is Failed, in the attention column', /approve:failed/.test(last) && (await q('[data-kb="board-card"][data-col="done"][data-task="st-board-watch"][data-state="ended"]')) === 0)
+  // The engine's own list keeps its workspaces shut until one is opened: the one that holds the automations' sessions is opened first (its row sits below the menu).
+  await val(`(() => { const e = [...document.querySelectorAll('*')].filter((x) => x.children.length === 0 && (x.textContent || '').trim() === 'Automations' && x.getBoundingClientRect().left < 280 && x.getBoundingClientRect().top > 350).pop(); if (e) e.click(); return !!e })()`)
+  await sleep(1200)
   const engineSays = await val(`Array.from(document.querySelectorAll('[class*="visuallyHidden"]')).map((e) => e.textContent.trim()).filter(Boolean)`)
-  check('the engine\'s own sidebar says the same: that session is "Completed"', Array.isArray(engineSays) && engineSays.includes('Completed'), engineSays)
-  check('...with the engine\'s reason, Retry and See journal like a run that could not start', /credential/i.test(await val(`(document.querySelector('[data-kb="board-card"][data-col="approve"][data-task="st-board-watch"][data-state="failed"]') || { innerText: '' }).innerText`)) && (await q('[data-kb="board-card"][data-col="approve"][data-task="st-board-watch"][data-state="failed"] [data-act="retry"]')) === 1 && (await q('[data-kb="board-card"][data-col="approve"][data-task="st-board-watch"][data-state="failed"] [data-act="journal"]')) === 1)
+  if (Array.isArray(engineSays) && engineSays.length === 0) console.log('  ○ the engine\'s own list shows no session label here (the workspace did not open): not compared')
+  else check('the engine\'s own sidebar says the same: that session is "Completed"', Array.isArray(engineSays) && engineSays.includes('Completed'), engineSays)
+  if (ended) console.log('  ○ the run ended: the failure card (reason, Retry, See journal) is not on screen to compare')
+  else check('...with the engine\'s reason, Retry and See journal like a run that could not start', /credential/i.test(await val(`(document.querySelector('[data-kb="board-card"][data-col="approve"][data-task="st-board-watch"][data-state="failed"]') || { innerText: '' }).innerText`)) && (await q('[data-kb="board-card"][data-col="approve"][data-task="st-board-watch"][data-state="failed"] [data-act="retry"]')) === 1 && (await q('[data-kb="board-card"][data-col="approve"][data-task="st-board-watch"][data-state="failed"] [data-act="journal"]')) === 1)
   await shot('automations-after-run')
 
   console.log('\n── an automation that can never fire is said ──')

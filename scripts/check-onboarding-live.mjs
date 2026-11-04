@@ -747,8 +747,8 @@ try {
   }
   await openView({ view: 'artifacts' })
   const tileNames = await q(`[...document.querySelectorAll('[data-kb="type-tiles"] .kb-type-lab')].map((e) => e.textContent.trim())`)
-  // Plugins add tiles of their own at the end (Dashboards, Apps): only the order of the others is the field's business.
-  const ownTiles = (tileNames || []).filter((n) => n !== 'Dashboards' && n !== 'Apps')
+  // The mini-app type and the plugins' sources add tiles of their own at the end (Mini-app, Dashboards, Apps): only the order of the others is the field's business.
+  const ownTiles = (tileNames || []).filter((n) => n !== 'Dashboards' && n !== 'Apps' && n !== 'Mini-app')
   check('the Creations tiles come in the field\'s order: All, Documents, Spreadsheets, then the others as before', JSON.stringify(ownTiles) === JSON.stringify(['All', 'Documents', 'Spreadsheets', 'Slides', 'Websites', 'Images', 'Audio & Video']), JSON.stringify(tileNames))
   await page.shot(join(shotDir, 'pages-creations-law.png'))
   await openView({ view: 'skills' })

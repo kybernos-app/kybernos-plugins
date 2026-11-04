@@ -19,7 +19,7 @@ import { loadSealKey, sealEvidence, verifyDecisions } from '../packages/kybernos
 import { journalDocument, journalPageHtml, pageFileName } from '../packages/kybernos-plugin/journal-page.mjs'
 import { createJournalLinks } from '../packages/kybernos-plugin/journal-link.mjs'
 import { openSealed } from '../packages/kybernos-plugin/vendored-share-seal.mjs'
-import { openLivePage, waitFor } from './live-page.mjs'
+import { openLivePage, waitFor, ensureConversation } from './live-page.mjs'
 import { swapBundles } from './lib-bundle-swap.mjs'
 
 const argv = process.argv.slice(2)
@@ -241,7 +241,8 @@ const run = async () => {
     const count = async (sel) => (await page.evalJs(`document.querySelectorAll(${JSON.stringify(sel)}).length`, 4000)).val
     const text = async (sel) => (await page.evalJs(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); return e ? e.innerText : '' })()`, 4000)).val || ''
 
-    // open a chat, then its Journal tab
+    // open a chat, then its Journal tab (a fresh sandbox holds none: the first message of one is sent)
+    await ensureConversation(page)
     // an empty « New Session » draft has no tabs: the first chat with a title of its own
     await page.evalJs(`(() => { const rows = Array.from(document.querySelectorAll('[data-row-key^="session:"]')); const e = rows.find((r) => (r.innerText || '').trim().indexOf('New Session') !== 0) || rows[0]; if (e) e.setAttribute('data-kb-check-chat', '1') })()`, 4000)
     ok('a chat is in the sidebar', await click('[data-kb-check-chat="1"]'))
@@ -268,7 +269,7 @@ const run = async () => {
       // filters
       const chips = await count('.wvs-filters button')
       // A filter exists only for a kind of moment the chat holds (plus « All »): a real chat that holds one kind has two.
-      ok('the filters are there', chips >= (REAL ? 2 : 3), String(chips))
+      ok('the filters are there (« All » and one per kind the chat holds)', chips >= 2, String(chips))
       if (chips >= 3) {
         const before = await count('.wvs-list > li')
         await clickLabel('Connectors', '.wvs-filters')

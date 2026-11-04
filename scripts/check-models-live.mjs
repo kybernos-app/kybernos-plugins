@@ -46,10 +46,14 @@ const typeInto = async (sel, text) => {
 }
 const key = async (k, code, vk, shift) => { for (const t of ['keyDown', 'keyUp']) await page.send('Input.dispatchKeyEvent', { type: t, key: k, code, windowsVirtualKeyCode: vk, modifiers: shift ? 8 : 0 }) }
 
-// Kybernos Cloud's status, said by the page itself (nothing is asked of a server): `window.__KB_FAKE_CLOUD__` = null (real answer), or { plan }.
+// Kybernos Cloud's status, said by the page itself (nothing is asked of a server): `window.__KB_FAKE_CLOUD__` = null (real answer), { plan } (connected) or { off: true }
+// (not connected: the first view is about an account that is not signed in, whatever the instance this runs on is paired with).
 await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
   const real = window.fetch.bind(window)
   window.fetch = (url, init) => {
+    if (String(url).indexOf('/kybernos-cloud/status') >= 0 && window.__KB_FAKE_CLOUD__ && window.__KB_FAKE_CLOUD__.off) {
+      return Promise.resolve(new Response(JSON.stringify({ ok: true, connected: false }), { status: 200, headers: { 'content-type': 'application/json' } }))
+    }
     if (String(url).indexOf('/kybernos-cloud/status') >= 0 && window.__KB_FAKE_CLOUD__) {
       const plan = window.__KB_FAKE_CLOUD__.plan
       return Promise.resolve(new Response(JSON.stringify({ ok: true, connected: true, space_plan: { key: plan }, user: { plan } }), { status: 200, headers: { 'content-type': 'application/json' } }))
@@ -68,6 +72,7 @@ const openPage = async () => {
 
 try {
   console.log('the first view, Kybernos Cloud not connected')
+  await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__KB_FAKE_CLOUD__ = { off: true }` })
   if ((await openPage()) !== true) { console.error('○ inconclusive: the page did not open'); await live.close(); process.exit(3) }
   await sleep(1500)
   check('Connect and « Add your API key » are offered', (await val(`!!document.querySelector('[data-kbmh="connect"]') && !!document.querySelector('[data-kbmh="addkey"]')`)) === true)
@@ -97,6 +102,44 @@ try {
   await sleep(1200)
   check('on a Free account the key button is still offered', (await val(`!!document.querySelector('[data-kbmh="addkey"]')`)) === true)
   await val(`window.__KB_FAKE_CLOUD__ = null`)
+
+  console.log('the model sheet')
+  await click('[data-kbm="tab-models"]')
+  await waitFor(page, `document.querySelectorAll('[data-kbm="item"]').length > 0`, 15000)
+  await sleep(500)
+  // The size is typed into a model of the Anthropic route, which the installed catalogue describes: the profile of an instance copied from a real machine can hold a model it does not (an
+  // « opencode-go » entry), the engine refuses a change on it (« needs an api ») and the page puts the old number back; a model of the Kybernos Cloud route has its size set by the catalogue.
+  // It is played before the health bus is faked (a model marked as failing is folded away, and its sheet writes nothing). Elsewhere the first model is used.
+  const ownKey = await val(`(() => { const r = [...document.querySelectorAll('[data-kbm="item"]')].find((e) => /^anthropic\\//.test(e.getAttribute('data-kbm-key'))); return r ? r.getAttribute('data-kbm-key') : null })()`)
+  await click(typeof ownKey === 'string' ? '[data-kbm="item"][data-kbm-key="' + ownKey + '"] [data-kbm="expand"]' : '[data-kbm="item"] [data-kbm="expand"]')
+  await sleep(700)
+  const before = await val(`document.querySelector('[data-kbm="field-context"]').value`)
+  await typeInto('[data-kbm="field-context"]', 'abc')
+  await key('Tab', 'Tab', 9, false)
+  await sleep(600)
+  const err = await val(`(() => { const e = document.querySelector('[data-kbm="field-error"]'); if (!e) return null; const r = e.getBoundingClientRect(); const top = document.elementFromPoint(r.left + 10, r.top + r.height / 2); return { text: e.innerText, inModal: !!document.querySelector('.kbmp-mdl') && document.querySelector('.kbmp-mdl').contains(e), visible: !!top && (top === e || e.contains(top)), underContext: /Context window/.test((e.closest('.kbm-field') || { innerText: '' }).innerText) } })()`)
+  check('A3-10: a refused count is said under its field, inside the sheet, in view', err !== null && err.inModal === true && err.visible === true && err.underContext === true && /positive count/.test(err.text), err)
+  // The check types a size the model does not have yet (256K, or 128K when it already holds 256000), then puts it back as it found it.
+  const typed = before === '256000' ? '128K' : '256K'
+  await typeInto('[data-kbm="field-context"]', typed)
+  await key('Tab', 'Tab', 9, false)
+  // the value is written to the profile, then read back: wait for the number, not for a fixed time
+  await waitFor(page, `(document.querySelector('[data-kbm="field-context"]') || { value: '' }).value === ${JSON.stringify(typed === '256K' ? '256000' : '128000')}`, 8000)
+  // the badge follows the write (the field shows the number before the host has answered): wait for the word, not for the number
+  await waitFor(page, `(() => { const b = document.querySelector('[data-kbm="field-context"]').closest('.kbm-fbody').querySelector('.kbm-suffix'); return !!b && b.innerText === ${JSON.stringify(typed)} })()`, 8000)
+  const badge = await val(`(() => { const b = document.querySelector('[data-kbm="field-context"]').closest('.kbm-fbody').querySelector('.kbm-suffix'); return b ? { text: b.innerText, tip: b.title } : null })()`)
+  check('A3-11: typing ' + typed + ' reads ' + typed + ' with the exact count behind it (256K read 250K)', badge !== null && badge.text === typed && badge.tip === (typed === '256K' ? '256,000' : '128,000'), { badge, before, typed, model: ownKey, field: await val(`document.querySelector('[data-kbm="field-context"]').value`) })
+  if (before === '') {
+    await click('[data-kbm="revert-context"]')
+    await waitFor(page, `(document.querySelector('[data-kbm="field-context"]') || { value: null }).value === ''`, 8000)
+  } else {
+    await typeInto('[data-kbm="field-context"]', before)
+    await key('Tab', 'Tab', 9, false)
+    await waitFor(page, `(document.querySelector('[data-kbm="field-context"]') || { value: null }).value === ${JSON.stringify(before)}`, 8000)
+  }
+  check('(the model is put back as it was)', (await val(`document.querySelector('[data-kbm="field-context"]').value`)) === before)
+  await click('[data-kbm="close"]')
+  await sleep(400)
 
   console.log('the models that do not answer (the Study model\'s bus, faked in the page)')
   await waitFor(page, `!!document.querySelector('[data-kbm="tab-models"]')`, 15000)
@@ -133,38 +176,6 @@ try {
   check('the popover words each failing model too', Array.isArray(popRows) && popRows.length > 0 && popRows.every((w) => w.length > 20), popRows)
   check('its button names the count and its fix button says what it does', (await val(`document.querySelector('[data-kbm="health-show"]').innerText`)) === 'Show unavailable (5)' && (await val(`(document.querySelector('[data-kbm="health-fix"]') || {innerText: ''}).innerText`)) === 'Check key')
   await click('[data-kbm="health-chip"]')
-
-  console.log('the model sheet')
-  await click('[data-kbm="tab-models"]')
-  await waitFor(page, `document.querySelectorAll('[data-kbm="item"]').length > 0`, 15000)
-  await sleep(500)
-  await click('[data-kbm="item"] [data-kbm="expand"]')
-  await sleep(700)
-  const before = await val(`document.querySelector('[data-kbm="field-context"]').value`)
-  await typeInto('[data-kbm="field-context"]', 'abc')
-  await key('Tab', 'Tab', 9, false)
-  await sleep(600)
-  const err = await val(`(() => { const e = document.querySelector('[data-kbm="field-error"]'); if (!e) return null; const r = e.getBoundingClientRect(); const top = document.elementFromPoint(r.left + 10, r.top + r.height / 2); return { text: e.innerText, inModal: !!document.querySelector('.kbmp-mdl') && document.querySelector('.kbmp-mdl').contains(e), visible: !!top && (top === e || e.contains(top)), underContext: /Context window/.test((e.closest('.kbm-field') || { innerText: '' }).innerText) } })()`)
-  check('A3-10: a refused count is said under its field, inside the sheet, in view', err !== null && err.inModal === true && err.visible === true && err.underContext === true && /positive count/.test(err.text), err)
-  // The check types a size the model does not have yet (256K, or 128K when it already holds 256000), then puts it back as it found it.
-  const typed = before === '256000' ? '128K' : '256K'
-  await typeInto('[data-kbm="field-context"]', typed)
-  await key('Tab', 'Tab', 9, false)
-  // the value is written to the profile, then read back: wait for the number, not for a fixed time
-  await waitFor(page, `(document.querySelector('[data-kbm="field-context"]') || { value: '' }).value === ${JSON.stringify(typed === '256K' ? '256000' : '128000')}`, 8000)
-  const badge = await val(`(() => { const b = document.querySelector('[data-kbm="field-context"]').closest('.kbm-fbody').querySelector('.kbm-suffix'); return b ? { text: b.innerText, tip: b.title } : null })()`)
-  check('A3-11: typing ' + typed + ' reads ' + typed + ' with the exact count behind it (256K read 250K)', badge !== null && badge.text === typed && badge.tip === (typed === '256K' ? '256,000' : '128,000'), badge)
-  if (before === '') {
-    await click('[data-kbm="revert-context"]')
-    await waitFor(page, `(document.querySelector('[data-kbm="field-context"]') || { value: null }).value === ''`, 8000)
-  } else {
-    await typeInto('[data-kbm="field-context"]', before)
-    await key('Tab', 'Tab', 9, false)
-    await waitFor(page, `(document.querySelector('[data-kbm="field-context"]') || { value: null }).value === ${JSON.stringify(before)}`, 8000)
-  }
-  check('(the model is put back as it was)', (await val(`document.querySelector('[data-kbm="field-context"]').value`)) === before)
-  await click('[data-kbm="close"]')
-  await sleep(400)
 
   console.log('a provider added without its key, and the keyboard')
   await click('[data-kbm="tab-providers"]')

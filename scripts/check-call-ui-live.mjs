@@ -19,7 +19,7 @@
 // Exit code 0 / 1 / 3.
 import { rmSync } from 'node:fs'
 import { join } from 'node:path'
-import { openLivePage, clickText as clickTextAnywhere } from './live-page.mjs'
+import { openLivePage, clickText as clickTextAnywhere, chooseWorkspace } from './live-page.mjs'
 
 const args = process.argv.slice(2)
 const shotDir = args.includes('--shots') ? args[args.indexOf('--shots') + 1] : null
@@ -73,6 +73,7 @@ const clickText = async (_page, text) => {
 }
 const dismissKeyModal = async () => { for (let i = 0; i < 12; i += 1) { if (await val(`/Add an API key to get started/.test(document.body.innerText)`)) { await clickText(page, 'Configure later'); await sleep(600) } else break } }
 const createSession = async () => {
+  if ((await chooseWorkspace(page)) !== true) return false
   const pos = await val(`(() => { const e = document.querySelector('[contenteditable="true"], textarea'); if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.x + 40, y: r.y + r.height / 2 }) })()`)
   if (typeof pos !== 'string') return false
   const { x, y } = JSON.parse(pos)
@@ -334,7 +335,9 @@ try {
   check('"Check everything" fills the six rows: microphone, listen, speak, face, line, call engine', final !== null && final !== undefined, final)
   check('a missing key is named: listen is bad and says no key is saved', rows.listen && rows.listen[0] === 'bad' && /No key saved/.test(rows.listen[1]), rows.listen)
   check('the line says what is missing', rows.line && rows.line[0] === 'bad' && /missing/.test(rows.line[1]), rows.line)
-  check('a call engine that is not installed says so and offers to install it in one click', rows.engine && rows.engine[0] === 'bad' && /not installed/.test(rows.engine[1]) && (await val(`!!document.querySelector('[data-act="install-engine"]')`)) === true, rows.engine)
+  // the machine's own state: an engine that is not installed offers the one-click install, one that is installed says so and offers nothing
+  const offered = (await val(`!!document.querySelector('[data-act="install-engine"]')`)) === true
+  check('a call engine says whether it is installed, and offers the one-click install only when it is not', rows.engine && ((rows.engine[0] === 'bad' && /not installed/.test(rows.engine[1]) && offered === true) || (rows.engine[0] === 'ok' && /Installed/.test(rows.engine[1]) && offered === false)), rows.engine)
   check('a face provider that is not wanted is fine, and says calls are voice only', rows.face && rows.face[0] === 'ok' && /voice only/.test(rows.face[1]), rows.face)
   check('the voice is tried through the app\'s own engine', rows.speak && ['ok', 'warn'].includes(rows.speak[0]) && /The voice answers|took over/.test(rows.speak[1]), rows.speak)
   await shot('settings-health')

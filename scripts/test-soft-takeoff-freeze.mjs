@@ -24,6 +24,14 @@ check('a bundle marked off is taken out, the others and the engine\'s own stay',
 check('an off bundle the profile never had is reported absent, not an error; a service is left alone', r.absent.includes('@local/kybernos-kyber') && r.absent.includes('kybernos-nope') && !r.next.includes('messaging'))
 check('applying it twice gives the same list', JSON.stringify(freeze(r.next, plan, (d) => names[d]).next) === JSON.stringify(r.next))
 
+// a bundle marked on that the profile links but does not list (a sandbox cloned before the owner added it) is listed; one it does not link is not invented
+const planOn = { bundles: { 'kybernos-theme': { state: 'on' }, 'kybernos-kyber': { state: 'on' }, 'kybernos-pulse': { state: 'off' } } }
+const lonely = ['@deepseek-ai/dsh-base', '@local/kybernos-pulse']
+const added = freeze(lonely, planOn, (d) => names[d], { '@local/kybernos-theme': 'link:x' })
+check('an on bundle that is linked and not listed is added after the others; an off one is still taken out', JSON.stringify(added.next) === JSON.stringify(['@deepseek-ai/dsh-base', '@local/kybernos-theme']) && added.added.join() === '@local/kybernos-theme', JSON.stringify(added))
+check('an on bundle the profile does not link is left out (nothing is linked here), and without dependencies given nothing is added', !added.next.includes('@local/kybernos-kyber') && freeze(lonely, planOn, (d) => names[d]).added.length === 0)
+check('adding is idempotent', JSON.stringify(freeze(added.next, planOn, (d) => names[d], { '@local/kybernos-theme': 'link:x' }).next) === JSON.stringify(added.next))
+
 const patchText = '- id: computer-use-cua-native\n  disabled: true\n- id: kybernos-summary\n  disabled: true\n- id: kybernos-pulse\n  disabled: true\n- id: kybernos-theme\n  config:\n    x: 1\n- id: kybernos-call\n'
 const en = enableOn(patchText, { bundles: { 'kybernos-summary': { state: 'on' }, 'kybernos-pulse': { state: 'off' }, 'kybernos-call': { state: 'on' } } })
 check('a bundle marked on loses its « disabled: true » line, nothing else moves', en.enabled.join() === 'kybernos-summary' && en.next === patchText.replace('- id: kybernos-summary\n  disabled: true\n', '- id: kybernos-summary\n'))
@@ -47,6 +55,18 @@ try {
   run(['--profile', prof, '--plan', join(root, 'plan.json')])
   check('a second run does not overwrite that backup', readFileSync(file + '.takeoff-orig', 'utf8') === original)
   check('--undo puts the original back', run(['--profile', prof, '--undo']).status === 0 && readFileSync(file, 'utf8') === original)
+
+  // an on bundle linked in the dependencies and missing from the list is listed by a real run, and --undo puts the file back
+  const slidesName = JSON.parse(readFileSync(join(REPO, 'packages', 'kybernos-slides', 'package.json'), 'utf8')).name
+  const withDeps = JSON.stringify({ name: 'p', dependencies: { [slidesName]: 'link:/somewhere' }, dsh: { profile: { bundles: ['@deepseek-ai/dsh-base'], patchReload: true } } }, null, 2) + '\n'
+  rmSync(file + '.takeoff-orig', { force: true }) // the backup of the first run would otherwise be the one put back
+  writeFileSync(file, withDeps)
+  writeFileSync(join(root, 'plan3.json'), JSON.stringify({ bundles: { 'kybernos-slides': { state: 'on' } } }))
+  const ran3 = run(['--profile', prof, '--plan', join(root, 'plan3.json')])
+  check('a real run lists the on bundle the profile links', ran3.status === 0 && JSON.parse(readFileSync(file, 'utf8')).dsh.profile.bundles.join() === '@deepseek-ai/dsh-base,' + slidesName, ran3.stdout)
+  check('--undo puts that file back too', run(['--profile', prof, '--undo']).status === 0 && readFileSync(file, 'utf8') === withDeps)
+  writeFileSync(file, original)
+  writeFileSync(file + '.takeoff-orig', original)
 
   // the patch: a bundle marked on that the profile's patch disables is enabled on a real run, and --undo puts the patch back
   const patchFile = join(prof, 'cordis.patch.yml')

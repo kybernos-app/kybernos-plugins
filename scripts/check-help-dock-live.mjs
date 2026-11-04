@@ -41,7 +41,7 @@ try {
   await size(1280); await sleep(900)
   const narrow = await card()
   check('narrowing the window to 1280 px hangs the card from its button again', narrow !== null && !/\bdock\b/.test(narrow.cls), narrow)
-  await click(500, 700); await sleep(400)
+  await click(1100, 500); await sleep(400)   // the empty margin right of the page column: a hanging card is 560 px tall and covers (500, 700) since the Settings shell moved down
   check('...and a click on the page closes a hanging card, as it always did', (await card()) === null)
 
   await size(1500); await sleep(900)

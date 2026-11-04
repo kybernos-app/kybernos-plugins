@@ -54,7 +54,8 @@ try {
   await waitFor(page, `!!document.querySelector('[data-sug="block"]')`, 15000)
   check('Memory: the dashed block lists the two memories with their proof', (await q(`document.querySelectorAll('[data-sug="row"]').length`)) === 2 && /14×.*60 days.*Gmail/.test(String(await q(`document.querySelector('[data-sug="row"]').textContent`))))
   check('Memory: the block pulses', (await q(`!!document.querySelector('[data-sug="block"] .kb-ping')`)) === true)
-  check('Memory: without an account Add and Edit wait, and the block says why', (await q(`document.querySelector('[data-sug="add"]').disabled === true && document.querySelector('[data-sug="edit"]').disabled === true && !!document.querySelector('[data-sug="account"]')`)) === true)
+  // Without an account Add and Edit wait and the block says why; on an instance that is signed in (the soft-takeoff sandbox A) they are pressable and nothing is said.
+  check('Memory: Add and Edit wait for an account, and the block says why (or both work when the instance is signed in)', (await q(`(() => { const w = !!document.querySelector('[data-sug="account"]'); const a = document.querySelector('[data-sug="add"]').disabled; const e = document.querySelector('[data-sug="edit"]').disabled; return w ? a && e : !a && !e })()`)) === true)
   await page.shot(join(shotDir, 'memory-block.png')).catch(() => null)
   await q(`document.querySelector('[data-sug="discard"]').click()`); await sleep(1200)
   check('Memory: Discard removes the row and resolves it in the ledger', (await q(`document.querySelectorAll('[data-sug="row"]').length`)) === 1 && !ledger().some((i) => i.id === 's_mem1') && ledger().some((i) => i.id === 's_mem2'))
@@ -71,9 +72,11 @@ try {
 
   // ── Dashboards ──
   await page.send('Page.reload', { ignoreCache: true }); await sleep(4000)
-  const dbRow = `[...document.querySelectorAll('.kb4-item')].find((e) => /Dashboards/i.test(e.textContent))`
-  check('the Dashboards menu row pulses while a suggestion waits', (await waitFor(page, `(() => { const r = ${dbRow}; return !!r && !!r.querySelector('.kb-ping') })()`, 15000)) !== null)
-  await clickText(page, 'Dashboards'); await sleep(2500)
+  // The Dashboards row left the menu for Creations (docs/dev/creation-sources.md): its pulse sits on the Creations row, and the page is opened by the plugin's own view id.
+  const dbRow = `[...document.querySelectorAll('.kb4-item')].find((e) => /^Creations/i.test(e.textContent.trim()))`
+  const openDashboards = async () => { await q(`window.__KB_OPEN__({ view: 'dashboards' })`); await sleep(2500) }
+  check('the Creations row (where the Dashboards row went) pulses while a suggestion waits', (await waitFor(page, `(() => { const r = ${dbRow}; return !!r && !!r.querySelector('.kb-ping') })()`, 15000)) !== null)
+  await openDashboards()
   check('Dashboards: the suggestion sits in a dashed block, not in My dashboards', (await q(`document.querySelectorAll('[data-kb="suggested-row"]').length`)) === 1 && (await q(`[...document.querySelectorAll('[data-kb="dashboards-card"] h3')].every((e) => e.textContent !== 'Check weekly enquiries')`)) === true)
   check('...and says where it comes from and its proof', /Suggested by Kaby · Seen in 14 enquiries/.test(String(await q(`document.querySelector('[data-kb="suggested-row"] .kbdb-sug-proof').textContent`))))
   await page.shot(join(shotDir, 'dashboards-block.png')).catch(() => null)
@@ -81,7 +84,7 @@ try {
   check('Dashboards: Add moves it into My dashboards and the pulse stops', (await q(`[...document.querySelectorAll('[data-kb="dashboards-card"] h3')].some((e) => e.textContent === 'Check weekly enquiries')`)) === true && (await waitFor(page, `(() => { const r = ${dbRow}; return !!r && !r.querySelector('.kb-ping') })()`, 8000)) !== null)
   const made2 = await dash.create({ name: 'Check discard me', raw: { name: 'Check discard me', widgets: [] }, by: 'agent', what: 'Created' })
   await dash.markSuggested(made2.id, '')
-  await clickText(page, 'Skills'); await sleep(600); await clickText(page, 'Dashboards'); await sleep(3000)
+  await clickText(page, 'Skills'); await sleep(600); await openDashboards(); await sleep(500)
   await q(`document.querySelector('[data-kb="suggested-discard"]').click()`); await sleep(1500)
   check('Dashboards: Discard removes the suggestion for good (file included)', (await q(`!document.querySelector('[data-kb="suggested-block"]')`)) === true && !existsSync(join(home, 'kybernos', 'dashboards', 'files', made2.id + '.miniapp.json')))
 
