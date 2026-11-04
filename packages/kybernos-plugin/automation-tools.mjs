@@ -1,5 +1,6 @@
-// Agent tools for automations: Kaby proposes an automation (it waits for Add) and binds an automation to the chat it was made in. The rules are in automation-suggest.mjs
-// and in the tasks route (`suggest`, `bind-home`); these tools only hand the call to the route's own code, with the chat's id taken from the engine, never from the model.
+// Agent tools for automations: Kaby proposes an automation (it waits for Add), binds an automation to the chat it was made in, and sets a reminder (an automation that runs once in
+// this chat). The rules are in automation-suggest.mjs, automation-remind.mjs and in the tasks route (`suggest`, `bind-home`, `remind`); these tools only hand the call to the route's
+// own code, with the chat's id taken from the engine, never from the model.
 
 export const CHUNK_NAME = 'kybernos:automations'
 export const CHUNK_ORDER = 139
@@ -7,6 +8,8 @@ export const PROMPT = [
   'Automations (Kybernos): use automation_suggest to PROPOSE an automation you noticed the person needs. It is stored switched off and waits for the person\'s Add: say it is suggested, never that it is running.',
   'Give the proof you measured (how many times, over what period, where you saw it) and the apps it needs (Composio toolkit slugs such as gmail or googlecalendar).',
   'When the person asks you in a chat to create an automation, after you saved it call automation_home with its id so that its runs happen in this chat.',
+  'When the person asks to be reminded of something at a time (“remind me…”, “in 10 minutes”, “tomorrow at 9”), call automation_remind with what you will tell them (message) and either at (a date-time) or in_minutes. It is stored as a one-time automation that posts in this chat and shows with their automations. schedule_create is refused: never use it for a reminder.',
+  'After automation_remind answers, say it in one short sentence with the time. Do not repeat the details, and never say the reminder already ran.',
   'Use memory_suggest for a fact about the person you SAW several times (give the count and where), and instructions_suggest for ONE short section of custom instructions. Both wait for the person\'s Add; neither is saved before.',
   'To propose a dashboard call kybernos_dashboard with suggested: true and a one-sentence proof: it is kept aside until the person adds it, and it is not opened for them.',
   'Never put in a suggestion a name, an e-mail address, a phone number, an amount or any data of a client: it is refused. Write patterns, not people.',
@@ -46,7 +49,25 @@ const WHY = {
   'already queued': 'an initiative with that title already waits',
   'already added': 'the person already added that initiative: nothing to propose again',
   'needs new evidence': 'that one was dropped before: bring it back only with a higher count',
-  'too many initiatives': 'eight initiatives already wait: the person has to answer some first'
+  'too many initiatives': 'eight initiatives already wait: the person has to answer some first',
+  'message required': 'say what to remind the person of',
+  'time required': 'give either at or in_minutes',
+  'one time only': 'give at or in_minutes, not both',
+  'invalid minutes': 'in_minutes must be a number from 1 to 527040',
+  'invalid one-off date': 'at must look like 2026-11-03T23:07',
+  'that date is in the past': 'that time has already passed',
+  'too far ahead': 'a reminder can be one year ahead at most',
+  'too many reminders waiting': 'twenty-five reminders already wait: some have to run or be deleted first',
+  'no chat': 'a reminder is made from a chat'
+}
+
+/** When a reminder comes, in the words of its own zone: “3 Nov, 23:07”. Empty when the date cannot be read. */
+const whenText = (task) => {
+  try {
+    const at = new Date(task.nextRun)
+    const tz = task.schedule !== null && typeof task.schedule === 'object' && typeof task.schedule.tz === 'string' ? task.schedule.tz : undefined
+    return new Intl.DateTimeFormat('en-GB', { timeZone: tz, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(at)
+  } catch (e) { return '' }
 }
 
 /** The pending initiatives in one bounded sentence: it says what waits, never that something ran. `cap` is the queue's own bound when the caller has one. */
@@ -70,6 +91,8 @@ const say = (value, what) => (value !== null && typeof value === 'object' && val
     ? 'Recorded in the initiative queue: it waits for the person to answer on the Automations page. Nothing ran.'
     : what === 'initiative list'
     ? initiativeListText(value.items, value.cap)
+    : what === 'remind'
+    ? (value.existed === true ? 'Already set: ' : 'Reminder set: ') + '“' + String(value.task.name) + '”' + (whenText(value.task) !== '' ? ', ' + whenText(value.task) : '') + ', in this chat. It is one of the person\'s automations; it has not run yet.'
     : 'Bound: the runs of “' + String(value.task.name) + '” will happen in this chat.')
   : 'Not done: ' + (value !== null && typeof value === 'object' ? (WHY[value.error] || String(value.error)) : 'no answer') + '.')
 
@@ -121,7 +144,30 @@ export const toolDefinitions = (deps) => {
       return deps.tasks({ action: 'bind-home', id: str(args, 'task_id'), sessionId: sid })
     }
   }
-  const tools = [suggestTool, homeTool]
+  const remindTool = {
+    name: 'automation_remind',
+    description: 'Reminds the person of something at a time, in this chat. Stored as an automation that runs once (one line in their Automations), not as a native scheduled task: use it for every “remind me” request. Give either at or in_minutes.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        message: { type: 'string', description: 'What you will tell the person when it is time, written to yourself, for example "Remind the person to call the plumber." 8000 characters at most.' },
+        name: { type: 'string', description: 'A short title (120 characters at most). Optional: the start of the message is used.' },
+        at: { type: 'string', description: 'The date and time, for example "2026-11-03T23:07". In the machine\'s time zone unless it ends with Z or an offset such as +01:00.' },
+        in_minutes: { type: 'number', description: 'Instead of at: how many minutes from now (1 to 527040).' },
+        timezone: { type: 'string', description: 'An IANA time zone such as Europe/Paris for at. Optional: the machine\'s own is used.' }
+      },
+      required: ['message']
+    },
+    output: { schema: { type: 'object' }, render: (args, value) => TEXT(say(value, 'remind')) },
+    async execute (args, exec) {
+      const sid = sessionOf(exec)
+      if (sid === '') return { ok: false, error: 'no chat' }
+      const a = args !== null && typeof args === 'object' ? args : {}
+      return deps.tasks({ action: 'remind', sessionId: sid, args: { message: str(a, 'message'), name: str(a, 'name'), at: str(a, 'at'), in_minutes: a.in_minutes, timezone: str(a, 'timezone') } })
+    }
+  }
+  const tools = [suggestTool, homeTool, remindTool]
   if (deps.ledger !== undefined && deps.ledger !== null && typeof deps.ledger.add === 'function') {
     tools.push({
       name: 'memory_suggest',

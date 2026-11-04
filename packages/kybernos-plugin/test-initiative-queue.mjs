@@ -100,14 +100,14 @@ const initiative = {
   resolve: async () => ({ ok: true })
 }
 const names = (deps) => toolDefinitions(deps).map((t) => t.name)
-eq('without the seam there are still only the two automation tools', names({ tasks }), ['automation_suggest', 'automation_home'])
-eq('a plural or aliased key registers nothing: deps.initiative is singular', [names({ tasks, initiatives: initiative }).length, names({ tasks, queue: initiative }).length], [2, 2])
-eq('with the ledger the four existing names keep their order', names({ tasks, ledger }), ['automation_suggest', 'automation_home', 'memory_suggest', 'instructions_suggest'])
-eq('with the seam the two initiative tools come last', names({ tasks, initiative }), ['automation_suggest', 'automation_home', 'initiative_record', 'initiative_list'])
+eq('without the seam there are still only the three automation tools', names({ tasks }), ['automation_suggest', 'automation_home', 'automation_remind'])
+eq('a plural or aliased key registers nothing: deps.initiative is singular', [names({ tasks, initiatives: initiative }).length, names({ tasks, queue: initiative }).length], [3, 3])
+eq('with the ledger the four existing names keep their order', names({ tasks, ledger }), ['automation_suggest', 'automation_home', 'automation_remind', 'memory_suggest', 'instructions_suggest'])
+eq('with the seam the two initiative tools come last', names({ tasks, initiative }), ['automation_suggest', 'automation_home', 'automation_remind', 'initiative_record', 'initiative_list'])
 const tools = toolDefinitions({ tasks, ledger, initiative })
-eq('with both there are six', tools.map((t) => t.name), ['automation_suggest', 'automation_home', 'memory_suggest', 'instructions_suggest', 'initiative_record', 'initiative_list'])
-const rec = tools[4]
-const lis = tools[5]
+eq('with both there are seven', tools.map((t) => t.name), ['automation_suggest', 'automation_home', 'automation_remind', 'memory_suggest', 'instructions_suggest', 'initiative_record', 'initiative_list'])
+const rec = tools[5]
+const lis = tools[6]
 eq('both schemas are strict', [rec.parameters.additionalProperties, lis.parameters.additionalProperties], [false, false])
 eq('the record asks exactly the six fields of the door', rec.parameters.required, ['title', 'n', 'where', 'risk', 'reversibility', 'summary'])
 eq('the model cannot name a next-action kind', Object.keys(rec.parameters.properties).includes('kind'), false)
@@ -122,7 +122,7 @@ const withCap = toolDefinitions({ tasks, initiative: Object.assign({ cap: INITIA
 eq('the cap of the queue rides along when there is one', await withCap.execute({}, {}), { ok: true, items: [], cap: INITIATIVE_MAX })
 const boom = () => { throw new Error('an initiative tool must never reach the tasks route') }
 const quiet = toolDefinitions({ tasks: boom, initiative })
-eq('neither tool touches the tasks route', [(await quiet[2].execute({ title: 'T', n: 2, where: 'Gmail', risk: 'low', reversibility: 'easy', summary: 'Draft' }, {})).ok, (await quiet[3].execute({}, {})).ok], [true, true])
+eq('neither tool touches the tasks route', [(await quiet.find((t) => t.name === 'initiative_record').execute({ title: 'T', n: 2, where: 'Gmail', risk: 'low', reversibility: 'easy', summary: 'Draft' }, {})).ok, (await quiet.find((t) => t.name === 'initiative_list').execute({}, {})).ok], [true, true])
 
 const text = (t, v) => t.output.render({}, v)[0].text
 eq('recording says it waits and that nothing ran', text(rec, { ok: true, item: { id: 'i_1' } }), 'Recorded in the initiative queue: it waits for the person to answer on the Automations page. Nothing ran.')
@@ -137,19 +137,19 @@ eq('the render is bounded whatever the file holds', text(lis, { ok: true, items:
 const renders = [text(rec, { ok: true, item: { id: 'i_1' } }), text(rec, { ok: false, error: 'needs new evidence' }), text(lis, { ok: true, items: [] }), text(lis, { ok: true, items: [{ title: 'A', risk: 'low', reversibility: 'easy' }] }), text(lis, { ok: true, items: eight })]
 eq('no render ever claims something ran or was switched on', renders.filter((s) => /is running|has run|was started|is active|switched on|will run|was created/.test(s)), [])
 eq('a value that is not an answer says so instead of failing', text(lis, null), 'Not done: no answer.')
-eq('the prompt carries the three initiative rules and keeps the seven existing ones', [PROMPT.split('\n').length, PROMPT.includes('initiative_record'), PROMPT.includes('An initiative never creates'), PROMPT.includes('The next action of an initiative is a draft'), PROMPT.includes('Call initiative_list'), PROMPT.includes('Write patterns, not people.'), PROMPT.includes('never sends, deletes, pays or publishes')], [10, true, true, true, true, true, true])
+eq('the prompt carries the three initiative rules and keeps the seven existing ones', [PROMPT.split('\n').length, PROMPT.includes('initiative_record'), PROMPT.includes('An initiative never creates'), PROMPT.includes('The next action of an initiative is a draft'), PROMPT.includes('Call initiative_list'), PROMPT.includes('Write patterns, not people.'), PROMPT.includes('never sends, deletes, pays or publishes')], [12, true, true, true, true, true, true])
 
 // ---------- D. mounting: every seam guarded ----------
 const registered = []
 const chunks = []
 mountAutomationTools({ inject: (names, fn) => fn(names[0] === 'tools' ? { tools: { register: (t) => registered.push(t.name) } } : { systemPrompt: { context: (c) => chunks.push(c) } }) }, { tasks, ledger, initiative })
-eq('the mount registers the four tools and the one prompt chunk', [registered, chunks.length], [['automation_suggest', 'automation_home', 'memory_suggest', 'instructions_suggest', 'initiative_record', 'initiative_list'], 1])
+eq('the mount registers the five tools and the one prompt chunk', [registered, chunks.length], [['automation_suggest', 'automation_home', 'automation_remind', 'memory_suggest', 'instructions_suggest', 'initiative_record', 'initiative_list'], 1])
 const logged = []
 mountAutomationTools({ inject: () => { throw new Error('no seam') } }, { tasks, initiative }, (m) => logged.push(m))
 eq('a missing seam drops the part and logs, never throws', logged.length, 2)
 const onlyAutomations = []
 mountAutomationTools({ inject: (names, fn) => fn({ tools: { register: (t) => onlyAutomations.push(t.name) } }) }, { tasks })
-eq('a host without the queue still gets the two automation tools', onlyAutomations, ['automation_suggest', 'automation_home'])
+eq('a host without the queue still gets the three automation tools', onlyAutomations, ['automation_suggest', 'automation_home', 'automation_remind'])
 
 console.log(fails === 0 ? '\nall checks passed' : '\n' + fails + ' check(s) FAILED')
 process.exit(fails === 0 ? 0 : 1)

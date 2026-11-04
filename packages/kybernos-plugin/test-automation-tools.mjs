@@ -1,4 +1,4 @@
-// The agent tools of the automations: automation_suggest (a proposal that waits for Add) and automation_home (the runs happen in this chat).
+// The agent tools of the automations: automation_suggest (a proposal that waits for Add), automation_home (the runs happen in this chat) and automation_remind (a reminder: an automation that runs once, in this chat).
 import { toolDefinitions, mountAutomationTools, sessionOf, CHUNK_NAME, PROMPT } from './automation-tools.mjs'
 
 let fails = 0
@@ -8,8 +8,9 @@ const calls = []
 const deps = { tasks: async (body) => { calls.push(body); return body.action === 'suggest' ? { ok: true, task: { name: body.task.name } } : (body.id === 'nope' ? { ok: false, error: 'task not found' } : { ok: true, task: { name: 'Weekly' } }) } }
 const [suggest, home] = toolDefinitions(deps)
 
-eq('the two tools are named', [suggest.name, home.name], ['automation_suggest', 'automation_home'])
-eq('a tool schema is strict', [suggest.parameters.additionalProperties, home.parameters.additionalProperties], [false, false])
+const [, , remind] = toolDefinitions(deps)
+eq('the three tools are named', [suggest.name, home.name, remind.name], ['automation_suggest', 'automation_home', 'automation_remind'])
+eq('a tool schema is strict', [suggest.parameters.additionalProperties, home.parameters.additionalProperties, remind.parameters.additionalProperties], [false, false, false])
 eq('the chat is the agent\'s session, else the agent', [sessionOf({ agent: { session: { id: 's1' }, id: 'a1' } }), sessionOf({ agent: { id: 'a1' } }), sessionOf({}), sessionOf(null)], ['s1', 'a1', '', ''])
 
 const res = await suggest.execute({ name: 'N', prompt: 'P', cron: '0 8 * * 1', timezone: 'Europe/Paris', needs: ['gmail'], proof: { n: 14, span: '60 days' } }, {})
@@ -24,12 +25,20 @@ await home.execute({ task_id: 't1' }, { agent: { session: { id: 'sess-9' } } })
 eq('home binds the id of the chat the engine says, not one the model writes', JSON.stringify(calls[2]), JSON.stringify({ action: 'bind-home', id: 't1', sessionId: 'sess-9' }))
 eq('...and says the runs will happen in this chat', home.output.render({}, { ok: true, task: { name: 'Weekly' } })[0].text, 'Bound: the runs of “Weekly” will happen in this chat.')
 
+// the reminder: the engine names the chat, the route decides
+eq('a reminder needs a chat: outside a turn it is refused, and the route is not called', [await remind.execute({ message: 'Call', in_minutes: 5 }, {}), calls.length], [{ ok: false, error: 'no chat' }, 3])
+await remind.execute({ message: 'Call', in_minutes: 5, name: 'N', at: '', timezone: '' }, { agent: { session: { id: 'sess-9' } } })
+eq('remind hands the route the engine\'s chat id and the words, not a chat id of the model\'s', JSON.stringify(calls[3]), JSON.stringify({ action: 'remind', sessionId: 'sess-9', args: { message: 'Call', name: 'N', at: '', in_minutes: 5, timezone: '' } }))
+eq('...and says what was set, in this chat, and that it has not run', remind.output.render({}, { ok: true, task: { name: 'Call the plumber', nextRun: '2026-11-03T22:07:00.000Z', schedule: { tz: 'Europe/Paris' } } })[0].text, 'Reminder set: “Call the plumber”, 3 Nov, 23:07, in this chat. It is one of the person\'s automations; it has not run yet.')
+eq('a refusal of the route is said in words the agent can act on', remind.output.render({}, { ok: false, error: 'too far ahead' })[0].text, 'Not done: a reminder can be one year ahead at most.')
+eq('the prompt names the tool, the refusal of schedule_create, and the one short sentence', PROMPT.includes('automation_remind') && PROMPT.includes('schedule_create is refused') && PROMPT.includes('one short sentence'), true)
+
 // the two suggestion tools need the ledger
-eq('without a ledger there are only the two automation tools', toolDefinitions(deps).length, 2)
+eq('without a ledger there are only the three automation tools', toolDefinitions(deps).length, 3)
 const ledgerCalls = []
 const withLedger = toolDefinitions(Object.assign({}, deps, { ledger: { add: async (kind, raw) => { ledgerCalls.push([kind, raw]); return raw.text.includes('@') ? { ok: false, error: 'personal data' } : { ok: true, item: { id: 's1' } } } } }))
-eq('with it there are four', withLedger.map((t) => t.name), ['automation_suggest', 'automation_home', 'memory_suggest', 'instructions_suggest'])
-const [, , memory, instr] = withLedger
+eq('with it there are five', withLedger.map((t) => t.name), ['automation_suggest', 'automation_home', 'automation_remind', 'memory_suggest', 'instructions_suggest'])
+const [, , , memory, instr] = withLedger
 const m = await memory.execute({ text: 'Clients are private individuals', n: 14, span: '60 days', where: 'Gmail' }, {})
 eq('memory_suggest hands the text and its proof to the ledger as a memory', JSON.stringify(ledgerCalls[0]), JSON.stringify(['memory', { text: 'Clients are private individuals', n: 14, span: '60 days', where: 'Gmail' }]))
 eq('...and says it waits in Memory, not saved', memory.output.render({}, m)[0].text, 'Suggested: it waits for the person\'s Add in Memory. It is NOT saved yet.')
@@ -43,7 +52,7 @@ eq('the prompt names both tools and the no-personal-data rule', PROMPT.includes(
 const registered = []
 const chunks = []
 mountAutomationTools({ inject: (names, fn) => fn(names[0] === 'tools' ? { tools: { register: (t) => registered.push(t.name) } } : { systemPrompt: { context: (c) => chunks.push(c) } }) }, deps)
-eq('the tools are registered', registered, ['automation_suggest', 'automation_home'])
+eq('the tools are registered', registered, ['automation_suggest', 'automation_home', 'automation_remind'])
 eq('the prompt chunk is added once, literal, with the rules', [chunks.length, chunks[0].name, chunks[0].interpolate, chunks[0].text()], [1, CHUNK_NAME, false, PROMPT])
 const logged = []
 mountAutomationTools({ inject: () => { throw new Error('no seam') } }, deps, (m) => logged.push(m))

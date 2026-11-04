@@ -36,6 +36,7 @@ import { defaultState as onboardingDefault, publicView as onboardingView, comple
 import { isSuggested as autoIsSuggested, suggestedTask as autoSuggestedTask, acceptedTask as autoAcceptedTask, refusalFor as autoSuggestRefusal, HOME_ID_RE as AUTO_HOME_ID_RE, runFrame as autoRunFrame } from './automation-suggest.mjs'
 import { learnTask as autoLearnTask, isLearnName as autoIsLearnName, LEARN_ID as AUTO_LEARN_ID } from './learn-business.mjs'
 import { mountAutomationTools } from './automation-tools.mjs'
+import { reminderInput as autoRemindInput, reminderRefusal as autoRemindRefusal, sameReminder as autoRemindSame, mountNativeReminderDenial, REMIND_RECIPE as AUTO_REMIND_RECIPE } from './automation-remind.mjs'
 // Three modules of other batches (the static gate, the trial and its proof, the initiative queue). NAMESPACE imports and
 // guarded accessors on purpose: a named import of an export an installed copy of one of them does not carry is a
 // link-time error that takes the whole bundle down, while a namespace read is just `undefined` — the action then answers
@@ -3879,6 +3880,32 @@ function boot(ctx) {
         })
         return refused !== null ? refused : { ok: true, task }
       }
+      // A reminder: an automation that runs once, in the chat that made it (automation-remind.mjs). The tool asks for it, and the chat is the one the ENGINE names, never one the
+      // model wrote, so a page cannot bind a reminder to a chat that is not its own: only the tool path (not a human request of the route) can make one. It keeps no gate
+      // record, like a suggestion or an automation that predates the gate: it is one date, in a chat, its approvals are always `ask`, and no certification trial can be asked
+      // of someone who only said “remind me in ten minutes”. The same words in the same chat at the same moment are one reminder, not two (a retry of the model).
+      if (action === 'remind') {
+        if (human === true) return { ok: false, error: 'not available here' }
+        const built = autoRemindInput(body.args, body.sessionId, Date.now())
+        if (built.ok !== true) return { ok: false, error: built.error }
+        const clean = kbSanitizeTaskInput(built.task)
+        if (clean.ok !== true) return { ok: false, error: clean.error }
+        const stamp = new Date().toISOString()
+        const task = Object.assign({ id: kbTaskId(), createdAt: stamp, updatedAt: stamp, history: [], lastRun: null, homeOwn: false }, clean.task, { origin: { by: 'chat', recipe: AUTO_REMIND_RECIPE, at: stamp } })
+        const nx = kbComputeNextRun(task, Date.now())
+        if (kbNeverRuns(task, nx) === true) return { ok: false, error: kbNoNextRunError(task) }
+        task.nextRun = nx === null ? null : new Date(nx).toISOString()
+        let existing = null
+        let refused = null
+        await kbTasksMutate(async (tasks) => {
+          existing = tasks.find((t) => autoRemindSame(t, task)) || null
+          if (existing !== null) return
+          refused = autoRemindRefusal(tasks, nx, Date.now())
+          if (refused === null) tasks.push(task)
+        })
+        if (existing !== null) return { ok: true, task: existing, existed: true }
+        return refused !== null ? { ok: false, error: refused } : { ok: true, task }
+      }
       // « Learn my business »: made once (found again by its name in any language), switched on, weekly, in a session of its own. The onboarding step calls it; it only ever proposes.
       if (action === 'learn') {
         const about = body.about !== null && typeof body.about === 'object' ? body.about : {}
@@ -4648,6 +4675,8 @@ function boot(ctx) {
       ? { initiative: Object.assign({ add: async (raw) => (await kbInitiatives()).add(raw), list: async (status) => (await kbInitiatives()).list(status) }, typeof kbQueueCap === 'number' ? { cap: kbQueueCap } : {}) }
       : {}
     try { mountAutomationTools(ctx, Object.assign({ tasks: kbTasksHandle, ledger: { add: async (kind, raw) => (await kbSugg()).add(kind, raw) } }, kbInitiativeDeps), (m) => { try { console.error('[kybernos] ' + m) } catch (e) { /* console */ } }) } catch (e) { /* never stop DSH from starting */ }
+    // DSH's own `schedule_create` is refused with the way to automation_remind (before any approval card), unless the person turned DSH's native tasks back on.
+    try { mountNativeReminderDenial(ctx, async () => (await kbAutoSettingsRead()).showNativeTasks === true, (m) => { try { console.error('[kybernos] ' + m) } catch (e) { /* console */ } }) } catch (e) { /* never stop DSH from starting */ }
 
     // ── lire un namespace de réglages, 0.1.6 ET 0.1.7 ────────────────────────
     // 0.1.6 : `settings.get(ns)` rendait le document du namespace.

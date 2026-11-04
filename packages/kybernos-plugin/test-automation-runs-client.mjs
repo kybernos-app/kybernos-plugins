@@ -12,7 +12,7 @@ const src = readFileSync(fileURLToPath(new URL('./client.js', import.meta.url)),
 const parts = src.split('// KB-AUTORUNS-BEGIN')
 if (parts.length !== 2) { console.error('exactly one KB-AUTORUNS block expected in client.js'); process.exit(1) }
 const block = parts[1].split('// KB-AUTORUNS-END')[0]
-const names = ['kbRunsOf', 'kbRunFmtDur', 'kbRunFmtBytes', 'kbRunFmtDT', 'kbRunFmtHm', 'kbRunState', 'kbRunStats', 'kbRunGraph', 'kbRunBars', 'kbRunUses', 'kbRunAgo', 'kbRunCardFigures', 'kbAutoSheetOf', 'kbAutoSheetCostOf', 'KB_ASHEET_HEAD']
+const names = ['kbRunsOf', 'kbRunFmtDur', 'kbRunFmtBytes', 'kbRunFmtDT', 'kbRunFmtHm', 'kbRunState', 'kbRunStats', 'kbRunGraph', 'kbRunBars', 'kbRunUses', 'kbRunAgo', 'kbRunCardFigures', 'kbAutoSheetOf', 'kbAutoSheetCostOf', 'KB_ASHEET_HEAD', 'kbIsReminder', 'kbOnceDone']
 const m = await import('data:text/javascript,' + encodeURIComponent('const KB_RUNS_NOTE_WINDOW_MS = 600000\n' + block.replace(/^const KB_RUNS_NOTE_WINDOW_MS[^\n]*\n/m, '') + '\nexport { ' + names.join(', ') + ' }'))
 
 let fails = 0
@@ -228,6 +228,11 @@ eq('the old rows of the Sessions tab are gone', src.indexOf('kba-srow') < 0 && s
   eq('how it starts and where it runs', [f.mode, f.zone, f.hooked, f.chat, f.cloud], ['once', 'Europe/Paris', true, 'home', 'Studio'])
   eq('what it may do and when it stops', [f.approvals, f.maxMinutes, f.onWrite, f.notify, f.needs], ['auto', 30, 'stop', ['push', 'email'], ['gmail']])
   eq('a webhook-only automation says so', m.kbAutoSheetOf({ schedule: { mode: 'webhook' } }).mode, 'webhook')
+  // A reminder (made by automation_remind) has no certification to show; a one-time automation that ran is done, not paused.
+  eq('a reminder is told by the recipe the host stamped, and only by it', [m.kbIsReminder({ origin: { by: 'chat', recipe: 'reminder' } }), m.kbIsReminder({ origin: { by: 'kaby', recipe: 'learn' } }), m.kbIsReminder({ origin: null }), m.kbIsReminder({}), m.kbIsReminder(null)], [true, false, false, false, false])
+  const once = (o) => Object.assign({ active: false, schedule: { mode: 'once', at: '2026-11-04T09:00' }, lastRun: Z(4, 9, 0), history: [] }, o || {})
+  eq('a one-time automation that ran and is off is done', [m.kbOnceDone(once()), m.kbOnceDone(once({ lastRun: null, history: [{ at: Z(4, 9, 0), status: 'fired' }] }))], [true, true])
+  eq('...not one that never ran, one that is on, or a cron one that was paused', [m.kbOnceDone(once({ lastRun: null })), m.kbOnceDone(once({ active: true })), m.kbOnceDone(once({ schedule: { mode: 'cron', cron: '0 8 * * *' } })), m.kbOnceDone(null)], [false, false, false, false])
   eq('a limit that is not a whole number of minutes is no limit', [m.kbAutoSheetOf({ maxMinutes: 2.5 }).maxMinutes, m.kbAutoSheetOf({ maxMinutes: -3 }).maxMinutes, m.kbAutoSheetOf({ maxMinutes: '30' }).maxMinutes], [0, 0, 0])
   eq('a short prompt does not fold', [m.kbAutoSheetOf({ prompt: 'one line' }).more, m.KB_ASHEET_HEAD], [0, 3])
   const c = m.kbAutoSheetCostOf(['a', 'b', 'c', 'd'], { a: { costEur: 0.04, tokens: 1000, unpriced: 0 }, b: { costEur: 0.01, tokens: 500, unpriced: 1 }, c: null })
