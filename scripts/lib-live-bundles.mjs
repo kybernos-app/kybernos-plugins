@@ -53,7 +53,7 @@ export const LIVE_MIN_SECONDS = {
   'check-settings-nav-i18n-live.mjs': 240,
   'check-footer-live.mjs': 300,
   'check-phone-width-live.mjs': 300,
-  'check-theme-live.mjs': 1500,
+  'check-theme-live.mjs': 2100,      // 419 checks, 27 minutes alone (2026-11-04); each section now loads the page first
   'check-themes-gallery-live.mjs': 600,
   'check-themes-install-live.mjs': 400,
 }
