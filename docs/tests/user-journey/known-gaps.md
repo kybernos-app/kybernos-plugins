@@ -90,3 +90,5 @@ The cadrage (ADR 0063) is on an unmerged server branch; the catalogue lists the 
 
 ## KG-29 Not built on the automation side
 A budget per automation, a certification chip, the « Open » card in the chat, the old Journal Advanced graph. J16-09.
+
+KG-29 update 2026-11-04: a certification badge IS drawn on the Automations page for the states « Awaiting approval », « Checks failed » and « Refused » (`kybernos-plugin/client.js`); only a positive « Certified » chip is missing. A budget per automation and the Open card in the chat are still not built, and nothing promises them in the plugins (the public page `/ai-agent-teams` promises a budget per task: UJ-66).
