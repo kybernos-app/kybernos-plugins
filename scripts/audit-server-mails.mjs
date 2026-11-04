@@ -9,7 +9,7 @@
 // Refuses an address that is not loopback. Exit 0 when every check passed, 1 otherwise, 2 on a refusal. FINDINGS that need the owner's reading (language, brand) are listed apart and do not fail the run.
 import { pathToFileURL } from 'node:url'
 import { isLoopback } from './replica-owner-settings.mjs'
-import { makeClient, signUp } from './test-stripe-replica-money.mjs'
+import { makeClient, signUp } from './check-stripe-replica-money.mjs'
 
 const BAD_TEXT = /undefined|\bnull\b|\[object|\{\{|TODO|TO VERIFY|lorem ipsum|NaN/i
 const FRENCH = /\b(votre|vous|valable|expire dans|mot de passe|invit[ée]e?)\b/i

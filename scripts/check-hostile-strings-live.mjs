@@ -3,13 +3,13 @@
 // no text the server accepted may come back different from what was sent (no silent rewriting), and a name that is one line in every place it is shown (the invitation subject, the sidebar, a header)
 // must not hold a line break, a NUL, an invisible tag character or a bidirectional override. HTML and script are allowed to be accepted (the pages draw text, not markup) or refused; either is recorded.
 //
-//   node scripts/test-hostile-strings-live.mjs --api http://localhost:8841 --control http://127.0.0.1:8842 [--json]
+//   node scripts/check-hostile-strings-live.mjs --api http://localhost:8841 --control http://127.0.0.1:8842 [--json]
 //
 // Fields: the display name at sign-up, the team name at creation and at rename, the name inside the invitation mail's subject. Not covered here (they need a DSH): skill, automation and chat texts, a shared page,
 // which `docs/dev/hidden-text-vectors.json` already feeds through the hidden-text gate. Refuses a non-loopback address (exit 2). Exit 0 when every check passed, 1 otherwise.
 import { pathToFileURL } from 'node:url'
 import { isLoopback } from './replica-owner-settings.mjs'
-import { makeClient, signUp } from './test-stripe-replica-money.mjs'
+import { makeClient, signUp } from './check-stripe-replica-money.mjs'
 
 // Built from code points: the characters themselves do not survive the editors and shells that touch this file.
 const cp = (...codes) => String.fromCodePoint(...codes)
@@ -50,8 +50,8 @@ async function main () {
   const opt = (n) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : '' }
   const api = (opt('--api') || '').replace(/\/$/, '')
   const control = (opt('--control') || '').replace(/\/$/, '')
-  if (!api || !control) { console.error('usage: test-hostile-strings-live --api <loopback url> --control <loopback url> [--json]'); process.exit(2) }
-  if (!isLoopback(api) || !isLoopback(control)) { console.error('test-hostile-strings-live: both addresses must be loopback (a replica, never a real server)'); process.exit(2) }
+  if (!api || !control) { console.error('usage: check-hostile-strings-live --api <loopback url> --control <loopback url> [--json]'); process.exit(2) }
+  if (!isLoopback(api) || !isLoopback(control)) { console.error('check-hostile-strings-live: both addresses must be loopback (a replica, never a real server)'); process.exit(2) }
   const c = makeClient(api, control)
   const fails = []
   const notes = []

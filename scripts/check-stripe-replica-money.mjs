@@ -3,7 +3,7 @@
 // The expected values are the ones docs/runbooks/billing.md « Money given back » states: a retried event changes nothing; a PARTIAL refund leaves the credit; a FULL refund or a dispute takes back what was not spent
 // (audit `topup.revoke`); a refund of a SUBSCRIPTION invoice changes nothing; a failed renewal puts the plan past due and a paid one puts it back.
 //
-//   node scripts/test-stripe-replica-money.mjs --api http://localhost:8841 --control http://127.0.0.1:8842 [--state <replica-state.json>]
+//   node scripts/check-stripe-replica-money.mjs --api http://localhost:8841 --control http://127.0.0.1:8842 [--state <replica-state.json>]
 //
 // With --state the owner's audit trail is read too (`topup.revoke`); without it those checks are skipped, not passed. Refuses an address that is not loopback. Exit 0 when every check passed, 1 otherwise, 2 on a refusal.
 import { readFileSync } from 'node:fs'
@@ -51,8 +51,8 @@ async function main () {
   const opt = (n) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : '' }
   const api = (opt('--api') || '').replace(/\/$/, '')
   const control = (opt('--control') || '').replace(/\/$/, '')
-  if (!api || !control) { console.error('usage: test-stripe-replica-money --api <loopback url> --control <loopback url> [--state <replica-state.json>]'); process.exit(2) }
-  if (!isLoopback(api) || !isLoopback(control)) { console.error('test-stripe-replica-money: both addresses must be loopback (a replica, never a real server)'); process.exit(2) }
+  if (!api || !control) { console.error('usage: check-stripe-replica-money --api <loopback url> --control <loopback url> [--state <replica-state.json>]'); process.exit(2) }
+  if (!isLoopback(api) || !isLoopback(control)) { console.error('check-stripe-replica-money: both addresses must be loopback (a replica, never a real server)'); process.exit(2) }
   const c = makeClient(api, control)
   const results = []
   const check = async (id, title, fn) => {

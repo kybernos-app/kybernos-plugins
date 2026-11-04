@@ -10,7 +10,7 @@
 // Exit 0 when every place agrees to the nano-dollar, 1 otherwise, 2 on a refusal.
 import { pathToFileURL } from 'node:url'
 import { isLoopback } from './replica-owner-settings.mjs'
-import { makeClient, signUp } from './test-stripe-replica-money.mjs'
+import { makeClient, signUp } from './check-stripe-replica-money.mjs'
 
 /** Cost in nano-dollars of a call: tokens x USD per million = nano-dollars exactly (1 USD per million tokens is 1,000 nano-dollars a token). Integers in, integer out. */
 export function nanoCost (prompt, completion, priceIn, priceOut) {
