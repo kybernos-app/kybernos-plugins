@@ -506,6 +506,19 @@ const passingGate = m.applyTrial(gate(), { trial: clean.trial, proof: clean.proo
   ok('a completed run reads done and a failed turn reads failed, from the events alone')
 }
 
+// ── 27b. the run id of a real session survives normalization (UJ-165) ──────────────────────────────────────────────
+{
+  // The engine's session ids are `session-<uuid>`: 44 characters, which the long-token mask of `scrub` used to turn into '•••'.
+  const realId = 'session-1c6f0f43-8f63-4b8e-9d1b-0a5a7c3f1d22'
+  const sealed = m.normalizeProof({
+    runId: realId, gateId: 'gate:a1', startedAt: at, endedAt: later, supervised: true,
+    sideEffectFree: true, toolCalls: [], outcome: { state: 'completed' }, externalEffects: [], errors: [],
+  })
+  assert.equal(sealed.runId, realId, 'a real session id is kept whole, so the report can open its journal')
+  assert.equal(m.normalizeProof({ runId: 'a@b.co ' + realId, gateId: 'gate:a1', startedAt: at, outcome: {} }).runId.includes('@'), false, 'an address never rides in a run id')
+  ok('the run id of a real session is kept whole (it names the journal the report reads)')
+}
+
 // ── 28. a stored proof is judged over EVERY call, not over the twenty it displays (P2) ─────────────────────────────
 {
   const proofOf = (calls) => m.normalizeProof({

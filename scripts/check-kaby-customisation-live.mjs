@@ -122,7 +122,8 @@ try {
   const cells = await js('Array.from(document.querySelectorAll(\'[class*="navCell"]\')).map((e) => e.textContent.trim())')
   check('« Kaby » is in the Settings menu, next to the agents', Array.isArray(cells) && cells.includes('Kaby') && Math.abs(cells.indexOf('Kaby') - cells.indexOf('Workers')) <= 3, cells)
   check('its menu entry has an icon of its own, not the shell’s gear', (await js('(() => { const c = Array.from(document.querySelectorAll(\'[class*="navCell"]\')).find((e) => e.textContent.trim() === "Kaby"); return !!c && c.querySelector("svg") !== null })()')) === true)
-  check('the help card of the Suite is in the header when the Suite is there', (await js('document.querySelector(\'[data-kb="kaby-custom-page"] h4\') !== null')) === true)
+  // Since the 2026-11-02 title style the help is the round « ? » right after the title text (the Suite\'s Title through pageHead), no card with an h4 any more.
+  check('the « ? How it works » pill of the Suite is right after the title when the Suite is there', (await js('document.querySelector(\'[data-kb="kaby-custom-page"] [data-kb="page-head"] [data-kb="page-title"] + [data-kb="help"] [data-kb="help-button"]\') !== null')) === true)
 
   console.log('── the tabs ──')
   const tabNames = await js('Array.from(document.querySelectorAll(\'[data-kb="kaby-custom-tab"]\')).map((t) => t.textContent.trim())')

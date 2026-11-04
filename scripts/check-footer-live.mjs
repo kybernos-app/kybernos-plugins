@@ -656,6 +656,7 @@ try {
     await sleep(300)
     await shot('v41-remote-server-down')
     await press('[data-kb="mobile-switch-server"]')
+    await until(async () => (await settingsOpen()) === true, 5000)
     check('« Switch server » closes the window and opens Settings', (await settingsOpen()) && !(await exists('[data-kb="phone-channels"]')))
     if (await serversCell()) {
       await until(async () => /Add a server/i.test(await settingsText()), 15000)

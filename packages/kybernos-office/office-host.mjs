@@ -142,7 +142,8 @@ export function createHost ({ fs, home, userHome = null, log = () => {}, now = D
   }
 
   const freeCopyName = async (path) => {
-    const dir = dirname(path); const ext = extname(path); const stem = basename(path, ext)
+    // A deck's extension is two words: « talk.deck (edited).html » is a page the deck editor does not open (J15-05).
+    const dir = dirname(path); const ext = /\.deck\.html$/i.test(path) ? path.slice(-10) : extname(path); const stem = basename(path, ext)
     for (let i = 1; i < 100; i += 1) {
       const name = join(dir, stem + (i === 1 ? ' (edited)' : ' (edited ' + i + ')') + ext)
       try { await fs.access(name) } catch (e) { return name }

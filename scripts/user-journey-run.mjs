@@ -69,6 +69,7 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
   const planFile = join(resolve(outDir), 'plan.json')
   writeFileSync(planFile, JSON.stringify(derived, null, 2))
   const args = [join(REPO, 'scripts/soft-takeoff-run.mjs'), '--plan', planFile, '--out', resolve(outDir)].concat(mine.includes('--list') ? ['--list'] : [], pass)
-  const r = spawnSync(process.execPath, args, { stdio: 'inherit', cwd: REPO })
+  // Case J20-06 scans « the run's evidence folder »: the cases get it as KB_EVIDENCE (the folder the runner writes to unless the caller names a wider one, e.g. the folder of every round).
+  const r = spawnSync(process.execPath, args, { stdio: 'inherit', cwd: REPO, env: { ...process.env, KB_EVIDENCE: process.env.KB_EVIDENCE || resolve(outDir) } })
   process.exit(r.status === null ? 1 : r.status)
 }

@@ -52,8 +52,11 @@ for (const width of [1400, 700]) {
     await sleep(500)
     check('what is typed next is in the field', (await val(`(document.querySelector('.kb6-tb-search input') || {}).value`)) === 'quiz')
     const after = { head: await box('.kb6-headrow'), toolbar: await box('[data-kb="toolbar"]'), tools: await box('.kb6-tb-tools'), search: await box('.kb6-tb-search') }
-    check('the header does not grow when the field opens (nothing below it moves)', before.head !== null && after.head !== null && after.head[3] === before.head[3], { before: before.head, after: after.head })
-    check('the toolbar stays on one line', before.toolbar !== null && after.toolbar !== null && after.toolbar[3] - after.toolbar[1] === before.toolbar[3] - before.toolbar[1], { before: before.toolbar, after: after.toolbar })
+    // In a wide window the field shrinks into the room the title leaves (UJ-135); in a narrow one (UJ-55, 900 px and under) the tools may wrap, so only « nothing runs out » is asked of them.
+    if (width > 900) {
+      check('the header does not grow when the field opens (nothing below it moves)', before.head !== null && after.head !== null && after.head[3] === before.head[3], { before: before.head, after: after.head })
+      check('the toolbar stays on one line', before.toolbar !== null && after.toolbar !== null && after.toolbar[3] - after.toolbar[1] === before.toolbar[3] - before.toolbar[1], { before: before.toolbar, after: after.toolbar })
+    }
     check('nothing runs out of the window', (await val(`document.scrollingElement.scrollWidth <= window.innerWidth + 1`)) === true && after.tools !== null && after.tools[2] <= width, after)
     if (shotDir !== null) { try { mkdirSync(shotDir, { recursive: true }); await page.shot(join(shotDir, 'creations-search-' + width + '.png')) } catch (e) { /* no screenshot */ } }
   } catch (e) {

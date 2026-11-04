@@ -25,6 +25,7 @@
 // and it is NOT named test-*.mjs: it starts a real DSH, which a CI runner does not have (see docs/dev/live-testing.md).
 import { spawn } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, openSync, closeSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { createServer } from 'node:net'
 import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -37,8 +38,11 @@ const ONLY = arg('only', '') ? arg('only').split(',') : null
 const HOST_FAULTS = arg('faults', 'syntax,throw-import,throw-apply,missing-dep,no-main,bad-package,no-package,tla-hang').split(',')
 const CLIENT_FAULTS = ['c-syntax', 'c-throw', 'c-missing']
 const GUI = process.argv.includes('--gui')
-const PORT = Number(arg('port', 3097))
-const ROOT = resolve(arg('root', join(homedir(), '.kybernos-sandbox', 'bundle-faults')))
+// The port is the first free one from 3097 unless --port says one, and the lab folder follows it: two runs at the same time (a runner and an agent, two sessions) used to share
+// port 3097 and the lab, and the second one died with « the unmodified tree did not start ».
+const freePort = (from) => new Promise((resolvePort) => { const tryPort = (p) => { const s = createServer(); s.once('error', () => tryPort(p + 1)); s.listen(p, '127.0.0.1', () => s.close(() => resolvePort(p))) }; tryPort(from) })
+const PORT = arg('port', null) !== null ? Number(arg('port')) : await freePort(3097)
+const ROOT = resolve(arg('root', join(homedir(), '.kybernos-sandbox', PORT === 3097 ? 'bundle-faults' : 'bundle-faults-' + PORT)))
 const START_MS = Number(arg('start-timeout', 45)) * 1000
 if (PORT === 3080) { console.error('refusing: 3080 is the real DSH'); process.exit(3) }
 

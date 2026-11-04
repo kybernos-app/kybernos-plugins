@@ -1115,6 +1115,16 @@ try {
   const quotaText = JSON.stringify(quotaOut.body)
   assert.equal(quotaText.includes(TOKEN), false, 'the token is not in the answer')
   assert.equal(/_usd|limit|spent|remaining/.test(quotaText), false, 'no amount of money leaves the host: the allowance is a percentage')
+  budgetBody = { windows: [
+    { kind: 'member', window_seconds: 2592000, scope: 'plan', limit_usd: '0.00', spent_usd: '4.00', remaining_usd: '0.00', exhausted: true, used_percent: 100, resets_at: null },
+    { kind: 'member', window_seconds: 18000, scope: 'plan', limit_usd: '1.00', spent_usd: '1.20', remaining_usd: '0.00', exhausted: true, used_percent: 100, resets_at: null },
+  ] }
+  const quotaEmpty = await hit('/kybernos-cloud/quota', 'GET')
+  assert.deepEqual(quotaEmpty.body.usage, [
+    { kind: 'member', window_seconds: 18000, scope: 'plan', used_percent: 100, exhausted: true, resets_at: null },
+    { kind: 'member', window_seconds: 2592000, scope: 'plan', used_percent: 100, exhausted: true, resets_at: null, empty: true },
+  ], 'a used-up window whose limit is zero is flagged `empty` (nothing comes back into it); a used-up window with a real limit is not')
+  assert.equal(/_usd|limit|spent|remaining/.test(JSON.stringify(quotaEmpty.body)), false, 'the flag is not an amount')
   refuseOnly = '/v1/workspaces/ws-'
   const quotaDead = await hit('/kybernos-cloud/quota', 'GET')
   assert.equal(quotaDead.body.ok, false, 'a server that refuses the read: no facts, the notice falls back to DSH\'s own words')
@@ -2391,10 +2401,12 @@ try {
       assert.equal(asked.length, 1)
       assert.equal(asked[0].toolName, 'memory_write')
       assert.ok(/memory_write/.test(asked[0].reason), 'the card says what is asked: ' + asked[0].reason)
-      outcome = 'denied'
+      outcome = 'rejected'
       const refused = await run('connections_execute', { tool: 'GMAIL_SEND_EMAIL' })
       assert.equal(refused.kind, 'deny', 'the person said no')
       assert.ok(/did not allow/.test(refused.reason) && /Do not try it again/.test(refused.reason))
+      assert.ok(/they refused it/.test(refused.reason), 'the engine\'s word for Reject is « rejected »: the model is told the person refused, not that the question failed: ' + refused.reason)
+      outcome = 'denied'
       for (const t of ['computer_exec', 'computer_write', 'lesson_write', 'relancer_dsh']) assert.equal((await run(t, {})).kind, 'deny', t + ' asks too')
       const count = asked.length
       for (const safe of ['memory_search', 'kaby_journal', 'kaby_knowledge', 'connections_list', 'lesson_search', 'computer_list', 'bash', 'read']) assert.deepEqual(await run(safe, {}), { kind: 'allow' }, safe)

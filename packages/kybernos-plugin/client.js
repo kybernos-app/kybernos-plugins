@@ -87,7 +87,7 @@ let kbLocaleRead = () => 'en'
       // ── tâches planifiées ──
       'menu.tasks': { kybernos: 'Automations', en: 'Automations' },
       'tasks.title': { kybernos: 'Automations', en: 'Automations' },
-      'tasks.subtitle': { kybernos: 'Des Agent Teams qui démarrent seules — sur un planning, un email, un message ou un webhook.', en: 'Agent Teams that start by themselves — on a schedule, an email, a message or a webhook.' },
+      'tasks.subtitle': { kybernos: 'Des Agent Teams qui démarrent seules — sur un planning, à une date ou quand un webhook est appelé.', en: 'Agent Teams that start by themselves — on a schedule, on a date or when a webhook is called.' },
       'tasks.filter.all': { kybernos: 'Toutes', en: 'All' },
       'tasks.filter.active': { kybernos: 'Actives', en: 'Active' },
       'tasks.filter.attention': { kybernos: 'Attention requise', en: 'Needs attention' },
@@ -36371,8 +36371,9 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb6-helpq{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
 .kb6-headacts{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;margin-inline-start:auto;padding-top:6px}
 /* No wrap: the search field shrinks (min-width:0) instead of dropping the view switch and the menu to a second line, which pushed the whole page down when the magnifier was pressed. */
-/* The tools wrap when the column is narrower than they are (UJ-55: at 768 px with the sidebar open the Automations toolbar was 479 px in a 432 px column and its « Create » button was cut by the window) */
-.kb6-tb-tools{margin-inline-start:auto;display:flex;align-items:center;gap:2px;flex-wrap:wrap;row-gap:6px;justify-content:flex-end;padding-top:6px}
+/* The tools stay on one line, the search field shrinking first (opening it at 1400 px made the whole toolbar wrap: UJ-135), and wrap only in a window narrow enough for them not to fit (UJ-55: at 768 px with the sidebar open the Automations toolbar was 479 px in a 432 px column and its « Create » button was cut by the window) */
+.kb6-tb-tools{margin-inline-start:auto;display:flex;align-items:center;gap:2px;flex-wrap:nowrap;justify-content:flex-end;padding-top:6px}
+@media (max-width:900px){.kb6-tb-tools{flex-wrap:wrap;row-gap:6px}}
 .kb6-tb-tools .kb6-tb-search{flex:0 1 280px;min-width:0;margin-inline-end:6px}
 .kb6-tb-ghost{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:38px;height:var(--kb6-tb-h);border-radius:999px;border:0;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;position:relative;padding:0}
 .kb6-tb-ghost:hover,.kb6-tb-ghost.open{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
@@ -36855,8 +36856,9 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kba-tabver{font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
 .kba-body{flex:1;min-height:0;display:flex;flex-direction:column}
 .kba-sesscroll{flex:1;min-height:0;overflow-y:auto;padding-bottom:16px}
-.kba-sub{align-self:flex-start;display:inline-flex;align-items:center;gap:2px;padding:4px;margin:0 0 14px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1)}
-.kba-sub button{display:inline-flex;align-items:center;gap:8px;height:34px;border:0;border-radius:999px;padding:0 16px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.kba-sub{align-self:flex-start;display:inline-flex;align-items:center;gap:2px;padding:4px;margin:0 0 14px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);max-width:100%;overflow-x:auto;scrollbar-width:none}
+.kba-sub::-webkit-scrollbar{display:none}
+.kba-sub button{display:inline-flex;align-items:center;gap:8px;height:34px;border:0;border-radius:999px;padding:0 16px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none;white-space:nowrap}
 .kba-sub button:hover{color:var(--dsw-alias-label-primary)}
 .kba-sub button.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(20,20,19,.14)}
 .kbtd{display:flex;flex-direction:column;gap:14px;min-width:0}
@@ -42709,14 +42711,16 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         const said = { site: S.site, profile: S.social, words: S.words }
         return S.site.trim() !== '' || S.social.trim() !== '' || S.words.trim() !== '' || S.aboutSaved ? said : null
       }
+      // An abandoned pairing would sit on the host until it expires: the card of Kybernos Cloud does the same on « Cancel ». Not one that has just succeeded: on the phone the
+      // wizard goes from the waiting screen straight to the chat (no « connected » screen), and the account it has just connected must stay (J03-02).
+      const dropPairing = () => { if (S.screen === 'cloud-wait' && S.model !== 'cloud') call('/kybernos-cloud/disconnect', 'POST', { confirm: true }) }
       const finish = (openSettingsNames) => {
         if (finished) return
         finished = true
         const reachedModel = kbObStepOf(S.screen) === 'model' || ['about', 'agents', 'kit', 'plan', 'done'].indexOf(S.screen) >= 0
         // A model that already works counts as the choice; leaving the step without any is « later ».
         const model = S.model !== null ? S.model : (reachedModel ? (S.ready !== null ? S.ready : 'later') : null)
-        // An abandoned pairing would sit on the host until it expires: the card of Kybernos Cloud does the same on « Cancel ».
-        if (S.screen === 'cloud-wait') call('/kybernos-cloud/disconnect', 'POST', { confirm: true })
+        dropPairing()
         // Leaving while a model is still downloading: it keeps downloading, and connects itself when it is done.
         if (S.screen === 'local-install' && S.localId !== null) { S.model = 'local'; watchInstall(S.localId) }
         // Opened from the chat's card or from a page that suggests the kit (standalone), the wizard is not the first run: the
@@ -42818,8 +42822,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const decideLater = () => {
         // On the phone « Skip » is not « later »: with no model the chat has nothing to say, so the way to one is said again (a model that already works still counts).
         if (S.phone && S.model === null && S.ready === null) {
-          // an abandoned pairing would sit on the host until it expires
-          if (S.screen === 'cloud-wait') call('/kybernos-cloud/disconnect', 'POST', { confirm: true })
+          dropPairing()
           go('nomodel')
           return
         }

@@ -40,7 +40,7 @@ export const makeContext = async () => {
   ctx.hostOf = (who) => {
     const h = ctx.as(who)
     const c = cookieDeSession(h)
-    return (method, path, body) => fetch('http://' + h + path, { method, headers: { 'content-type': 'application/json', cookie: c.nom + '=' + c.valeur, origin: 'http://' + h }, body: body === undefined ? undefined : JSON.stringify(body) }).then((r) => r.json())
+    return (method, path, body) => fetch('http://' + h + path, { method, headers: { 'content-type': 'application/json', cookie: c.nom + '=' + c.valeur, origin: 'http://' + h }, body: body === undefined ? undefined : JSON.stringify(body) }).then((r) => r.json().catch(() => null))
   }
   /** The DSH_HOME of a team's own DSH: the personal home's `teams/<id>` (where its browser-session secret lives). */
   ctx.homeOfTeam = (who, teamId) => join(process.env[who === 'a' ? 'KB_E2E_HOME_A' : 'KB_E2E_HOME_B'], '.dsh', 'teams', teamId)

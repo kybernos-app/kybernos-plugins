@@ -33,13 +33,16 @@ const HARD = [
   ['bearer value', /Bearer\s+[A-Za-z0-9._~+/=-]{40,}/g]
 ]
 
-/** Findings of one text: `{ kind, hard, line }` (never the value). Pure. */
-export function scanText (text) {
+// A number in a script or a style sheet saved as evidence (the public site's bundle, say) is a constant of the code, and 16 digits in minified code pass the Luhn check by chance about one time in ten.
+const CODE_FILE = /\.(?:m?js|cjs|css|map|svg)$/i
+
+/** Findings of one text: `{ kind, hard, line }` (never the value). `file` is its name, when known. Pure. */
+export function scanText (text, file = '') {
   const out = []
   const lines = text.split('\n')
   lines.forEach((ln, i) => {
     for (const [kind, re] of HARD) { re.lastIndex = 0; if (re.test(ln)) out.push({ kind, hard: true, line: i + 1 }) }
-    for (const m of ln.matchAll(/(?<![\w.-])(?:\d{13,19}|\d{4}(?:[ -]\d{4}){3}|\d{4}[ -]\d{6}[ -]\d{5})(?![\w.-])/g)) {
+    if (!CODE_FILE.test(file)) for (const m of ln.matchAll(/(?<![\w.-])(?:\d{13,19}|\d{4}(?:[ -]\d{4}){3}|\d{4}[ -]\d{6}[ -]\d{5})(?![\w.-])/g)) {
       const digits = m[0].replace(/\D/g, '')
       if (digits.length < 13 || digits.length > 19 || !luhn(digits)) continue
       if (/^1[0-9]{12}$/.test(digits) || /^[0-9]{13}$/.test(digits) && Number(digits) > 1e12 && Number(digits) < 2.5e12) continue // a millisecond timestamp
@@ -72,7 +75,7 @@ function main () {
     try { buf = readFileSync(p) } catch { continue }
     if (buf.subarray(0, 4096).includes(0)) continue
     files += 1
-    for (const f of scanText(buf.toString('utf8'))) findings.push({ file: p.slice(root.length + 1), ...f })
+    for (const f of scanText(buf.toString('utf8'), p)) findings.push({ file: p.slice(root.length + 1), ...f })
   }
   if (files === 0) { console.error('scan-secrets-in-evidence: no readable file under that folder'); process.exit(2) }
   const hard = findings.filter((f) => f.hard)

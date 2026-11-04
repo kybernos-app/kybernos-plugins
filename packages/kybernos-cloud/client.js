@@ -164,8 +164,10 @@ window.__ModuleLoader__.load({
         menuPhone: 'Téléphone et canaux',
         quotaPayment: 'Le dernier paiement de {name} a échoué : les appels IA sont suspendus jusqu\'à son règlement.',
         quotaPaymentAdmin: ' Règle-le dans Facturation.',
+        quotaYourPlan: 'ton offre',
         quotaPaymentMember: ' Demande à un propriétaire ou à un admin de {name}.',
         quotaUsedUp: '{pct}\u00a0% de ton quota de {window}{cap} est utilisé — il revient {when}.',
+        quotaNoAllowance: 'Ton crédit est utilisé — cette offre n\'a pas de quota propre.',
         quotaUsedUpTeam: '{pct}\u00a0% du quota de {window} de {name} est utilisé — il revient {when}.',
         quotaNear: '{pct}\u00a0% de ton quota de {window}{cap} est utilisé.',
         quotaNearTeam: '{pct}\u00a0% du quota de {window} de {name} est utilisé.',
@@ -470,8 +472,10 @@ window.__ModuleLoader__.load({
         menuPhone: 'Phone and channels',
         quotaPayment: 'The last payment for {name} failed: AI calls are paused until it is settled.',
         quotaPaymentAdmin: ' Fix it in Billing.',
+        quotaYourPlan: 'your plan',
         quotaPaymentMember: ' Ask an owner or admin of {name}.',
         quotaUsedUp: '{pct}% of your {window} allowance{cap} is used — it comes back {when}.',
+        quotaNoAllowance: 'Your credit is used up — this plan has no allowance of its own.',
         quotaUsedUpTeam: '{pct}% of the {window} allowance of {name} is used — it comes back {when}.',
         quotaNear: '{pct}% of your {window} allowance{cap} is used.',
         quotaNearTeam: '{pct}% of the {window} allowance of {name} is used.',
@@ -1350,7 +1354,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       .sort((a, b) => quotaOpensAt(b) - quotaOpensAt(a) || b.window_seconds - a.window_seconds || (a.kind === b.kind ? 0 : a.kind === 'member' ? -1 : 1))[0] || null
     // The window closest to being used up (the longer one on a tie). Null for an empty list.
     const quotaMostUsed = (windows) => windows.slice().sort((a, b) => b.used_percent - a.used_percent || b.window_seconds - a.window_seconds)[0] || null
-    const quotaPaymentText = (name, admin, t) => quotaFill(t('quotaPayment'), { name }) + (admin ? t('quotaPaymentAdmin') : quotaFill(t('quotaPaymentMember'), { name }))
+    // A personal space has the server's own name for it (« My workspace »), which no screen of the web app uses: it is « your plan » here.
+    const quotaPaymentText = (name, admin, t, personal = false) => quotaFill(t('quotaPayment'), { name: personal === true ? t('quotaYourPlan') : name }) + (admin ? t('quotaPaymentAdmin') : quotaFill(t('quotaPaymentMember'), { name }))
     // One window in a sentence: « 82% of your 24 hours allowance is used. », and for a used-up one « 100% of your 5 hours allowance is used — it comes back in about 3 h. ».
     // A window of the team's pool is named after the team, a cap an admin set says where it was set.
     const quotaWindowSentence = (w, name, t, now) => {
@@ -1358,6 +1363,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       const window = quotaWindowLabel(w.window_seconds, t)
       const cap = !team && w.scope === 'team' ? quotaFill(t('quotaCap'), { name }) : ''
       if (w.exhausted !== true) return quotaFill(t(team ? 'quotaNearTeam' : 'quotaNear'), { pct: w.used_percent, window, cap, name })
+      // A window with a limit of zero never fills back (a Free space whose credit is spent): saying it « comes back » would promise what does not happen.
+      if (w.empty === true && !team) return t('quotaNoAllowance')
       const when = quotaWhen(w.resets_at, now, t) || quotaFill(t('quotaBackUnknown'), { window })
       return quotaFill(t(team ? 'quotaUsedUpTeam' : 'quotaUsedUp'), { pct: 100, window, cap, name, when })
     }
@@ -1378,7 +1385,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       // A team nobody has bought a plan for: every model call is refused and there is no window to read. Say that, and offer the plan page (`label` and `section` are
       // what the notice's button says and opens; without them it is « Open Plan & Credits »).
       if (info.no_plan === true) return { text: quotaFill(t('quotaNoPlan'), { name }) + (admin ? t('quotaNoPlanAdmin') : quotaFill(t('quotaNoPlanMember'), { name })), action: admin, label: 'planChoose', section: 'plan' }
-      if (info.payment_blocked === true) return { text: quotaPaymentText(name, admin, t), action: admin }
+      if (info.payment_blocked === true) return { text: quotaPaymentText(name, admin, t, ws.personal === true), action: admin }
       const windows = quotaWindows(info)
       const out = quotaBlocking(windows)
       // Nothing used up: a gentle word when one window is close to it, nothing at all otherwise (the failing provider is another one).
@@ -1401,7 +1408,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       const ws = info.workspace !== null && typeof info.workspace === 'object' ? info.workspace : {}
       const name = typeof ws.name === 'string' && ws.name !== '' ? ws.name : t('quotaWorkspace')
       const admin = ws.role === 'owner' || ws.role === 'admin'
-      if (info.payment_blocked === true) return { percent: 100, level: 'full', title: quotaPaymentText(name, admin, t) }
+      if (info.payment_blocked === true) return { percent: 100, level: 'full', title: quotaPaymentText(name, admin, t, ws.personal === true) }
       const windows = quotaWindows(info)
       const poolFirst = ws.personal !== true && admin
       const pool = windows.filter((x) => x.kind === 'pool')

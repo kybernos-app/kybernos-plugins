@@ -2143,7 +2143,10 @@ const budgetWindowView = (w) => {
   const percent = exhausted ? 100 : budgetPercent(w)
   if (percent === null) return null
   const at = typeof w.resets_at === 'string' && Number.isFinite(Date.parse(w.resets_at)) ? new Date(Date.parse(w.resets_at)).toISOString() : null
-  return { kind: w.kind, window_seconds: w.window_seconds, scope: typeof w.scope === 'string' ? w.scope : 'plan', used_percent: percent, exhausted, resets_at: exhausted ? at : null }
+  const view = { kind: w.kind, window_seconds: w.window_seconds, scope: typeof w.scope === 'string' ? w.scope : 'plan', used_percent: percent, exhausted, resets_at: exhausted ? at : null }
+  // A window whose limit is zero is not an allowance that fills and empties: nothing comes back into it (a Free space, once its credit is spent). A flag, not an amount.
+  if (exhausted && w.limit_usd !== null && w.limit_usd !== undefined && Number(w.limit_usd) === 0) view.empty = true
+  return view
 }
 
 /** What stopped the person's last call, for the notice that replaces DSH's « Request quota exhausted » (its own words, the same for every refusal: a window used up,
@@ -5500,7 +5503,8 @@ const nativeGate = (ctx) => async (exec, next) => {
   try {
     outcome = await approval.request({ agent: exec.agent, toolName: name, reason: turnApprovalSubject(exec).shown.slice(0, 500), signal: exec.signal })
   } catch (e) { outcome = 'unavailable' }
-  return outcome === 'allowed-once' ? next() : refuse(outcome === 'denied' ? 'they refused it' : 'it could not be asked')
+  // The engine says « rejected » when the person presses Reject (« denied » is kept for older hosts): either way they refused, it was not a failure to ask (UJ-168).
+  return outcome === 'allowed-once' ? next() : refuse(outcome === 'rejected' || outcome === 'denied' ? 'they refused it' : 'it could not be asked')
 }
 // ── An automation that asks first, on a cloud computer (ADR 0052 § 15) ──────────────────────────────────────────
 // The core plugin (kybernos) publishes which sessions are runs of an automation published to this computer that asks first (`Symbol.for('kybernos.automationRuns')`); this gate asks the

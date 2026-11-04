@@ -22,8 +22,8 @@ import { openLivePage, waitFor } from './live-page.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const args = process.argv.slice(2)
-const serveFile = args.find((a) => !a.startsWith('--') && a !== (args[args.indexOf('--shots') + 1]))
 const shotDir = args.includes('--shots') ? args[args.indexOf('--shots') + 1] : null
+const serveFile = args.find((a) => !a.startsWith('--') && a !== shotDir)
 if (serveFile === undefined || !existsSync(serveFile)) { console.error('○ inconclusive: give the file written by `node scripts/telegram-live.ts --serve <file.json>` (and keep that process running).'); process.exit(3) }
 if ((process.env.KB_HOST || '127.0.0.1:3080') === '127.0.0.1:3080') { console.error('○ inconclusive: run it from the sandbox shell (`source scripts/sandbox/env.sh`), never against the user\'s own DSH.'); process.exit(3) }
 const srv = JSON.parse(readFileSync(serveFile, 'utf8'))
@@ -46,6 +46,8 @@ const { page } = live
 const val = async (e, ms) => (await page.evalJs(e, ms)).val
 const poll = async (fn, ms = 15000) => { const end = Date.now() + ms; for (;;) { const v = await fn(); if (v) return v; if (Date.now() > end) return v; await sleep(250) } }
 const has = (kb) => val(`!!document.querySelector('[data-kb="${kb}"]')`)
+// Telegram is set up in the « Phone and channels » window, not in the strip (the strip is one line since 2026-10-22): the rows below are read there, as check-kyby-live.mjs does.
+const openWin = async () => { if ((await has('phone-channels')) === true) return true; await click('kybernos-kyber-open-phone'); return (await poll(() => has('phone-channels'), 8000)) === true }
 const text = (kb) => val(`(() => { const e = document.querySelector('[data-kb="${kb}"]'); return e ? e.innerText : null })()`)
 const click = (kb) => val(`(() => { const e = document.querySelector('[data-kb="${kb}"]'); if (!e) return false; e.click(); return true })()`)
 const attr = (kb, a) => val(`(() => { const e = document.querySelector('[data-kb="${kb}"]'); return e ? e.getAttribute(${JSON.stringify(a)}) : null })()`)
@@ -59,12 +61,13 @@ try {
   await val(`(() => { const e = Array.from(document.querySelectorAll('button, a, [role="button"]')).filter((x) => (x.innerText || '').trim().split('\\n')[0] === 'Kaby' && x.getClientRects().length > 0)[0]; if (e) e.click(); return !!e })()`)
   check('Kaby\'s chat opens with the strip above its composer', (await poll(() => has('kybernos-kyber-dock'), 25000)) === true)
   await closeDialog()
+  await openWin()
   await poll(() => has('kybernos-kyber-tg-switch'), 15000)
   const row0 = (await text('kybernos-kyber-tg-row')) || ''
   check('the real server answered: Telegram is there, not connected', /Telegram/.test(row0) && /Pas connecté|Not connected/.test(row0), row0)
   check('the switch is usable (this server has a bot)', (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'false' && (await val(`!document.querySelector('[data-kb="kybernos-kyber-tg-switch"]').disabled`)) === true)
   const comp0 = (await text('kybernos-kyber-computer')) || ''
-  check('the computer tile: Home, on request, made at the first request that needs one', /Home/.test(comp0) && /À la demande|On request/.test(comp0) && /première demande|first request/.test(comp0), comp0.slice(0, 160))
+  check('the computer tile: this computer is ready, and the cloud computer Home is offered (it is made when a request needs one)', /Cet ordinateur|This computer/.test(comp0) && /Home/.test(comp0) && /Prêt|Ready/.test(comp0), comp0.slice(0, 200))
   check('no code was asked for by opening the strip', (await has('kybernos-kyber-qr')) === false)
 
   await click('kybernos-kyber-tg-switch')
@@ -81,8 +84,8 @@ try {
   const yes = ((ask && ask.body.reply_markup && ask.body.reply_markup.inline_keyboard) || []).flat().find((b) => /^pr:y:/.test(b.callback_data))
   check('the bot asked in the chat, with a « yes » button of its own', !!yes, ask && ask.body.text)
   await tap(yes ? yes.callback_data : 'pr:y:none')
-  check('after the tap the page is connected by itself: the strip folds and says Telegram is connected', (await poll(async () => /connecté|connected/i.test((await text('kybernos-kyber-status')) || '') && !/non connect|not connected/i.test((await text('kybernos-kyber-status')) || ''), 12000)) === true, await text('kybernos-kyber-status'))
-  await click('kybernos-kyber-strip-toggle')
+  check('after the tap the page is connected by itself: the strip says Telegram is on', (await poll(async () => /^Telegram · (actif|on)$/i.test(((await text('kybernos-kyber-status')) || '').trim()), 12000)) === true, await text('kybernos-kyber-status'))
+  await openWin()
   await poll(() => has('kybernos-kyber-tg-row'), 5000)
   const row1 = (await text('kybernos-kyber-tg-row')) || ''
   check('opened: Telegram\'s row names the chat Telegram gave, the switch is on, the bot has its link', /Ada/.test(row1) && (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'true' && (await has('kybernos-kyber-bot')) === true, row1)

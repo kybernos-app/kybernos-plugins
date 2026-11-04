@@ -161,12 +161,15 @@ try {
   const clickSide = (label) => val(`(() => { const e = Array.from(document.querySelectorAll('.kb4-item')).find((x) => x.innerText.trim().split('\\n')[0] === ${JSON.stringify(label)}); if (!e) return false; e.click(); return true })()`)
   const onIs = async (names, ms) => (await poll(async () => JSON.stringify(await onRows()) === JSON.stringify(names), ms || 8000)) === true
   check('on Kaby\'s chat the Kaby row is the selected one and no other', await onIs(['Kaby']), await onRows())
-  if ((await clickSide('Dashboards')) === true) {
-    check('on the Dashboards page Dashboards is selected and Kaby is not', await onIs(['Dashboards']), await onRows())
+  // Any other row of the sidebar will do to leave Kaby for a moment: Dashboards left the sidebar for the tiles of Creations (2026-11-02), so the first one that is there is pressed.
+  let leftFor = null
+  for (const label of ['Creations', 'Automations', 'Skills', 'Dashboards']) { if ((await clickSide(label)) === true) { leftFor = label; break } }
+  if (leftFor !== null) {
+    check('on the ' + leftFor + ' page ' + leftFor + ' is selected and Kaby is not', await onIs([leftFor]), await onRows())
     await clickRow()
-    check('back on Kaby, Dashboards is back to the normal style and Kaby is marked', await onIs(['Kaby'], 15000), await onRows())
+    check('back on Kaby, the other row is back to the normal style and Kaby is marked', await onIs(['Kaby'], 15000), await onRows())
     await poll(() => has('kybernos-kyber-dock'), 20000)
-  } else check('the Dashboards row is there to leave', false)
+  } else check('another row of the sidebar is there to leave for', false)
   if ((await clickSide('Skills')) === true) {
     check('on another page (Skills) only that row is selected', await onIs(['Skills']), await onRows())
     await clickRow()

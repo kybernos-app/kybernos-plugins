@@ -559,8 +559,10 @@ export const gateStatusAfterTrial = (trial, proof) => (trialPassed(proof) === tr
  */
 export const normalizeProof = (raw) => {
   if (plain(raw) === false) return null
-  // A proof with no run id reports no run: it is not a proof, so it is not one here either.
-  const runId = scrub(raw.runId, GATE_ID_MAX)
+  // A proof with no run id reports no run: it is not a proof, so it is not one here either. The run id is an opaque
+  // identifier, not free text: `session-<uuid>` is 44 characters and the long-token mask of `scrub` turned it into
+  // '•••', so the report could never open the journal of the trial (UJ-165). Only its characters are restricted.
+  const runId = typeof raw.runId === 'string' ? raw.runId.replace(/[^A-Za-z0-9:._-]/g, '').slice(0, GATE_ID_MAX) : ''
   if (runId === '') return null
   // The verdict runs over EVERY stored call; only the displayed list is truncated. A write at position 21 is still a
   // write, and a call this cannot read counts as a write that may have run.

@@ -5,8 +5,8 @@
 //
 // It needs a DSH that LOADS the bundle, i.e. the sandbox instance (`scripts/sandbox/setup.sh`, `scripts/sandbox/start.sh`; see
 // docs/dev/live-testing.md). The user's own `dsh web` does not list the bundle: this script refuses to run against :3080 (exit 3).
-// The sandbox must have been started with `<DSH_HOME>/kybernos/pulse/pulse.json` holding the one failed run this script expects
-// (`--seed` writes it and says so; start the sandbox after that, the host reads the file once).
+// The sandbox must have been started with `<DSH_HOME>/kybernos/pulse/pulse.json` holding the one failed run this script expects (the host reads the file once, at start).
+// When it does not, the script stops the sandbox, writes the file (`--seed` writes it and exits) and starts it again on the same root and port; `--no-restart` skips that.
 //
 // What it checks, in a real page:
 //   1. the host half of this checkout answers through the page's own origin: the state route, the settings route (a good patch,
@@ -22,8 +22,10 @@
 //
 // SAFETY: the sandbox has its own DSH_HOME; the only things written are its own pulse.json and, for check 4, a tasks.json it removes again.
 // Exit code 0 / 1 / 3.
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { homedir } from 'node:os'
 import { openLivePage, openSettings, goToSettingsPage, waitFor } from './live-page.mjs'
 
@@ -32,11 +34,15 @@ const shotDir = args.includes('--shots') ? args[args.indexOf('--shots') + 1] : n
 const dshHome = process.env.DSH_HOME || join(homedir(), '.dsh')
 const pulseFile = join(dshHome, 'kybernos', 'pulse', 'pulse.json')
 
-if (args.includes('--seed')) {
-  if (!process.env.DSH_HOME) { console.error('refusing to seed without DSH_HOME (source scripts/sandbox/env.sh first)'); process.exit(3) }
+const seedPulse = () => {
   mkdirSync(join(dshHome, 'kybernos', 'pulse'), { recursive: true })
   const item = { id: 'r:session-chk', kind: 'failed', task: 'Check run', taskId: 'chk', sessionId: 'session-chk', at: Date.now(), unread: true, bannered: false, message: 'No credit left', calls: 2 }
   writeFileSync(pulseFile, JSON.stringify({ version: 1, settings: { level: 'every' }, state: { baselined: true, seen: { 'session-chk': { phase: 'failed', at: Date.now() } }, inbox: [item] } }))
+}
+
+if (args.includes('--seed')) {
+  if (!process.env.DSH_HOME) { console.error('refusing to seed without DSH_HOME (source scripts/sandbox/env.sh first)'); process.exit(3) }
+  seedPulse()
   console.log('seeded ' + pulseFile + ': one failed run, level "every". Start the sandbox now, then run this script without --seed.')
   process.exit(0)
 }
@@ -50,6 +56,17 @@ const check = (name, ok, detail) => {
 
 const host = process.env.KB_HOST || '127.0.0.1:3080'
 if (host === '127.0.0.1:3080') { console.error('○ inconclusive: this check needs a DSH that loads the bundle (a sandbox instance), not the one on :3080. Set KB_HOST, DSH_HOME and HOME.'); process.exit(3) }
+
+// The host reads pulse.json once, at start: a sandbox that does not hold the failed run this check expects (it was started without it, or an earlier run dismissed it)
+// is stopped, given it, and started again on the same root and port. `--no-restart` leaves the sandbox alone and lets the checks of part 1 say what is missing.
+if (!args.includes('--no-restart') && !(existsSync(pulseFile) && readFileSync(pulseFile, 'utf8').includes('"r:session-chk"'))) {
+  const here = dirname(fileURLToPath(import.meta.url))
+  const sandbox = (verb) => execFileSync('bash', [join(here, 'sandbox', verb + '.sh')], { env: Object.assign({}, process.env, { KB_SANDBOX_PORT: host.split(':')[1] }), stdio: 'pipe' })
+  sandbox('stop')
+  seedPulse()
+  sandbox('start')
+  console.log('○ the sandbox on ' + host + ' did not hold the seeded failed run: stopped, seeded and started again')
+}
 
 const live = await openLivePage({ width: 1500, height: 1000 }).catch((e) => { console.error('○ inconclusive: ' + e.message); process.exit(3) })
 const { page } = live
