@@ -34,3 +34,20 @@ You play a small group of cases of `docs/tests/user-journey/cases.json` (each ha
 - Cases: `node -e` over `docs/tests/user-journey/cases.json` (`cases[]`, `journeys{}`); journeys story in `journeys.md`; known gaps in `known-gaps.md`; findings so far in `ledger.md` (do not report a finding already there, name its UJ number instead).
 - The DSH GUI plugins: `packages/kybernos-*/client.js` (served live); server pages: `$KB_SERVER_DIR/src/modules/**` (read only).
 - Scripts you can reuse: `scripts/check-*-live.mjs` (they take `KB_HOST`), `scripts/lib-e2e-gui.mjs`, `scripts/lib-e2e-server.mjs`, `scripts/look-matrix-live.mjs`.
+
+## A DSH to play on (sandboxes)
+
+A case that needs the desktop GUI is played on a sandbox DSH the lead gives you (a root and a port). Never start, stop or touch another one.
+
+```bash
+unset KYBERNOS_CLOUD_API                      # a plain sandbox has no server; the lead says when yours is paired to one
+export KB_SANDBOX_ROOT=<root> KB_SANDBOX_PORT=<port>
+source scripts/sandbox/env.sh                 # sets KB_HOST, DSH_HOME (a throw-away home) and the sandbox's HOME
+```
+
+- `KB_HOST` is then what `scripts/live-page.mjs` (`openLivePage`, `openSettings`) and every `scripts/check-*-live.mjs` read. A picture is not a verdict: measure.
+- The profile is an APFS clone of the owner's, so it carries his switches (the Free LLMs bundle is off in it: `cordis.patch.yml`, `disabled: true`). A check that says « inconclusive » (exit 3) names what is missing.
+- You may stop and start YOUR sandbox (`bash scripts/sandbox/stop.sh`, `KB_SANDBOX_TTL=21600 bash scripts/sandbox/start.sh`; the default TTL stops it after 30 minutes). Writing a provider route or a key through the GUI hot-reloads the DSH and degrades it: restart it before the next check.
+- The office editors are built into a sandbox with `node packages/kybernos-office/build-editors.mjs --home "$DSH_HOME"`.
+- A model that answers: there is none. Use a scripted stand-in (`scripts/lib-e2e-gui.mjs` and `scripts/recording-proxy.mjs` have one; others write a small OpenAI-compatible server) and say so in `env`.
+- Sandbox ports in use by others: 3198, 3210, 3220 (and the lead's 3230, 3240 for you). The owner's own DSH is 3080: never.
