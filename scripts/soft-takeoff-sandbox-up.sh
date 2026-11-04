@@ -40,7 +40,7 @@ one() {
   [ "$(code "$port")" = "401" ] && return 0
   if [ "$DRY" = "1" ]; then echo "would restart $root on :$port"; return 0; fi
   (
-    export KYBERNOS_CLOUD_API="${KYBERNOS_CLOUD_API:-http://localhost:8820}" KB_SANDBOX_TTL="${KB_SANDBOX_TTL:-14400}" KB_SANDBOX_ROOT="$root" KB_SANDBOX_PORT="$port"
+    export KYBERNOS_CLOUD_API="${KYBERNOS_CLOUD_API:-${KB_E2E_WEB:-http://localhost:8820}}" KB_SANDBOX_TTL="${KB_SANDBOX_TTL:-14400}" KB_SANDBOX_ROOT="$root" KB_SANDBOX_PORT="$port"
     bash "$HERE/sandbox/stop.sh" >/dev/null 2>&1
     bash "$HERE/sandbox/start.sh" >/dev/null 2>&1
   )

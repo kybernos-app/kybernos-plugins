@@ -14,7 +14,7 @@ account=a
 for pair in "$1" "$2"; do
   root="${pair%:*}"; port="${pair##*:}"
   bash "$HERE/soft-takeoff-sandbox-up.sh" --dry-run "$pair" >/dev/null || exit 2   # the refusals of the keeper apply here too
-  ( export KB_SANDBOX_ROOT="$root" KB_SANDBOX_PORT="$port" KYBERNOS_CLOUD_API="${KYBERNOS_CLOUD_API:-http://localhost:8820}" KB_SANDBOX_TTL=14400
+  ( export KB_SANDBOX_ROOT="$root" KB_SANDBOX_PORT="$port" KYBERNOS_CLOUD_API="${KYBERNOS_CLOUD_API:-${KB_E2E_WEB:-http://localhost:8820}}" KB_SANDBOX_TTL=14400
     # shellcheck disable=SC1091
     source "$HERE/sandbox/env.sh"
     # a pairing started right after a restart can be refused once (« Unknown or expired request »): try up to three times
