@@ -108,7 +108,7 @@ export const run = async (ctx) => {
       await checkLink('https://invitations.example.org/invitations/accept?token=' + 'A'.repeat(43))
       const failNote = (await note1()) || ''
       note('a foreign-host link with an unknown token: ' + JSON.stringify(failNote.slice(0, 260)))
-      check('a failing link from another host says where it came from and which server is active', /invitations\.example\.org/.test(failNote) && /localhost:8820/.test(failNote), failNote)
+      check('a failing link from another host says where it came from and which server is active', /invitations\.example\.org/.test(failNote) && failNote.includes((process.env.KB_E2E_WEB || 'http://localhost:8820').replace(/^https?:\/\//, '')), failNote)
       await ctx.shot(g, 'j4-foreign-host')
       await closeJoin()
     }
