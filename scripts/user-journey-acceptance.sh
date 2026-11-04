@@ -34,7 +34,7 @@ done
 OUT="${KB_ACC_OUT:-$(mktemp -d "${TMPDIR:-/tmp}/user-journey-acceptance.XXXXXX")}"
 mkdir -p "$OUT"
 STATE="$OUT/state.json"
-SETTINGS="${KB_ACC_SETTINGS:-welcome_credit_cents=2000 hosted_runs_enabled=1 computers_enabled=1 teamspace_enabled=1}"
+SETTINGS="${KB_ACC_SETTINGS:-welcome_credit_cents=2000 hosted_runs_enabled=1 computers_enabled=1 teamspace_enabled=1 mcp_kaby_enabled=1}"
 
 if curl -fsS "http://127.0.0.1:$CONTROL/__/state" >/dev/null 2>&1; then
   echo "user-journey-acceptance: something already answers on $CONTROL; choose another KB_ACC_PORT" >&2

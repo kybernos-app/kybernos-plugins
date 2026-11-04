@@ -32,7 +32,7 @@ SERVER="${KB_SERVER_DIR:?KB_SERVER_DIR must point to a kybernos-server checkout}
 if curl -fsS "http://127.0.0.1:$CONTROL/__/state" >/dev/null 2>&1; then echo "user-journey-replica: something already answers on $CONTROL; choose another port" >&2; exit 2; fi
 
 # The owner settings that make the Free plan usable and the optional modules answer (same list as scripts/user-journey-acceptance.sh).
-SETTINGS="${KB_ACC_SETTINGS:-welcome_credit_cents=2000 hosted_runs_enabled=1 computers_enabled=1 teamspace_enabled=1}"
+SETTINGS="${KB_ACC_SETTINGS:-welcome_credit_cents=2000 hosted_runs_enabled=1 computers_enabled=1 teamspace_enabled=1 mcp_kaby_enabled=1}"
 ( cd "$SERVER" && REPLICA_PORT="$PORT" REPLICA_STATE="$STATE" REPLICA_SEED="${KB_ACC_SEED:-catalogue}" LOG_LEVEL=info \
     REPLICA_COMPOSIO=1 REPLICA_COMPUTERS=1 REPLICA_INBOUND=1 REPLICA_SOCIAL=1 \
     REMOTE_PHONE_URL=https://phone.replica.example.com \
