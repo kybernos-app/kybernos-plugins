@@ -67,3 +67,16 @@ export const analyse = (items) => {
   }
   return r
 }
+
+/**
+ * What the French (or any) run left in English, told apart from what the heuristic of `classify` merely failed to recognise as French: a text the run calls English is a real
+ * leftover only when the English baseline shows the same text, word for word (an accent-free French word such as « Connecteurs » or « Cartes » is called English by `classify`
+ * and is absent from the baseline). `baseline` and `run` are lists of `analyse` reports with a `page` name. Returns `[{ text, pages }]`, the most widespread first. Pure.
+ */
+export const leftovers = (baseline, run) => {
+  const known = new Set()
+  for (const r of baseline) for (const t of [...(r.en || []), ...(r.fr || [])]) known.add(t)
+  const where = new Map()
+  for (const r of run) for (const t of r.en || []) if (known.has(t)) where.set(t, [...(where.get(t) || []), r.page])
+  return Array.from(where, ([text, pages]) => ({ text, pages })).sort((a, b) => b.pages.length - a.pages.length || a.text.localeCompare(b.text))
+}

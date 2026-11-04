@@ -120,7 +120,8 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
   check('mutation: an unknown gap is caught', checkPlan(withReal(t)).some((p) => /not written in known-gaps/.test(p)))
   t = clone(); t.cases.cases.find((c) => c.runner === 'agent').how = 'Pay with 4242 4242 4242 4242 on the checkout page.'
   check('mutation: an agent asked to type a card number is caught', checkPlan(withReal(t)).some((p) => /card number/.test(p)))
-  t = clone(); t.cases.cases.find((c) => c.runner === 'script' && c.status === 'needs-build').status = 'ready'
+  // a script case written « (to build) » but not marked needs-build (the plan may have no needs-build case left, so the mutation makes its own)
+  t = clone(); t.cases.cases.find((c) => c.runner === 'script' && c.status !== 'needs-build').how = '(to build) node scripts/user-journey-run.mjs'
   check('mutation: a script to build that is marked ready is caught', checkPlan(withReal(t)).some((p) => /to build/.test(p)))
   check('mutation: a README that quotes the wrong total is caught', checkPlan(withReal({ readme: real.readme.replace(/\d+ cases in \d+ journeys/, '1 cases in 1 journeys') })).some((p) => /total/.test(p)))
 
