@@ -379,6 +379,8 @@ let kbLocaleRead = () => 'en'
       'tasks.runs.stat.slowest': { kybernos: 'Plus lente', en: 'Slowest' },
       'tasks.runs.completedin': { kybernos: 'Terminée en {d}', en: 'Completed in {d}' },
       'tasks.runs.failedin': { kybernos: 'Échec en {d}', en: 'Failed in {d}' },
+      'tasks.runs.stopped': { kybernos: 'Arrêtée', en: 'Stopped' },
+      'tasks.runs.stoppedin': { kybernos: 'Arrêtée après {d}', en: 'Stopped after {d}' },
       'tasks.runs.failed': { kybernos: 'Échec', en: 'Failed' },
       'tasks.runs.running': { kybernos: 'En cours', en: 'Running' },
       'tasks.runs.unread': { kybernos: 'Non lue', en: 'Not read' },
@@ -489,12 +491,14 @@ let kbLocaleRead = () => 'en'
       'tasks.board.st.failed': { kybernos: 'Échec : {why}', en: 'Failed: {why}' },
       'tasks.board.st.failed.plain': { kybernos: 'Échec.', en: 'Failed.' },
       'tasks.board.st.ended': { kybernos: 'La session est terminée. Ouvre-la pour voir le résultat.', en: 'The session has ended. Open it to see the result.' },
+      'tasks.board.st.stopped': { kybernos: 'Arrêtée avant la fin. Ouvre la session pour voir où elle s’est arrêtée.', en: 'Stopped before it finished. Open the session to see where it stopped.' },
       'tasks.board.st.started': { kybernos: 'Lancée. L’état de sa session n’est pas visible ici.', en: 'Started. The state of its session is not visible here.' },
       'tasks.board.chip.planned': { kybernos: 'Prévue', en: 'Planned' },
       'tasks.board.chip.running': { kybernos: 'En cours', en: 'Running' },
       'tasks.board.chip.waiting': { kybernos: 'Attend ton accord', en: 'Waiting for you' },
       'tasks.board.chip.failed': { kybernos: 'Échec', en: 'Failed' },
       'tasks.board.chip.ended': { kybernos: 'Terminée', en: 'Finished' },
+      'tasks.board.chip.stopped': { kybernos: 'Arrêtée', en: 'Stopped' },
       'tasks.board.chip.started': { kybernos: 'Lancée', en: 'Started' },
       'tasks.sug.chip': { kybernos: 'Suggérée', en: 'Suggested' },
       'tasks.sug.add': { kybernos: 'Ajouter', en: 'Add' },
@@ -7863,15 +7867,16 @@ const kbBoardLiveOf = (listSnap, statusMap) => {
 }
 // The state of one run: 'failed' (it did not start: the reason is on the entry; or its last turn ended with an error,
 // which the host read from the engine's own `turn/end` reason), 'waiting' (the engine holds a question for the
-// person), 'running', 'ended' (the engine lists the session and it is neither running nor waiting, and no failed
-// turn is known), 'started' (the run began and this page cannot see its session: the outcome is not claimed).
+// person), 'running', 'stopped' (the last turn was cut short, usually by the person: it did not complete), 'ended' (the engine lists the session
+// and it is neither running nor waiting, and no failed turn is known), 'started' (the run began and this page cannot see its session: the outcome is not claimed).
 // `outcome` is the host's verdict on the last turn ({ failed, message }) or null when it has none: no verdict, no claim.
 const kbBoardRunState = (status, live, outcome) => {
   if (status === 'error') return 'failed'
   if (live === null || live === undefined) return 'started'
   if (live.waiting !== null) return 'waiting'
   if (live.running === true) return 'running'
-  return outcome !== null && outcome !== undefined && outcome.failed === true ? 'failed' : 'ended'
+  if (outcome !== null && outcome !== undefined && outcome.failed === true) return 'failed'
+  return outcome !== null && outcome !== undefined && outcome.stopped === true ? 'stopped' : 'ended'
 }
 // Every run of every automation, from the histories: { key, taskId, atMs, state, sessionId, via, error, last, live }.
 const kbBoardRuns = (tasks, liveOf, nowMs, outcomeOf) => {
@@ -7962,7 +7967,7 @@ const kbBoardColumns = (tasks, runs, plan, nowMs) => {
   const running = runs.filter((r) => r.state === 'running').sort((a, b) => b.atMs - a.atMs)
   const waiting = runs.filter((r) => r.state === 'waiting').sort((a, b) => a.atMs - b.atMs)
   const failed = runs.filter((r) => r.state === 'failed' && r.last === true && within(r) === true && pausedIds.has(r.taskId) !== true).sort((a, b) => b.atMs - a.atMs)
-  const done = runs.filter((r) => (r.state === 'ended' || r.state === 'started') && within(r) === true && pausedIds.has(r.taskId) !== true).sort((a, b) => b.atMs - a.atMs)
+  const done = runs.filter((r) => (r.state === 'ended' || r.state === 'stopped' || r.state === 'started') && within(r) === true && pausedIds.has(r.taskId) !== true).sort((a, b) => b.atMs - a.atMs)
   return {
     upcoming, running, approve: waiting.concat(failed), done: done.slice(0, KB_BOARD_DONE_MAX), doneMore: Math.max(0, done.length - KB_BOARD_DONE_MAX),
     hooks, paused: pausedIds.size, cannotFire: plan !== null && plan !== undefined && Array.isArray(plan.cannotFire) === true ? plan.cannotFire : [],
@@ -7970,13 +7975,14 @@ const kbBoardColumns = (tasks, runs, plan, nowMs) => {
   }
 }
 // The runs and planned runs of each visible day, a same automation's runs of one day folded into one entry.
-// Precedence of the folded state: waiting, failed, running, then `mixed` (past and planned together), planned, ended, started.
+// Precedence of the folded state: waiting, failed, running, then `mixed` (past and planned together), planned, ended, stopped, started.
 const kbBoardGroupState = (items) => {
   const has = (s) => items.some((i) => i.state === s)
   for (const s of ['waiting', 'failed', 'running']) { if (has(s) === true) return s }
-  const past = items.some((i) => i.state === 'ended' || i.state === 'started')
+  const past = items.some((i) => i.state === 'ended' || i.state === 'stopped' || i.state === 'started')
   if (has('planned') === true) return past === true ? 'mixed' : 'planned'
-  return has('ended') === true ? 'ended' : 'started'
+  if (has('ended') === true) return 'ended'
+  return has('stopped') === true ? 'stopped' : 'started'
 }
 const kbBoardDays = (items, dayKeys, zone) => {
   const wanted = new Set(dayKeys)
@@ -8292,12 +8298,13 @@ const kbRunFmtHm = (iso, locale) => {
   try { return new Intl.DateTimeFormat(locale || 'en', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms)) } catch (e) { return '' }
 }
 
-/** How a run stands: 'failed' | 'completed' | 'running' | 'unread'. The history's own « error » or the engine's error verdict makes it failed. */
+/** How a run stands: 'failed' | 'completed' | 'stopped' (cut short, usually by the person) | 'running' | 'unread'. The history's own « error » or the engine's error verdict makes it failed. */
 const kbRunState = (run, sum) => {
   if (run !== null && run !== undefined && run.status === 'error') return 'failed'
   const st = sum !== null && sum !== undefined && sum.outcome !== null && typeof sum.outcome === 'object' ? sum.outcome.state : ''
   if (st === 'failed') return 'failed'
   if (st === 'completed') return 'completed'
+  if (st === 'stopped') return 'stopped'
   if (st === 'open') return 'running'
   return 'unread'
 }
@@ -8530,7 +8537,7 @@ const kbProofOf = (rec) => {
     endedAt: endedMs !== null ? trial.endedAt : null,
     durationMs: startedMs !== null && endedMs !== null && endedMs >= startedMs ? endedMs - startedMs : null,
     outcome: {
-      state: verdict.state === 'completed' || verdict.state === 'open' || verdict.state === 'failed' ? verdict.state : null,
+      state: verdict.state === 'completed' || verdict.state === 'open' || verdict.state === 'failed' || verdict.state === 'stopped' ? verdict.state : null,
       code: kbProofText(verdict.code, 60),
       message: kbProofText(verdict.message, KB_GATE_PROOF_TEXT_MAX),
     },
@@ -22609,6 +22616,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       if (state === 'failed') return dur === '—' ? kbt('tasks.runs.failed') : kbt('tasks.runs.failedin').replace('{d}', dur)
       if (state === 'completed') return kbt('tasks.runs.completedin').replace('{d}', dur)
       if (state === 'running') return kbt('tasks.runs.running')
+      if (state === 'stopped') return dur === '—' ? kbt('tasks.runs.stopped') : kbt('tasks.runs.stoppedin').replace('{d}', dur)
       return run.status === 'queued' ? kbt('tasks.status.queued') : kbt('tasks.runs.unread')
     }
     // ── The sheet of an automation (its Overview tab) ──────────────────────────────────────────────────────────────────────
@@ -23374,7 +23382,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           out.push(btn('journal', 'journal', kbt('tasks.board.act.journal'), () => props.openTask(it.taskId), false))
         }
         // A session the page cannot see (deleted, or not in the list) is not offered: the button would lead nowhere.
-        if (it.state === 'ended' && sid !== null) out.push(btn('session', 'session', kbt('tasks.board.act.session'), () => openSession(sid), false))
+        if ((it.state === 'ended' || it.state === 'stopped') && sid !== null) out.push(btn('session', 'session', kbt('tasks.board.act.session'), () => openSession(sid), false))
         return out
       }
       const kbClip160 = (s) => { const t = String(s || '').replace(/\s+/g, ' ').trim(); return t.length > 160 ? t.slice(0, 159) + '…' : t }
@@ -23386,10 +23394,11 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         if (it.state === 'running') return kbt('tasks.board.st.running')
         if (it.state === 'failed') { const why = kbClip160(it.error); return why !== '' ? kbt('tasks.board.st.failed').replace('{why}', why) : kbt('tasks.board.st.failed.plain') }
         if (it.state === 'ended') return kbt('tasks.board.st.ended')
+        if (it.state === 'stopped') return kbt('tasks.board.st.stopped')
         if (it.state === 'started') return kbt('tasks.board.st.started')
         return ''
       }
-      const CHIP = { planned: 'tasks.board.chip.planned', mixed: 'tasks.board.chip.planned', running: 'tasks.board.chip.running', waiting: 'tasks.board.chip.waiting', failed: 'tasks.board.chip.failed', ended: 'tasks.board.chip.ended', started: 'tasks.board.chip.started' }
+      const CHIP = { planned: 'tasks.board.chip.planned', mixed: 'tasks.board.chip.planned', running: 'tasks.board.chip.running', waiting: 'tasks.board.chip.waiting', failed: 'tasks.board.chip.failed', ended: 'tasks.board.chip.ended', stopped: 'tasks.board.chip.stopped', started: 'tasks.board.chip.started' }
       const CHIPCLS = { running: 'run', waiting: 'warn', failed: 'err', ended: 'ok' }
       const stateChip = (state) => h('span', { className: 'kbbd-chip ' + (CHIPCLS[state] || ''), 'data-state': state }, kbt(CHIP[state] || 'tasks.board.chip.started'))
       const cadence = (t) => {
@@ -23481,6 +23490,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         if (state === 'ended') return h('span', { className: 'kbbd-sgn ok' }, Icon('check', 13))
         if (state === 'waiting') return h('span', { className: 'kbbd-sgn warn' }, Icon('pause', 13))
         if (state === 'running') return h('span', { className: 'kbbd-sgn' }, h('span', { className: 'kbbd-pulse' }))
+        if (state === 'stopped') return h('span', { className: 'kbbd-sgn' }, Icon('square', 12))
         if (state === 'started') return h('span', { className: 'kbbd-sgn idle' }, h('span', { className: 'kbbd-pip' }))
         return null
       }
@@ -23541,7 +23551,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           h('span', { className: 'kbbd-caltitle', 'data-kb': 'board-title' }, title)),
         h('span', { className: 'kbbd-seg', role: 'group', 'aria-label': kbt('tasks.board.cal.scale') },
           ['week', 'month'].map((mode) => h('button', { key: mode, type: 'button', 'data-kb': 'board-mode', 'data-v': mode, 'aria-pressed': cal.mode === mode ? 'true' : 'false', onClick: () => setCal({ mode, offset: 0, sel: null }) }, kbt(mode === 'week' ? 'tasks.board.cal.week' : 'tasks.board.cal.month')))))
-      const legend = h('div', { className: 'kbbd-legend' }, [['ok', 'ended'], ['warn', 'waiting'], ['err', 'failed'], ['run', 'running'], ['idle', 'started'], ['planned', 'planned']].map((x) => h('span', { key: x[1] }, h('i', { className: x[0] }), kbt(CHIP[x[1]]))))
+      const legend = h('div', { className: 'kbbd-legend' }, [['ok', 'ended'], ['warn', 'waiting'], ['err', 'failed'], ['run', 'running'], ['idle', 'stopped'], ['idle', 'started'], ['planned', 'planned']].map((x) => h('span', { key: x[1] }, h('i', { className: x[0] }), kbt(CHIP[x[1]]))))
       let detail = h('p', { className: 'kbbd-foot' }, kbt('tasks.board.cal.hint'))
       if (selected !== null) {
         const t = byId.get(selected.taskId)

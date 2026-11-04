@@ -16,6 +16,7 @@ const one = (v) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]+/g,
  * The verdict on the LAST turn of a session:
  *   { open: true }                                  a turn is still running (or none started yet): nothing to say
  *   { open: false, failed: false }                  the last turn ended without an error
+ *   { open: false, failed: false, stopped: true }   the last turn was cut short (the person stopped it, or the engine was closed under it): it did not complete
  *   { open: false, failed: true, code, message }    the last turn ended with an error reason
  * A session whose events say nothing about a turn is `{ open: true }`: no outcome is claimed.
  */
@@ -33,6 +34,7 @@ export const lastTurnOutcome = (events) => {
   if (end === null || started > ended) return { open: true }
   const data = end.data !== null && typeof end.data === 'object' ? end.data : null
   const reason = data !== null && data.reason !== null && typeof data.reason === 'object' ? data.reason : null
+  if (reason !== null && (reason.kind === 'aborted' || reason.kind === 'interrupted')) return { open: false, failed: false, stopped: true }
   if (reason === null || reason.kind !== 'error') return { open: false, failed: false }
   const err = reason.error !== null && typeof reason.error === 'object' ? reason.error : null
   const message = err !== null ? one(err.message).slice(0, OUTCOME_MESSAGE_MAX) : ''

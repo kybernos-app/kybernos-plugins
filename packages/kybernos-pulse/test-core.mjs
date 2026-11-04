@@ -49,6 +49,9 @@ ok('once the approval is decided the run is running again')
 const done = decided.concat([ev('turn/end', { reason: { kind: 'stop' } }, 5000)])
 assert.deepEqual(readRun(done), { phase: 'done', calls: 2, startedAt: 1000, endedAt: 5000 })
 ok('a turn that ended without an error is done')
+const stoppedRun = turn.concat([ev('turn/end', { reason: { kind: 'aborted', reason: { kind: 'user' } } }, 3000)])
+assert.deepEqual(readRun(stoppedRun), { phase: 'stopped', calls: 2, startedAt: 1000, endedAt: 3000 })
+ok('a turn the person stopped is stopped, not done (UJ-172)')
 const failed = turn.concat([ev('turn/end', { reason: { kind: 'error', error: { code: 'NO_CREDENTIAL', message: 'No credit\nleft' } } }, 2000)])
 const f = readRun(failed)
 assert.equal(f.phase, 'failed'); assert.equal(f.code, 'NO_CREDENTIAL'); assert.equal(f.message, 'No credit left'); assert.equal(f.endedAt, 2000)
@@ -95,6 +98,21 @@ ok('a run that finishes after the first pass becomes a "done" item, with its dur
 const again1 = await pass1(r.state, NOW + 40000)
 assert.equal(again1.added.length, 0); assert.equal(again1.state.inbox.length, 1)
 ok('a finished run is announced once')
+
+// UJ-172: a run the person stopped is remembered (never read again) and says nothing: not « done », not « failed ».
+const tStop = [{ id: 't-stop', name: 'Stopped by hand', history: [{ at: at(0), sessionId: 'session-stop', status: 'fired' }] }]
+journals['session-stop'] = { phase: 'running', calls: 1, startedAt: NOW }
+let stp = await watchStep({ tasks: tStop, state: r.state, readRunOf, now: NOW })
+journals['session-stop'] = { phase: 'stopped', calls: 1, startedAt: NOW, endedAt: NOW + 5000 }
+const inboxBefore = stp.state.inbox.length
+stp = await watchStep({ tasks: tStop, state: stp.state, readRunOf, now: NOW + 20000 })
+assert.equal(stp.added.length, 0); assert.equal(stp.state.inbox.length, inboxBefore); assert.equal(stp.running.length, 0)
+assert.equal(stp.state.seen['session-stop'].phase, 'stopped')
+journals['session-stop'] = { phase: 'running', calls: 9, startedAt: NOW }
+const stp2 = await watchStep({ tasks: tStop, state: stp.state, readRunOf, now: NOW + 40000 })
+assert.equal(stp2.running.length, 0, 'a stopped run is not read again')
+assert.equal(normalizeState(stp2.state).seen['session-stop'].phase, 'stopped')
+ok('a run the person stopped makes no item, is not read again, and survives a reload of the state')
 
 journals['session-b'] = { phase: 'waiting', calls: 2, startedAt: NOW, tool: 'send_email' }
 const t2 = [{ id: 't2', name: 'Morning digest', history: [{ at: at(0), sessionId: 'session-w', status: 'fired' }] }]

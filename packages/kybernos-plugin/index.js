@@ -13167,7 +13167,7 @@ function boot(ctx) {
                 handle = await persistence.open(id, 'read')
                 const read = await handle.read()
                 const verdict = lastTurnOutcome(read !== null && read !== undefined ? read.events : null)
-                if (verdict.open !== true) outcomes[id] = verdict.failed === true ? { failed: true, code: verdict.code, message: verdict.message } : { failed: false }
+                if (verdict.open !== true) outcomes[id] = verdict.failed === true ? { failed: true, code: verdict.code, message: verdict.message } : (verdict.stopped === true ? { failed: false, stopped: true } : { failed: false })
               } catch (e) { /* unreadable or gone: no verdict */ } finally {
                 try { if (handle !== null && handle !== undefined && typeof handle.close === 'function') await handle.close() } catch (e) { /* already closed */ }
               }

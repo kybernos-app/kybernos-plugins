@@ -130,6 +130,8 @@ const T = (id, o) => Object.assign({ id, name: id, active: true, approvals: 'ask
   const bad = { failed: true, code: 'MISSING_CREDENTIAL', message: 'no credential for provider route zai' }
   eq('an ended session whose last turn failed is a failed run', m.kbBoardRunState('fired', ended, bad), 'failed')
   eq('...one whose turn did not fail, or has no verdict, is still just ended', [m.kbBoardRunState('fired', ended, { failed: false }), m.kbBoardRunState('fired', ended, null), m.kbBoardRunState('fired', ended, undefined)], ['ended', 'ended', 'ended'])
+  eq('UJ-172: a session whose last turn was cut short is a stopped run, not an ended one', m.kbBoardRunState('fired', ended, { failed: false, stopped: true }), 'stopped')
+  eq('...and a running one is running, whatever an older verdict said', m.kbBoardRunState('fired', running, { failed: false, stopped: true }), 'running')
   eq('a session that is running or waiting is that, whatever an older verdict said', [m.kbBoardRunState('fired', running, bad), m.kbBoardRunState('fired', waiting, bad)], ['running', 'waiting'])
   eq('a session this page cannot see stays `started`: a verdict is not enough to claim', m.kbBoardRunState('fired', null, bad), 'started')
   const liveOf = (sid) => ({ 's-bad': ended, 's-ok': ended, 's-run': running }[sid] || null)
