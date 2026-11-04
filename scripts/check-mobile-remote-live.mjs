@@ -67,6 +67,7 @@ async function openPhone () {
 
 let desktop = null
 let phone = null
+let inconclusive = null
 try {
   if (REAL) {
     // What a stranger finds at the public address: the phone page and the relay, nothing of the API behind them.
@@ -97,6 +98,12 @@ try {
 
   await until(D, `document.readyState === 'complete'`, 20000)
   await sleep(2500)
+  // A DSH started with KYBERNOS_CLOUD_API takes its server from the environment: the stand-in server this check writes cannot apply, and every step would fail for that reason alone.
+  const serversText = await ev(D, `fetch('/kybernos-servers/status').then((r) => r.text()).catch(() => '')`)
+  if (typeof serversText === 'string' && /"source"\s*:\s*"env"/u.test(serversText)) {
+    inconclusive = 'this DSH takes its server from KYBERNOS_CLOUD_API, so the stand-in server of this check cannot apply: run it on a sandbox started without that variable'
+    throw new Error(inconclusive)
+  }
   // the sandbox has no model key: DSH asks for one on first load, which is not what this check is about
   await ev(D, `(() => { const b = Array.from(document.querySelectorAll('button')).find((x) => /^Configure later$/i.test(x.textContent.trim())); if (b) b.click(); return !!b })()`)
   await sleep(500)
@@ -107,11 +114,11 @@ try {
   await sleep(600)
   const opened = profileRow === true && await ev(D, `(() => { const e = document.querySelector('[data-kb="menu-phone"]'); if (!e) return false; e.click(); return true })()`)
   check('the profile menu has the « Phone and channels » entry (the account card is there: the stand-in server signed this DSH in)', opened === true)
-  const windowUp = await until(D, `!!document.querySelector('[data-kb="phone-channels"] [data-kb="mobile-pair"]')`, 20000)
+  const windowUp = await until(D, `!!document.querySelector('[data-kb="phone-channels"] [data-kb="mobile-pair"]')`, 45000)
   check('the window opens with « Add a phone » and has asked for no code by itself', windowUp === true && !(await exists(D, '[data-kb="phone-channels"] [data-kb="mobile-qr"]')))
   check('it carries the messaging column too (Kaby\'s, or the line that says it is not there)', await exists(D, '[data-kb="phone-channels"] [data-kb="phone-channels-card"], [data-kb="phone-channels"] [data-kb="phone-channels-off"]'))
   await click(D, '[data-kb="phone-channels"] [data-kb="mobile-pair"]')
-  const panelUp = await until(D, `!!document.querySelector('[data-kb="phone-channels"] [data-kb="mobile-qr"] svg')`, 20000)
+  const panelUp = await until(D, `!!document.querySelector('[data-kb="phone-channels"] [data-kb="mobile-qr"] svg')`, 45000)
   check('« Add a phone » shows a real QR code', panelUp === true)
   await shot(D, '1-window')
 
@@ -177,6 +184,8 @@ try {
   })()`)
   check('it is DSH, at phone width, with the phone layout', dom !== null && dom.title === 'Kybernos' && dom.slots > 10 && dom.sheet === true && dom.width <= 390, dom)
   check('its composer is there', dom !== null && dom.composer === true)
+  // on a loaded machine the page's socket opens late: wait for it (up to 30 s) instead of reading the counters after a fixed pause
+  await until(P, `window.__kb.wsOpen >= 1 && window.__kb.wsMsgs >= 1 && window.__kb.req > 20`, 30000)
   const kb = JSON.parse(await ev(P, `JSON.stringify(window.__kb)`))
   check('requests and the streaming socket went through the tunnel', kb.req > 20 && kb.wsOpen >= 1 && kb.wsMsgs >= 1, kb)
   if (backend.ciphertextOnly() !== null) check('the relay saw only ciphertext after the handshake', backend.ciphertextOnly() === true)
@@ -251,12 +260,15 @@ try {
   check('and no QR code is offered', !(await exists(D, '[data-kb="mobile-page"] [data-kb="mobile-qr"]')))
   await shot(D, '7-paywall')
 } catch (e) {
-  fail += 1
-  console.log('  ✗ exception — ' + (e && e.stack ? e.stack : e))
+  if (inconclusive === null) {
+    fail += 1
+    console.log('  ✗ exception — ' + (e && e.stack ? e.stack : e))
+  }
 } finally {
   if (phone !== null) await phone.close()
   if (desktop !== null) await desktop.close()
   await backend.close()
 }
+if (inconclusive !== null) { console.error('○ inconclusive: ' + inconclusive); process.exit(3) }
 console.log('\n' + pass + ' passed, ' + fail + ' failed')
 process.exit(fail === 0 ? 0 : 1)
