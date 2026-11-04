@@ -87,7 +87,7 @@ let kbLocaleRead = () => 'en'
       // ── tâches planifiées ──
       'menu.tasks': { kybernos: 'Automations', en: 'Automations' },
       'tasks.title': { kybernos: 'Automations', en: 'Automations' },
-      'tasks.subtitle': { kybernos: 'Des Agent Teams qui démarrent seules — sur un planning, un email, un message ou un webhook.', en: 'Agent Teams that start by themselves — on a schedule, an email, a message or a webhook.' },
+      'tasks.subtitle': { kybernos: 'Des Agent Teams qui démarrent seules — sur un planning, à une date ou quand un webhook est appelé.', en: 'Agent Teams that start by themselves — on a schedule, on a date or when a webhook is called.' },
       'tasks.filter.all': { kybernos: 'Toutes', en: 'All' },
       'tasks.filter.active': { kybernos: 'Actives', en: 'Active' },
       'tasks.filter.attention': { kybernos: 'Attention requise', en: 'Needs attention' },

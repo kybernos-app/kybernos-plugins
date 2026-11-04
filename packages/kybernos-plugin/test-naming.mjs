@@ -219,4 +219,13 @@ ok('the French names of Automations and Workspaces are the same in the sidebar, 
   ok('no new-chat tile word wider than its tile breaks in the middle: the long French word carries a soft hyphen')
 }
 
+{
+  // UJ-65: the Automations subtitle named triggers the scheduler does not have (an e-mail, a message); it has schedules, one date and webhooks (README, « Nothing the engine cannot do is promised »)
+  const sub = src.match(/'tasks\.subtitle': \{ kybernos: '((?:[^'\\]|\\.)*)', en: '((?:[^'\\]|\\.)*)' \}/)
+  assert.ok(sub !== null, 'the Automations subtitle is read from the dictionary')
+  assert.ok(!/e-?mail|message|ticket/i.test(sub[2]) && !/e-?mail|message|ticket/i.test(sub[1]), 'the Automations subtitle promises no e-mail, message or ticket trigger: ' + sub[2])
+  assert.ok(/webhook/i.test(sub[2]) && /schedule/i.test(sub[2]), 'it names what the scheduler has: a schedule and a webhook')
+  ok('the Automations subtitle names only the triggers that exist (a schedule, a date, a webhook)')
+}
+
 console.log('\n' + pass + ' verifications OK')
