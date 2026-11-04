@@ -3518,6 +3518,7 @@ function boot(ctx) {
             name: 'kybernos:automation-load',
             order: 160,
             interpolate: false,
+            required: true,
             text: (context) => { try { return kbRunDepth(context.agent) > 0 ? autoLoadNote(autoLoadFresh(kbLoadLast, Date.now())) : '' } catch (e) { return '' } },
           })
         } catch (e) { console.log('[kybers] automation load note not injected: ' + String((e && e.message) || e)) }
