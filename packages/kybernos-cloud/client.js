@@ -44,6 +44,9 @@ window.__ModuleLoader__.load({
     const DICT = {
       fr: {
         menu: 'Kybernos Cloud',
+        connectorAskWaiting: 'En attente d’approbation',
+        connectorAskReject: 'Refuser',
+        connectorAskAllow: 'Autoriser une fois',
         subtitle: 'Connecte DSH à ton compte Kybernos.',
         connect: 'Connecter Kybernos Cloud',
         pairingTitle: 'Appairage en cours',
@@ -354,6 +357,9 @@ window.__ModuleLoader__.load({
       },
       en: {
         menu: 'Kybernos Cloud',
+        connectorAskWaiting: 'Waiting for approval',
+        connectorAskReject: 'Reject',
+        connectorAskAllow: 'Allow once',
         subtitle: 'Connect DSH to your Kybernos account.',
         connect: 'Connect Kybernos Cloud',
         pairingTitle: 'Pairing in progress',
@@ -3726,14 +3732,13 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             return h('div', { 'data-kb': 'connector-ask', style: { flex: '1 1 100%', minWidth: 0, boxSizing: 'border-box' } },
               props.renderFactorySlot('conversation.approval.card', { requestKey: 'kb-connector-' + first.id, title, canAnswer: () => true, onAllow: () => answer('allow'), onReject: () => answer('reject') }))
           }
-          const fr = lang() === 'fr'
           const btn = { height: 32, padding: '0 14px', borderRadius: 16, border: '1px solid var(--dsw-alias-border-l2, #444)', background: 'transparent', color: 'inherit', font: 'inherit', cursor: 'pointer' }
-          return h('div', { 'data-kb': 'connector-ask', role: 'alertdialog', 'aria-label': title, style: { flex: '1 1 100%', boxSizing: 'border-box', margin: '8px auto', maxWidth: 'var(--dsh-chat-content-width, 720px)', padding: 12, border: '1px solid #f0a020', borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 10 } },
-            h('div', { style: { fontSize: 13, color: '#f0a020' } }, fr ? 'En attente d’approbation' : 'Waiting for approval'),
+          return h('div', { 'data-kb': 'connector-ask', role: 'alertdialog', 'aria-label': title, style: { flex: '1 1 100%', boxSizing: 'border-box', margin: '8px auto', maxWidth: 'var(--dsh-chat-content-width, 720px)', padding: 12, border: '1px solid var(--dsw-alias-state-warn-primary)', borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 10 } },
+            h('div', { style: { fontSize: 13, color: 'var(--dsw-alias-state-warn-primary)' } }, t('connectorAskWaiting')),
             h('div', null, title),
             h('div', { style: { display: 'flex', gap: 8, justifyContent: 'flex-end' } },
-              h('button', { type: 'button', style: btn, 'data-kb': 'connector-ask-reject', onClick: () => answer('reject') }, fr ? 'Refuser' : 'Reject'),
-              h('button', { type: 'button', style: { ...btn, background: 'var(--dsw-alias-label-primary, #fff)', color: 'var(--dsw-alias-label-primary-inverted, #000)' }, 'data-kb': 'connector-ask-allow', onClick: () => answer('allow') }, fr ? 'Autoriser une fois' : 'Allow once')))
+              h('button', { type: 'button', style: btn, 'data-kb': 'connector-ask-reject', onClick: () => answer('reject') }, t('connectorAskReject')),
+              h('button', { type: 'button', style: { ...btn, background: 'var(--dsw-alias-label-primary, #fff)', color: 'var(--dsw-alias-label-primary-inverted, #000)' }, 'data-kb': 'connector-ask-allow', onClick: () => answer('allow') }, t('connectorAskAllow'))))
         }
         try {
           ctx.effect(() => slots.inject('conversation.composer.dock', () => slots.register(
