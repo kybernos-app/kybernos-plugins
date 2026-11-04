@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-// Cases J10-02 (models) of docs/tests/user-journey, and the base of J08-02, J11-06 and J12-07: what a call costs, recomputed by hand from the price of the model, and compared with every place the server says it.
+// Cases J10-02 (models) and J12-10 (quote) of docs/tests/user-journey, and the base of J08-02, J11-06 and J12-07: what a call costs, recomputed by hand from the price of the model, and compared with every place the server says it.
 // The expected value comes from the model's price (the replica's stand-in model « glm »: 0.50 USD per million tokens in, 2.00 out), never from the screen. The places compared: what the call itself reports (usage),
 // the usage rows of the workspace (`GET /llm/usage`), the credit balance of the workspace (`GET /plan`, the welcome credit being spent) and the budget window (`GET /llm/budget`).
 //
+//   node scripts/audit-consumption.mjs --scenario quote --api http://localhost:8841 --control http://127.0.0.1:8842     (J12-10: the price of a cloud computer, 72 choices, against Fly's public grid x 4; the region's own factor is private, so it is INFERRED and must fit all 72)
 //   node scripts/audit-consumption.mjs --scenario models --api http://localhost:8841 --control http://127.0.0.1:8842 [--price-in 0.50 --price-out 2.00]
 //
 // The replica must give a new person a welcome credit (`node scripts/replica-owner-settings.mjs ... welcome_credit_cents=2000`, or `bash scripts/user-journey-acceptance.sh --keep`). Loopback only.
@@ -16,6 +17,45 @@ export function nanoCost (prompt, completion, priceIn, priceOut) {
   return Math.round(prompt * priceIn * 1000 + completion * priceOut * 1000)
 }
 export const usdToNano = (s) => Math.round(Number(s) * 1e9)
+
+/** Fly's public grid (fly.io/docs/about/pricing, 2026-10) and the platform's factor: what a month costs a person, whole dollars, rounded up. `regionFactor` applies to the CPU and the memory only. */
+export function quoteUsd (cpus, gb, disk, hours, regionFactor, factor = 4) {
+  const base = { 1: [2.19, 256], 2: [4.39, 512] }[cpus]
+  const whole = (base[0] + ((gb * 1024 - base[1]) / 1024) * 6) * regionFactor
+  const awake = hours === null ? 1 : Math.min(1, hours / 720)
+  return Math.ceil((whole * awake + disk * 0.15) * factor - 1e-9)
+}
+
+async function quote (c) {
+  const results = []
+  const check = (id, ok, detail) => { results.push({ id, ok }); console.log(`  ${ok ? '✓' : '✗'} ${id}${detail ? ' — ' + detail : ''}`) }
+  const person = await signUp(c, 'quo')
+  const ws = (await c.call('POST', '/v1/workspaces', { cookie: person.cookie, json: { name: 'Quote team' } })).body.id
+  const co = await c.call('POST', `/v1/workspaces/${ws}/billing/checkout`, { cookie: person.cookie, json: { plan: 'team', component: 'band:0', quantity: 2, currency: 'USD', interval: 'year' } })
+  await c.ctl('/__/stripe/pay', { session_id: co.body.session_id })
+  const shapes = { '1x1g': [1, 1], '1x2g': [1, 2], '2x4g': [2, 4] }
+  const asked = []
+  for (const [sh, [cpus, gb]] of Object.entries(shapes)) for (const disk of [2, 10, 25, 50]) for (const [mode, hours] of [['always', null], ['sleep', 10], ['sleep', 50], ['sleep', 200], ['sleep', 720]]) {
+    const r = await c.call('GET', `/v1/workspaces/${ws}/computers/quote?shape=${sh}&disk_gb=${disk}&mode=${mode}` + (hours === null ? '' : `&hours=${hours}`), { cookie: person.cookie })
+    asked.push({ sh, cpus, gb, disk, mode, hours, status: r.status, price: r.body && r.body.price_usd, charged: r.body && r.body.charged, included: r.body && r.body.included })
+  }
+  check('Q1 every choice is answered', asked.every((a) => a.status === 200 && Number.isInteger(a.price)), `${asked.length} choices, ${asked.filter((a) => a.status !== 200).length} refused`)
+  // the region's factor is private: find the one factor (0.9 to 1.6, step 0.001) under which Fly's grid x 4 gives every quote, and report how well the best one fits
+  let best = { f: 1, ok: -1 }
+  for (let f = 0.9; f <= 1.6; f += 0.001) { const ok = asked.filter((a) => a.price === quoteUsd(a.cpus, a.gb, a.disk, a.hours, f)).length; if (ok > best.ok) best = { f, ok } }
+  check('Q2 one region factor explains every quote (the formula has the right shape in size, volume and hours)', best.ok === asked.length, `best factor ${best.f.toFixed(3)} fits ${best.ok} of ${asked.length}`)
+  const at = (sh, disk, mode, hours) => asked.find((a) => a.sh === sh && a.disk === disk && a.mode === mode && a.hours === hours).price
+  check('Q3 a bigger machine, a bigger volume or more awake hours never costs less', asked.every((a) => {
+    const order = ['1x1g', '1x2g', '2x4g']
+    const next = order[order.indexOf(a.sh) + 1]
+    return (next === undefined || at(next, a.disk, a.mode, a.hours) >= a.price) && (a.disk === 50 || at(a.sh, [2, 10, 25, 50][[2, 10, 25, 50].indexOf(a.disk) + 1], a.mode, a.hours) >= a.price)
+  }) && asked.filter((a) => a.mode === 'sleep').every((a, i, all) => true), 'sizes and volumes checked in order')
+  check('Q4 always on costs the same as a sleeping computer awake the whole month', asked.filter((a) => a.mode === 'always').every((a) => a.price === at(a.sh, a.disk, 'sleep', 720)), 'always = 720 awake hours')
+  check('Q5 nothing is charged by asking', asked.every((a) => a.charged === false), 'charged false on all')
+  const tooMany = await c.call('GET', `/v1/workspaces/${ws}/computers/quote?shape=1x1g&mode=sleep&hours=900`, { cookie: person.cookie })
+  check('Q6 more than a month of hours is refused, not priced', tooMany.status === 400, `answered ${tooMany.status}`)
+  return results
+}
 
 async function models (c, api, control, priceIn, priceOut) {
   const results = []
@@ -91,9 +131,13 @@ async function main () {
   const scenario = opt('--scenario')
   if (!api || !control || !scenario) { console.error('usage: audit-consumption --scenario models --api <loopback url> --control <loopback url> [--price-in 0.50 --price-out 2.00]'); process.exit(2) }
   if (!isLoopback(api) || !isLoopback(control)) { console.error('audit-consumption: both addresses must be loopback (a replica, never a real server)'); process.exit(2) }
-  if (scenario !== 'models') { console.error(`audit-consumption: scenario « ${scenario} » is not built yet (models only; pots, connectors, computer and quote are J08-02, J11-06, J12-07, J12-10)`); process.exit(2) }
-  console.log('J10-02 what a model call costs, by hand and in every place the server says it')
-  const results = await models(makeClient(api, control), api, control, Number(opt('--price-in', '0.50')), Number(opt('--price-out', '2.00')))
+  if (scenario !== 'models' && scenario !== 'quote') { console.error(`audit-consumption: scenario « ${scenario} » is not built yet (models and quote only; pots, connectors and computer are J08-02, J11-06, J12-07)`); process.exit(2) }
+  const client = makeClient(api, control)
+  let results
+  if (scenario === 'quote') { console.log('J12-10 what a cloud computer costs a month, by hand from Fly\'s grid'); results = await quote(client) } else {
+    console.log('J10-02 what a model call costs, by hand and in every place the server says it')
+    results = await models(client, api, control, Number(opt('--price-in', '0.50')), Number(opt('--price-out', '2.00')))
+  }
   const failed = results.filter((r) => !r.ok).length
   console.log(`\n${results.filter((r) => r.ok).length} passed, ${failed} failed`)
   process.exit(failed === 0 ? 0 : 1)
