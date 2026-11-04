@@ -157,7 +157,14 @@ try {
   check('opened, the banner says that texts look like test marks, with their number', unfolded === true && typeof banner === 'string' && /\d[\d,.\s]*\s+texts look like test marks/.test(banner), banner)
   check('the language is NOT "Ready" any more', !/Ready/.test(String(rowB)), rowB)
   check('"Use" and "Use anyway" are not offered while marks are there (they would show the brackets)', (await val(`!document.querySelector('[data-lang="${T.id}"] [data-act="use"]') && !document.querySelector('[data-lang="${T.id}"] [data-act="use-now"]')`)) === true)
-  check('the progress bar is there, for a language that is not running (grey, with the count)', (await val(`!!document.querySelector('[data-lang="${T.id}"] .kbln-bar.stale [style*="width"]') || !!document.querySelector('[data-lang="${T.id}"] .kbln-bar.stale > i')`)) === true && /\d+ of [\d,]+ texts/.test(String(await val(`document.querySelector('[data-lang="${T.id}"] .kbln-prog-line').innerText.replace(/\\s+/g, ' ')`))))
+  // The count is what the language REALLY holds (marks leave it out, T-040). A pack with real texts among its marks (the owner's own copy) shows them on a grey bar; a pack that is
+  // only marks holds nothing, so the row reads as one not started: no bar, the button that starts it.
+  const heldB = { kb: await marksIn('kybernos.i18n.' + T.id), dsh: await marksIn('kybernos.i18n.dsh.' + T.id) }
+  const realB = (heldB.kb.n - heldB.kb.marks) + (heldB.dsh.n - heldB.dsh.marks)
+  const barB = (await val(`!!document.querySelector('[data-lang="${T.id}"] .kbln-bar.stale > i')`)) === true
+  const countB = String(await val(`(document.querySelector('[data-lang="${T.id}"] .kbln-prog-line') || { innerText: '' }).innerText.replace(/\\s+/g, ' ')`))
+  if (realB > 0) check('the progress bar is there, for a language that is not running (grey, with the count of the REAL texts)', barB && new RegExp('^' + realB.toLocaleString('en-US') + ' of [\\d,]+ texts').test(countB), { realB, barB, countB })
+  else check('a pack that is only marks holds nothing: no progress bar, and the language can be started', !barB && (await val(`!!document.querySelector('[data-lang="${T.id}"] [data-act="start"]')`)) === true, { barB, row: await rowText(T.id) })
   check('the examples are in the opened banner', /⟦/.test(String(await val(`(document.querySelector('[data-lang="${T.id}"] .kbln-ex') || { innerText: '' }).innerText`))))
 
   // ═══ C. translating again ══════════════════════════════════════════════════════════

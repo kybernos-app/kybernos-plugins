@@ -1697,6 +1697,7 @@ if (React === null) {
   LANG = 'en'
   check('...English: 3.1 KB, 12 KB, 1.2 s, 1.5 s, 0.90', real.ldKo(3200) === '3.1 KB' && real.ldKo(20480) === '20 KB' && real.ldDurText('1,2 s') === '1.2 s' && real.ldDurText('1.5 s') === '1.5 s' && real.knum(0.9, 2) === '0.90')
   check('...and no French decimal comma is built in the code any more', !/\.replace\('\.', ','\)/.test(SOURCE.replace(/const knum = [^\n]*/, '').replace(/const ldDurText = [^\n]*/, '')))
+  check('...and no bare French connective sits between two values of a page (« 2 sur 5 » in the English « Add an animation » window, T-041): such a word goes through kt()', !/,\s*'(sur|dans|avec|pour|sans|ou|et|de|du|des|en|au|aux)'\s*,/.test(SOURCE))
   LANG = 'kybernos'
   check('...with nothing selected, four free slots and the whale tail are announced', (pane.match(/kbth-lds empty/g) || []).length === 4 && ptext.includes('Rien n’est choisi : DSH garde sa queue de baleine.'))
   real.ld.S = real.ldClean({ sel: ['ring', 'orbit'], pack: 'medecine', mode: 'order' })

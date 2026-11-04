@@ -1233,6 +1233,9 @@ check('the internal read of DSH (dicts) is guarded by a shape test', /instanceof
 // language that covers its whole set is COMPLETE, so it shows « Use » and never « Resume » with nothing left.
 check('a count never shows more done than there is to do', /const done = total > 0 \? Math\.min\(doneRaw, total\) : doneRaw/.test(SOURCE) && /const doneRaw = isRun \? snap\.done : staticDone/.test(SOURCE))
 check('a language that covers its whole set is complete, whatever the stored meta says', /const complete = isComplete\(id\) \|\| \(total > 0 && done >= total\)/.test(SOURCE))
+// T-040: the row's count is what the language holds NOW (heldBy, which leaves test marks out), also when a run stored `done`. Trusting the stored count made a pack of
+// test marks, or a pack with 80 % of its texts removed, read « Ready » with « Use » (check-language-run-live.mjs, sections B and D). heldBy itself is proven above.
+check('the row counts what the language really holds, not the count a run stored (a stored « all done » over test marks or removed texts must not read « Ready »)', /const held = isBuiltIn\(id\) \? null : heldBy\(id, plan\)/.test(SOURCE) && !/typeof meta\.done === 'number' \|\| isBuiltIn\(id\) \? null/.test(SOURCE))
 check('one label for the use-it-now action, the nuance in the tooltip only', (SOURCE.match(/L\('useNow'\)/g) || []).length === 3 && !/L\('useAnyway'\)/.test(SOURCE) && /title: L\(st === 'partial' \? 'tipUseAnyway' : 'tipUseNow'\)/.test(SOURCE))
 
 // A translation whose source changed is out of date: the card must offer the act that fixes it (update the changed
