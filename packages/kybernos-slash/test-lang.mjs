@@ -25,6 +25,10 @@ check('en is English; « kybernos » and fr* are French', lang(() => 'en') === '
 check('es, ar, zh are English (never French)', ['es', 'ar', 'zh', 'de'].every((l) => lang(() => l) === 'en'))
 check('a resolver that throws is English', lang(() => { throw new Error('not ready') }) === 'en')
 
+console.log('\n── the Settings menu entry follows the same rule (UJ-54) ──')
+const lab = src.indexOf('      const kbslLabel = ')
+const labEnd = src.indexOf('\n', lab)
+check('the Settings label is French only when the page is (kbslLang), never because the language is not English', lab > 0 && /const kbslLabel = \(fr, en\) => \(kbslLang\(\) === 'fr' \? fr : en\)/.test(src.slice(lab - 8, labEnd + 1)) && !/loc\.indexOf\('en'\) === 0 \? en : fr/.test(src))
 console.log('\n── one is not « 1 fields » (A2-12) ──')
 const en = make(() => 'en')
 const fr = make(() => 'kybernos')

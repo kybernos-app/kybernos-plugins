@@ -1986,5 +1986,13 @@ section('the docs name the screen in English (A2-14)')
   check('the gallery\'s refresh link has an English word while it works', /gal\.refreshing \? kt\('Actualisation…', 'Refreshing…'\)/.test(SOURCE))
 }
 
+{
+  // UJ-54: the Settings label is French for « kybernos » and fr*, English for an added language (it read « Thème » under Arabic)
+  const at = SOURCE.indexOf('const kbthLabel = (fr, en) => {')
+  const body = at > 0 ? SOURCE.slice(at, SOURCE.indexOf('\n          }\n', at) + 12) : ''
+  const label = (lang) => new Function('window', body + '\nreturn kbthLabel("fr", "en")')(lang === undefined ? {} : { __KB_I18N_ACTIVE__: { lang } })
+  check('the Settings label is French for « kybernos », fr and fr-CA, and when no language is known', ['kybernos', 'fr', 'fr-CA'].every((l) => label(l) === 'fr') && label(undefined) === 'fr')
+  check('it is English for en and for an added language (es, ar, zh, de)', ['en', 'en-GB', 'es', 'ar', 'zh', 'de'].every((l) => label(l) === 'en'))
+}
 console.log('\n' + (fail === 0 ? '✓ ' : '✗ ') + pass + ' passed, ' + fail + ' failed' + (skipped > 0 ? ', ' + skipped + ' part SKIPPED (not covered)' : ''))
 process.exit(fail === 0 ? 0 : 1)

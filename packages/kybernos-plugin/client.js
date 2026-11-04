@@ -1361,7 +1361,8 @@ let kbLocaleRead = () => 'en'
       'kbnc.t.website': { kybernos: 'Site web', en: 'Website' },
       'kbnc.t.miniapp': { kybernos: 'Mini-app', en: 'Mini-app' },
       'kbnc.t.dashboard': { kybernos: 'Tableau de bord', en: 'Dashboard' },
-      'kbnc.t.automation': { kybernos: 'Automatisation', en: 'Automation' },
+      // (UJ-54) \u00ad = a soft hyphen: « Automatisation » (14 letters) is wider than its 77 px tile at 1440 px and 69 px at 768 and 390, and broke as « Automatisatio / n »; it now breaks as « Automa- / tisation »
+      'kbnc.t.automation': { kybernos: 'Automa\u00adtisation', en: 'Automation' },
       'kbnc.t.team': { kybernos: 'Agent Team', en: 'Agent Team' },
       'kbnc.t.skill': { kybernos: 'Skill', en: 'Skill' },
       'kbnc.t.plugin': { kybernos: 'Plugin', en: 'Plugin' },
@@ -36370,7 +36371,8 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb6-helpq{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
 .kb6-headacts{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;margin-inline-start:auto;padding-top:6px}
 /* No wrap: the search field shrinks (min-width:0) instead of dropping the view switch and the menu to a second line, which pushed the whole page down when the magnifier was pressed. */
-.kb6-tb-tools{margin-inline-start:auto;display:flex;align-items:center;gap:2px;flex-wrap:nowrap;justify-content:flex-end;padding-top:6px}
+/* The tools wrap when the column is narrower than they are (UJ-55: at 768 px with the sidebar open the Automations toolbar was 479 px in a 432 px column and its « Create » button was cut by the window) */
+.kb6-tb-tools{margin-inline-start:auto;display:flex;align-items:center;gap:2px;flex-wrap:wrap;row-gap:6px;justify-content:flex-end;padding-top:6px}
 .kb6-tb-tools .kb6-tb-search{flex:0 1 280px;min-width:0;margin-inline-end:6px}
 .kb6-tb-ghost{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:38px;height:var(--kb6-tb-h);border-radius:999px;border:0;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;position:relative;padding:0}
 .kb6-tb-ghost:hover,.kb6-tb-ghost.open{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
