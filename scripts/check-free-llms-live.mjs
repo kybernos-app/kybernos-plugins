@@ -11,7 +11,7 @@
 // What it proves: the page asks for the tier on open (the cached form), says in a sentence that the tier is unavailable,
 // draws no green dot, keeps « Connect to DSH » off even after the retention notice is acknowledged, and « Re-check »
 // answers in words (not « Gate refused: free_tier_locked »). Exit code 0 / 1 / 3 (3 = inconclusive: no sandbox).
-import { mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { openLivePage, openSettings } from './live-page.mjs'
 
@@ -26,6 +26,17 @@ const host = process.env.KB_HOST || '127.0.0.1:3080'
 const home = process.env.DSH_HOME || ''
 if (host === '127.0.0.1:3080') { console.error('○ inconclusive: this check needs a DSH that serves this checkout (a sandbox instance), not the one on :3080.'); process.exit(3) }
 if (home.indexOf('.kybernos-sandbox') < 0) { console.error('○ inconclusive: DSH_HOME is not a sandbox home.'); process.exit(3) }
+
+// A sandbox profile is cloned from the real one: when the person switched the bundle off there (`- id: kybernos-free-llms` then `disabled: true`), the Settings entry
+// does not exist and every step would fail for that reason alone.
+{
+  const patchFile = join(home, 'profiles', 'web', 'cordis.patch.yml')
+  const patch = existsSync(patchFile) ? readFileSync(patchFile, 'utf8') : ''
+  if (/^- id: kybernos-free-llms\s*\n\s+disabled: true/m.test(patch)) {
+    console.error('○ inconclusive: the Free LLMs bundle is switched off in this sandbox profile (' + patchFile + '). Remove its `disabled: true` line, restart the sandbox and run again.')
+    process.exit(3)
+  }
+}
 
 const live = await openLivePage({ width: 1400, height: 900 }).catch((e) => { console.error('○ inconclusive: ' + e.message); process.exit(3) })
 const { page } = live
