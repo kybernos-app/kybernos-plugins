@@ -148,6 +148,19 @@ ok('une origine étrangère est refusée',
   ok('modifier with ops: the answer counts the batches handed over', avecO.lots === 1 && /^1 batch of bricks handed over/.test(avecO.message), avecO.message)
   const neuf = await definition.execute({ prompt: 'ajoute une tour', mode: 'nouveau' }, { agent: { id: SES } })
   ok('nouveau with a prompt keeps its answer: the model is handed over', /^Model handed over/.test(neuf.message), neuf.message)
+  const maison = await definition.execute({ prompt: 'Build me a brick model of a small house.', mode: 'nouveau' }, { agent: { id: SES } })
+  ok('a prompt: the answer names the ready-made model the panel builds (a house is the chalet, not the canal square)', /“Alpine Chalet”/.test(maison.message) && !/Canal/.test(maison.message), maison.message)
+  const inconnu = await definition.execute({ prompt: 'a dragon with three heads', mode: 'nouveau' }, { agent: { id: SES } })
+  ok('a prompt no word of the table reaches: the answer says the panel picked one and that ops draw the exact thing', /nine ready-made models/.test(inconnu.message) && /send `ops`/.test(inconnu.message), inconnu.message)
+  ok('the description says that a prompt alone only reaches a ready-made model', /never draws what it says/.test(definition.description))
+  // The host's table is the panel's own: same patterns, same keys, same order (client.js `KEYWORDS`).
+  const { readFileSync } = await import('node:fs')
+  const { MOTS_ARCHETYPE: mots, NOMS_ARCHETYPE: noms } = await import('./index.js')
+  const src = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
+  const bloc = src.slice(src.indexOf('const KEYWORDS = ['), src.indexOf('];', src.indexOf('const KEYWORDS = [')))
+  const duClient = [...bloc.matchAll(/\[\/(.+)\/i, '(\w+)'\]/g)].map((m) => [m[1], m[2]])
+  ok('the table that names the model is the one the panel uses', JSON.stringify(duClient) === JSON.stringify(mots.map(([re, cle]) => [re.source, cle])), duClient.length + ' entries')
+  ok('every key has a name', mots.every(([, cle]) => typeof noms[cle] === 'string'))
   ok('the description of the parameters tells an agent that « modifier » needs ops', /needs `ops`/.test(definition.parameters.mode.description) && /alone changes nothing/.test(definition.parameters.prompt.description))
 }
 

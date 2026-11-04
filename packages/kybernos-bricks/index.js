@@ -74,6 +74,30 @@ const DUREE_DEFAUT_MS = 12_000
 const DUREE_MIN_MS = 1_500
 const DUREE_MAX_MS = 120_000
 
+// The ready-made model the panel builds from a `prompt`: the words and keys of `KEYWORDS` in client.js (test-host.mjs compares the two), so the answer can name the
+// model the person will see instead of leaving the chat to describe the request (a « house » once came out as a canal town square).
+export const MOTS_ARCHETYPE = [
+  [/ch[aâ]teau|castle|forteresse|donjon|fortress/i, 'castle'],
+  [/chalet|alpin|cabine|cabin|montagne|mountain|ski|maison|\bhouse\b/i, 'chalet'],
+  [/phare|lighthouse|port|harbor|harbour|marin/i, 'lighthouse'],
+  [/fus[ée]e|rocket|navette|spatial|espace|space/i, 'rocket'],
+  [/robot|andro[iï]de|mecha|automate/i, 'robot'],
+  [/canal|place|horloge|clock|square|ville|town/i, 'canal'],
+  [/mosa[iï]que|mosaic|tableau|affiche|poster|coucher|sunset/i, 'mosaic'],
+  [/van|camping|car|camper|surf|plage|beach/i, 'camper'],
+  [/colibri|hummingbird|oiseau|bird/i, 'hummingbird'],
+]
+export const NOMS_ARCHETYPE = {
+  castle: 'Stone Castle', chalet: 'Alpine Chalet', lighthouse: 'Harbor Lighthouse', rocket: 'Retro Rocket', robot: 'Friendly Robot',
+  canal: 'Canal Clock Square', mosaic: 'Sunset Harbor Mosaic', camper: 'Vintage Camper Van', hummingbird: 'Hummingbird',
+}
+/** The key of the ready-made model a prompt reaches, or null when no word matches (the panel then picks one of its own). */
+export const archetypeDuPrompt = (prompt) => {
+  const p = typeof prompt === 'string' ? prompt : ''
+  for (const [re, cle] of MOTS_ARCHETYPE) if (re.test(p)) return cle
+  return null
+}
+
 const dire = (msg) => console.log(`[kybernos-bricks] ${msg}`)
 
 // ── résolution paresseuse de `defineTool` ───────────────────────────────────
@@ -201,6 +225,7 @@ export function optionsOutil (magasin) {
       + 'Two ways to use it: either `prompt` describes the model (in English or French) and the panel picks an archetype '
       + '(castle, chalet, lighthouse, rocket, robot, clock square, mosaic, van, hummingbird), '
       + 'or `ops` describes the geometry explicitly — the path where YOU do the drawing. '
+      + 'A `prompt` alone never draws what it says: it only reaches the nearest of those nine ready-made models, and the answer names it. '
       + "Each op is a batch: {op:'rect',x,y,z,w,d,h,color,group} | {op:'disc',cx,cy,r,z,h,color} | "
       + "{op:'ring',cx,cy,r,t,z,h,color} | {op:'cone',cx,cy,z,r,niveaux,color} | {op:'tree',x,y,z,h} | "
       + "{op:'archetype',cle:'castle'}. The ops are laid in the order of the array. "
@@ -245,7 +270,10 @@ export function optionsOutil (magasin) {
           ? 'Nothing was added: mode “modifier” takes `ops`, and a prompt alone does not change the current model (it only builds when the panel has no model yet). Give `ops`, or use mode “nouveau” to rebuild from the prompt.'
           : Array.isArray(enregistrement.ops)
           ? `${enregistrement.ops.length} ${enregistrement.ops.length === 1 ? 'batch' : 'batches'} of bricks handed over: the “Bricks” panel (right sidebar) lays them in ${(enregistrement.dureeMs / 1000).toFixed(1)} s.`
-          : 'Model handed over: the “Bricks” panel (right sidebar) is building it now.',
+          : enregistrement.prompt === '' ? 'Model handed over: the “Bricks” panel (right sidebar) is building it now.'
+          : archetypeDuPrompt(enregistrement.prompt) !== null
+          ? `Model handed over: the “Bricks” panel (right sidebar) is building its ready-made “${NOMS_ARCHETYPE[archetypeDuPrompt(enregistrement.prompt)]}”, the closest of its nine models to the prompt. Tell the person that name; to draw anything else, send \`ops\`.`
+          : 'Model handed over: the “Bricks” panel (right sidebar) is building one of its nine ready-made models, picked from the prompt (its title says which). It may not be what was asked: to draw exactly that, send `ops`.',
       }
     },
   }
