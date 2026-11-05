@@ -53,6 +53,18 @@ session token are all refused), and act for the person the turn runs for. 60 cal
   `200 { …, url }`: the single-use link where the merchant gives their details at Stripe (Kaby hands it to the person in the chat). When a card can already be charged, no `url`
   and `shop.payable` is true. Stripe's refusal: `502 payments_unavailable` with Stripe's own sentence.
 
+### Photos (the person sends them in the chat, Kaby retouches them)
+
+- **The door.** A private photo sent by a person who has a Kaby account (a stranger costs nothing: ignored) is downloaded by the Telegram door (2 MB at most; 10 a minute per person)
+  and kept two hours in that person's inbox under a short name, `ph1`, `ph2`, … (6 at most; the oldest goes). Their Kaby is then told, as the person's own message,
+  `[The person sent a photo: ph1] <caption>` (or `[The person sent a photo that could not be kept: …]`), so the normal turn applies: consent, pause, limits, the hosted computer.
+  `shop_list` names the photos no product has taken yet (`shop.photos_waiting`).
+- `POST /v1/computer/shop/photo/raw` `{ job_id, photo: "ph1" }` → `200 { photo, bytes, jpeg_base64 }`; `404 not_found` when the photo is gone (two hours) or the turn is not this computer's.
+- `POST /v1/computer/shop/photo/put` `{ job_id, product, jpeg_base64 }` → `200 { products, shop, photo: { product, bytes, width, height } }`, or `200 … several: [names]` with nothing changed when the
+  product fits several. The server checks the bytes itself (a JPEG, 100 to 4096 px, 250 KB at most: `400 not_a_photo` / `photo_too_big`) and the shop holds 2.5 MB of photos, the server 64 MB
+  (`409 photos_full`). A new photo replaces the product's old one (its `photo` version changes, so the window reloads it).
+- **Public**: `GET /v1/shops/<name>/photo/<product>` (the JPEG, `cache` by version, `nosniff`); the window's product list carries `photo` (the version or `null`). The page's CSP allows `img-src 'self'` only.
+
 ### What a client sees (public, no sign-in)
 
 - `GET /shop/<name>`: one page for every shop. `GET /v1/shops/<name>`: name, line, `payable`, products with their price and `available` (never a cost or a stock number).
@@ -71,6 +83,12 @@ session token are all refused), and act for the person the turn runs for. 60 cal
   from the costs in its own answer first and waits for the person's yes: the tool description says so, and nothing in the server computes a price.
 - `shop_connect` — asked (« Ask Stripe for the link… »); gives Kaby the single-use link to hand over. The turn's gate allows three questions a task: define, connect and a stock
   change fit.
+- `shop_photo` `{ photos: [{ product, photo, look? }] }` (6 at most) — **asked** (« Put 2 photos you sent on the shop: Colombie, Moulin »): ONE question for the batch, fourth of nothing: define,
+  connect and photos fit the turn's three. For each photo it takes the picture at `photo/raw`, retouches it ON the computer (`shop-photo.mjs`, the image library `sharp` of the cloud image, loaded
+  when the first photo comes and never at start: upright from its orientation mark, square crop on the subject, levels evened out, a light lift of light and colour (`natural`, `bright`, `vivid`),
+  sharpened, **every metadata block dropped, so the place of the photo never leaves the computer**, shrunk by quality then by side until it fits 245 KB) and puts it with `photo/put`. It is a
+  careful retouch of THEIR picture, not a generated one: the tool description tells Kaby to say so and to suggest a new shot when a photo is poor. One line per photo comes back; a gone photo,
+  an unknown product or an unreadable picture do not stop the others; a closed door (no turn, no account, rate limit) or a full shop stops the batch and is said once.
 - Only a cloud computer inside a turn can call them; anywhere else they answer in one line that the shop is reached from Kaby's chat on the phone, and send nothing.
 - Everything the server says (product names) is data: flattened to one bounded line, no markup (`dataLine`).
 
@@ -79,11 +97,13 @@ session token are all refused), and act for the person the turn runs for. 60 cal
 - Server: `test/shoppoc.test.ts` (initData, the link to an account, the Mini App routes, both Kaby routes with a stubbed turn owner, isolation between people).
 - Plugin: `node packages/kybernos-cloud/test-shop-stock.mjs` (the tools, what they refuse before the network, what the server's answers mean, markup in names) and, in
   `test-cloud-host.mjs`, the gate (read passes, change is asked in plain words) and the calls through the host with the computer's token and the turn.
+- Photos: server `test/telegram.test.ts` (« a photo »: who is heard, the inbox, the message Kaby gets) and `test/shoppoc-storefront.test.ts` (« photos »: the routes, the limits, the public image, the window);
+  plugin `test-shop-stock.mjs` (the batch, every refusal, every server answer), `test-shop-photo.mjs` (the retouch against a stand-in for `sharp`, and against the real `sharp` where the machine has it:
+  skipped, and said so, on a Mac without it) and the gate and host checks of `test-cloud-host.mjs`. The real retouch on the cloud image is checked live (the image carries `sharp`).
 - Not covered by an automated test: a real model choosing the tool (it needs the cloud computer image to carry this plugin version), and the Mini App in a real Telegram client
   (done by hand on 2026-11-05 on the owner's phone and in Telegram Web).
 
 ## What it does not do yet
 
 No persistence across restarts (a restart or a deploy empties every shop and forgets the Stripe account it had made), no per-shop table, no WhatsApp surface, no line from the Mini App in
-Kaby's own thread (so Kaby learns of a change made in the Mini App by calling `shop_list`, not by reading the conversation), **no photos** (the Telegram door ignores them and no image
-route exists), no Stripe webhook (a payment is counted when the client comes back to the window), no refund, no shipping, no tax, no application fee, a window in French only.
+Kaby's own thread (so Kaby learns of a change made in the Mini App by calling `shop_list`, not by reading the conversation), **photos are a retouch, not a generation** (a poor photo stays poor), they live in the server's memory like the rest (a deploy loses them), WhatsApp photos are not taken, and the Mini App does not show them yet (only the shop window does), no Stripe webhook (a payment is counted when the client comes back to the window), no refund, no shipping, no tax, no application fee, a window in French only.

@@ -1748,6 +1748,7 @@ try {
           if (u.pathname === '/v1/computer/shop') return new Response(JSON.stringify({ products: [{ id: 'eth', name: 'Ethiopie', price: '16,90 EUR', stock: 4 }] }), { status: 200 })
           if (u.pathname === '/v1/computer/shop/stock') return new Response(JSON.stringify({ products: [], changed: { name: 'Ethiopie', before: 4, after: 10 } }), { status: 200 })
           if (u.pathname === '/v1/computer/shop/define') return new Response(JSON.stringify({ products: [{ id: 'p1', name: 'Colombie', price: '15,90 €', stock: 0, cost: null, margin_pct: null }], shop: { name: 'Atelier Café', tagline: '', url: 'https://dev.example/shop/atelier-cafe-1a2b', connected: false, payable: false }, added: ['Colombie'], updated: [] }), { status: 200 })
+          if (u.pathname === '/v1/computer/shop/photo/raw') return new Response(JSON.stringify({ photo: 'ph1', bytes: 5, jpeg_base64: Buffer.from('nope!').toString('base64') }), { status: 200 })
           if (u.pathname === '/v1/computer/shop/connect') return new Response(JSON.stringify({ products: [], shop: { name: 'Atelier Café', tagline: '', url: 'https://dev.example/shop/atelier-cafe-1a2b', connected: true, payable: false }, url: 'https://connect.stripe.com/setup/e/abc123' }), { status: 200 })
           if (init.method === 'POST') return new Response(JSON.stringify({ id: 'ap-1', state: 'pending', expires_at: '2099-01-01T00:00:00Z' }), { status: 200 })
           return new Response(JSON.stringify({ id: 'ap-1', state: answers.shift() ?? 'pending' }), { status: 200 })
@@ -1827,7 +1828,7 @@ try {
           assert.equal(mod.TURN_GATE_SAFE_TOOLS.has('shop_define'), false, 'shop_define is asked about')
           assert.equal(mod.TURN_GATE_SAFE_TOOLS.has('shop_connect'), false, 'shop_connect is asked about')
           await turnOf('s-shop')
-          answers = ['allowed', 'allowed']
+          answers = ['allowed', 'allowed', 'allowed']
           const defineBefore = seen.length
           assert.deepEqual(await run('shop_define', { name: 'Atelier Café', products: [{ name: 'Colombie', price_eur: 15.9 }] }, 's-shop'), { kind: 'allow' })
           assert.match(seen.slice(defineBefore).find((c) => c.method === 'POST').body.summary, /Set up the shop "Atelier Café": Colombie 15\.9 €$/)
@@ -1839,6 +1840,18 @@ try {
           const linked = await shopTools('shop_connect').execute({}, { agent: { id: 's-shop' } })
           assert.ok(linked.ok === true && /https:\/\/connect\.stripe\.com\/setup\/e\/abc123/.test(linked.text), linked.text)
           assert.deepEqual(seen.filter((c) => c.path === '/v1/computer/shop/define' || c.path === '/v1/computer/shop/connect').map((c) => [c.path, c.auth, c.body.job_id]), [['/v1/computer/shop/define', 'Bearer kyd_computer', JOB], ['/v1/computer/shop/connect', 'Bearer kyd_computer', JOB]])
+          // Putting the person's photos on the shop is asked too (the clients see them), in words that name the products; the photo is taken at the computer's own route with the turn, and a picture
+          // that is no picture (the fake route sends five bytes) is never put on a product.
+          assert.equal(mod.TURN_GATE_SAFE_TOOLS.has('shop_photo'), false, 'shop_photo is asked about')
+          const photoBefore = seen.length
+          assert.deepEqual(await run('shop_photo', { photos: [{ product: 'Colombie', photo: 'ph1' }, { product: 'Moulin', photo: 'ph2' }] }, 's-shop'), { kind: 'allow' })
+          assert.match(seen.slice(photoBefore).find((c) => c.method === 'POST').body.summary, /^\(3\/3\) Put 2 photos you sent on the shop: Colombie, Moulin$/)
+          assert.ok(shopTools('shop_photo') !== undefined, 'the photo tool is registered')
+          const photoed = await shopTools('shop_photo').execute({ photos: [{ product: 'Colombie', photo: 'ph1' }] }, { agent: { id: 's-shop' } })
+          assert.ok(photoed.ok === false && /ph1: not done, it could not be read as a picture/.test(photoed.text), photoed.text)
+          assert.deepEqual(seen.filter((c) => c.path.startsWith('/v1/computer/shop/photo/')).map((c) => [c.path, c.auth, c.body.job_id, c.body.photo]), [['/v1/computer/shop/photo/raw', 'Bearer kyd_computer', JOB, 'ph1']])
+          assert.equal((await shopTools('shop_photo').execute({ photos: [{ product: 'Colombie', photo: 'ph1' }] }, { agent: { id: 'someone-elses-session' } })).ok, false)
+          assert.equal(seen.filter((c) => c.path.startsWith('/v1/computer/shop/photo/')).length, 1, 'a session this route did not make sends nothing')
           // The page itself goes through the computer's own route, with the turn it belongs to; a session this route did not make cannot publish.
           const pageDir = mkdtempSync(join(tmpdir(), 'cloud-page-'))
           writeFileSync(join(pageDir, 'index.html'), '<h1>Pizza One</h1>')
