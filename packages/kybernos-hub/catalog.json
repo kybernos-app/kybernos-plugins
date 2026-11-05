@@ -62,7 +62,7 @@
       },
       "aide": {
         "what": {
-          "fr": "Le cœur de Kybernos : des Agent Teams (des équipes d’agents sur une mission) que tu lances depuis un chat, leurs créations, des automations, la voix et le choix des outils.",
+          "fr": "Le cœur de Kybernos : des Agent Teams (des équipes d’agents sur une mission) que tu lances depuis un chat, leurs créations, des automatisations, la voix et le choix des outils.",
           "en": "The heart of Kybernos: Agent Teams (teams of agents on a mission) you start from a chat, what they create, automations, voice and tool choices."
         },
         "steps": [
@@ -89,7 +89,7 @@
           "page": true
         },
         "good": {
-          "fr": "Une automation ne part que si DSH est lancé, sur cet ordinateur. Réglée sur « Me demander d’abord » (le choix par défaut), elle attend ton accord avant une action qui modifie quelque chose.",
+          "fr": "Une automatisation ne part que si DSH est lancé, sur cet ordinateur. Réglée sur « Me demander d’abord » (le choix par défaut), elle attend ton accord avant une action qui modifie quelque chose.",
           "en": "An automation only starts while DSH is running, on this computer. Set to “Ask me first” (the default), it waits for your approval before an action that changes something."
         },
         "pages": {
@@ -2594,12 +2594,12 @@
       "defaut": null,
       "poids_ko": 185,
       "promesse": {
-        "fr": "Des dashboards construits par chat, pour suivre tes Agent Teams, automations, usage et livrables : cartes, graphiques animés, calendrier, kanban, notes.",
+        "fr": "Des dashboards construits par chat, pour suivre tes Agent Teams, automatisations, usage et livrables : cartes, graphiques animés, calendrier, kanban, notes.",
         "en": "Dashboards built by chat to follow your Agent Teams, automations, usage and deliverables: cards, animated charts, calendar, kanban, notes."
       },
       "aide": {
         "what": {
-          "fr": "Une page Dashboards avant Agent Teams : le chat construit tes tableaux de bord (Agent Teams, automations, usage, créations) avec des graphiques animés, un calendrier, un kanban et des notes.",
+          "fr": "Une page Dashboards avant Agent Teams : le chat construit tes tableaux de bord (Agent Teams, automatisations, usage, créations) avec des graphiques animés, un calendrier, un kanban et des notes.",
           "en": "A Dashboards page before Agent Teams: the chat builds your dashboards (Agent Teams, automations, usage, creations) with animated charts, a calendar, a kanban and notes."
         },
         "steps": [
@@ -2758,7 +2758,7 @@
             "en": "Further down, pick where Kaby works and what it may do without asking, with a daily limit. Sign for it to count."
           },
           {
-            "fr": "Crée son réveil : une automation comme les autres, éteinte jusqu'à ton approbation dans la page Automatisations.",
+            "fr": "Crée son réveil : une automatisation comme les autres, éteinte jusqu'à ton approbation dans la page Automatisations.",
             "en": "Create its wake-up: an automation like any other, off until you approve it on the Automations page."
           }
         ],
@@ -2790,7 +2790,7 @@
       },
       "aide": {
         "what": {
-          "fr": "Une recherche qui lit le contenu de tes chats, pas seulement leurs titres, et aussi tes skills, mémoires, leçons, créations, automations et équipes.",
+          "fr": "Une recherche qui lit le contenu de tes chats, pas seulement leurs titres, et aussi tes skills, mémoires, leçons, créations, automatisations et équipes.",
           "en": "A search that reads the content of your chats, not only their titles, and also your skills, memories, lessons, creations, automations and agent teams."
         },
         "steps": [
@@ -2879,12 +2879,12 @@
       "defaut": null,
       "poids_ko": 81,
       "promesse": {
-        "fr": "Te dit quand une automation est terminée, a échoué ou attend ton accord : une fenêtre flottante, une bannière et un badge, chacun avec un lien pour revenir dans Kybernos.",
+        "fr": "Te dit quand une automatisation est terminée, a échoué ou attend ton accord : une fenêtre flottante, une bannière et un badge, chacun avec un lien pour revenir dans Kybernos.",
         "en": "Tells you when an automation finished, failed or waits for you: a floating window, a banner and a badge, each with a link back to Kybernos."
       },
       "aide": {
         "what": {
-          "fr": "Te dit quand une automation est terminée, a échoué ou attend ton accord, sans garder Kybernos au premier plan : une fenêtre flottante, une bannière et un nombre sur l'onglet.",
+          "fr": "Te dit quand une automatisation est terminée, a échoué ou attend ton accord, sans garder Kybernos au premier plan : une fenêtre flottante, une bannière et un nombre sur l'onglet.",
           "en": "Tells you when an automation finished, failed or waits for your approval, without keeping Kybernos in front: a floating window, a banner and a count on the tab."
         },
         "steps": [
@@ -2897,7 +2897,7 @@
             "en": "Click “Allow” for the banners: the browser asks once."
           },
           {
-            "fr": "Choisis quand être prévenu. Chaque carte a une flèche qui te ramène dans Kybernos, sur la page des automations.",
+            "fr": "Choisis quand être prévenu. Chaque carte a une flèche qui te ramène dans Kybernos, sur la page des automatisations.",
             "en": "Choose when to be told. Each card has an arrow that brings you back to Kybernos, on the Automations page."
           }
         ],

@@ -205,11 +205,11 @@ window.__ModuleLoader__.load({
     }
     /** Why a request did not go through, from the host's closed words (the Automations route's own and this page's). */
     const wakeProblem = (code) => ({
-      'approval required': kt('L’automation n’est pas encore approuvée : approuve-la dans la page Automatisations, puis réessaie.', 'The automation is not approved yet: approve it on the Automations page, then try again.'),
+      'approval required': kt('L’automatisation n’est pas encore approuvée : approuve-la dans la page Automatisations, puis réessaie.', 'The automation is not approved yet: approve it on the Automations page, then try again.'),
       'not running': kt('Aucun réveil n’est en cours : il vient de se terminer.', 'No wake-up is under way: it has just ended.'),
       no_chat: kt('Le chat de l’assistant n’existe pas encore : ouvre-le une première fois.', 'The assistant’s chat does not exist yet: open it once.'),
       session: kt('La page n’a pas pu prouver que la demande vient de toi : recharge-la et réessaie.', 'The page could not prove the request comes from you: reload it and try again.'),
-      down: kt('Les automations ne répondent pas : relance DSH si ce plugin vient d’être activé.', 'The automations do not answer: restart DSH if this plugin was just turned on.')
+      down: kt('Les automatisations ne répondent pas : relance DSH si ce plugin vient d’être activé.', 'The automations do not answer: restart DSH if this plugin was just turned on.')
     }[code] || kt('La demande n’a pas abouti.', 'The request did not go through.'))
     /** The chip of the « Where Kaby works » card: this computer is always ready; a cloud computer says its own state. */
     const whereChip = (w) => {
@@ -625,7 +625,7 @@ const readWake = async () => {
           return h('section', { className: 'kbkc-card', 'data-kb': 'kaby-custom-wake', 'aria-labelledby': 'kbkc-wake-title' }, [
             cap,
             h('div', { key: 'm', className: down ? 'kbkc-notice w' : 'kbkc-help', 'data-kb': down ? 'kaby-custom-wake-down' : 'kaby-custom-wake-loading' },
-              down ? kt('La page ne peut pas lire les automations : relance DSH si ce plugin vient d’être activé.', 'The page cannot read the automations: restart DSH if this plugin was just turned on.') : kt('Lecture des automations…', 'Reading the automations…'))
+              down ? kt('La page ne peut pas lire les automatisations : relance DSH si ce plugin vient d’être activé.', 'The page cannot read the automations: restart DSH if this plugin was just turned on.') : kt('Lecture des automatisations…', 'Reading the automations…'))
           ])
         }
         const chip = wakeChip(state)
@@ -661,12 +661,12 @@ const readWake = async () => {
         const canOpenAuto = typeof window.__KB_OPEN__ === 'function'
         return h('section', { className: 'kbkc-card', 'data-kb': 'kaby-custom-wake', 'aria-labelledby': 'kbkc-wake-title' }, [
           h('div', { key: 'hd', className: 'kbkc-head' }, [cap, h('span', { key: 's', className: 'kbkc-chip ' + chip.cls, 'data-kb': 'kaby-custom-wake-chip', 'data-state': chip.code }, chip.text)]),
-          h('div', { key: 'lead', className: 'kbkc-help' }, fill(kt('{name} se réveille de lui-même grâce à une automation, comme les autres : son rythme, sa durée maximale, « quand j’écris dans son chat » et le bouton Arrêter sont dans la page Automatisations. Sa liste et ses comptes rendus sont dans son chat, pas ici.', '{name} wakes by itself through an automation, like any other: its schedule, its time limit, “when I write in its chat” and the Stop button are on the Automations page. Its list and its reports are in its chat, not here.'), { name: name })),
+          h('div', { key: 'lead', className: 'kbkc-help' }, fill(kt('{name} se réveille de lui-même grâce à une automatisation, comme les autres : son rythme, sa durée maximale, « quand j’écris dans son chat » et le bouton Arrêter sont dans la page Automatisations. Sa liste et ses comptes rendus sont dans son chat, pas ici.', '{name} wakes by itself through an automation, like any other: its schedule, its time limit, “when I write in its chat” and the Stop button are on the Automations page. Its list and its reports are in its chat, not here.'), { name: name })),
           elsewhere ? h('div', { key: 'cl', className: 'kbkc-notice w', 'data-kb': 'kaby-custom-wake-cloud-note' }, fill(kt('Les réveils ne couvrent pas le cloud computer de {name} : ils ont lieu sur ton ordinateur, quand DSH y est ouvert.', 'Wake-ups do not cover {name}’s cloud computer: they happen on your own computer, while DSH is open there.'), { name: name })) : null,
           chip.code === 'nochat' ? h('div', { key: 'n', className: 'kbkc-notice w', 'data-kb': 'kaby-custom-wake-note' }, kt('Ouvre une première fois le chat de l’assistant : le réveil y tourne, il faut qu’il existe.', 'Open the assistant’s chat once: the wake-up runs there, so it has to exist.'))
-            : chip.code === 'none' ? h('div', { key: 'n', className: 'kbkc-help', 'data-kb': 'kaby-custom-wake-note' }, kt('Pas encore de réveil. Le créer ajoute une automation éteinte (toutes les 4 h de 08:00 à 20:00, 10 minutes au plus) : tu la relis, tu l’approuves, tu l’actives.', 'No wake-up yet. Creating it adds an automation that is off (every 4 hours from 08:00 to 20:00, 10 minutes at most): you read it, approve it and turn it on.'))
-              : chip.code === 'draft' ? h('div', { key: 'n', className: 'kbkc-help', 'data-kb': 'kaby-custom-wake-note' }, made ? kt('Créée, éteinte. Ouvre-la pour la relire, l’approuver et l’activer : tant qu’elle n’est pas approuvée, aucun réveil n’a lieu.', 'Created, and off. Open it to read it, approve it and turn it on: no wake-up happens until it is approved.') : kt('L’automation attend ton approbation dans la page Automatisations : aucun réveil n’a lieu avant.', 'The automation waits for your approval on the Automations page: no wake-up happens before.'))
-                : chip.code === 'off' ? h('div', { key: 'n', className: 'kbkc-help', 'data-kb': 'kaby-custom-wake-note' }, kt('L’automation est éteinte : aucun réveil tant que tu ne l’actives pas. Ses réglages sont gardés.', 'The automation is off: no wake-up until you turn it on. Its settings are kept.'))
+            : chip.code === 'none' ? h('div', { key: 'n', className: 'kbkc-help', 'data-kb': 'kaby-custom-wake-note' }, kt('Pas encore de réveil. Le créer ajoute une automatisation éteinte (toutes les 4 h de 08:00 à 20:00, 10 minutes au plus) : tu la relis, tu l’approuves, tu l’actives.', 'No wake-up yet. Creating it adds an automation that is off (every 4 hours from 08:00 to 20:00, 10 minutes at most): you read it, approve it and turn it on.'))
+              : chip.code === 'draft' ? h('div', { key: 'n', className: 'kbkc-help', 'data-kb': 'kaby-custom-wake-note' }, made ? kt('Créée, éteinte. Ouvre-la pour la relire, l’approuver et l’activer : tant qu’elle n’est pas approuvée, aucun réveil n’a lieu.', 'Created, and off. Open it to read it, approve it and turn it on: no wake-up happens until it is approved.') : kt('L’automatisation attend ton approbation dans la page Automatisations : aucun réveil n’a lieu avant.', 'The automation waits for your approval on the Automations page: no wake-up happens before.'))
+                : chip.code === 'off' ? h('div', { key: 'n', className: 'kbkc-help', 'data-kb': 'kaby-custom-wake-note' }, kt('L’automatisation est éteinte : aucun réveil tant que tu ne l’actives pas. Ses réglages sont gardés.', 'The automation is off: no wake-up until you turn it on. Its settings are kept.'))
                   : null,
           h('div', { key: 'ask', className: 'kbkc-ask', 'data-kb': 'kaby-custom-wake-rules' }, [
             svg(h, ICON.lock, 16),
@@ -674,7 +674,7 @@ const readWake = async () => {
               h('div', { key: 't', className: 'kbkc-cap' }, kt('Pendant un réveil, comme toujours', 'During a wake-up, as always')),
               h('ul', { key: 'u' }, [
                 h('li', { key: '1' }, kt('Seules passent les actions couvertes par tes Autorisations : personne ne peut répondre à une question, le reste est refusé', 'Only the actions your Permissions cover go through: nobody can answer a question, so the rest is refused')),
-                h('li', { key: '2' }, kt('Il s’arrête au bout du temps fixé, et dès que tu lui écris si l’automation le demande (page Automatisations › Modifier)', 'It stops when its time is up, and as soon as you write to it if the automation says so (Automations page › Edit)')),
+                h('li', { key: '2' }, kt('Il s’arrête au bout du temps fixé, et dès que tu lui écris si l’automatisation le demande (page Automatisations › Modifier)', 'It stops when its time is up, and as soon as you write to it if the automation says so (Automations page › Edit)')),
                 h('li', { key: '3' }, kt('Sa liste est le fichier todo.md de son espace de travail : demande-lui, dans son chat, d’y ajouter un point', 'Its list is the file todo.md in its workspace: ask it, in its chat, to add a point'))
               ])
             ])
@@ -682,7 +682,7 @@ const readWake = async () => {
           problem !== '' ? h('div', { key: 'e', className: 'kbkc-err', role: 'alert', 'data-kb': 'kaby-custom-wake-error' }, problem) : null,
           h('div', { key: 'foot', className: 'kbkc-foot' }, [
             task === null ? h('button', { key: 'g', type: 'button', className: 'kbkc-btn pri', 'data-kb': 'kaby-custom-wake-create', disabled: busy || state.sid === null, onClick: create }, kt('Créer le réveil', 'Create the wake-up')) : null,
-            task !== null ? h('button', { key: 'a', type: 'button', className: 'kbkc-btn pri', 'data-kb': 'kaby-custom-wake-automation', disabled: !canOpenAuto, onClick: openAutomations }, kt('Ouvrir l’automation', 'Open the automation')) : null,
+            task !== null ? h('button', { key: 'a', type: 'button', className: 'kbkc-btn pri', 'data-kb': 'kaby-custom-wake-automation', disabled: !canOpenAuto, onClick: openAutomations }, kt('Ouvrir l’automatisation', 'Open the automation')) : null,
             task !== null ? h('button', { key: 'w', type: 'button', className: 'kbkc-btn', 'data-kb': 'kaby-custom-wake-now', disabled: busy || running || !wakeApproved(task), onClick: wake }, kt('Réveiller maintenant', 'Wake it now')) : null,
             running ? h('button', { key: 'x', type: 'button', className: 'kbkc-btn', 'data-kb': 'kaby-custom-wake-stop', disabled: busy, onClick: stopWake }, kt('Arrêter ce réveil', 'Stop this wake-up')) : null,
             h('span', { key: 's', style: { flex: '1 1 auto' } }),

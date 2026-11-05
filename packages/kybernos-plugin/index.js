@@ -3339,7 +3339,7 @@ function boot(ctx) {
           return {
             kind: 'ask',
             reason: 'Automation run: ' + gate.what + ' may change something outside this session (send, write, delete, pay). Allow it?',
-            displayReason: kbPair('Automation : ' + gate.what + ' peut modifier quelque chose en dehors de cette session (envoyer, écrire, supprimer, payer). Autoriser ?',
+            displayReason: kbPair('Automatisation : ' + gate.what + ' peut modifier quelque chose en dehors de cette session (envoyer, écrire, supprimer, payer). Autoriser ?',
               'Automation run: ' + gate.what + ' may change something outside this session (send, write, delete, pay). Allow it?'),
           }
         })

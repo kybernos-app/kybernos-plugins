@@ -542,7 +542,7 @@ console.log('── permissions and where Kaby works: the cards, rendered once �
   const fr = text(mount().tree)
   T.store.wake = state({ task: task({ ...APPROVED, active: true }), running: true })
   const fr2 = text(mount().tree)
-  ok('in French the same card speaks French', /Réveils/.test(fr) && /Créer le réveil/.test(fr) && /Pas de réveil/.test(fr) && /Ouvrir l’automation/.test(fr2) && /Réveiller maintenant/.test(fr2) && /Arrêter ce réveil/.test(fr2) && /Travaille/.test(fr2))
+  ok('in French the same card speaks French', /Réveils/.test(fr) && /Créer le réveil/.test(fr) && /Pas de réveil/.test(fr) && /Ouvrir l’automatisation/.test(fr2) && /Réveiller maintenant/.test(fr2) && /Arrêter ce réveil/.test(fr2) && /Travaille/.test(fr2))
   resolved = 'en'
   T.store.wake = null
   delete globalThis.window.__KB_OPEN__
