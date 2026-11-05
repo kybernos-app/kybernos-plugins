@@ -85,7 +85,7 @@ session token are all refused), and act for the person the turn runs for. 60 cal
   change fit.
 - `shop_photo` `{ photos: [{ product, photo, look? }] }` (6 at most) — **asked** (« Put 2 photos you sent on the shop: Colombie, Moulin »): ONE question for the batch, fourth of nothing: define,
   connect and photos fit the turn's three. For each photo it takes the picture at `photo/raw`, retouches it ON the computer (`shop-photo.mjs`, the image library `sharp` of the cloud image, loaded
-  when the first photo comes and never at start: upright from its orientation mark, square crop on the subject, levels evened out, a light lift of light and colour (`natural`, `bright`, `vivid`),
+  when the first photo comes and never at start: upright from its orientation mark, square crop on the subject, the light lifted by what was measured when the photo is dark (never lowered: a white background stays white; at most +80 %) and a touch of colour (`natural`, `bright`, `vivid`),
   sharpened, **every metadata block dropped, so the place of the photo never leaves the computer**, shrunk by quality then by side until it fits 245 KB) and puts it with `photo/put`. It is a
   careful retouch of THEIR picture, not a generated one: the tool description tells Kaby to say so and to suggest a new shot when a photo is poor. One line per photo comes back; a gone photo,
   an unknown product or an unreadable picture do not stop the others; a closed door (no turn, no account, rate limit) or a full shop stops the batch and is said once.

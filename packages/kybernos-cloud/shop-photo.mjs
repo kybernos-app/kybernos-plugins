@@ -1,7 +1,8 @@
-// The retouch of a shop photo (shop-stock.mjs `shop_photo`): a picture the person took with their phone becomes a small, square, evened-out JPEG that a shop window can show.
-// What it does is deterministic and honest: it turns the picture upright from its own orientation mark, crops a square on the part of the picture that stands out, evens out light and
-// contrast, lifts the light of a dark photo (it never darkens one: a white background stays white), lifts the colours a little, sharpens, drops every metadata block (so the place where the photo was taken never leaves the computer) and shrinks it until it fits the
-// shop's limit. It does NOT paint a new picture: a dark or blurred photo stays dark or blurred.
+// The retouch of a shop photo (shop-stock.mjs `shop_photo`): a picture the person took with their phone becomes a small, square JPEG that a shop window can show.
+// What it does is deterministic and honest: it turns the picture upright from its own orientation mark, crops a square on the part of the picture that stands out, lifts the light of a dark
+// photo by what was measured (it never darkens one: a white background stays white), lifts the colours a little, sharpens, drops every metadata block (so the place where the photo was taken
+// never leaves the computer) and shrinks it until it fits the shop's limit. There is NO automatic stretch of the levels: measured on the first real run, it made a dim photo darker (it raises
+// the black point). It does NOT paint a new picture: a dark or blurred photo stays dark or blurred, only lighter.
 // `sharp` is the cloud computer's own image library. It is loaded here, when a photo arrives and not before: a bundle must never stop DSH from starting, and the Mac's DSH has no use for it.
 import { createRequire } from 'node:module'
 
@@ -16,7 +17,7 @@ export const QUALITIES = [84, 72]
 
 /** The average brightness (0-255) a shop photo is lifted towards when it is darker than that, and the most it is lifted. A photo already lighter than the target is left alone. */
 export const TARGET_MEAN = 118
-export const MAX_LIFT = 1.5
+export const MAX_LIFT = 1.8
 /** A lift smaller than this is not worth a second pass: the photo is taken as it is. */
 const LIFT_FLOOR = 1.03
 
@@ -55,7 +56,6 @@ export const createRetouch = (sharp) => async (bytes, look = 'natural') => {
     if (shortest < MIN_SIDE) return { ok: false, why: shortest === 0 ? 'unreadable' : 'too_small' }
     const render = (edge, quality, lift) => source.clone()
       .resize({ width: edge, height: edge, fit: 'cover', position: 'attention' })
-      .normalise()
       .modulate({ brightness: settings.brightness * lift, saturation: settings.saturation })
       .sharpen({ sigma: 0.8 })
       .jpeg({ quality, mozjpeg: true })

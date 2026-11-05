@@ -241,7 +241,7 @@ export function createShopTools (deps) {
   }
   const photo = {
     name: 'shop_photo',
-    description: 'Takes photos the person sent in the chat (they show as `[The person sent a photo: ph1]`, and `shop_list` names the ones no product has yet), retouches each one (turned upright, cropped square on the subject, light and contrast evened out, sharpened, location data removed, made small) and puts it on a product of the shop: clients see it in the window at once. `photos` is a list of `{ product, photo }` (`product` as in shop_stock, `photo` the name like ph1, `look` optionally natural, bright or vivid). Put ALL the photos in ONE call: the person is asked once. Only when the person said which photo is for which product (a caption counts); otherwise ask. This is a careful retouch of THEIR picture, not a new picture: it cannot change the background or invent anything, and a dark or blurred photo stays so, so say that plainly when a photo is poor and suggest they take it again in daylight. A photo is kept two hours: if one is gone, ask them to send it again.',
+    description: 'Takes photos the person sent in the chat (they show as `[The person sent a photo: ph1]`, and `shop_list` names the ones no product has yet), retouches each one (turned upright, cropped square on the subject, the light lifted when the photo is dark, sharpened, location data removed, made small) and puts it on a product of the shop: clients see it in the window at once. `photos` is a list of `{ product, photo }` (`product` as in shop_stock, `photo` the name like ph1, `look` optionally natural, bright or vivid). Put ALL the photos in ONE call: the person is asked once. Only when the person said which photo is for which product (a caption counts); otherwise ask. This is a careful retouch of THEIR picture, not a new picture: it cannot change the background or invent anything, and a dark or blurred photo stays so, so say that plainly when a photo is poor and suggest they take it again in daylight. A photo is kept two hours: if one is gone, ask them to send it again.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -257,7 +257,7 @@ export function createShopTools (deps) {
             properties: {
               product: { type: 'string', description: 'The product, by the name the person uses (a part of the name is enough).' },
               photo: { type: 'string', pattern: '^ph[0-9]{1,6}$', description: 'The name of the photo in the person\'s message, for example ph1.' },
-              look: { type: 'string', enum: LOOKS, description: 'natural (default): as it is, evened out. bright: lighter, for a dark room. vivid: richer colours, for food or flowers.' }
+              look: { type: 'string', enum: LOOKS, description: 'natural (default): as it is, only lighter if it is dark. bright: lighter, for a dark room. vivid: richer colours, for food or flowers.' }
             },
             required: ['product', 'photo']
           }
@@ -308,7 +308,7 @@ export function createShopTools (deps) {
         let put
         try { put = await deps.call('/v1/computer/shop/photo/put', { product: one.product, jpeg_base64: made.jpeg.toString('base64') }, exec) } catch (e) { put = { status: 0, body: null } }
         const said = sayShop(put, 'photo_put')
-        const done = Number.isFinite(made.lifted) && made.lifted > 0 ? ` What was done: turned upright, cropped square, contrast evened, sharpened, light lifted by ${Math.round(made.lifted)}% (the photo was dark).` : ' What was done: turned upright, cropped square, contrast evened, sharpened; the light was left as it was.'
+        const done = Number.isFinite(made.lifted) && made.lifted > 0 ? ` What was done: turned upright, cropped square, sharpened, light lifted by ${Math.round(made.lifted)}% (the photo was dark).` : ' What was done: turned upright, cropped square, sharpened; the light was left as it was.'
         lines.push(`${one.photo} → ${dataLine(one.product, 60)}: ` + (said.ok ? said.text + done : 'not done. ' + said.text))
         if (!said.ok) failed += 1
         // The shop cannot hold one more photo: the next ones would meet the same wall.

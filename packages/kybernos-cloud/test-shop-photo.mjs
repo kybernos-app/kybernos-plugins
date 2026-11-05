@@ -42,7 +42,8 @@ const brightnessOf = (t) => t.ops.find((o) => o.modulate !== undefined).modulate
   const r = await createRetouch(sharp)(Buffer.from('x'), 'natural')
   ok('a photo that fits at once is made at the largest side and the best quality, square', r.ok === true && r.width === SIDES[0] && r.height === SIDES[0] && tries(log).length === 1 && tries(log)[0].quality === QUALITIES[0], r)
   const ops = tries(log)[0].ops
-  ok('it is turned upright first, cropped square on the subject, evened out, lifted and sharpened', ops[0] === 'rotate' && ops.some((o) => o.resize !== undefined && o.resize.fit === 'cover' && o.resize.position === 'attention' && o.resize.width === o.resize.height) && ops.includes('normalise') && ops.some((o) => o.modulate !== undefined) && ops.some((o) => o.sharpen !== undefined), ops)
+  ok('it is turned upright first, cropped square on the subject, lifted and sharpened', ops[0] === 'rotate' && ops.some((o) => o.resize !== undefined && o.resize.fit === 'cover' && o.resize.position === 'attention' && o.resize.width === o.resize.height) && ops.some((o) => o.modulate !== undefined) && ops.some((o) => o.sharpen !== undefined), ops)
+  ok('the levels are never stretched automatically (measured: it made a dim photo darker)', !ops.includes('normalise') && !ops.includes('normalize'), ops)
   ok('the file is a JPEG, and no metadata is asked to be kept (the place of the photo goes)', ops.some((o) => o.jpeg !== undefined) && !ops.some((o) => typeof o === 'string' && /meta/i.test(o)) && !JSON.stringify(ops).includes('withMetadata') && !JSON.stringify(ops).includes('keepExif'))
   ok('the library is told to refuse a broken file and a huge one', log[0].options.failOn === 'error' && log[0].options.limitInputPixels <= 100_000_000, log[0].options)
 }
@@ -104,7 +105,7 @@ const brightnessOf = (t) => t.ops.find((o) => o.modulate !== undefined).modulate
   const dark = standIn({ mean: 50 })
   const d = await createRetouch(dark.sharp)(Buffer.from('x'), 'natural')
   const renders = tries(dark.log)
-  ok('a dark photo is rendered again with its light lifted, and says by how much', d.ok === true && renders.length === 2 && brightnessOf(renders[0]) === LOOK_SETTINGS.natural.brightness && brightnessOf(renders[1]) === LOOK_SETTINGS.natural.brightness * MAX_LIFT && d.lifted === 50, { n: renders.length, lifted: d.lifted })
+  ok('a dark photo is rendered again with its light lifted, and says by how much', d.ok === true && renders.length === 2 && brightnessOf(renders[0]) === LOOK_SETTINGS.natural.brightness && brightnessOf(renders[1]) === LOOK_SETTINGS.natural.brightness * MAX_LIFT && d.lifted === Math.round((MAX_LIFT - 1) * 100), { n: renders.length, lifted: d.lifted })
   const fine = standIn({ mean: 140 })
   const f = await createRetouch(fine.sharp)(Buffer.from('x'), 'natural')
   ok('a photo that is light enough is rendered once and left as it was', f.ok === true && tries(fine.log).length === 1 && f.lifted === 0 && brightnessOf(tries(fine.log)[0]) === LOOK_SETTINGS.natural.brightness, { n: tries(fine.log).length, lifted: f.lifted })
@@ -115,7 +116,7 @@ const brightnessOf = (t) => t.ops.find((o) => o.modulate !== undefined).modulate
   ok('when the library cannot measure the light the photo is still made, as it is', b.ok === true && b.lifted === 0 && tries(blind.log).length === 1, b)
   const darkHeavy = standIn({ mean: 50, weigh: (edge, q) => (edge === 1024 ? 400_000 : 100_000) })
   const dh = await createRetouch(darkHeavy.sharp)(Buffer.from('x'))
-  ok('a dark photo that is also too heavy keeps its lift while it is shrunk', dh.ok === true && dh.width === 800 && dh.lifted === 50 && tries(darkHeavy.log).slice(2).every((t) => brightnessOf(t) === LOOK_SETTINGS.natural.brightness * MAX_LIFT), tries(darkHeavy.log).map((t) => t.edge + '/' + t.quality + '/' + brightnessOf(t)))
+  ok('a dark photo that is also too heavy keeps its lift while it is shrunk', dh.ok === true && dh.width === 800 && dh.lifted === Math.round((MAX_LIFT - 1) * 100) && tries(darkHeavy.log).slice(2).every((t) => brightnessOf(t) === LOOK_SETTINGS.natural.brightness * MAX_LIFT), tries(darkHeavy.log).map((t) => t.edge + '/' + t.quality + '/' + brightnessOf(t)))
 }
 
 // ── the real library, where there is one ───────────────────────────────────────────────────────
