@@ -4,8 +4,8 @@
 //   node scripts/check-headless-linux.mjs [--keep-log <file outside the repo>]
 //
 // It takes the COMMITTED tree (`git archive HEAD`, so what the checkout holds is what is installed, never a stray file), starts a throw-away `debian:bookworm-slim` arm64 container
-// with Docker, runs scripts/install-linux-arm64.sh in it as root (apt, Node 22 from nodejs.org, the engine and pnpm from npm, the web profile, ./kybernos-install, the headless profile),
-// then asks four questions: is Node 22.19 or later there, is the engine the version dsh-compat.json allows, does the headless profile compose, does `dsh web` come up and refuse the
+// with Docker, runs scripts/install-linux-arm64.sh in it as root (apt, Node 24 from nodejs.org, the engine and pnpm from npm, the web profile, ./kybernos-install, the headless profile),
+// then asks four questions: is Node 24.9 or later there, is the engine the version dsh-compat.json allows, does the headless profile compose, does `dsh web` come up and refuse the
 // bare address (401). No model is called and no key is read. The container needs the network (apt, nodejs.org, the npm registry) and is removed at the end.
 // Named check-*, not test-*: the unit suite runs every test-* with no argument and this one needs Docker, the network and several minutes.
 // Exit 0 all good, 1 a check failed, 3 not run (no Docker daemon, or not an arm64 host).
@@ -48,7 +48,7 @@ export function verdict (facts, engine) {
   const bad = []
   if (facts.install === 'failed' || facts['install-seconds'] === undefined) bad.push('the install script did not finish')
   const v = /^v(\d+)\.(\d+)/.exec(facts.node || '')
-  if (!v || Number(v[1]) < 22 || (Number(v[1]) === 22 && Number(v[2]) < 19)) bad.push(`Node ${facts.node || 'missing'} is older than 22.19`)
+  if (!v || Number(v[1]) < 24 || (Number(v[1]) === 24 && Number(v[2]) < 9)) bad.push(`Node ${facts.node || 'missing'} is older than 24.9`)
   if (!(facts.dsh || '').includes(engine)) bad.push(`the engine is « ${facts.dsh || 'missing'} », dsh-compat.json allows ${engine}`)
   if (facts.headless !== 'composes') bad.push('the headless profile does not compose')
   if (!(Number(facts.bundles) >= 40)) bad.push(`only ${facts.bundles || 0} bundles are linked in the web profile`)

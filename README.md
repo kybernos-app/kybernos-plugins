@@ -18,7 +18,7 @@ dsh web --port 3080        # opens your browser, already signed in
 No browser opened (a server, a window you closed)? Open the address that `dsh web` prints: it looks like `http://127.0.0.1:3080/?token=…`
 and carries your sign-in. The bare `http://127.0.0.1:3080/` answers 401 on purpose.
 
-Needs Node.js 22 or later. The first run opens a few welcome pages (your field, your goals, which models to use, what Kaby should know about you, how much your agents may do alone, a
+Needs Node.js 24.9 or later. The first run opens a few welcome pages (your field, your goals, which models to use, what Kaby should know about you, how much your agents may do alone, a
 starter kit of skills and agent teams for your field); each can be skipped and replayed from Settings. What leaves your machine, and the one switch for it: [`docs/privacy.md`](docs/privacy.md).
 The full guide (Windows, update, rollback, safe mode, the welcome pages) is [`docs/install.md`](docs/install.md).
 
@@ -43,7 +43,7 @@ The image installs `KB_REF` of this repository (a release tag such as `v1.0.0-be
 It is cloned when the image is built: to update, change `KB_REF` and rebuild with `docker compose build --no-cache`; a restart
 or a cached redeploy keeps the old version. Details: [`packages/kybernos-gate/README.md`](packages/kybernos-gate/README.md#which-version-to-install-and-how-to-update).
 
-**On a Linux server without Docker**: install Node 22.19+, pnpm and DSH, run `./kybernos-install`, start `dsh web` on `127.0.0.1:3081`
+**On a Linux server without Docker**: install Node 24.9+, pnpm and DSH, run `./kybernos-install`, start `dsh web` on `127.0.0.1:3081`
 with `--trusted-host <your domain>`, then start the gate (`node packages/kybernos-gate/bin/kybernos-gate.mjs`). The step-by-step
 commands, the two systemd units, a Caddy example and every setting are in [`packages/kybernos-gate/README.md`](packages/kybernos-gate/README.md);
 what a hosted instance changes for the plugins is in [`docs/dev/hosted-instances.md`](docs/dev/hosted-instances.md).

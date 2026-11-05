@@ -11,7 +11,7 @@ product changes, change this page first. Kybernos is **beta**.
 | Kybernos is a set of plugins that turns DSH (the DeepSeek harness) into an agent workspace: crews of agents with human approval, a models catalogue, skills, sessions and cloud memory. | `README.md`, first paragraph |
 | It is local-first: your sessions, files, memory and keys stay on your computer. A page lists the few requests it makes by itself and how to switch them off. | `docs/privacy.md` |
 | The plugin suite is open source (Apache-2.0). | `README.md`, `LICENSE` |
-| Installing is one command from the downloaded archive (`./kybernos-install`), then `dsh web`. Needs Node.js 22 or later. | `README.md`, « Install » |
+| Installing is one command from the downloaded archive (`./kybernos-install`), then `dsh web`. Needs Node.js 24.9 or later. | `README.md`, « Install » |
 | **Kaby** is your assistant: a real chat with your account's memory, Telegram connected by QR code or link, and a cloud computer it works on. | `packages/kybernos-kyber/README.md` |
 | Agent Teams: roles, a crew view, a run journal; a run can be held until a person approves. | `README.md`; `packages/kybernos-plugin/README.md` |
 | **Automations**: tasks that run on a schedule (cron), once, or from a webhook, with a board showing what is running and what waits for approval. | `packages/kybernos-plugin/README.md`, « The Automations board » |

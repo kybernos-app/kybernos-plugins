@@ -30,7 +30,7 @@ import { FAMILLES_INSTALLABLES, contexteService, decisionDemarrageAuto, etat as 
 import { installerLanceur, installerOutils, planLanceur, retirerLanceur } from './lanceur-bureau.mjs'
 import { depsReelles as depsOuverture, ouvrir as ouvrirKybernos } from './kybernos-open.mjs'
 import {
-  etatDoctor, testerCompatibilite, lireCompat, comparerVersions, versionDuGlobal, versionDuPlugin,
+  etatDoctor, testerCompatibilite, testerNoeud, lireCompat, comparerVersions, versionDuGlobal, versionDuPlugin,
   photographier, restaurerPhoto, journaliser, lireJournal, alignerPins, alignerLiens, activesResolues, desactivesAEcrire, inactifsParDefaut,
   planUpgrade, inspecterFraicheur, motifDeRetrait, migrerProfil
 } from './lifecycle-engine.mjs'
@@ -1172,7 +1172,7 @@ if (ordre === 'service') {
 }
 
 if (ordre === 'doctor') {
-  const etat = await etatDoctor({ fs: fsReel, exec: execReel, profilDir: PROFIL_DIR, repoDir: REPO, packages: PACKAGES_ACTIFS, patches: PATCHES, compatChemin: COMPAT_CHEMIN })
+  const etat = await etatDoctor({ fs: fsReel, exec: execReel, profilDir: PROFIL_DIR, repoDir: REPO, packages: PACKAGES_ACTIFS, patches: PATCHES, compatChemin: COMPAT_CHEMIN, noeud: process.versions.node })
   const verresPatchs = []
   const racine = await racineGlobale()
   const retirees = []
@@ -1271,7 +1271,16 @@ async function porteCompat (cible) {
   const v = testerCompatibilite({ cible, compat, force: opts.force })
   if (v.verdict === 'refuse') quitter(1, '\n🔴 ' + v.raison)
   if (v.avertissement) console.log('\n🟠 ' + v.raison)
+  porteNoeud(cible)
   return v
+}
+
+// The gate's second question: is the Node that runs the engine recent enough for it? (`dsh` starts with the `node` of the PATH, which is the one running this robot.)
+function porteNoeud (cible) {
+  const compat = lireCompat({ fs: fsReel, chemin: COMPAT_CHEMIN })
+  const n = testerNoeud({ cible, compat, noeud: process.versions.node, force: opts.force })
+  if (n.verdict === 'refuse') quitter(1, '\n🔴 ' + n.raison)
+  if (n.avertissement) console.log('\n🟠 ' + n.raison)
 }
 
 async function photoAvantTout (versions) {
@@ -1390,6 +1399,7 @@ if (ordre === 'bootstrap') {
   console.log('\n  Scenario ' + (global === null ? 'B — this machine does not have DSH yet' : 'A — DSH ' + global + ' is already installed'))
   if (global === null) {
     const cible = await chaineDAssurer()
+    porteNoeud(cible)
     const serv = await pidSurPort(portGui)
     if (serv.valeur !== null) {
       // D7: refusal, then THE EXACT COMMAND. Never sudo, never escalation.

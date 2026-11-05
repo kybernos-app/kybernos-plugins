@@ -3,6 +3,7 @@
   "dsh": {
     "min": "0.1.6-alpha.2",
     "max": "0.2.2-rc.1",
+    "node": { "min": "24.9.0", "from": "0.2.2-alpha.2" },
     "testees": [
       "0.1.6-alpha.2",
       "0.1.7-alpha.1",

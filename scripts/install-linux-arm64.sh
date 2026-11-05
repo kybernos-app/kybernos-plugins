@@ -9,7 +9,7 @@
 #   bash scripts/install-linux-arm64.sh --dsh 0.2.1-rc.2 force a DSH version (default: the max of dsh-compat.json)
 #
 # 1. apt packages (git, ripgrep, curl ...; no compiler: the engine's native packages come prebuilt for linux-arm64), as root or through sudo;
-# 2. Node 22.19 or later from nodejs.org (Debian's own nodejs is too old), checked against the published SHASUMS256.txt;
+# 2. Node 24.9 or later from nodejs.org (the floor of dsh-compat.json `dsh.node`) (Debian's own nodejs is too old), checked against the published SHASUMS256.txt;
 # 3. DSH and pnpm in ~/.npm-global (same flags as packages/kybernos-gate/docker/Dockerfile);
 # 4. `dsh web` started once so ~/.dsh/profiles/web exists, then `./kybernos-install` grafts the bundles onto it;
 # 5. a `headless-kyb` profile (dsh-base + dsh-headless + @local/kybernos + @local/kybernos-cloud): `dsh --profile headless-kyb "task"`.
@@ -59,13 +59,13 @@ else
 fi
 
 say "2/5 Node"
-node_ok() { command -v node >/dev/null 2>&1 && node -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>22||(a===22&&b>=19)?0:1)'; }
+node_ok() { command -v node >/dev/null 2>&1 && node -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>24||(a===24&&b>=9)?0:1)'; }
 if node_ok; then
-  printf 'Node %s already fits (22.19 or later)\n' "$(node --version)"
+  printf 'Node %s already fits (24.9 or later)\n' "$(node --version)"
 else
-  base="https://nodejs.org/dist/latest-v22.x"
+  base="https://nodejs.org/dist/latest-v24.x"
   sums="$(curl -fsSL "$base/SHASUMS256.txt")"
-  tarball="$(printf '%s\n' "$sums" | awk '{print $2}' | grep -E '^node-v22\.[0-9]+\.[0-9]+-linux-arm64\.tar\.gz$' | head -1)"
+  tarball="$(printf '%s\n' "$sums" | awk '{print $2}' | grep -E '^node-v24\.[0-9]+\.[0-9]+-linux-arm64\.tar\.gz$' | head -1)"
   [ -n "$tarball" ] || die "no linux-arm64 tarball found in $base/SHASUMS256.txt"
   tmp="$(mktemp -d)"
   curl -fsSL "$base/$tarball" -o "$tmp/$tarball"
@@ -78,7 +78,7 @@ else
   rm -rf "$tmp"
   export PATH="$node_home/bin:$PATH"
   printf 'Node %s in %s (add it to your PATH: export PATH="%s/bin:$PATH")\n' "$(node --version)" "$node_home" "$node_home"
-  node_ok || die "Node $(node --version) is older than 22.19"
+  node_ok || die "Node $(node --version) is older than 24.9"
 fi
 
 say "3/5 DSH $dsh_ver and pnpm"

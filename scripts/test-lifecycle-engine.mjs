@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url'
 
 const ICI = join(dirname(fileURLToPath(import.meta.url)))
 import {
-  lireCompat, testerCompatibilite, comparerVersions, inspecterFraicheur, versionDuGlobal, etatDoctor, planUpgrade,
+  lireCompat, testerCompatibilite, testerNoeud, comparerVersions, inspecterFraicheur, versionDuGlobal, etatDoctor, planUpgrade,
   photographier, restaurerPhoto, photoLaPlusRecente, journaliser, lireJournal,
   alignerPins, alignerLiens, verifierBundles, ecrireLisezMoi,
   DEPUIS_VERS, motifDeRetrait, migrerProfil
@@ -102,6 +102,26 @@ const c3 = testerCompatibilite({ cible: '0.1.7-alpha.1', compat, force: true })
 ok('--force passe le refus avec avertissement', c3.verdict === 'force' && c3.bloquant === false, JSON.stringify(c3))
 const c4 = testerCompatibilite({ cible: '0.1.5-rc.9', compat })
 ok('sous le minimum → refus aussi', c4.verdict === 'refuse', JSON.stringify(c4))
+
+// ── 1ter. the Node that runs the engine ───────────────────────────────────
+{
+  const zone = { dsh: { min: '0.1.6-alpha.2', max: '0.2.2-rc.1', node: { min: '24.9.0', from: '0.2.2-alpha.2' } } }
+  const nd = (cible, noeud, force) => testerNoeud({ cible, compat: zone, noeud, force })
+  ok('Node 24.22 fits DSH 0.2.2-rc.1', nd('0.2.2-rc.1', '24.22.2').verdict === 'ok' && nd('0.2.2-rc.1', 'v24.22.2').verdict === 'ok')
+  ok('Node 22 is refused for DSH 0.2.2-rc.1, in English, with what to do and the way out', (() => {
+    const r = nd('0.2.2-rc.1', '22.23.4')
+    return r.verdict === 'refuse' && r.bloquant === true && /too old/.test(r.raison) && /24\.9\.0/.test(r.raison) && /nodejs\.org/.test(r.raison) && /--force/.test(r.raison) && /Nothing was changed/.test(r.raison)
+  })())
+  ok('the floor is a floor: 24.8.9 is refused, 24.9.0 and 26.7.0 pass', nd('0.2.2-rc.1', '24.8.9').verdict === 'refuse' && nd('0.2.2-rc.1', '24.9.0').verdict === 'ok' && nd('0.2.2-rc.1', '26.7.0').verdict === 'ok')
+  ok('the first engine that declares it (alpha.2) is held to it, the one before is not', nd('0.2.2-alpha.2', '22.19.0').verdict === 'refuse' && nd('0.2.1-rc.5', '20.0.0').verdict === 'ok' && nd('0.1.6-alpha.2', '18.0.0').verdict === 'ok')
+  ok('--force goes on with a warning that says it is not supported', (() => { const r = nd('0.2.2-rc.1', '22.23.4', true); return r.verdict === 'force' && r.bloquant === false && r.avertissement === true && /not supported/.test(r.raison) })())
+  ok('what cannot be read never blocks: no Node, no target, no requirement declared', nd('0.2.2-rc.1', '').verdict === 'inconnu' && nd('0.2.2-rc.1', undefined).verdict === 'inconnu' && nd('', '22.1.0').verdict === 'inconnu'
+    && testerNoeud({ cible: '0.2.2-rc.1', compat: { dsh: { min: '0.1.6-alpha.2', max: '0.2.2-rc.1' } }, noeud: '18.0.0' }).verdict === 'ok')
+  ok('the repository\'s own dsh-compat.json declares the floor, and its max engine is held to it', (() => {
+    const real = JSON.parse(readFileSync(join(ICI, '..', 'dsh-compat.json'), 'utf8'))
+    return real.dsh.node?.min === '24.9.0' && comparerVersions(real.dsh.max, real.dsh.node.from) >= 0 && testerNoeud({ cible: real.dsh.max, compat: real, noeud: '22.23.4' }).verdict === 'refuse'
+  })())
+}
 
 // ── 2. versions ────────────────────────────────────────────────────────────
 const execV = execFixe({ '--version': { code: 0, sortie: '0.1.6-alpha.2\n' } })
