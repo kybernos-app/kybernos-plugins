@@ -81,11 +81,12 @@ session token are all refused), and act for the person the turn runs for. 60 cal
 
 ### What a client sees (public, no sign-in)
 
-- `GET /shop/<name>`: one page for every shop. `GET /v1/shops/<name>`: name, line, `payable`, products with their price and `available` (never a cost or a stock number).
-- `POST /v1/shops/<name>/checkout` `{ product, quantity 1-10 }`: opens Stripe's own payment page for one product, a direct charge on the merchant's account. `409 payments_not_ready`
-  until the merchant has finished at Stripe, `409 sold_out`. The client types the card on Stripe's page; this server and Kaby never see it.
+- `GET /shop/<name>`: one page for every shop. `GET /v1/shops/<name>`: name, line, `payable`, products with their price (`price`, `price_cents`), `available` and `max` (what a cart may hold of it: the stock, never more than 10, so a stock above ten is not told; never a cost).
+- The page has a **cart** (2026-11-05): « Ajouter » on a product turns into a quantity stepper, a bar at the bottom says the count and the total, « Voir le panier » opens the list (quantities, remove, total, « Payer »). The cart lives in the visitor's browser (`localStorage`, key `kb-cart:<shop>`, nothing on the server), is checked against the shop on every load (an unknown or sold-out product goes, a quantity is cut to `max`) and is emptied when the client comes back from Stripe paid.
+- `POST /v1/shops/<name>/checkout` `{ items: [{ product, quantity 1-10 }] }` (1 to 20 lines; the same product twice is one line; the old `{ product, quantity }` still works as a cart of one line): opens ONE Stripe payment page with a line per product, a direct charge on the merchant's account. `400 empty_cart`, `404` for an unknown product, `409 payments_not_ready`
+  until the merchant has finished at Stripe, `409 sold_out` (nothing is sold of the cart, the message names the product). The client types the card on Stripe's page; this server and Kaby never see it.
 - `GET /v1/shops/<name>/orders/<session>`: the client's return from Stripe. Only a session THIS shop started is asked about at Stripe; the first time it is paid, the stock goes down
-  by what was bought and the merchant's Telegram chat gets one line. Counted once. (A webhook is the real way, and is not built: nothing is counted if the client never comes back.)
+  by what was bought on EVERY line and the merchant's Telegram chat gets one line (`Commande payée : 2 × A, 1 × B, 58,00 €. Il en reste : A 8, B 7.`). Counted once. (A webhook is the real way, and is not built: nothing is counted if the client never comes back.)
 - Each shop has its own minute (120 reads, 20 checkouts). Page headers: `frame-ancestors 'none'`, no cookies.
 
 ## The plugin's tools (`packages/kybernos-cloud/shop-stock.mjs`)
