@@ -7,7 +7,7 @@ Status: **trial, 2026-11-05**. A walking skeleton of the « shop in the chat » 
 ## What it is
 
 - One shop per **Kaby account**, held **in the server's memory** (lost at each restart; no table). It starts as a demo of three products; the first `shop_define` replaces them with the
-  person's own (id, name, price, cost, stock), names the shop and gives it a public address `<server>/shop/<name>-<4 hex>`. Money goes through **Stripe, test mode only**
+  person's own (id, name, price, cost, stock), names the shop and gives it a public address: `https://<name>-<4 hex>.kaby.app` once that address is open (see « The window's own address »), `<server>/shop/<name>-<4 hex>` until then and whenever it cannot be opened. Money goes through **Stripe, test mode only**
   (a live key is never used): a Standard connected account for the merchant, a direct charge on it.
 - Two doors on the same shop:
   - the **Telegram Mini App** (`GET /poc/shop`, opened by a `web_app` button of the shared bot). The person is the one Telegram's signed `initData` names (HMAC-SHA256 with the bot
@@ -47,11 +47,16 @@ session token are all refused), and act for the person the turn runs for. 60 cal
 - `200 { products: [{ id, name, price, stock, cost, margin_pct }], shop: { name, tagline, url, connected, payable }, added: [...], updated: [...] }`. The cost and margin are for Kaby
   and the merchant only. Every other Kaby route answers with the same `products` and `shop`.
 
-`POST /v1/computer/shop/connect` `{ "job_id": "<uuid>" }`
+`POST /v1/computer/shop/connect` `{ "job_id": "<uuid>", "test_account"?: true }`
 
 - Needs a defined shop (`409 shop_not_defined`) and a server with Stripe in test mode (`409 payments_off`). Makes the shop's connected account once, then answers
   `200 { …, url }`: the single-use link where the merchant gives their details at Stripe (Kaby hands it to the person in the chat). When a card can already be charged, no `url`
   and `shop.payable` is true. Stripe's refusal: `502 payments_unavailable` with Stripe's own sentence.
+- `test_account: true` (the person asked for a Stripe TEST account made for them, with no page to fill in; the tool `shop_connect` has the same optional argument): the server makes a **Custom**
+  connected account from Stripe's published test data (a test person born 1901-01-01, the address that matches in full, the test identity document, a test IBAN, the always-reachable test URL;
+  nothing of a real person goes in) and answers with no `url`; `shop.payable` turns true once Stripe has switched `charges_enabled` on (seconds), so Kaby may have to look again with `shop_list`.
+  It is made once per shop (asking again makes no second one) and replaces an account that was only started with the link. Only where the server's Stripe key is a TEST key: it cannot run on live money.
+  Direct charges work the same on that account. Server test: `test/shoppoc-stripe.test.ts` (the form sent to Stripe), `test/shoppoc-storefront.test.ts` (the route).
 
 ### Photos (the person sends them in the chat, Kaby retouches them)
 
@@ -63,7 +68,16 @@ session token are all refused), and act for the person the turn runs for. 60 cal
 - `POST /v1/computer/shop/photo/put` `{ job_id, product, jpeg_base64 }` → `200 { products, shop, photo: { product, bytes, width, height } }`, or `200 … several: [names]` with nothing changed when the
   product fits several. The server checks the bytes itself (a JPEG, 100 to 4096 px, 250 KB at most: `400 not_a_photo` / `photo_too_big`) and the shop holds 2.5 MB of photos, the server 64 MB
   (`409 photos_full`). A new photo replaces the product's old one (its `photo` version changes, so the window reloads it).
-- **Public**: `GET /v1/shops/<name>/photo/<product>` (the JPEG, `cache` by version, `nosniff`); the window's product list carries `photo` (the version or `null`). The page's CSP allows `img-src 'self'` only.
+- **Public**: `GET /v1/shops/<name>/photo/<product>` (the JPEG, `cache` by version, `nosniff`); the window's product list carries `photo` (the version or `null`). The picture answers `cross-origin-resource-policy: cross-origin` (the window at `<name>.kaby.app` shows it from another origin); the page served by the server allows `img-src 'self'` only.
+
+### The window's own address (`<name>-<4 hex>.kaby.app`)
+
+- **One static page for every shop**, put online once as the Vercel project `kaby-site-kb-shops` (the `kb-` prefix is reserved, so no person's page can meet it), and **one address attached per shop** (the same `attachDomain` the sites module uses; DNS and the certificate are the wildcard `*.kaby.app` that already points to Vercel). No project and no deployment per shop, and nothing a person wrote is ever put there.
+- The page is the server's own page: it reads the shop from the first label of its address and calls the server (`/v1/shops/<name>`, `/checkout`, `/photo/<product>`). Its CSP (a `vercel.json` header) lets it call and show pictures from the server's address only.
+- The server answers that page through a **narrow CORS rule**: the origin `https://<name>.kaby.app` is echoed for `/v1/shops/<name>/…` and for nothing else (not another shop's routes, not any other route, no credentials); `GET, POST` and `content-type` only.
+- `shop_define` and `shop_connect` ask for the address and wait up to 8 s; the first one of a server also puts the page online, which can take longer: the answer then carries the server's `/shop/<name>` and the next call (after 30 s) opens the address. Stripe's return addresses and the checkout's `successUrl` follow `shop.url`, so a payment comes back to the address the client started from. **Fallback**: the host does not answer, a domain is refused or taken, or the server has no https address, and the shop simply stays at `<server>/shop/<name>`.
+- State: which addresses are open is kept in the server's memory like the shop (a restart asks the host again, which is idempotent); the shops themselves are lost at a deploy, and their attached addresses stay on the project until a clean-up (an orphan address serves a page whose shop answers `404`).
+- Tests (server): `test/shoppoc-window.test.ts` (the host against the fake, the origins, the routes, the whole server's headers).
 
 ### What a client sees (public, no sign-in)
 
