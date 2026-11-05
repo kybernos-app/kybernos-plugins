@@ -334,6 +334,7 @@ console.log('Install: a confirmation first, with the facts of the skill in front
   const d = part(root, 'install-confirm')
   check('Install opens a confirmation, nothing is downloaded yet', kb(root, 'install-confirm').length === 1 && posted(w, '/kybernos-skills/install').length === 0)
   check('it says the real skill, repository, folder and destination', d.includes('grill-me') && d.includes('mattpocock/skills') && d.includes('skills/productivity/grill-me') && d.includes(HOME + '/grill-me'), d)
+  check('the question names the skill as its page does, not by its slug (UJ-35)', d.includes('Install “Grill me”?') && !d.includes('Install “grill-me”?'), d.slice(0, 120))
   check('with the explanation: archive downloaded from GitHub, folder found by its frontmatter, COPIED, no symlink, nothing else written', d.includes('Installing downloads the archive of the mattpocock/skills repository from GitHub, finds the “grill-me” skill folder inside it') && d.includes('then COPIES it into your skills folder (' + HOME + ')') && d.includes('No symlinks') && d.includes('Nothing else is written'), d)
   check('the destination is the first WRITABLE folder, not the project folder that comes first', !d.includes(PROJ), d)
   await click(root, kb(root, 'install-confirm-no')[0])

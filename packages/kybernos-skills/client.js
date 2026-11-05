@@ -4403,8 +4403,8 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         const target = dest.replace(/[\\/]+$/, '') + sepr + x.name
         const row = (label, value) => h('div', { className: 'row' }, h('span', null, label), h('span', { className: 'kb8-mono', style: { overflowWrap: 'anywhere' } }, value))
         return h('div', { className: 'kb-overlay', onClick: props.onClose },
-          h('div', { className: 'kb-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('ic.title', { name: x.name }), 'data-kb': 'install-confirm', onClick: (e) => e.stopPropagation() },
-            h('div', { className: 'kb-row' }, h('span', { className: 'kb8-h2' }, t('ic.title', { name: x.name })), h('span', { style: { flex: '1' } }),
+          h('div', { className: 'kb-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('ic.title', { name: humanName(x.name) }), 'data-kb': 'install-confirm', onClick: (e) => e.stopPropagation() },
+            h('div', { className: 'kb-row' }, h('span', { className: 'kb8-h2' }, t('ic.title', { name: humanName(x.name) })), h('span', { style: { flex: '1' } }),
               h('button', { type: 'button', className: 'kb-tool', 'aria-label': t('m.cancel'), onClick: props.onClose }, '✕')),
             h('p', { className: 'kb8-sub', style: { margin: '0' } }, t('det.whatBody', { source: x.source, name: x.name, dest })),
             h('div', { className: 'kb-local-rows' },
