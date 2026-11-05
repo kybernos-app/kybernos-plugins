@@ -104,7 +104,7 @@ export const sayShop = (res, kind = 'read') => {
     const link = addressOf(body.url)
     if (kind === 'connect_test') {
       const open = body.shop !== null && typeof body.shop === 'object' && body.shop.payable === true
-      return { ok: true, text: (open ? 'A Stripe test account was made for the shop from Stripe\'s test data: card payments are open.' : 'A Stripe test account was made for the shop from Stripe\'s test data; Stripe has not switched card payments on yet (it takes a few seconds): say so and look again with shop_list.') + ' ' + where }
+      return { ok: true, text: (open ? 'A Stripe test account was made for the shop from Stripe\'s test data: card payments are open.' : 'A Stripe test account was made for the shop from Stripe\'s test data; Stripe has not switched card payments on yet (Stripe checks the test identity, it takes about a minute): tell the person to wait a minute, then look again with shop_list.') + ' ' + where }
     }
     if (kind === 'connect') {
       if (link !== '') return { ok: true, text: `Stripe link for the owner: ${dataLine(link, 400)} . It works once and opens Stripe's own page where they give their details (in test mode Stripe's test data is enough). Send it to the person in your answer and ask them to tell you when they are done. ${where}`.trim() }
