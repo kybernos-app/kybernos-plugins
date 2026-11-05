@@ -9,7 +9,7 @@ Everything installs and runs, with no npm or apt failure, as a normal user and a
 
 | What | Measured |
 |---|---|
-| Userland | Debian 12 (bookworm), glibc 2.36, aarch64, Node v22.23.4 (the engine needs 22.19 or later) |
+| Userland | Debian 12 (bookworm), glibc 2.36, aarch64, Node v22.23.4 as measured in that run; the engine now needs Node 24.9 or later, so the script installs Node 24 since 2026-11-05 (NOT replayed on an arm64 Docker host yet) |
 | Engine | `@deepseek-ai/dsh@0.2.1-rc.2` (max of `dsh-compat.json`), 615 npm packages, 53 s; native packages found for linux-arm64: sherpa-onnx, node-addon-require-builtin, ripgrep, node-pty prebuilds |
 | Plugins | local `dev` tip 38ea873 (`./kybernos-install`: 10 s, boot check passed, 45 bundles linked in the web profile) |
 | Whole script in a clean `debian:bookworm-slim` (apt + Node tarball + engine + pnpm + install + headless profile), as root | 56 s |
@@ -26,7 +26,7 @@ The model was a stand-in OpenAI-compatible server (`headless-stub`, in the conta
 ## What went wrong, and what was done about it
 
 - npm / apt: nothing failed. The recipe of `packages/kybernos-gate/docker/Dockerfile` replays as it is.
-- Debian's own `nodejs` is 18: the script downloads the Node 22 `linux-arm64` tarball from nodejs.org and checks it against `SHASUMS256.txt` (same host, so a transport check, not a signature).
+- Debian's own `nodejs` is 18: the script downloads the Node 24 `linux-arm64` tarball from nodejs.org and checks it against `SHASUMS256.txt` (same host, so a transport check, not a signature).
 - `/usr/bin/time` is not in the slim images (apt package `time`); only needed to measure.
 - **Found, not fixed:** `@local/kybernos` prints two lines with `console.log` at start (`[kybers] kybernos.calls projection registered ...`, `[kybers] retryPolicy: ceiling ...`,
   `packages/kybernos-plugin/index.js`). Headless writes the answer to stdout, so they land in front of the answer and in front of the first `--json` event: a supervisor
@@ -37,7 +37,7 @@ The model was a stand-in OpenAI-compatible server (`headless-stub`, in the conta
 ## Commands that worked, in order
 
 ```bash
-# base: node:22-slim arm64 (or debian:bookworm-slim + Node 22.19+)
+# base: node:24-slim arm64 (or debian:bookworm-slim + Node 24.9+)
 apt-get install -y ca-certificates curl git ripgrep procps python3 make g++
 npm install -g @deepseek-ai/dsh@0.2.1-rc.2 --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs --no-audit --no-fund
 npm install -g pnpm
