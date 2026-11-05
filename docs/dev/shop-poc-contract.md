@@ -47,11 +47,16 @@ session token are all refused), and act for the person the turn runs for. 60 cal
 - `200 { products: [{ id, name, price, stock, cost, margin_pct }], shop: { name, tagline, url, connected, payable }, added: [...], updated: [...] }`. The cost and margin are for Kaby
   and the merchant only. Every other Kaby route answers with the same `products` and `shop`.
 
-`POST /v1/computer/shop/connect` `{ "job_id": "<uuid>" }`
+`POST /v1/computer/shop/connect` `{ "job_id": "<uuid>", "test_account"?: true }`
 
 - Needs a defined shop (`409 shop_not_defined`) and a server with Stripe in test mode (`409 payments_off`). Makes the shop's connected account once, then answers
   `200 { …, url }`: the single-use link where the merchant gives their details at Stripe (Kaby hands it to the person in the chat). When a card can already be charged, no `url`
   and `shop.payable` is true. Stripe's refusal: `502 payments_unavailable` with Stripe's own sentence.
+- `test_account: true` (the person asked for a Stripe TEST account made for them, with no page to fill in; the tool `shop_connect` has the same optional argument): the server makes a **Custom**
+  connected account from Stripe's published test data (a test person born 1901-01-01, the address that matches in full, the test identity document, a test IBAN, the always-reachable test URL;
+  nothing of a real person goes in) and answers with no `url`; `shop.payable` turns true once Stripe has switched `charges_enabled` on (seconds), so Kaby may have to look again with `shop_list`.
+  It is made once per shop (asking again makes no second one) and replaces an account that was only started with the link. Only where the server's Stripe key is a TEST key: it cannot run on live money.
+  Direct charges work the same on that account. Server test: `test/shoppoc-stripe.test.ts` (the form sent to Stripe), `test/shoppoc-storefront.test.ts` (the route).
 
 ### Photos (the person sends them in the chat, Kaby retouches them)
 

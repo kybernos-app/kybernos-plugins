@@ -37,7 +37,7 @@ const sentenceProducts = (list) => {
 /** What the person is asked, in their own words, when the turn's gate asks before the shop changes. */
 export const shopShown = (args, tool = 'shop_stock') => {
   const a = args !== null && typeof args === 'object' ? args : {}
-  if (tool === 'shop_connect') return 'Ask Stripe for the link where the shop\'s owner fills in their payment details (test mode)'
+  if (tool === 'shop_connect') return a.test_account === true ? 'Make a Stripe test account for the shop from Stripe\'s test data (nothing to fill in)' : 'Ask Stripe for the link where the shop\'s owner fills in their payment details (test mode)'
   if (tool === 'shop_photo') {
     const items = (Array.isArray(a.photos) ? a.photos : []).filter((p) => p !== null && typeof p === 'object')
     const names = items.slice(0, 5).map((p) => dataLine(p.product, 40)).filter((n) => n !== '')
@@ -102,6 +102,10 @@ export const sayShop = (res, kind = 'read') => {
     }
     const where = shopSentence(body.shop)
     const link = addressOf(body.url)
+    if (kind === 'connect_test') {
+      const open = body.shop !== null && typeof body.shop === 'object' && body.shop.payable === true
+      return { ok: true, text: (open ? 'A Stripe test account was made for the shop from Stripe\'s test data: card payments are open.' : 'A Stripe test account was made for the shop from Stripe\'s test data; Stripe has not switched card payments on yet (it takes a few seconds): say so and look again with shop_list.') + ' ' + where }
+    }
     if (kind === 'connect') {
       if (link !== '') return { ok: true, text: `Stripe link for the owner: ${dataLine(link, 400)} . It works once and opens Stripe's own page where they give their details (in test mode Stripe's test data is enough). Send it to the person in your answer and ask them to tell you when they are done. ${where}`.trim() }
       return { ok: true, text: `Card payments are already open on this shop. ${where}`.trim() }
@@ -237,9 +241,12 @@ export function createShopTools (deps) {
   const connect = {
     name: 'shop_connect',
     description: 'Asks Stripe for the link where the shop\'s owner fills in their details to be paid (test mode: Stripe\'s test data is enough). Returns a single-use link: give it to the person in your answer and ask them to tell you when they are done at Stripe. If a card can already be charged on the shop, it says so. The shop must be defined first (shop_define). Never enter payment details yourself. ' + NO_COMMAND_CHECK,
-    parameters: { type: 'object', additionalProperties: false, properties: {} },
+    parameters: { type: 'object', additionalProperties: false, properties: { test_account: { type: 'boolean', description: 'Only when the person asks for a Stripe TEST account made for them, with no page to fill in: the server makes it from Stripe\'s published test data and no link comes back. Test mode only (refused otherwise). Never for a real business.' } } },
     output: out(),
-    async execute (args, exec) { return answer(await ask('/v1/computer/shop/connect', {}, exec, 'connect')) }
+    async execute (args, exec) {
+      const test = args !== null && typeof args === 'object' && args.test_account === true
+      return answer(await ask('/v1/computer/shop/connect', test ? { test_account: true } : {}, exec, test ? 'connect_test' : 'connect'))
+    }
   }
   const photo = {
     name: 'shop_photo',
