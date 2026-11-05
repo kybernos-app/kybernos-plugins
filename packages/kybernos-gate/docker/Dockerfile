@@ -46,7 +46,8 @@ WORKDIR /home/node
 
 ARG DSH_VER=0.2.2-rc.1
 # A version that has a lock in engine-locks/ (the one the Kybernos installer made for the adopted engine) is installed FROM
-# THAT LOCK: `npm install -g` takes the newest package inside each `~` range of DSH's own package.json, and on 2026-11-03
+# THAT LOCK (with `npm ci` and NO `--allow-scripts`: npm 11, the one of Node 24, refuses that flag for a project install with EALLOWSCRIPTS, and npm 10 only
+# warned and ignored it; the installer's own engine tree is made the same way, `npm install` with no flag): `npm install -g` takes the newest package inside each `~` range of DSH's own package.json, and on 2026-11-03
 # the cordis packages and pi-ai moved under the same DSH version (33 packages), which broke the first turn of every cloud
 # computer built that day. A version with no lock keeps the plain global install.
 COPY --chown=node:node engine-locks /tmp/engine-locks
@@ -54,7 +55,7 @@ RUN if [ -f "/tmp/engine-locks/${DSH_VER}/package-lock.json" ]; then \
       mkdir -p /home/node/engine /home/node/.npm-global/bin \
       && cp "/tmp/engine-locks/${DSH_VER}/package.json" "/tmp/engine-locks/${DSH_VER}/package-lock.json" /home/node/engine/ \
       && cd /home/node/engine \
-      && npm ci --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs --no-audit --no-fund \
+      && npm ci --no-audit --no-fund \
       && ln -s /home/node/engine/node_modules/.bin/dsh /home/node/.npm-global/bin/dsh; \
     else \
       npm install -g "@deepseek-ai/dsh@${DSH_VER}" \

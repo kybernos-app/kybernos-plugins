@@ -38,6 +38,9 @@ const dshVer = /^ARG DSH_VER=(\S+)/m.exec(image)?.[1]
 const hasLock = (() => { try { return JSON.parse(read('packages/kybernos-gate/docker/engine-locks/' + dshVer + '/package.json')).dependencies['@deepseek-ai/dsh'] === dshVer } catch (e) { return false } })()
 check('the image\'s default engine is one dsh-compat.json tested and has an engine lock', typeof dshVer === 'string' && compat.dsh.testees.includes(dshVer) && hasLock, dshVer)
 
+const ciLine = image.split('\n').find((l) => /npm ci /.test(l) && !l.trim().startsWith('#'))
+check('the locked install runs `npm ci` without --allow-scripts (npm 11 refuses it for a project install)', typeof ciLine === 'string' && !/--allow-scripts/.test(ciLine), ciLine)
+
 for (const rel of ['kybernos-install', 'kybernos-install.cmd']) {
   check(rel + ' no longer says DSH declares no minimum, and points at dsh-compat.json', !/DSH declares none/.test(doc(rel)) && /dsh-compat\.json/.test(doc(rel)))
 }
