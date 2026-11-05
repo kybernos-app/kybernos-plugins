@@ -6,7 +6,7 @@
 //     lessons-store.mjs — same rules as `<DSH home>/kybers/memory.cjs`);
 //   · it injects the lessons of the kyber a session runs (plus `default`) into the
 //     system prompt, in a small bounded chunk — never the lessons of every kyber;
-//   · it gives the agent two tools, `lesson_write` and `lesson_search`;
+//   · it gives the agent three tools, `lesson_write`, `lesson_search` and `lesson_forget` (the last one asks the person first);
 //   · it serves the routes of the "Memory & Lessons learned" page;
 //   · two switches, `lessons` and `context`, persisted in `<DSH home>/kybernos-memory.json`;
 //   · in a TEAM space (team-space.mjs asks kybernos-cloud) nothing here is injected, searched or written by the agent: personal
@@ -303,6 +303,54 @@ const lessonSearchTool = () => ({
     return { ok: true, count: hits.length, found: hits.map((h) => '#' + h.id + ' (' + h.kyber + ') ' + h.text).join('\n') }
   },
 })
+
+const lessonOfId = (id) => {
+  const parsed = parseLessonId(id)
+  if (parsed === null) return null
+  const found = readLessons(parsed.kyber).find((l) => lessonId(parsed.kyber, l) === id)
+  return found === undefined ? null : found
+}
+
+// The agent can forget a lesson (UJ-177), but never silently: the engine asks the person first (`forgetGate`), and the lesson goes to the archive, like the cap's evictions.
+const lessonForgetTool = () => ({
+  name: 'lesson_forget',
+  description: 'Forgets ONE lesson learned, by the id lesson_search gave (the part after "#", like "default:3f2a1c10b7d4"). Use it only when the person asked to forget it. The person is asked before it goes, and it is kept in an archive.',
+  parameters: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      id: { type: 'string', description: 'The lesson id, as lesson_search printed it after "#".' },
+    },
+    required: ['id'],
+  },
+  output: {
+    schema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: { ok: { type: 'boolean' }, error: { type: 'string' } },
+      required: ['ok'],
+    },
+    render: (args, value) => TEXT(value.ok === true ? 'Lesson forgotten.' : 'Lesson not forgotten: ' + String(value.error)),
+  },
+  async execute(args) {
+    if (lessonsCut()) return { ok: false, error: TEAM_SPACE_REFUSAL }
+    if (readSettings().lessons !== true) return { ok: false, error: 'lecons_desactivees' }
+    const done = deleteLesson(typeof args.id === 'string' ? args.id : '', 'forgotten at the request of the person')
+    return done.ok === true ? { ok: true } : { ok: false, error: done.error }
+  },
+})
+
+/** The `tools/pre-execute` answer for a `lesson_forget` call: the card the person approves, with the lesson's own words. Anything else (or a lesson that does not exist: the tool says so) passes. */
+const forgetGate = (exec) => {
+  if (exec === null || typeof exec !== 'object' || exec.name !== 'lesson_forget' || lessonsCut()) return null
+  const args = exec.arguments !== null && typeof exec.arguments === 'object' ? exec.arguments : {}
+  const lesson = lessonOfId(args.id)
+  if (lesson === null) return null
+  const said = lesson.text.length > 200 ? lesson.text.slice(0, 197) + '…' : lesson.text
+  const en = 'Forget this lesson? “' + said + '” It is kept in the archive.'
+  const fr = 'Oublier cette leçon ? « ' + said + ' » Elle reste dans l’archive.'
+  return { kind: 'ask', reason: en, displayReason: { en, fr } }
+}
 
 // ── Routes ──────────────────────────────────────────────────────────────────
 const sendJson = (res, status, payload) => {
@@ -1197,6 +1245,18 @@ const mountTools = (ctx) => {
   ctx.inject(['tools'], (scope) => {
     scope.tools.register(lessonWriteTool())
     scope.tools.register(lessonSearchTool())
+    scope.tools.register(lessonForgetTool())
+  })
+}
+
+const mountForgetGate = (ctx) => {
+  if (typeof ctx.on !== 'function') return
+  ctx.on('tools/pre-execute', async (exec, next) => {
+    try {
+      const card = forgetGate(exec)
+      if (card !== null) return card
+    } catch (e) { /* never break a call */ }
+    return next()
   })
 }
 
@@ -1220,6 +1280,7 @@ export function apply(ctx) {
   try { mountPrompt(ctx) } catch (e) { say('prompt chunk not mounted: ' + String((e && e.message) || e)) }
   try { mountTools(ctx) } catch (e) { say('tools not mounted: ' + String((e && e.message) || e)) }
   try { mountTeamGate(ctx) } catch (e) { say('team gate not mounted: ' + String((e && e.message) || e)) }
+  try { mountForgetGate(ctx) } catch (e) { say('forget gate not mounted: ' + String((e && e.message) || e)) }
   // the human's message of each turn, to pick the lessons that match it (see « The lessons that matter to THIS question »)
   try {
     if (typeof ctx.on === 'function') ctx.on('agent/inbox/claimed', ({ agent, message, turn }) => { try { if (!lessonsCut()) noteUserTurn(agent.session.id, message, turn) } catch (e) { /* never break a turn */ } })
@@ -1230,4 +1291,4 @@ export function apply(ctx) {
 }
 
 // Exported for the host suite (test-memory-host.mjs): nothing else is promised.
-export { lessonWriteTool, lessonSearchTool, sanitize, CHUNK_NAME, CHUNK_ORDER, CHUNK_MAX_CHARS, tidyRun, tidySettings, studyModel, publishJanitorSeam, JANITOR_LESSONS_SEAM }
+export { lessonWriteTool, lessonSearchTool, lessonForgetTool, forgetGate, sanitize, CHUNK_NAME, CHUNK_ORDER, CHUNK_MAX_CHARS, tidyRun, tidySettings, studyModel, publishJanitorSeam, JANITOR_LESSONS_SEAM }

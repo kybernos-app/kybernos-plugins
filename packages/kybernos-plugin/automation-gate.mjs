@@ -199,6 +199,14 @@ export const gateWords = (text) => {
   return out
 }
 
+/**
+ * The product's own safety sentence, written into the wake-up prompt of Kaby (kybernos-kaby-customisation). It FORBIDS the very words the word checks look for, so the checks read the prompt
+ * without it (UJ-166): the person who approves the wake-up was shown two warnings about a sentence that says the opposite. Exactly these sentences and nothing broader: « never send it »
+ * beside something else, or a prompt that asks for a send, stays flagged.
+ */
+export const GATE_OWN_SAFETY_SENTENCES = Object.freeze(['Never send, publish, pay, install, schedule or switch anything on.'])
+const gateWithoutOwnSafety = (text) => GATE_OWN_SAFETY_SENTENCES.reduce((out, sentence) => out.split(sentence).join(' '), text)
+
 /** Is one entry of `set` a token of `tokens`? Whole-token equality, as `kbIsReadName` reads a tool name. */
 export const gateHasWord = (set, tokens) => {
   if (set === null || typeof set !== 'object' || typeof set.has !== 'function') return false
@@ -695,7 +703,7 @@ export const checkDraft = (draft, options = {}) => {
     const nowMs = Number.isInteger(o.nowMs) === true ? o.nowMs : null
     const gate = o.gate !== null && typeof o.gate === 'object' && Array.isArray(o.gate) === false ? o.gate : null
     // The prompt is tokenized once, on a bounded window: a longer prompt is already a blocker (`prompt.too-long`).
-    const tokens = gateWords(d.prompt.length > GATE_PROMPT_MAX ? d.prompt.slice(0, GATE_PROMPT_MAX) : d.prompt)
+    const tokens = gateWords(gateWithoutOwnSafety(d.prompt.length > GATE_PROMPT_MAX ? d.prompt.slice(0, GATE_PROMPT_MAX) : d.prompt))
     const ctx = { tokens, nowMs, gate }
     const found = []
     for (const check of GATE_CHECKS_RUN) {

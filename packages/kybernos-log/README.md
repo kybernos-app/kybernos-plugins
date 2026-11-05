@@ -8,7 +8,7 @@ asked for (automatic titles, compactions, probes).
 
 Metadata only, never content: when, which family, which session, which provider/model, how many tokens,
 which tool (an MCP tool is a *connector*, `web_search` is a *web search*, anything else is a *tool*), and
-why a call failed (retry code and short detail). No message body, no tool argument, no tool result.
+why a call failed (retry code and short detail), and each session's title (made from its first message, then from its answer). No message body, no tool argument, no tool result.
 
 Source: one subscription to `session/event` (the same event source `kybernos-call` follows). Storage: a
 bounded ring on disk (`<DSH home>/kybernos/log/events.jsonl`, rotated at 8 MB) plus the last 4 000 records

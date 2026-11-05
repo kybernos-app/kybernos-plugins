@@ -197,7 +197,7 @@ eq('webhook: the paused copy has one too', typeof tw2.trigger.hookId, 'string')
 /* ── the mark survives every ordinary edit ────────────────────────────────────────────────────────────────────────────────── */
 const markOfId = (id) => JSON.stringify(storedOf(id).team)
 const mark1 = markOfId(i1.taskId)
-const pageForm = (t, o) => Object.assign({ name: t.name, prompt: t.prompt, active: t.active, approvals: t.approvals, notify: [], workspaceHint: null, runsOn: 'local', schedule: Object.assign({}, t.schedule) }, o)
+const pageForm = (t, o) => Object.assign({ name: t.name, prompt: t.prompt, active: t.active, approvals: t.approvals, workspaceHint: null, runsOn: 'local', schedule: Object.assign({}, t.schedule) }, o)
 const edit1 = await api({ action: 'update', id: i1.taskId, task: pageForm(t1, { active: true }) })
 eq('mark: an edit as the page sends it (no needs) answers ok', edit1.ok, true)
 eq('mark: ...and the mark is untouched', markOfId(i1.taskId), mark1)

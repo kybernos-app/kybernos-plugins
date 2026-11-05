@@ -190,7 +190,6 @@ let kbLocaleRead = () => 'en'
       'tasks.yes': { kybernos: 'Oui', en: 'Yes' },
       'tasks.no': { kybernos: 'Non', en: 'No' },
       'tasks.details': { kybernos: 'Détails', en: 'Details' },
-      'tasks.notify': { kybernos: 'Me prévenir à chaque exécution', en: 'Notify me when it runs' },
       'tasks.ask': { kybernos: 'Me demander d’abord', en: 'Ask me first' },
       'tasks.auto': { kybernos: 'Toujours autoriser', en: 'Always allow' },
       'tasks.schedule': { kybernos: 'Planifier', en: 'Schedule' },
@@ -212,7 +211,6 @@ let kbLocaleRead = () => 'en'
       'tasks.failed.at': { kybernos: 'Échec · {when}', en: 'Failed · {when}' },
       'tasks.skipped.at': { kybernos: 'Ignorée · {when}', en: 'Skipped · {when}' },
       'tasks.skipped.approval': { kybernos: 'Ignorée · {when} : pas encore approuvée', en: 'Skipped · {when}: not approved yet' },
-      'tasks.notify.on': { kybernos: 'notifications activées', en: 'notifications on' },
       'tasks.runson.local': { kybernos: 'cet ordinateur', en: 'this computer' },
       'tasks.ws.label': { kybernos: 'Workspace', en: 'Workspace' },
       'tasks.ws.dedicated': { kybernos: 'Automations (workspace dédié)', en: 'Automations (dedicated workspace)' },
@@ -449,7 +447,7 @@ let kbLocaleRead = () => 'en'
       'tasks.prompt.max': { kybernos: 'Le prompt est limité à 8 000 caractères.', en: 'A prompt is limited to 8,000 characters.' },
       'tasks.trigger.plushook': { kybernos: '+ webhook', en: '+ webhook' },
       // « Edit → chat »: the text put in the composer of a new chat (the automation-creator skill, edit mode) and the buttons.
-      'tasks.edit.chat': { kybernos: 'Skill automation-creator — mode modification. Modifie cette automation, n’en crée pas une nouvelle : demande-moi ce qu’il faut changer, montre-moi le résultat et attends mon accord, puis enregistre-le avec le mode modification du script (id : {id}).\n\nNom : {name}\nSe lance : {runs}\nQuand une validation est nécessaire : {approvals}\nNotifications : {notify}\nActive : {active}\n\nCe qu’elle fait :\n{prompt}', en: 'Skill automation-creator — edit mode. Change this automation, do not create a new one: ask me what to change, show me the result and wait for my yes, then save it with the script’s edit mode (id: {id}).\n\nName: {name}\nRuns: {runs}\nWhen it needs approval: {approvals}\nNotifications: {notify}\nOn: {active}\n\nWhat it does:\n{prompt}' },
+      'tasks.edit.chat': { kybernos: 'Skill automation-creator — mode modification. Modifie cette automation, n’en crée pas une nouvelle : demande-moi ce qu’il faut changer, montre-moi le résultat et attends mon accord, puis enregistre-le avec le mode modification du script (id : {id}).\n\nNom : {name}\nSe lance : {runs}\nQuand une validation est nécessaire : {approvals}\nActive : {active}\n\nCe qu’elle fait :\n{prompt}', en: 'Skill automation-creator — edit mode. Change this automation, do not create a new one: ask me what to change, show me the result and wait for my yes, then save it with the script’s edit mode (id: {id}).\n\nName: {name}\nRuns: {runs}\nWhen it needs approval: {approvals}\nOn: {active}\n\nWhat it does:\n{prompt}' },
       'tasks.edit.chat.ask': { kybernos: 'Ce que je veux changer : ', en: 'What I want to change: ' },
       'tasks.edit.chat.act': { kybernos: 'Modifier dans le chat', en: 'Edit in chat' },
       'tasks.edit.chat.aria': { kybernos: 'Modifier {name} dans le chat', en: 'Edit {name} in chat' },
@@ -670,7 +668,7 @@ let kbLocaleRead = () => 'en'
       'tasks.err.active': { kybernos: 'Valeur d’activation invalide.', en: 'Invalid on/off value.' },
       'deliverables.title': { kybernos: 'Créations', en: 'Creations' },
       'deliverables.desc': { kybernos: 'Tout ce que tes Agent Teams ont produit — pages, scripts, docs et decks. Ouvres-en un pour le visualiser.', en: 'Everything your Agent Teams produced — pages, scripts, docs and decks. Open one to view it.' },
-      'deliverables.empty': { kybernos: 'Aucune création générée pour l\'instant.', en: 'No creations yet.' },
+      'deliverables.empty': { kybernos: 'Aucun fichier pour l\'instant.', en: 'No file yet.' },
       'deliverables.nomatch': { kybernos: 'Aucune création ne correspond à la recherche ou aux filtres.', en: 'No creation matches your search or filters.' },
       'deliverables.share': { kybernos: 'Partager', en: 'Share' },
       'deliverables.copied': { kybernos: 'Chemin copié', en: 'Path copied' },
@@ -696,7 +694,6 @@ let kbLocaleRead = () => 'en'
       'menu.crewmodel': { kybernos: 'Exécution modèle', en: 'Model Execution' },
       'menu.projects': { kybernos: 'Workspaces', en: 'Workspaces' },
       'menu.deliverables': { kybernos: 'Créations', en: 'Creations' },
-      'menu.hosted': { kybernos: 'Kybernos Hosted', en: 'Kybernos Hosted' },
       'menu.newchat': { kybernos: 'New chat', en: 'New chat' },
       'menu.newchat.sub': { kybernos: 'avec tes Agent Teams', en: 'with your Agent Teams' },
       'menu.newchat.with': { kybernos: 'avec', en: 'with' },
@@ -1074,11 +1071,7 @@ let kbLocaleRead = () => 'en'
       'kbui.howitworks': { kybernos: 'Comment ça marche', en: 'How it works' },
       'kbui.hire.kyber': { kybernos: 'Embaucher une Agent Team depuis le Marketplace', en: 'Hire an Agent Team from the Marketplace' },
       'kbui.hosted.means': { kybernos: 'Hosted signifie que cette Agent Team existe aussi dans Kybernos Hosted.', en: 'Hosted means this Agent Team also exists in Kybernos Hosted.' },
-      'kbui.hosted.vs.plugin': { kybernos: 'Hosted face au plugin open source', en: 'Hosted vs the open-source plugin' },
       'kbui.import.github': { kybernos: 'Importer un « Agent Team Manifest » depuis GitHub', en: 'Import an "Agent Team Manifest" from GitHub' },
-      'kbui.import.workspace': { kybernos: 'Importer mon espace de travail', en: 'Import my workspace' },
-      'kbui.kybernos.hosted': { kybernos: 'Kybernos hosted', en: 'Kybernos hosted' },
-      'kbui.keep.opensource': { kybernos: 'Garder le plugin open source', en: 'Keep the open-source plugin' },
       'kbui.kyber.notfound': { kybernos: 'Agent Team introuvable.', en: 'Agent Team not found.' },
       'kbui.kybernos': { kybernos: 'Kybernos', en: 'Kybernos' },
       'kbui.hero.preview': { kybernos: 'avec tes Agent Teams', en: 'with your Agent Teams' },
@@ -1096,7 +1089,6 @@ let kbLocaleRead = () => 'en'
       'kbui.sort.mostagents': { kybernos: 'Plus d’agents', en: 'Most agents' },
       'kbui.sort.mostdeliverables': { kybernos: 'Plus de créations', en: 'Most creations' },
       'kbui.sort.mostthreads': { kybernos: 'Plus de fils', en: 'Most threads' },
-      'kbui.move.team': { kybernos: 'Transférer une Agent Team en un clic', en: 'Move an Agent Team over in one click' },
       'kbui.new.kyber': { kybernos: 'Nouvelle Agent Team', en: 'New Agent Team' },
       'kbui.create': { kybernos: 'Créer', en: 'Create' },
       'kbui.new.folder': { kybernos: 'Nouveau dossier', en: 'New folder' },
@@ -1117,7 +1109,6 @@ let kbLocaleRead = () => 'en'
       'kbui.nothing.yet': { kybernos: 'Rien ici pour l’instant', en: 'Nothing here yet' },
       'kbui.notifications': { kybernos: 'Notifications', en: 'Notifications' },
       'kbui.notif.empty': { kybernos: 'Aucune notification pour le moment.', en: 'No notifications yet.' },
-      'kbui.opensource.plugin': { kybernos: 'Plugin open source', en: 'Open-source plugin' },
       'kbui.objectifs': { kybernos: 'Objectifs', en: 'Goals' },
       'kbui.open': { kybernos: 'Ouvrir', en: 'Open' },
       'kbui.overview.tabs': { kybernos: 'Vue d’ensemble · Santé · Agent Teams · Édition', en: 'Overview · Health · Agent Teams · Edit' },
@@ -1156,7 +1147,6 @@ let kbLocaleRead = () => 'en'
       'kbui.wspace.relink.done': { kybernos: 'Espace relié : ', en: 'Workspace linked: ' },
       'kbui.wspace.missing.tag': { kybernos: 'Dossier introuvable', en: 'Folder not found' },
       'kbui.read.aloud': { kybernos: 'Lire les réponses à voix haute à leur arrivée', en: 'Read replies aloud as they arrive' },
-      'kbui.read.repo': { kybernos: 'Lire le dépôt', en: 'Read the repository' },
       'kbui.reading.engine': { kybernos: 'Lecture de l’inventaire des moteurs…', en: 'Reading the engine inventory…' },
       'kbui.relire': { kybernos: 'Relire', en: 'Read again' },
       'kbui.remove': { kybernos: 'Retirer ', en: 'Remove ' },
@@ -1174,7 +1164,6 @@ let kbLocaleRead = () => 'en'
       // marque nue dans la barre d'onglets.
       'kbui.run': { kybernos: 'Exécuter', en: 'Run' },
       'kbui.run.dot': { kybernos: 'Run · ', en: 'Run · ' },
-      'kbui.hosted.same': { kybernos: 'Mêmes Agent Teams, mêmes chats, mêmes créations — déplacés hors de ta machine.', en: 'Same Agent Teams, same chats, same creations — moved off your hardware.' },
       'kbui.save.now': { kybernos: 'Enregistrer maintenant', en: 'Save now' },
       'kbui.search': { kybernos: 'Rechercher ', en: 'Search ' },
       'kbui.instructions': { kybernos: 'Instructions', en: 'Instructions' },
@@ -1747,7 +1736,6 @@ let kbLocaleRead = () => 'en'
       'kbui.state': { kybernos: 'État : ', en: 'State: ' },
       'kbui.status': { kybernos: 'Statut : ', en: 'Status: ' },
       'kbui.step': { kybernos: 'Étape ', en: 'Step ' },
-      'kbui.still.local': { kybernos: 'Tu le veux toujours en local ?', en: 'Still want it local?' },
       'kbui.storage': { kybernos: 'Stockage · 60 Mo / 2 Go', en: 'Storage · 60 MB / 2 GB' },
       'kbui.tts.unavailable': { kybernos: 'Hôte TTS indisponible : ', en: 'TTS host unavailable: ' },
       'kbui.tag': { kybernos: 'Étiquette', en: 'Tag' },
@@ -1781,7 +1769,6 @@ let kbLocaleRead = () => 'en'
       'kbui.skills.ghostteam': { kybernos: 'rattachée à cette Agent Team (plus détectée)', en: 'attached to this Agent Team (no longer detected)' },
       'kbui.kyber.declares': { kybernos: 'Le kyber.yml déclare l’équipe (rôles, ordre, modèle déclaré).', en: 'kyber.yml declares the crew (roles, order, declared model).' },
       'kbui.model.caveat': { kybernos: 'Le modèle déclaré dans le fichier de l’équipe n’est pas forcément celui qui tourne : Agent Teams ne lit pas encore cette table.', en: 'The model declared in the team file is not necessarily the one that runs: Agent Teams does not read that table yet.' },
-      'kbui.plugin.free': { kybernos: 'Le plugin reste libre et ouvert. Lance-le, forke-le, livre-le — hosted existe pour le travail qui ne peut pas attendre que ta machine se réveille.', en: 'The plugin stays free and open. Run it, fork it, ship it — hosted exists for the work that cannot wait for your laptop to wake up.' },
       'kbui.chat.bound': { kybernos: 'Ce chat est lié à cette Agent Team', en: 'This chat is bound to this Agent Team' },
       'kbui.three.gestures': { kybernos: 'Trois gestes pour tout organiser', en: 'Three gestures to organise everything' },
       'kbui.tags.hint': { kybernos: 'Jusqu’à 10 étiquettes, 1 à 30 caractères chacune. Les suggestions viennent de tes catégories et des étiquettes déjà utilisées dans cet espace de travail.', en: 'Up to 10 tags, 1–30 characters each. Suggestions come from your categories and the tags already used in this workspace.' },
@@ -1798,10 +1785,7 @@ let kbLocaleRead = () => 'en'
       'kbui.engine.installed': { kybernos: ' · moteurs installés ', en: ' · installed engines ' },
       'kbui.tts.leaves': { kybernos: '. Les réponses lues avec lui quittent ta machine.', en: '. Replies read aloud with it leave your machine.' },
       'kbui.tts.sub': { kybernos: 'Lit les réponses à voix haute et dicte dans le champ de saisie, sur cette machine ou via un service cloud — à toi de choisir, moteur par moteur. Pour parler en direct avec l\'assistant, voir Appels.', en: 'Reads replies aloud and dictates into the message box, on this machine or through a cloud service — your choice, engine by engine. To talk live with the assistant, see Calls.' },
-      'kbui.hosted.only': { kybernos: 'Ce que tu n’obtiens qu’en hosted', en: 'What you get only when it is hosted' },
       'kbui.workspaces.unavailable': { kybernos: 'Workspaces indisponibles', en: 'Workspaces unavailable' },
-      'kbui.hosted.keepworking': { kybernos: 'Tes Agent Teams continuent de travailler après avoir fermé le capot.', en: 'Your Agent Teams keep working after you close the lid.' },
-      'kbui.workspace.export': { kybernos: 'Ton espace de travail de plugin s’exporte en fichier. Hosted l’importe intégralement — équipes, documents, objectifs et fils gardent leur historique.', en: 'Your plugin workspace exports as a file. Hosted imports it whole — teams, documents, goals and threads keep their history.' },
       'kbui.fallback.from': { kybernos: 'repli depuis ', en: 'fallback from ' },
       'kbui.in.this.chat': { kybernos: 'dans ce chat', en: 'in this chat' },
       // ── Documents / Resources ──────────────────────────────────────────
@@ -1928,7 +1912,6 @@ let kbLocaleRead = () => 'en'
       'kbui.favorites.only': { kybernos: 'Favoris uniquement', en: 'Favorites only' },
       'kbui.showall': { kybernos: 'Tout afficher', en: 'Show all' },
       'kbui.toggle.favorites': { kybernos: 'Basculer les favoris', en: 'Toggle favorites' },
-      'kbui.gpus.own': { kybernos: 'Des GPU qu’il faut posséder', en: 'GPUs you have to own' },
       'kbui.highrisk': { kybernos: 'Risque élevé', en: 'High risk' },
       'kbui.install': { kybernos: 'Installer', en: 'Install' },
       'kbui.install.kyber': { kybernos: 'Installer cette Agent Team', en: 'Install this Agent Team' },
@@ -1962,7 +1945,6 @@ let kbLocaleRead = () => 'en'
       'kbui.unavailable': { kybernos: 'Indisponible', en: 'Unavailable' },
       'kbui.justnow': { kybernos: 'à l’instant', en: 'just now' },
       'kbui.no.model.install': { kybernos: 'aucun modèle à installer', en: 'no model to install' },
-      'kbui.runs.offline': { kybernos: 'tourne même machine éteinte', en: 'runs with your machine off' },
       'kbui.sends.text': { kybernos: 'envoie du texte à l’extérieur', en: 'sends text out' },
       'kbui.no.mission': { kybernos: '(aucune mission déclarée)', en: '(no mission declared)' },
       'kbui.no.prompt': { kybernos: '(aucun prompt déclaré)', en: '(no prompt declared)' },
@@ -5072,7 +5054,6 @@ const KB_FR_EN = {
   'Si j’écris dedans': 'If I write in it',
   'L’exécution s’arrête': 'The run stops',
   'L’exécution se termine': 'The run finishes',
-  'Me prévenir': 'Notify me',
   'Rien': 'Nothing',
   'Notification': 'Push',
   'E-mail': 'Email',
@@ -7062,7 +7043,7 @@ const kbSuggestionSummary = (t) => {
 // What an exported file holds: the definition of the automation, never its webhook secret or its history.
 const kbExportTask = (t) => {
   const out = {}
-  for (const k of ['name', 'prompt', 'schedule', 'runsOn', 'active', 'approvals', 'notify']) { if (t[k] !== undefined) out[k] = t[k] }
+  for (const k of ['name', 'prompt', 'schedule', 'runsOn', 'active', 'approvals']) { if (t[k] !== undefined) out[k] = t[k] }
   return out
 }
 // A copy is created paused: an active copy would run the same work twice at the same time.
@@ -7073,7 +7054,6 @@ const kbCloneDefinition = (t, name) => ({
   runsOn: 'local',
   active: false,
   approvals: t.approvals === 'auto' ? 'auto' : 'ask',
-  notify: Array.isArray(t.notify) ? t.notify : [],
   workspaceHint: typeof t.workspaceHint === 'string' && t.workspaceHint.length > 0 ? t.workspaceHint : null,
 })
 // The trigger line of the read-only code view: the automation's own zone and kind (it said Europe/Paris and cron: "" for everything).
@@ -7101,7 +7081,7 @@ const kbTriggerParts = (t, tr, locale, viewerZone) => {
 }
 // The line under the name in the list: how the automation runs (an automation is not bound to an Agent Team of its own: it
 // starts a session in the workspace), the same words the cards of the board use.
-const kbTaskWho = (t, tr) => (t !== null && typeof t === 'object' && t.approvals === 'auto' ? tr('tasks.auto') : tr('tasks.ask')) + (t !== null && typeof t === 'object' && Array.isArray(t.notify) === true && t.notify.length > 0 ? ' · ' + tr('tasks.notify.on') : '')
+const kbTaskWho = (t, tr) => (t !== null && typeof t === 'object' && t.approvals === 'auto' ? tr('tasks.auto') : tr('tasks.ask'))
 // V-19, « Edit → chat »: the text put in the composer of a NEW chat. It names the automation-creator skill the way « Create »
 // does, says this is an edit and carries the definition as it stands, so the person only has to say what to change. Never
 // the webhook secret, the hook id or the history. `{x}` is replaced by a function: a prompt holding « $& » stays as written.
@@ -7114,10 +7094,10 @@ const kbEditChatText = (t, tr, locale) => {
   const vars = {
     id: String(x.id || ''), name: String(x.name || ''), runs: parts.label + (parts.hooked === true ? ' ' + tr('tasks.trigger.plushook') : '') + detail,
     approvals: x.approvals === 'auto' ? tr('tasks.auto') + ' (auto)' : tr('tasks.ask') + ' (ask)',
-    notify: Array.isArray(x.notify) === true && x.notify.length > 0 ? x.notify.join(', ') : '-', active: x.active === false ? tr('tasks.no') : tr('tasks.yes'),
+    active: x.active === false ? tr('tasks.no') : tr('tasks.yes'),
     prompt: typeof x.prompt === 'string' ? x.prompt : '',
   }
-  return tr('tasks.edit.chat').replace(/\{(id|name|runs|approvals|notify|active|prompt)\}/g, (all, k) => vars[k]) + '\n\n' + tr('tasks.edit.chat.ask')
+  return tr('tasks.edit.chat').replace(/\{(id|name|runs|approvals|active|prompt)\}/g, (all, k) => vars[k]) + '\n\n' + tr('tasks.edit.chat.ask')
 }
 // What the list shows. Only a list the host actually answered can be "empty": while it loads there is a
 // skeleton, and when the host could not answer there is the reason with a retry (both used to show
@@ -8472,7 +8452,7 @@ const KB_ASHEET_RUNS = 5
 /**
  * What the sheet of an automation says about it, read from its fields (no guess): the first lines of its prompt, how it starts, where its
  * runs land, what it may do, when it stops. The page writes the words around these values.
- *   { head, more, lines, mode: 'cron'|'once'|'webhook', zone, hooked, chat: 'new'|'home', approvals: 'ask'|'auto', maxMinutes, onWrite: 'finish'|'stop', notify, needs, cloud }
+ *   { head, more, lines, mode: 'cron'|'once'|'webhook', zone, hooked, chat: 'new'|'home', approvals: 'ask'|'auto', maxMinutes, onWrite: 'finish'|'stop', needs, cloud }
  * `cloud` is the name of the cloud computer it was sent to, null while it runs here; `hooked` is true when it has a webhook (the only trigger, or one more).
  */
 // A reminder (made by the agent's automation_remind): one date, in one chat, always asking first. It has no certification to show, so its page leaves the gate panel out.
@@ -8493,7 +8473,6 @@ const kbAutoSheetOf = (t) => {
     approvals: x.approvals === 'auto' ? 'auto' : 'ask',
     maxMinutes: Number.isInteger(x.maxMinutes) === true && x.maxMinutes > 0 ? x.maxMinutes : 0,
     onWrite: x.onPersonWrites === 'stop' ? 'stop' : 'finish',
-    notify: Array.isArray(x.notify) === true ? x.notify.filter((n) => n === 'push' || n === 'email') : [],
     needs: Array.isArray(x.needs) === true ? x.needs.filter((n) => typeof n === 'string' && n !== '') : [],
     cloud: x.cloud !== null && x.cloud !== undefined && typeof x.cloud === 'object' ? String(x.cloud.name || '') : null,
   }
@@ -10206,8 +10185,8 @@ body:not([data-ds-dark-theme]) .kb6-type{color:color-mix(in srgb,var(--kb6-ink) 
 .kb6-frame{width:100%;height:520px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-document-preview, var(--dsw-alias-bg-base))}
 .kb6-pre{margin:0;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:12px;padding:16px;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.55;color:var(--dsw-alias-label-primary);overflow:auto;max-height:560px;white-space:pre}
 `
-// Entrée « Kybernos Hosted » du menu latéral : masquée pour le moment (demande
-// produit). Passer à `true` la remet, la page et la traduction sont intactes.
+// Le sélecteur Local / Hosted de la fiche d'une Agent Team et la puce « Hosted » du filtre : masqués pour le moment (demande produit).
+// La page « Kybernos Hosted » et son entrée de menu ont été supprimées (UJ-64) : elles promettaient un essai et des prix qui n'existent pas.
 const KB_SHOW_HOSTED = false
 // Entrée « Documents » : masquée pour le moment (demande produit), en attendant
 // de décider où elle vit — `DocumentsPage`, la route hôte et la traduction
@@ -17278,7 +17257,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         if (s.view === 'tasks') return h(ScheduledTasksPage, props)
         if (s.view === 'projects') return h(ProjectsHub, props)
         if (s.view === 'project') return h(ProjectDetail, props)
-        if (s.view === 'hosted') return h(HostedPage, props)
         if (s.view === 'teamedit' && typeof s.detailPath === 'string') return h(TeamEdit, props)
         if ((s.view === 'teaminfo' || s.view === 'detail') && typeof s.detailPath === 'string') return h(KybersTeamInfo, props)
         if (kbBizMenu.has(s.view)) return h(KbBusinessView, Object.assign({}, props, { id: s.view }))
@@ -22066,7 +22044,6 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const active = activePair[0]; const setActive = activePair[1]
       const approvalsPair = React.useState(t0.approvals === 'auto' ? 'auto' : 'ask')
       const approvals = approvalsPair[0]; const setApprovals = approvalsPair[1]
-      const notifyPair = React.useState(Array.isArray(t0.notify) === true ? t0.notify : [])
       // What the person asks over a run (the host's automation-run-guard.mjs): a time box in minutes (0 = none) and what their own message in the run's chat does.
       const maxPair = React.useState(Number.isInteger(t0.maxMinutes) === true && t0.maxMinutes > 0 ? t0.maxMinutes : 0)
       const maxMin = maxPair[0]; const setMaxMin = maxPair[1]
@@ -22075,7 +22052,6 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       // Where the runs land: '' is the dedicated workspace (the host makes it), else the id of one of the person's workspaces.
       const wsPair = React.useState(() => { const c = kbWsChoice(t0.workspaceHint, kbPinsSnapshots().items); return c.kind === 'dedicated' ? '' : (typeof t0.workspaceHint === 'string' ? t0.workspaceHint : '') })
       const wsHint = wsPair[0]; const setWsHint = wsPair[1]
-      const notify = notifyPair[0]; const setNotify = notifyPair[1]
       const errPair = React.useState(null)
       const err = errPair[0]; const setErr = errPair[1]
       // One request at a time: a second click used to create the automation twice.
@@ -22111,7 +22087,6 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           prompt: prompt.trim(),
           active: active === true,
           approvals,
-          notify,
           maxMinutes: maxMin === 0 ? null : maxMin,
           onPersonWrites: onWrite,
           workspaceHint: wsHint === '' ? null : wsHint,
@@ -22225,11 +22200,6 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           h('div', { className: 'kb-task-f' },
             h('label', null, kbt('tasks.details')),
             h('div', { className: 'kb-task-row', style: { flexWrap: 'wrap', gap: '10px 18px' } },
-              h('span', { className: 'kb-switch' + (notify.indexOf('push') >= 0 ? ' on' : ''), onClick: () => setNotify(notify.indexOf('push') >= 0 ? notify.filter((x) => x !== 'push') : notify.concat(['push'])) },
-                h('span', { className: 'track' }, h('span', { className: 'knob' })), Icon('bell', 12), ' ', kbt('tasks.notify')),
-              h('span', { className: 'kb-switch' + (notify.indexOf('email') >= 0 ? ' on' : ''), onClick: () => setNotify(notify.indexOf('email') >= 0 ? notify.filter((x) => x !== 'email') : notify.concat(['email'])) },
-                h('span', { className: 'track' }, h('span', { className: 'knob' })), Icon('mail', 12), ' ', 'Email'),
-              h('span', { className: 'grow' }),
               h('span', { className: 'kb-task-chips' },
                 h('button', { type: 'button', className: 'kb-task-chip' + (approvals === 'ask' ? ' on' : ''), onClick: () => setApprovals('ask') }, kbt('tasks.ask')),
                 h('button', { type: 'button', className: 'kb-task-chip' + (approvals === 'auto' ? ' on' : ''), onClick: () => setApprovals('auto') }, kbt('tasks.auto'))))),
@@ -22737,8 +22707,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const safety = card('safety', 'lock', kbe('Safety'), '', btn('edit-safety', kbe('Edit'), props.onEdit), [
         kv('approvals', kbe('Approvals'), f.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask'), true),
         kv('limit', kbe('Time limit'), f.maxMinutes > 0 ? f.maxMinutes + ' ' + kbe('min') : kbe('None')),
-        kv('onwrite', kbe('If I write in it'), f.onWrite === 'stop' ? kbe('The run stops') : kbe('The run finishes')),
-        kv('notify', kbe('Notify me'), f.notify.length > 0 ? f.notify.map((n) => (n === 'push' ? kbe('Push') : kbe('Email'))).join(', ') : kbe('Nothing'))])
+        kv('onwrite', kbe('If I write in it'), f.onWrite === 'stop' ? kbe('The run stops') : kbe('The run finishes'))])
       const calls = ids.map((id) => { const s = sums[id]; return s !== undefined && s !== null && typeof s.nodeCount === 'number' ? s.nodeCount : null })
       const costBig = cost.pending > 0 || cost.read === 0 || cost.eur === null ? '—' : kbFmtMoney(cost.eur, 'EUR', 2)
       const costSub = ids.length === 0 ? kbe('Not run yet') : (cost.pending > 0 ? kbe('Reading the journals…') : cost.read === 0 ? kbe('No journal could be read')
@@ -25598,29 +25567,6 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       ],
     }
 
-    const KB_MOCK_HOSTED = [
-      ['Agent Teams, not one assistant','Several agents under a manager, each with its own memory, budget and role — they hand work to each other instead of to you.'],
-      ['A workspace for humans too', 'Invite your colleagues: shared projects, threads and creations, roles and seats, comments on the work.'],
-      ['One document library', 'Files live once and feed every project, thread and team. Versioned, searchable, never re-uploaded.'],
-      ['Shared resources', kbe('Skills, connectors and documents are workspace-level — attach them per project instead of rebuilding them per bot.')],
-      ['Realtime speech to speech', 'Talk over your work: sub-second voice, interruption-friendly, with the same context as the thread.'],
-      ['Live video calls', 'Face a team member with a real avatar — screen share a document and get the answer in the same call.'],
-      [kbe('Budgets you can trust'), 'Caps per task, per team and per project, in credits — warned before the line, never after.'],
-      ['24/7, off your machine', 'Runs in our cloud — your laptop can be shut. No GPU melting, no RAM eaten, no local queue.'],
-      ['It talks to your world', 'Teams reach your colleagues, leads and clients — take and place calls, answer chats, follow up without a nudge.'],
-      ['Works while you sleep', 'Give it a goal: it plans, runs in the background, and reports what moved when you come back.'],
-      ['Advanced skills', 'Heavy, long-running skills — scraping, dunning, research loops — with retries and a readable paper trail.'],
-    ]
-    const KB_MOCK_HOSTED_COMPARE = [
-      ['Runs when your laptop is closed', 'Always on, our infrastructure', 'Only while the app is open'],
-      ['GPU / RAM on your machine', 'None — nothing local', 'Yours, all of it'],
-      ['Voice and video calls', 'Realtime speech + live video', 'Text only'],
-      ['Teams, budgets, paper trail', 'Built in, per team and project', 'Manual, in your own files'],
-      ['Connectors and skills', 'Managed, healthchecked, shared', 'You host and patch them'],
-      ['Client-facing door', 'Public link + website widget', 'Not available'],
-      ['Your data', 'Encrypted, scoped, exportable', 'Stays on your disk'],
-      ['Price', 'From $19 / month', 'Free, your time not included'],
-    ]
 
     // (Maquettes d'onglets projet supprimees : les onglets Threads, Documents,
     // Goals, Deliverables, Skills, Connectors et Budget ne montrent plus que des
@@ -28491,53 +28437,6 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             h('span', { className: 'kb8-parent', style: { minWidth: '64px' } }, p[0]),
             h('span', { className: 'kb8-sub', style: { wordBreak: 'break-all' } }, String(p[1])))))))
     }
-    const HostedPage = () => {
-      const open = () => set({ view: 'gallery' })
-      return h('div', { className: 'kba-page' },
-        h('div', { className: 'kba-hero' },
-          h('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 } },
-            h('span', { className: 'kb8-parent' }, kbt('kbui.kybernos.hosted')),
-            h('h1', { className: 'kb8-h1' }, kbt('kbui.hosted.keepworking')),
-            h('p', { className: 'kb8-sub' }, 'The plugin runs on your machine while it is awake. Hosted runs the same teams on our infrastructure.'),
-            h('div', { style: { display: 'flex', gap: '10px', flexWrap: 'wrap', paddingTop: '4px' } },
-              h('button', { type: 'button', className: 'kb8-primary' }, 'Start the 14-day trial'),
-              h('button', { type: 'button', className: 'kb8-chip', onClick: open }, kbt('kbui.keep.opensource')))),
-          h('div', { style: { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '20px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' } },
-            [['24/7', kbt('kbui.runs.offline')], ['<600 ms', 'voice round trip'], ['0', kbt('kbui.gpus.own')]].map((r) => h('div', { key: r[0], style: { display: 'flex', alignItems: 'baseline', gap: '12px', padding: '11px 0', borderBottom: '1px solid var(--dsw-alias-border-l1)' } },
-              h('span', { className: 'kb8-name' }, r[0]),
-              h('span', { className: 'kb8-parent' }, r[1]))),
-            h('span', { className: 'kb8-parent' }, kbt('kbui.hosted.same')))),
-        h('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px' } },
-          h('h2', { className: 'kb8-name' }, kbt('kbui.hosted.only')),
-          h('div', { className: 'kba-grid' }, KB_MOCK_HOSTED.map((f, i) => h('div', { className: 'kba-card', key: f[0], style: { animationDelay: (i * 0.04).toFixed(2) + 's' } },
-            h('div', { className: 'kba-art' },
-              h('span', { className: 'kb8-tile' }, Icon('cloud', 18)),
-              h('div', { className: 'kb9-bar' }, h('span', { style: { width: ((i % 4) * 12 + 40) + '%' } }))),
-            h('span', { className: 'kb8-name' }, f[0]),
-            h('span', { className: 'kb8-sub' }, f[1]))))),
-        h('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px' } },
-          h('h2', { className: 'kb8-name' }, kbt('kbui.hosted.vs.plugin')),
-          h('div', { className: 'kb8-rows' },
-            (function () { const head = { display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 18px', background: 'var(--dsw-alias-bg-layer-2)' }
-              return h('div', { style: head },
-                h('span', { className: 'kb8-parent', style: { flex: '1.1' } }, ''),
-                h('span', { className: 'kb8-parent', style: { flex: 1 } }, kbt('kbui.kybernos.hosted')),
-                h('span', { className: 'kb8-parent', style: { flex: 1 } }, kbt('kbui.opensource.plugin'))) })(),
-            KB_MOCK_HOSTED_COMPARE.map((r) => h('div', { key: r[0], style: { display: 'flex', alignItems: 'baseline', gap: '14px', padding: '13px 18px', borderBottom: '1px solid var(--dsw-alias-border-l1)' } },
-              h('span', { className: 'kb8-name', style: { flex: '1.1', fontSize: '13.5px' } }, r[0]),
-              h('span', { className: 'kb8-name', style: { flex: 1, fontSize: '13.5px' } }, r[1]),
-              h('span', { className: 'kb8-parent', style: { flex: 1 } }, r[2]))))),
-        h('div', { style: { display: 'flex', gap: '14px', flexWrap: 'wrap' } },
-          h('div', { style: { flex: 1, minWidth: '260px', background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '18px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' } },
-            h('span', { className: 'kb8-name' }, kbt('kbui.move.team')),
-            h('span', { className: 'kb8-sub' }, kbt('kbui.workspace.export')),
-            h('button', { type: 'button', className: 'kb8-primary', style: { alignSelf: 'flex-start' } }, kbt('kbui.import.workspace'))),
-          h('div', { style: { flex: 1, minWidth: '260px', background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '18px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' } },
-            h('span', { className: 'kb8-name' }, kbt('kbui.still.local')),
-            h('span', { className: 'kb8-sub' }, kbt('kbui.plugin.free')),
-            h('button', { type: 'button', className: 'kb8-chip', style: { alignSelf: 'flex-start' }, onClick: open }, kbt('kbui.read.repo')))))
-    }
-
     const SkillRunPanel = (p0) => {
       const skill = p0.skill
       const onClose = p0.onClose
@@ -30812,14 +30711,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         // « Mon espace » retiré du menu (demande du 26/09/2026) : la page et sa
         // section Réglages restent en place, seule l'entrée de la barre disparaît.
         // ── Barre de progression des objectifs ──────────────────────────
-        h(KbProgressBar, null),
-        // « Kybernos Hosted » est masqué pour le moment (KB_SHOW_HOSTED) : la
-        // page et la traduction restent en place, seule l'entrée disparaît.
-        (KB_SHOW_HOSTED === true
-          ? h('button', { type: 'button', className: 'kb4-item' + (shown === 'hosted' ? ' on' : ''), onClick: () => openPage({ view: 'hosted' }) },
-            h('span', { className: 'kb4-ico' }, Icon('cloud', 15)),
-            h('span', { className: 'kb4-lab' }, kbt('menu.hosted')))
-          : null))
+        h(KbProgressBar, null))
     }
     // ── menu maquette : au-dessus des workspaces, conversations natives ────
     ctx.effect(() => slots.inject('sidebar.panellist', () => slots.register({ name: 'sidebar.panellist', id: 'kybers-menu', order: 5, label: kbt('kbui.kybernos') }, SalesMenu)), 'kybers: menu kybernos panellist');

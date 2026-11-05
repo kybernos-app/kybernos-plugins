@@ -60,14 +60,14 @@ const cases = [
   ['cron', { name: 'A', prompt: 'p', schedule: { mode: 'cron', cron: '0 8 * * 1', tz: 'Europe/Paris' } }, true],
   ['one-time', { name: 'B', prompt: 'p', schedule: { mode: 'once', at: '2999-12-15T09:00', tz: 'Asia/Tokyo' } }, true],
   ['webhook only', { name: 'C', prompt: 'p', schedule: { mode: 'webhook' } }, false],
-  ['schedule + webhook', { name: 'D', prompt: 'p', schedule: { mode: 'cron', cron: '*/15 * * * *' }, webhook: true, approvals: 'auto', notify: ['push', 'email'] }, true],
+  ['schedule + webhook', { name: 'D', prompt: 'p', schedule: { mode: 'cron', cron: '*/15 * * * *' }, webhook: true, approvals: 'auto' }, true],
 ]
 for (const [label, spec, hasNext] of cases) {
   const task = save(spec); n += 1
   if (task === null) continue
   const next = core.kbComputeNextRun(task, now)
   eq('saved by the skill (' + label + '): the scheduler computes its next run', next !== null, hasNext)
-  const clean = core.kbSanitizeTaskInput({ name: task.name, prompt: task.prompt, schedule: task.schedule, approvals: task.approvals, notify: task.notify, active: task.active })
+  const clean = core.kbSanitizeTaskInput({ name: task.name, prompt: task.prompt, schedule: task.schedule, approvals: task.approvals, active: task.active })
   eq('saved by the skill (' + label + '): the route\'s validation accepts its definition', clean.ok, true)
   eq('saved by the skill (' + label + '): the stored schedule is the one the route would store', JSON.stringify(clean.task.schedule), JSON.stringify(task.schedule))
 }

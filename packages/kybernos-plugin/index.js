@@ -20,7 +20,7 @@ import { levelOf as autoLoadLevel, allowedAt as autoLoadAllowed, admit as autoLo
 import { applyOp as autoApplyPublished } from './automation-published.mjs'
 import { validateDefinition as teamValidate, versionOf as teamVersionOf, packOf as teamPackOf, teamInfoOf, copyRowOf as teamCopyRow, missingAppsOf as teamMissingApps, markOf as teamMarkOf, planUpdate as teamPlanUpdate, replaceTask as teamReplaceTask, mineOf as teamMineOf, WORKSPACE_ID_RE as TEAM_WORKSPACE_ID_RE } from './automation-team.mjs'
 import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, skillParts as autoSkillParts, normalizeRecords as autoSkillsNormalize, dueTasks as autoSkillsDue, lessonOf as autoSkillLesson } from './automation-skills.mjs'
-import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
+import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, creationsFolder as autoWsCreationsFolder, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { deriveStory } from './journal-story.mjs'
@@ -485,7 +485,6 @@ const kbSanitizeTaskInput = (raw) => {
     active: r.active !== false,
     approvals: r.approvals === 'auto' ? 'auto' : 'ask',
   }
-  if (Array.isArray(r.notify) === true) out.notify = Array.from(new Set(r.notify.filter((x) => x === 'push' || x === 'email')))
   // Where its runs happen: `home` = one session, reused (the chat it was made in, or one created at the first run); anything else = a new session each run, as before.
   if (r.sessionMode !== undefined) out.sessionMode = r.sessionMode === 'home' ? 'home' : 'new'
   if (r.homeSessionId !== undefined) {
@@ -7207,7 +7206,8 @@ function boot(ctx) {
       // du dépôt. On garde `workspaceRoot` publié tel quel (contrat client) et on
       // ajoute la racine de session, qui sert au balayage.
       const sessionRoot = await kbSessionCwd(sessionId)
-      const scanRoot = sessionRoot !== null ? sessionRoot : workspaceRoot
+      // A chat that is an automation run has the dedicated folder for its own: Creations then reads the last normal chat's folder (UJ-136).
+      const scanRoot = await kbCreationsScanRoot(sessionRoot !== null ? sessionRoot : workspaceRoot)
 
       let home = await dshHomeOrNull()
       let homeSource = home !== null ? 'dsh-home-paths (DSH_HOME or <home>/.dsh)' : null
@@ -7855,6 +7855,37 @@ function boot(ctx) {
       } catch (e) { /* magasin illisible : on retombe sur le dépôt du plugin */ }
       sessionCwdCache = { at: now, id: id, cwd: cwd }
       return cwd
+    }
+    // The folders of the most recent chats, newest first (a session store folder is named after the folder the chat works in).
+    const kbRecentChatFolders = async (limit) => {
+      const out = []
+      try {
+        const home = await dshHome()
+        if (home === null) return out
+        const store = joinPath(home, 'sessions')
+        const slugs = []
+        for (const slug of readdirSync(store)) {
+          if (str(slug) === null || slug.indexOf('--') !== 0) continue
+          let at = 0
+          try { at = statSync(joinPath(store, slug)).mtimeMs } catch (e) { at = 0 }
+          slugs.push({ slug, at })
+        }
+        slugs.sort((a, b) => b.at - a.at)
+        for (const x of slugs) {
+          if (out.length >= limit) break
+          const cwd = decodeSessionSlug(x.slug)
+          if (cwd !== null) out.push(cwd)
+        }
+      } catch (e) { /* store unreadable: the chat's own folder stays */ }
+      return out
+    }
+    const kbCreationsScanRoot = async (root) => {
+      if (root === null) return root
+      const home = await dshHomeOrNull()
+      if (home === null) return root
+      const dir = joinPath(home, 'kybernos/' + AUTO_WS_DIR)
+      if (root !== dir && root.indexOf(dir + '/') !== 0) return root
+      return autoWsCreationsFolder(root, dir, await kbRecentChatFolders(12))
     }
     const rootsFor = async (sessionId) => {
       const list = []

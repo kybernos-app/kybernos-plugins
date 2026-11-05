@@ -11,8 +11,9 @@ import {
   GATE_NEEDS_MAX, GATE_FIELD_MAX, GATE_MESSAGE_MAX, GATE_FREQUENT_MINUTES,
   checkDraft, normalizeDraft, gateSummary,
   gateParseCron, gateCronGapMinutes, gateCronCanFire, gateIsValidZone,
-  gateHasWord, gateWords,
+  gateHasWord, gateWords, GATE_OWN_SAFETY_SENTENCES,
 } from './automation-gate.mjs'
+import { readFileSync } from 'node:fs'
 
 let n = 0
 const ok = (label, cond) => { n += 1; assert.ok(cond, label); console.log('ok  ' + label) }
@@ -185,5 +186,15 @@ ok('good draft verdict is pass', goodResult.verdict === 'pass')
 const det1 = checkDraft(sendDraft, { nowMs: 1700000000000 })
 const det2 = checkDraft(sendDraft, { nowMs: 1700000000000 })
 eq('checkDraft is deterministic', det1, det2)
+
+// ── UJ-166: the product's own safety sentence is not a finding ──
+{
+  const SAFETY = GATE_OWN_SAFETY_SENTENCES[0]
+  const wake = (prompt) => checkDraft({ name: 'Wake-up', prompt, schedule: { mode: 'cron', cron: '0 8 * * 1' }, approvals: 'ask' }, { nowMs: 1700000000000 }).findings.map((f) => f.code).filter((c) => c.startsWith('prompt.'))
+  eq('the sentence alone raises no word finding', wake('Read todo.md. ' + SAFETY), [])
+  ok('a prompt that asks for a send is still flagged beside it', wake('Send the digest to the team. ' + SAFETY).includes('prompt.send.word'))
+  ok('another « never » sentence is not exempt', wake('Never send it twice.').includes('prompt.send.word'))
+  ok('the sentence of Kaby\'s wake-up is the one the gate exempts, word for word', readFileSync(new URL('../kybernos-kaby-customisation/client.js', import.meta.url), 'utf8').includes(SAFETY))
+}
 
 console.log('\nall ' + n + ' checks passed')

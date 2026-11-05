@@ -66,7 +66,7 @@ export const PROFILE_TOOLS = {
   ],
   office: [
     'read_image', 'kaby_knowledge', 'kaby_journal', 'kaby_account',
-    'memory_search', 'memory_write', 'memory_suggest', 'lesson_search', 'lesson_write',
+    'memory_search', 'memory_write', 'memory_suggest', 'lesson_search', 'lesson_write', 'lesson_forget',
     'web_search', 'web_fetch', 'schedule_create', 'schedule_list', 'schedule_update', 'schedule_delete',
     'instructions_suggest', 'skill_propose',
   ],

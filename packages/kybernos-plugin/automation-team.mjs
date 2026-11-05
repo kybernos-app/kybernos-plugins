@@ -253,7 +253,6 @@ export const replaceTask = (task, def, clean, follows, nowIso) => {
 export const mineOf = (task, id, nowIso) => {
   const name = clip(String(task.name === undefined || task.name === null ? '' : task.name).trim(), LIMITS.name - MINE.length).trimEnd() + MINE
   const out = { id, createdAt: nowIso, updatedAt: nowIso, history: [], lastRun: null, nextRun: null, name, prompt: task.prompt, schedule: JSON.parse(JSON.stringify(task.schedule)), runsOn: 'local', active: false, approvals: task.approvals === 'auto' ? 'auto' : 'ask' }
-  if (Array.isArray(task.notify) === true) out.notify = task.notify.slice()
   if (Array.isArray(task.needs) === true) out.needs = task.needs.slice()
   if (typeof task.workspaceHint === 'string' && task.workspaceHint !== '') out.workspaceHint = task.workspaceHint
   return out

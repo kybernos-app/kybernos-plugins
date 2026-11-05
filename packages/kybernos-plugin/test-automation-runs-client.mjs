@@ -224,11 +224,11 @@ eq('the old rows of the Sessions tab are gone', src.indexOf('kba-srow') < 0 && s
   eq('nothing is read as a local automation that asks first, in a new chat each run, with no limit', [none.mode, none.chat, none.approvals, none.maxMinutes, none.onWrite, none.hooked, none.cloud, none.lines], ['cron', 'new', 'ask', 0, 'finish', false, null, 0])
   const f = m.kbAutoSheetOf({
     prompt: '1. First\n\n2. Second\r\n3. Third\n4. Fourth\n5. Fifth', schedule: { mode: 'once', tz: 'Europe/Paris', at: '2026-11-05T09:00' },
-    trigger: { type: 'webhook', hookId: 'h' }, sessionMode: 'home', approvals: 'auto', maxMinutes: 30, onPersonWrites: 'stop', notify: ['push', 'sms', 'email'], needs: ['gmail', '', 7], cloud: { computerId: 'c', name: 'Studio' },
+    trigger: { type: 'webhook', hookId: 'h' }, sessionMode: 'home', approvals: 'auto', maxMinutes: 30, onPersonWrites: 'stop', needs: ['gmail', '', 7], cloud: { computerId: 'c', name: 'Studio' },
   })
   eq('the prompt shows its first lines, blank ones left out, and counts the others', [f.head, f.more, f.lines], [['1. First', '2. Second', '3. Third'], 2, 5])
   eq('how it starts and where it runs', [f.mode, f.zone, f.hooked, f.chat, f.cloud], ['once', 'Europe/Paris', true, 'home', 'Studio'])
-  eq('what it may do and when it stops', [f.approvals, f.maxMinutes, f.onWrite, f.notify, f.needs], ['auto', 30, 'stop', ['push', 'email'], ['gmail']])
+  eq('what it may do and when it stops', [f.approvals, f.maxMinutes, f.onWrite, f.needs], ['auto', 30, 'stop', ['gmail']])
   eq('a webhook-only automation says so', m.kbAutoSheetOf({ schedule: { mode: 'webhook' } }).mode, 'webhook')
   // A reminder (made by automation_remind) has no certification to show; a one-time automation that ran is done, not paused.
   eq('a reminder is told by the recipe the host stamped, and only by it', [m.kbIsReminder({ origin: { by: 'chat', recipe: 'reminder' } }), m.kbIsReminder({ origin: { by: 'kaby', recipe: 'learn' } }), m.kbIsReminder({ origin: null }), m.kbIsReminder({}), m.kbIsReminder(null)], [true, false, false, false, false])

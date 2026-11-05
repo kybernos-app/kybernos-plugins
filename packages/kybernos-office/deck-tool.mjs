@@ -19,13 +19,32 @@ export const DESCRIPTION = 'Makes a slide deck (a presentation, a pitch, a repor
   + 'speaker notes on every slide. Write the text in the person\'s language and set "language" (en or fr). Pick "theme" colours that suit the subject (primary: dark slides and titles; accent: highlights), as #RRGGBB. '
   + 'Paths are relative to the working folder and end with ".deck.html". Then hand the file over with deliver_files, in your last message of the turn.'
 
+/** How many copies of the replaced decks stay next to a deck: the newest ones. */
+export const KEEP_BACKUPS = 3
+
+/** A sortable stamp for a copy's name: 20261105-101500-123. */
+const stamp = () => new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').replace('.', '-').replace('Z', '')
+
+/** Copies the deck about to be replaced next to it and trims the old copies. Returns the copy's file name; a trim that fails never fails the write. */
+const keepPrevious = async (io, target, bytes) => {
+  const name = basename(target) + '.' + stamp() + '.bak'
+  await io.writeFile(join(dirname(target), name), bytes)
+  try {
+    if (typeof io.readdir === 'function' && typeof io.rm === 'function') {
+      const mine = (await io.readdir(dirname(target))).filter((n) => n.startsWith(basename(target) + '.') && n.endsWith('.bak')).sort().reverse()
+      for (const old of mine.slice(KEEP_BACKUPS)) await io.rm(join(dirname(target), old))
+    }
+  } catch (e) { /* the copies stay: only the trim failed */ }
+  return name
+}
+
 const text = (extra) => ({ type: 'string', ...extra })
 const list = (items, extra) => ({ type: 'array', items, ...extra })
 // DSH's tool schema wants `additionalProperties` said on every object: the slides are lenient (a stray field is ignored), the small objects are strict.
 const obj = (properties, extra) => ({ type: 'object', additionalProperties: false, properties, ...extra })
 
 export const PARAMETERS = {
-  path: text({ required: true, description: 'Where to write the deck, relative to the working folder, ending in ".deck.html" (e.g. "q3-review/q3-review.deck.html"). A deck made by this tool at that path is replaced.' }),
+  path: text({ required: true, description: 'Where to write the deck, relative to the working folder, ending in ".deck.html" (e.g. "q3-review/q3-review.deck.html"). A deck already at that path is replaced, and its previous version is kept next to it (a ".bak" file): say so to the person.' }),
   title: text({ required: true, description: 'The title of the deck (shown as the file\'s title).' }),
   language: text({ description: '"en" or "fr": the language of the text (default en).' }),
   theme: obj({ primary: text({}), accent: text({}) }, { description: 'Colours: { primary, accent } as #RRGGBB. Primary colours the dark slides and the titles, accent the highlights.' }),
@@ -77,7 +96,7 @@ export function deckTool (services) {
       name: TOOL,
       description: DESCRIPTION,
       parameters: PARAMETERS,
-      render: (_args, value) => [{ type: 'text', text: plain(value) ? 'Deck written: ' + value.path + ' (' + value.slides + ' slides). Hand it over with deliver_files.' : String(value) }],
+      render: (_args, value) => [{ type: 'text', text: plain(value) ? 'Deck written: ' + value.path + ' (' + value.slides + ' slides). Hand it over with deliver_files.' + (typeof value.previous === 'string' ? ' A deck was already there: its previous version is kept as ' + value.previous + '. Tell the person.' : '') : String(value) }],
       execute: async (args, exec) => {
         const svc = services()
         if (svc === null) throw new Error('create_deck is not ready: DSH has not started the services it needs')
@@ -111,10 +130,13 @@ export function deckTool (services) {
         try { existing = await svc.io.readFile(target) } catch (e) { existing = null }
         if (existing !== null && !inspect('deck', new Uint8Array(existing)).ok) throw new Error(args.path + ' already exists and is not a slide deck: choose another name.')
         await svc.io.mkdir(dirname(target))
+        // The deck there may hold what the person edited and saved by hand: it is kept as a copy before it is replaced (the latest KEEP_BACKUPS), and the answer says so.
+        let previous
+        if (existing !== null && !Buffer.from(existing).equals(Buffer.from(built.html))) previous = await keepPrevious(svc.io, target, existing)
         const tmp = join(dirname(target), '.' + basename(target) + '.' + process.pid + '.tmp')
         await svc.io.writeFile(tmp, built.html)
         await svc.io.rename(tmp, target)
-        return { path: args.path, slides: built.slides, bytes: Buffer.byteLength(built.html) }
+        return { path: args.path, slides: built.slides, bytes: Buffer.byteLength(built.html), ...(previous !== undefined ? { previous: dirname(args.path) === '.' ? previous : dirname(args.path) + '/' + previous } : {}) }
       }
     }
   }

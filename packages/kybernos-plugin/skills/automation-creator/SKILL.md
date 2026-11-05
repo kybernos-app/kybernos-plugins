@@ -69,7 +69,6 @@ First write the specification to a temporary JSON file, for example
   "prompt": "1. Collect last week's merged pull requests\n2. Summarise them for the leadership team\n3. Post the summary in #product",
   "schedule": { "mode": "cron", "cron": "0 8 * * 1", "tz": "Europe/Paris" },
   "approvals": "ask",
-  "notify": ["push"],
   "webhook": false
 }
 ```
@@ -85,7 +84,6 @@ First write the specification to a temporary JSON file, for example
   write, send, pay or delete waits for the user's approval in the session; looking things up
   goes through. A run that needs such an action therefore pauses until someone opens it: say
   so when the user wants something fully unattended (that is `auto`, with no approval at all).
-  `notify` may hold `push` and `email`.
 - `webhook: true` adds a webhook URL to a `cron` or `once` automation. A `webhook`
   schedule always has one.
 - `id` is only for a change (see the section above): the id of the automation to replace.
@@ -209,7 +207,6 @@ const task = {
   runsOn: 'local',
   active: true,
   approvals: spec.approvals === 'auto' ? 'auto' : 'ask',
-  notify: Array.isArray(spec.notify) ? Array.from(new Set(spec.notify.filter((x) => x === 'push' || x === 'email'))) : [],
 }
 let hookUrl = null
 if (mode === 'webhook' || spec.webhook === true) {
@@ -261,7 +258,7 @@ for (let attempt = 0; attempt < 5; attempt += 1) {
     const old = current.tasks[at]
     const sameCron = old.schedule !== null && typeof old.schedule === 'object' && old.schedule.mode === 'cron' && old.schedule.cron === schedule.cron
     if (needsYes && !sameCron) askYes()
-    saved = Object.assign({}, old, { name, prompt, schedule, approvals: task.approvals, notify: task.notify, updatedAt: task.updatedAt, nextRun: null })
+    saved = Object.assign({}, old, { name, prompt, schedule, approvals: task.approvals, updatedAt: task.updatedAt, nextRun: null })
     if (typeof spec.active === 'boolean') saved.active = spec.active
     // A one-time automation switches itself off when it has run: a new date is meant to run, so it is on again.
     else if (mode === 'once' && old.active === false && Array.isArray(old.history) && old.history.length > 0) saved.active = true

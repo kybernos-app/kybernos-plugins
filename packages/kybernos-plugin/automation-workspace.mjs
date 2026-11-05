@@ -42,3 +42,17 @@ export const chooseWorkspace = (hint, list) => {
   const ids = (Array.isArray(list) === true ? list : []).map(idOf).filter((x) => x !== null)
   return ids.indexOf(clean) >= 0 ? { id: clean, why: 'chosen' } : { id: null, why: 'missing' }
 }
+
+/** Is this folder the dedicated workspace's folder, or one inside it? `dir` is `<dsh home>/kybernos/automations`. */
+export const inDedicatedDir = (cwd, dir) => typeof cwd === 'string' && typeof dir === 'string' && dir !== '' && (cwd === dir || cwd.startsWith(dir + '/'))
+
+/**
+ * The folder Creations scans for a chat: the chat's own. An automation run lives in the dedicated folder, which holds none of the person's
+ * own work, so Creations said « no file » until a normal chat was opened (UJ-136): it reads the newest other chat's folder then, and the
+ * run's own when there is none. `others` is the folders of the recent chats, newest first.
+ */
+export const creationsFolder = (cwd, dir, others) => {
+  if (inDedicatedDir(cwd, dir) !== true) return cwd
+  const other = (Array.isArray(others) === true ? others : []).find((x) => typeof x === 'string' && x !== '' && inDedicatedDir(x, dir) !== true)
+  return other === undefined ? cwd : other
+}
