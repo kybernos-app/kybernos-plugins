@@ -367,3 +367,21 @@ P1 defects of this recette already fixed in `dev`: UJ-39 (install on a fresh pro
 - Soft takeoff T-037 (P3, the page titles of Templates, Widget, Servers and Phone and channels) is fixed with this page.
 
 **To turn this into a GO:** decide the 7 P1 rows above, replay the four stale P0 verdicts, play the owner's P0 cases, and run the full unit suite once more.
+
+## Reading for a production beta (2026-11-05, night)
+
+The owner narrowed the question: what blocks opening a **beta** in production, not the full rule above. Legal fine print is out of scope for a beta (Telnyx and Resend retention, the « to be confirmed » remarks, voicemail alert retention), and so are the P2 and P3 rows, the nine other e-mail languages (French and English are done, UJ-20; the rest is a call, not a beta blocker), the desktop signing (G8 of the production runbook) and the mobile apps. All five open P1 rows are decided and merged into `dev`; none is a code task any more.
+
+**What still blocks, all of it his (an agent never deploys production, holds its database URLs or its signing key):**
+
+1. **The production server runs 78 migrations (up to `0077`, from his notes; not re-read from the database) and `dev` has 84 (`0083`).** Deploy with the Fly recipe of `docs/runbooks/production-update-process.md` (server repository) § 6.1. Read by an agent on 2026-11-05 for that deploy: migrations `0078` to `0083` only add tables and columns, or replace a CHECK constraint (`oauth_grants` scopes and `social_flows` purposes get wider; `workspace_provider_policies` only adds a clause on a new column that defaults to false), so the previous image keeps working on the new schema (read from the SQL files, not run on a copy of production's data). **One trap:** `billing.extra_caps` is a table the runtime role must not hold (`RUNTIME_DENIED`), so the new release applies its migration, fails its own role audit and does not start (about five minutes of 503 measured on the dev server). Run the migration and the grant first, from a checkout of the commit to deploy (§ 6.1 pre-flight 5). Three new variables, `SITES_VERCEL_TOKEN`, `SITES_VERCEL_TEAM`, `SITES_DOMAIN`, are all-or-none: without them page publishing stays off, nothing else is affected.
+2. **A restore point before that deploy.** No backup job is known to run on Fly (G3) and Aiven's own backups were never measured. A fresh backup id and time, or Aiven's console showing daily backups on, before the deploy.
+3. **`welcome_credit_cents` = 50 on the production server** (UJ-09), in the admin, with his second factor. Without it a new person's first message answers 402.
+4. **The way in carries the old suite.** The site's download page (`src/data/release.json` of the website) serves the suite archives of release `v0.1.1` (2026-11-02 21:40; no desktop installer release exists), cut before the fixes of UJ-39, UJ-89, UJ-163, UJ-165 and UJ-203. A new signed suite release is needed before people are pointed at the download (his signing key; the public-history question G10 comes with it: the next tag push publishes about 240 commits).
+5. **Free beta or paid beta.** The 30 owner P0 cases are mostly Stripe (renewals, declines, refunds, disputes, top-ups: J06 to J08). If the beta opens on the welcome credit alone, with no live Stripe, those cases wait for the paid opening and the state of Stripe on production (UNKNOWN in the runbook) must be known so the pricing page does not promise a payment that does not work.
+
+**Not seen, to look at once the deploy is done (30 minutes of logs, then the person-level check of § 6.1 verify):** the admin Kaby switch on screen (`kaby_open_to_new_users`, default On: he may set it Off to keep new sign-ups out of Kaby during the first days), the Kaby closed message in the apps, Google One Tap (needs the origins in his Google Cloud console), the Vercel models import (dry run first), the real GitHub bill.
+
+**Recommended, not blocking:** rehearse the server rollback (`fly deploy --image`, W5-04 `to-verify`) on the dev server once the other session that deploys to it is done; the migrations are additive, so the previous image runs on the new schema.
+
+**Reading for a beta: NO-GO until 1 to 4 are done (and 5 is answered); no code task is open.**
