@@ -5353,8 +5353,8 @@ const mountKabySites = (ctx) => {
   })
 }
 
-// ── The trial shop: Kaby reads and sets the stock of the shop the person sees in their Telegram Mini App (shop-stock.mjs, docs/dev/shop-poc-contract.md) ──────────────────────────────
-// Only a cloud computer inside one of its turns can speak for the person at the server (`POST /v1/computer/shop`, `…/shop/stock`: the computer's own token and the turn it belongs to, so the
+// ── The trial shop: Kaby runs the shop the person sees in their Telegram Mini App and sells from at its own address (shop-stock.mjs, docs/dev/shop-poc-contract.md) ──────────────────────────────
+// Only a cloud computer inside one of its turns can speak for the person at the server (`POST /v1/computer/shop`, `…/shop/stock`, `…/shop/define`, `…/shop/connect`: the computer's own token and the turn it belongs to, so the
 // server checks the person is still there). Anywhere else the tools say so and do nothing. The read passes the turn's gate; the change is asked like any change.
 const mountKabyShop = (ctx) => {
   const deps = {
@@ -5418,8 +5418,8 @@ const turnApprovalSubject = (exec) => {
   if (name === 'edit') { const summary = text(args.file_path) || 'edit'; return { kind: 'edit', summary, shown: summary } }
   // Putting a page on the public internet: the person reads the address it will have, not the arguments.
   if (name === 'site_publish' || name === 'site_remove') { const shown = siteShown(name, args); return { kind: 'other', summary: shown, shown } }
-  // Changing the stock of the trial shop: the person reads the product and the number, not the arguments (`shop_stock` is asked, like any change; `shop_list` is a read).
-  if (name === 'shop_stock') { const shown = shopShown(args); return { kind: 'other', summary: shown, shown } }
+  // Changing the trial shop: the person reads the product and the number, the shop's name and prices, or that Stripe will be asked for a link, not the arguments (`shop_stock`, `shop_define` and `shop_connect` are asked, like any change; `shop_list` is a read).
+  if (name === 'shop_stock' || name === 'shop_define' || name === 'shop_connect') { const shown = shopShown(args, name); return { kind: 'other', summary: shown, shown } }
   let raw = ''
   try { raw = JSON.stringify(args) } catch (e) { raw = '' }
   const summary = (name + ' ' + raw).trim()
