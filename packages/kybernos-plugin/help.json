@@ -9,11 +9,11 @@
       "en": "“New chat” opens a conversation (the arrow picks the Agent Team); “Agent Teams” and “Workspaces” hold your teams and projects."
     },
     {
-      "fr": "« Créations » garde les fichiers produits ; « Automations » lance une Agent Team seule, à l’heure choisie ou quand un message arrive.",
+      "fr": "« Créations » garde les fichiers produits ; « Automatisations » lance une Agent Team seule, à l’heure choisie ou quand un message arrive.",
       "en": "“Creations” keeps the files produced; “Automations” starts an Agent Team on its own, at a chosen time or when a message arrives."
     },
     {
-      "fr": "Dans Automations, « Équipe » liste ce que ton équipe a approuvé : installe une copie, ou envoie la tienne avec « Proposer à l’équipe… ».",
+      "fr": "Dans Automatisations, « Équipe » liste ce que ton équipe a approuvé : installe une copie, ou envoie la tienne avec « Proposer à l’équipe… ».",
       "en": "In Automations, “Team” lists what your team approved: install a copy, or send yours with “Propose to team…”."
     },
     {
