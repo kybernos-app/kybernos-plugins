@@ -63,6 +63,8 @@ const lines = (products) => products.slice(0, 50).map((p) => {
 const productsOf = (res) => (res !== null && res !== undefined && res.body !== null && typeof res.body === 'object' && Array.isArray(res.body.products)
   ? res.body.products.filter((p) => p !== null && typeof p === 'object' && typeof p.name === 'string' && typeof p.id === 'string')
   : null)
+/** Said to Kaby wherever it reads the shop: the person is never asked to approve a shell command to check a window (they cannot judge it), the shop's own answer says where it stands. */
+const NO_COMMAND_CHECK = 'Do not check the window or a photo with a shell command (curl and the like): the person would be asked to approve a command they cannot judge. What you got back already says where the shop stands; give them the address and let them open it.'
 const addressOf = (v) => (typeof v === 'string' && /^https:\/\/[^\s<>]{4,400}$/u.test(v) ? v : '')
 /** Where the shop stands, in one sentence: its window and whether a card can be charged. */
 const shopSentence = (shop) => {
@@ -75,7 +77,7 @@ const shopSentence = (shop) => {
   const stripe = shop.payable === true ? 'card payments are open'
     : shop.connected === true ? 'a Stripe account was made but the owner has not finished there yet (card payments closed)'
     : 'not connected to Stripe yet (card payments closed)'
-  return `Shop "${name}"` + (url !== '' ? `, window ${url}` : '') + `: ${stripe}.` + photos
+  return `Shop "${name}"` + (url !== '' ? `, window ${url}` : '') + `: ${stripe}.` + photos + (url !== '' ? ' ' + NO_COMMAND_CHECK : '')
 }
 
 /** What the server's answer means for Kaby, as one sentence it can pass on. `kind` is what was asked: `read`, `stock`, `define`, `connect`, `photo_get` (taking the person's photo) or `photo_put` (putting the retouched one on a product). */
@@ -183,7 +185,7 @@ export function createShopTools (deps) {
   }
   const define = {
     name: 'shop_define',
-    description: 'Creates or updates the person\'s shop, the one their clients see at the address you get back: `name` (needed the first time) and `tagline` for the shop window, and `products`, each with a `price_eur` (what a client pays) and, when the person said it, a `cost_eur`. A product whose name the shop already has is updated, the others are added; the three demo products go away the first time. Put ALL the products in ONE call: the person is asked once. When the person gave you costs and no prices, first PROPOSE a price per product in your answer (the cost, the margin you chose and why, one line each) and wait for their yes before calling; never invent a cost. Photos are not set here: the person sends them in the chat, then you use shop_photo.',
+    description: 'Creates or updates the person\'s shop, the one their clients see at the address you get back: `name` (needed the first time) and `tagline` for the shop window, and `products`, each with a `price_eur` (what a client pays) and, when the person said it, a `cost_eur`. A product whose name the shop already has is updated, the others are added; the three demo products go away the first time. Put ALL the products in ONE call: the person is asked once. When the person gave you costs and no prices, first PROPOSE a price per product in your answer (the cost, the margin you chose and why, one line each) and wait for their yes before calling; never invent a cost. Photos are not set here: the person sends them in the chat, then you use shop_photo. ' + NO_COMMAND_CHECK,
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -234,14 +236,14 @@ export function createShopTools (deps) {
   }
   const connect = {
     name: 'shop_connect',
-    description: 'Asks Stripe for the link where the shop\'s owner fills in their details to be paid (test mode: Stripe\'s test data is enough). Returns a single-use link: give it to the person in your answer and ask them to tell you when they are done at Stripe. If a card can already be charged on the shop, it says so. The shop must be defined first (shop_define). Never enter payment details yourself.',
+    description: 'Asks Stripe for the link where the shop\'s owner fills in their details to be paid (test mode: Stripe\'s test data is enough). Returns a single-use link: give it to the person in your answer and ask them to tell you when they are done at Stripe. If a card can already be charged on the shop, it says so. The shop must be defined first (shop_define). Never enter payment details yourself. ' + NO_COMMAND_CHECK,
     parameters: { type: 'object', additionalProperties: false, properties: {} },
     output: out(),
     async execute (args, exec) { return answer(await ask('/v1/computer/shop/connect', {}, exec, 'connect')) }
   }
   const photo = {
     name: 'shop_photo',
-    description: 'Takes photos the person sent in the chat (they show as `[The person sent a photo: ph1]`, and `shop_list` names the ones no product has yet), retouches each one (turned upright, cropped square on the subject, the light lifted when the photo is dark, sharpened, location data removed, made small) and puts it on a product of the shop: clients see it in the window at once. `photos` is a list of `{ product, photo }` (`product` as in shop_stock, `photo` the name like ph1, `look` optionally natural, bright or vivid). Put ALL the photos in ONE call: the person is asked once. Only when the person said which photo is for which product (a caption counts); otherwise ask. This is a careful retouch of THEIR picture, not a new picture: it cannot change the background or invent anything, and a dark or blurred photo stays so, so say that plainly when a photo is poor and suggest they take it again in daylight. A photo is kept two hours: if one is gone, ask them to send it again.',
+    description: 'Takes photos the person sent in the chat (they show as `[The person sent a photo: ph1]`, and `shop_list` names the ones no product has yet), retouches each one (turned upright, cropped square on the subject, the light lifted when the photo is dark, sharpened, location data removed, made small) and puts it on a product of the shop: clients see it in the window at once. `photos` is a list of `{ product, photo }` (`product` as in shop_stock, `photo` the name like ph1, `look` optionally natural, bright or vivid). Put ALL the photos in ONE call: the person is asked once. Only when the person said which photo is for which product (a caption counts); otherwise ask. This is a careful retouch of THEIR picture, not a new picture: it cannot change the background or invent anything, and a dark or blurred photo stays so, so say that plainly when a photo is poor and suggest they take it again in daylight. A photo is kept two hours: if one is gone, ask them to send it again. ' + NO_COMMAND_CHECK,
     parameters: {
       type: 'object',
       additionalProperties: false,
