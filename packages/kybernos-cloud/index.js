@@ -68,6 +68,7 @@ import { actionKey, readItems as askRead, writeItems as askWrite, verdict as ask
 import { knowledgeTool } from './kyby-knowledge.mjs'
 import { accountTool } from './kyby-account.mjs'
 import { createSiteTools, siteShown } from './site-publish.mjs'
+import { createShopTools, shopShown } from './shop-stock.mjs'
 import { createPageMap, createSitePages } from './site-page.mjs'
 import { readJson, writeJson } from './kyby-files.mjs'
 import { UNREADABLE, spaceKind, publishSpaceSeam } from './team-space.mjs'
@@ -5186,10 +5187,10 @@ const rememberTurnSession = (id, jobId, budgetMs) => {
 // `todo_write` (the plan the model keeps for itself: one session event, nothing outside the chat); the plugins' `memory_search`, `connections_list`, `connections_search_tools` (the catalogue
 // of a connected app's actions), `kaby_journal`, `kaby_knowledge`, `kaby_account`, `computer_list` (the sandboxes this machine tracks: a file on its own disk, no call out; it is NOT the
 // person's list of cloud computers, which is what the model took it for), `computer_read` (a file of a sandbox the person already allowed to start) and `site_list` (the person's own pages
-// online, read at the server) and `deliver_files` (the Office plugin's cards: it only names files that already exist in the chat's folder, nothing is written or sent). `site_publish` and `site_remove` put something on the public internet or take it down: ASKED, and in no mandate. ASKED (not listed): the engine's
+// online, read at the server), `shop_list` (the person's trial shop read at the server: products and stock, changes nothing) and `deliver_files` (the Office plugin's cards: it only names files that already exist in the chat's folder, nothing is written or sent). `site_publish` and `site_remove` put something on the public internet or take it down: ASKED, and in no mandate. ASKED (not listed): the engine's
 // `bash`, `write`, `edit`; `memory_write`, `lesson_write` and `lesson_search` (which counts the lessons it returns as used: a write), `connections_execute`, `computer_start/exec/write/stop/pause/
 // resume/task`, `relancer_dsh`, `kybernos_report_feedback` (it sends), `creer_slides`, `animer_briques`, `modeliser` and the motion and dashboards tools (they write files), and every `mcp__` tool.
-export const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch', 'memory_search', 'job_list', 'schedule_list', 'connections_list', 'connections_search_tools', 'todo_write', 'kaby_journal', 'kaby_knowledge', 'kaby_account', 'computer_list', 'computer_read', 'site_list', 'deliver_files'])
+export const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch', 'memory_search', 'job_list', 'schedule_list', 'connections_list', 'connections_search_tools', 'todo_write', 'kaby_journal', 'kaby_knowledge', 'kaby_account', 'computer_list', 'computer_read', 'site_list', 'shop_list', 'deliver_files'])
 // How long one unanswered question is waited for. The person is on a chat, not at a desk: five minutes, and never past the end of the turn (the runner says how long the turn may last), so that
 // the model still has time to answer with what it knows (measured on WhatsApp: a question put at minute 4 outlived the 10-minute turn, which ended with no words at all).
 const turnGateWaitMs = () => { const v = Number(process.env.KYBERNOS_TURN_GATE_WAIT_MS); return Number.isFinite(v) && v > 0 ? v : 5 * 60_000 }
@@ -5352,6 +5353,28 @@ const mountKabySites = (ctx) => {
   })
 }
 
+// ── The trial shop: Kaby reads and sets the stock of the shop the person sees in their Telegram Mini App (shop-stock.mjs, docs/dev/shop-poc-contract.md) ──────────────────────────────
+// Only a cloud computer inside one of its turns can speak for the person at the server (`POST /v1/computer/shop`, `…/shop/stock`: the computer's own token and the turn it belongs to, so the
+// server checks the person is still there). Anywhere else the tools say so and do nothing. The read passes the turn's gate; the change is asked like any change.
+const mountKabyShop = (ctx) => {
+  const deps = {
+    async call (path, body, exec) {
+      const notHere = { status: 0, body: { error: 'not_asked_here' } }
+      if (computerSelf().id === '') return notHere
+      const root = turnRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
+      if (root === null) return notHere
+      const jobId = turnJobs.get(root)
+      const { api, token } = computerSelf()
+      if (jobId === undefined || api === '' || token === '') return notHere
+      return apiFetch(path, { method: 'POST', token, base: api, body: { ...body, job_id: jobId }, timeoutMs: SHOP_TIMEOUT_MS })
+    }
+  }
+  ctx.inject(['tools'], (scope) => {
+    for (const tool of createShopTools(deps)) scope.tools.register(tool)
+  })
+}
+const SHOP_TIMEOUT_MS = 20_000
+
 // ── The Publish button of Creations (site-page.mjs) ────────────────────────────────────────────────────────────────────────────────────
 // The person clicks on a page of their Creations: that click is the yes, so these routes do not ask again (Kaby's tool does, in its chat). They carry the person's account token like the
 // tool does and read the page from the person's own folder. The writes need the signed session as well as the origin: they make something public.
@@ -5395,6 +5418,8 @@ const turnApprovalSubject = (exec) => {
   if (name === 'edit') { const summary = text(args.file_path) || 'edit'; return { kind: 'edit', summary, shown: summary } }
   // Putting a page on the public internet: the person reads the address it will have, not the arguments.
   if (name === 'site_publish' || name === 'site_remove') { const shown = siteShown(name, args); return { kind: 'other', summary: shown, shown } }
+  // Changing the stock of the trial shop: the person reads the product and the number, not the arguments (`shop_stock` is asked, like any change; `shop_list` is a read).
+  if (name === 'shop_stock') { const shown = shopShown(args); return { kind: 'other', summary: shown, shown } }
   let raw = ''
   try { raw = JSON.stringify(args) } catch (e) { raw = '' }
   const summary = (name + ' ' + raw).trim()
@@ -6701,6 +6726,7 @@ export function apply(ctx) {
   try { mountKabyKnowledge(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby knowledge: ' + String((e && e.message) || e)) }
   try { mountKabyAccount(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby account: ' + String((e && e.message) || e)) }
   try { mountKabySites(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby sites: ' + String((e && e.message) || e)) }
+  try { mountKabyShop(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby shop: ' + String((e && e.message) || e)) }
   try { mountMemoryTools(ctx) } catch (e) { console.error('[kybernos-cloud] memory tools: ' + String((e && e.message) || e)) }
   try { mountComputerTaskTool(ctx) } catch (e) { console.error('[kybernos-cloud] cloud computer task tool: ' + String((e && e.message) || e)) }
   try { connections.mount(ctx) } catch (e) { console.error('[kybernos-cloud] connections: ' + String((e && e.message) || e)) }

@@ -1745,6 +1745,8 @@ try {
           seen.push({ method: init.method, path: u.pathname, body: init.body ? JSON.parse(init.body) : null, auth: init.headers && init.headers.authorization })
           if (unreachable) throw new Error('down')
           if (u.pathname === '/v1/computer/sites') return new Response(JSON.stringify({ slug: 'pizzaone', url: 'https://pizzaone.kaby.app', state: 'live', updated: false }), { status: 200 })
+          if (u.pathname === '/v1/computer/shop') return new Response(JSON.stringify({ products: [{ id: 'eth', name: 'Ethiopie', price: '16,90 EUR', stock: 4 }] }), { status: 200 })
+          if (u.pathname === '/v1/computer/shop/stock') return new Response(JSON.stringify({ products: [], changed: { name: 'Ethiopie', before: 4, after: 10 } }), { status: 200 })
           if (init.method === 'POST') return new Response(JSON.stringify({ id: 'ap-1', state: 'pending', expires_at: '2099-01-01T00:00:00Z' }), { status: 200 })
           return new Response(JSON.stringify({ id: 'ap-1', state: answers.shift() ?? 'pending' }), { status: 200 })
         }
@@ -1802,6 +1804,23 @@ try {
           const siteDenied = await run('site_remove', { name: 'pizzaone' }, 's-site')
           assert.equal(siteDenied.kind, 'deny')
           assert.equal(seen.filter((c) => c.method === 'POST').at(-1).body.summary, '(2/3) Take down the page pizzaone.kaby.app')
+          // The trial shop: reading it is not asked about, changing a stock is, in plain words (the product and the number); both go through the computer's own routes with the turn they belong to.
+          assert.equal(mod.TURN_GATE_SAFE_TOOLS.has('shop_list'), true)
+          assert.equal(mod.TURN_GATE_SAFE_TOOLS.has('shop_stock'), false, 'shop_stock is asked about')
+          answers = ['allowed']
+          const shopBefore = seen.length
+          assert.deepEqual(await run('shop_stock', { product: 'ethiopie', set: 10 }, 's-site'), { kind: 'allow' })
+          assert.equal(seen.slice(shopBefore).find((c) => c.method === 'POST').body.summary, '(3/3) Set the stock of ethiopie to 10')
+          const shopTools = (name) => registeredTools.get(name)
+          assert.ok(shopTools('shop_list') !== undefined && shopTools('shop_stock') !== undefined, 'the two shop tools are registered')
+          const shopCalls = () => seen.filter((c) => c.path === '/v1/computer/shop' || c.path === '/v1/computer/shop/stock')
+          const shopRead = await shopTools('shop_list').execute({}, { agent: { id: 's-site' } })
+          assert.ok(shopRead.ok === true && /Ethiopie \(id eth\): 4 in stock/.test(shopRead.text), shopRead.text)
+          const shopSet = await shopTools('shop_stock').execute({ product: 'ethiopie', set: 10 }, { agent: { id: 's-site' } })
+          assert.ok(shopSet.ok === true && shopSet.text === 'Ethiopie: stock 4 → 10.', shopSet.text)
+          assert.deepEqual(shopCalls().map((c) => [c.path, c.auth, c.body.job_id, c.body.product, c.body.set]), [['/v1/computer/shop', 'Bearer kyd_computer', JOB, undefined, undefined], ['/v1/computer/shop/stock', 'Bearer kyd_computer', JOB, 'ethiopie', 10]])
+          assert.equal((await shopTools('shop_stock').execute({ product: 'ethiopie', set: 10 }, { agent: { id: 'someone-elses-session' } })).ok, false)
+          assert.equal(shopCalls().length, 2, 'a session this route did not make sends nothing to the shop')
           // The page itself goes through the computer's own route, with the turn it belongs to; a session this route did not make cannot publish.
           const pageDir = mkdtempSync(join(tmpdir(), 'cloud-page-'))
           writeFileSync(join(pageDir, 'index.html'), '<h1>Pizza One</h1>')
