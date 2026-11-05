@@ -1,6 +1,6 @@
 {
   "what": {
-    "fr": "Te dit quand une automation est terminée, a échoué ou attend ton accord, sans garder Kybernos au premier plan : une fenêtre flottante, une bannière et un nombre sur l'onglet.",
+    "fr": "Te dit quand une automatisation est terminée, a échoué ou attend ton accord, sans garder Kybernos au premier plan : une fenêtre flottante, une bannière et un nombre sur l'onglet.",
     "en": "Tells you when an automation finished, failed or waits for your approval, without keeping Kybernos in front: a floating window, a banner and a count on the tab."
   },
   "steps": [
@@ -13,7 +13,7 @@
       "en": "Click “Allow” for the banners: the browser asks once."
     },
     {
-      "fr": "Choisis quand être prévenu. Chaque carte a une flèche qui te ramène dans Kybernos, sur la page des automations.",
+      "fr": "Choisis quand être prévenu. Chaque carte a une flèche qui te ramène dans Kybernos, sur la page des automatisations.",
       "en": "Choose when to be told. Each card has an arrow that brings you back to Kybernos, on the Automations page."
     }
   ],

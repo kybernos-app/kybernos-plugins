@@ -9,7 +9,7 @@
   },
   "description": {
     "en": "Tells you when an automation finished, failed or waits for you: a floating window, a banner and a badge, each with a link back to Kybernos.",
-    "fr": "Te dit quand une automation est terminée, a échoué ou attend ton accord : une fenêtre flottante, une bannière et un badge, chacun avec un lien pour revenir dans Kybernos."
+    "fr": "Te dit quand une automatisation est terminée, a échoué ou attend ton accord : une fenêtre flottante, une bannière et un badge, chacun avec un lien pour revenir dans Kybernos."
   },
   "icon": "bell",
   "family": "base",

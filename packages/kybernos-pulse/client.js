@@ -157,7 +157,7 @@ window.__ModuleLoader__.load({
             '<span class="kbpu-ci">' + svg(it.kind) + '</span>' +
             '<div class="kbpu-ct"><b>' + esc(t.title) + '</b><span>' + esc(t.sub) + ' · ' + esc(ago(it.at, m.now)) + '</span></div>' +
             '<div class="kbpu-cx">' +
-              (it.kind === 'done' && !it.quiet ? '<button type="button" class="kbpu-xs" data-act="mute" data-id="' + esc(it.id) + '" title="' + esc(kt('Ne plus prévenir pour cette automation', 'Stop telling me about this automation')) + '" aria-label="' + esc(kt('Ne plus prévenir pour cette automation', 'Stop telling me about this automation')) + '">' + svg('bell') + '</button>' : '') +
+              (it.kind === 'done' && !it.quiet ? '<button type="button" class="kbpu-xs" data-act="mute" data-id="' + esc(it.id) + '" title="' + esc(kt('Ne plus prévenir pour cette automatisation', 'Stop telling me about this automation')) + '" aria-label="' + esc(kt('Ne plus prévenir pour cette automatisation', 'Stop telling me about this automation')) + '">' + svg('bell') + '</button>' : '') +
               '<button type="button" class="kbpu-xs" data-act="dismiss" data-id="' + esc(it.id) + '" title="' + esc(kt('Écarter', 'Dismiss')) + '" aria-label="' + esc(kt('Écarter', 'Dismiss')) + '">' + svg('x') + '</button>' +
               '<button type="button" class="kbpu-go" data-act="open" data-id="' + esc(it.id) + '" title="' + esc(kt('Ouvrir dans Kybernos', 'Open in Kybernos')) + '" aria-label="' + esc(kt('Ouvrir dans Kybernos', 'Open in Kybernos')) + '">' + svg('up') + '</button>' +
             '</div></article>'
@@ -182,7 +182,7 @@ window.__ModuleLoader__.load({
 
       /** What the panel says when DSH does not answer (the Mac app shows the page even then); `down` false is the moment before the first answer. */
       const offlineHTML = (down) => '<div class="kbpu-win" data-kb="pulse-window"><div class="kbpu-empty"><b>' + esc(down ? kt('Kybernos n’est pas lancé', 'Kybernos is not running') : '…') + '</b>' +
-        (down ? '<span>' + esc(kt('Lance DSH pour voir tes automations ici.', 'Start DSH to see your automations here.')) + '</span>' : '') + '</div></div>'
+        (down ? '<span>' + esc(kt('Lance DSH pour voir tes automatisations ici.', 'Start DSH to see your automations here.')) + '</span>' : '') + '</div></div>'
 
       const PANEL_CSS = [
         '.kbpu-i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}',
@@ -506,7 +506,7 @@ window.__ModuleLoader__.load({
             h('div', null, h('b', null, label), desc ? h('small', null, desc) : null),
             h('span', { className: 'kbpu-ctl' }, h('button', { type: 'button', className: 'kbpu-sw', role: 'switch', 'aria-checked': s !== null && s[key] === true ? 'true' : 'false', 'aria-label': label, disabled: s === null, 'data-kb': 'pulse-sw-' + key, onClick: () => set({ [key]: !(s !== null && s[key] === true) }) })))
           // The page's description lives in the « ? » card (the Suite's Help takes it as `lead`); without the Suite it is drawn under the title as before.
-          const lead = kt('Dis-moi ce que tes automations ont fait et ramène-moi au bon endroit de Kybernos, sans garder Kybernos au premier plan.', 'Tells you what your automations did and brings you back to the right place in Kybernos, without keeping Kybernos in front.')
+          const lead = kt('Dis-moi ce que tes automatisations ont fait et ramène-moi au bon endroit de Kybernos, sans garder Kybernos au premier plan.', 'Tells you what your automations did and brings you back to the right place in Kybernos, without keeping Kybernos in front.')
           const title = kt('Widget', 'Widget')
           /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
           const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
@@ -523,8 +523,8 @@ window.__ModuleLoader__.load({
               h('div', { className: 'kbpu-line', 'data-kb': 'pulse-menubar' },
                 h('div', null, h('b', null, kt('Icône de la barre de menus (Mac)', 'Menu-bar icon (Mac)')),
                   h('small', null, helperSeen(snap)
-                    ? kt('Elle tourne : le K est à côté du Wi-Fi, avec le nombre de choses qui t’attendent. Un clic liste tes automations.', 'It is running: the K sits next to Wi-Fi, with the number of things waiting for you. One click lists your automations.')
-                    : kt('Une petite appli Mac met le K à côté du Wi-Fi, avec un nombre et la liste de tes automations, même quand le navigateur est fermé. Pour la fabriquer : bash packages/kybernos-pulse/helper/build.sh --run (macOS 13 ou plus).', 'A small Mac app puts the K next to Wi-Fi, with a count and the list of your automations, even when the browser is closed. To build it: bash packages/kybernos-pulse/helper/build.sh --run (macOS 13 or later).'))),
+                    ? kt('Elle tourne : le K est à côté du Wi-Fi, avec le nombre de choses qui t’attendent. Un clic liste tes automatisations.', 'It is running: the K sits next to Wi-Fi, with the number of things waiting for you. One click lists your automations.')
+                    : kt('Une petite appli Mac met le K à côté du Wi-Fi, avec un nombre et la liste de tes automatisations, même quand le navigateur est fermé. Pour la fabriquer : bash packages/kybernos-pulse/helper/build.sh --run (macOS 13 ou plus).', 'A small Mac app puts the K next to Wi-Fi, with a count and the list of your automations, even when the browser is closed. To build it: bash packages/kybernos-pulse/helper/build.sh --run (macOS 13 or later).'))),
                 h('span', { className: 'kbpu-ctl' }, helperSeen(snap)
                   ? h('span', { className: 'kbpu-chip st ok', 'data-kb': 'pulse-menubar-on' }, kt('En marche', 'Running'))
                   : h('span', { className: 'kbpu-chip st', 'data-kb': 'pulse-menubar-off' }, kt('Pas lancée', 'Not running'))))),
@@ -542,7 +542,7 @@ window.__ModuleLoader__.load({
                   perm[0] === 'granted' ? h('button', { type: 'button', className: 'kbpu-btn', 'data-kb': 'pulse-test', onClick: test }, kt('Tester', 'Test')) : null)),
               sw('badge', kt('Nombre sur l’onglet et sur le Dock', 'Count on the tab and the Dock'), kt('Le Dock demande Kybernos installé comme appli (Chrome ou Edge).', 'The Dock needs Kybernos installed as an app (Chrome or Edge).'))),
             h('div', { className: 'kbpu-block', 'data-kb': 'pulse-quiet' },
-              h('h3', null, kt('Automations silencieuses', 'Quiet automations')),
+              h('h3', null, kt('Automatisations silencieuses', 'Quiet automations')),
               h('div', { className: 'kbpu-line' },
                 h('div', null, h('b', null, kt('Sans bannière quand elles finissent', 'No banner when they finish')), h('small', null, kt('Elles restent dans la boîte. Un échec ou un accord attendu prévient toujours.', 'They stay in the inbox. A failure or an approval always tells you.'))),
                 h('span', { className: 'kbpu-ctl', style: { flexWrap: 'wrap', justifyContent: 'flex-end' } },

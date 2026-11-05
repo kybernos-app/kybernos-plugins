@@ -475,7 +475,7 @@ window.__ModuleLoader__.load({
             body.className = 'kbsr-body one'
             const e = el('div', 'kbsr-empty')
             e.appendChild(el('h3', null, kt('Chercher partout sur cet ordinateur', 'Search everything on this computer')))
-            e.appendChild(el('span', null, kt('Le contenu des chats (pas seulement leurs titres), les skills, les mémoires, les leçons, les créations, les automations et les équipes. Rien ne quitte cet ordinateur.', 'The content of your chats (not only their titles), skills, memories, lessons, creations, automations and agent teams. Nothing leaves this computer.')))
+            e.appendChild(el('span', null, kt('Le contenu des chats (pas seulement leurs titres), les skills, les mémoires, les leçons, les créations, les automatisations et les équipes. Rien ne quitte cet ordinateur.', 'The content of your chats (not only their titles), skills, memories, lessons, creations, automations and agent teams. Nothing leaves this computer.')))
             if (building) {
               e.appendChild(el('strong', null, kt('Indexation des chats… ', 'Indexing your chats… ') + S.host.done + ' / ' + S.host.total))
               const bar = el('div', 'kbsr-bar')
