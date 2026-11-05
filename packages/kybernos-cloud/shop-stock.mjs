@@ -64,7 +64,7 @@ const productsOf = (res) => (res !== null && res !== undefined && res.body !== n
   ? res.body.products.filter((p) => p !== null && typeof p === 'object' && typeof p.name === 'string' && typeof p.id === 'string')
   : null)
 /** Said to Kaby wherever it reads the shop: the person is never asked to approve a shell command to check a window (they cannot judge it), the shop's own answer says where it stands. */
-const NO_COMMAND_CHECK = 'Do not check the window or a photo with a shell command (curl and the like): the person would be asked to approve a command they cannot judge. What you got back already says where the shop stands; give them the address and let them open it.'
+const NO_COMMAND_CHECK = 'Never check the window or a photo, and never wait, with a shell command (curl, sleep and the like): the person would be asked to approve a command they cannot judge. What you got back already says where the shop stands; give them the address and let them open it.'
 const addressOf = (v) => (typeof v === 'string' && /^https:\/\/[^\s<>]{4,400}$/u.test(v) ? v : '')
 /** Where the shop stands, in one sentence: its window and whether a card can be charged. */
 const shopSentence = (shop) => {
@@ -104,7 +104,7 @@ export const sayShop = (res, kind = 'read') => {
     const link = addressOf(body.url)
     if (kind === 'connect_test') {
       const open = body.shop !== null && typeof body.shop === 'object' && body.shop.payable === true
-      return { ok: true, text: (open ? 'A Stripe test account was made for the shop from Stripe\'s test data: card payments are open.' : 'A Stripe test account was made for the shop from Stripe\'s test data; Stripe has not switched card payments on yet (Stripe checks the test identity, it takes about a minute): tell the person to wait a minute, then look again with shop_list.') + ' ' + where }
+      return { ok: true, text: (open ? 'A Stripe test account was made for the shop from Stripe\'s test data: card payments are open.' : 'A Stripe test account was made for the shop from Stripe\'s test data; Stripe has not switched card payments on yet (Stripe checks the test identity, it takes about a minute): tell the person it will be ready in about a minute and that they can ask you again then, and look with shop_list when they do. Do not wait with a command.') + ' ' + where }
     }
     if (kind === 'connect') {
       if (link !== '') return { ok: true, text: `Stripe link for the owner: ${dataLine(link, 400)} . It works once and opens Stripe's own page where they give their details (in test mode Stripe's test data is enough). Send it to the person in your answer and ask them to tell you when they are done. ${where}`.trim() }
