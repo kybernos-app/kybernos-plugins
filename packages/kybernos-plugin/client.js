@@ -37392,7 +37392,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 /* Detail dialog resize handle (user request, 2026-10-13 recipe): a slim
    col-resize strip on the dialog's LEFT edge. */
 .kb6-popresize{position:absolute;top:0;bottom:0;left:0;width:8px;z-index:3;cursor:col-resize;border-radius:14px 0 0 14px}
-.kb6-popx.on{background:var(--dsw-alias-brand-primary)}
+.kb6-popx.on{background:var(--dsw-alias-bg-layer-3);border-color:var(--dsw-alias-brand-primary)}
 .kb6-pophead{display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid var(--dsw-alias-border-l1);flex:none}
 .kb6-poptitle{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
 .kb6-popname{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;font-weight:700;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
