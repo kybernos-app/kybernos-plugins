@@ -178,12 +178,22 @@ for (const f of clientFiles) {
 assert.deepEqual(labelBad, [], 'a « Kyber » label is back in a browser half')
 ok('no browser half of the other ' + clientFiles.length + ' bundles carries a « Kyber(s) » label')
 
-// R3-05 (A2-27): the French UI names the pages the way its sidebar does (« Automations », « Workspaces »), in Settings and in the empty states too
+// R3-05 (A2-27): the French UI names the pages the way its sidebar does, in Settings and in the empty states too. Decided by the owner on 2026-11-05 (UJ decision sheet): the
+// French name of the Automations page is « Automatisations », everywhere a French text names the page; « Workspaces » keeps its R3-05 name.
 assert.equal(dict.get('menu.tasks').kybernos, dict.get('kbui.automations.set').kybernos, 'the Settings entry is named like the sidebar entry')
-assert.equal(dict.get('kbui.automations.set').kybernos, 'Automations')
+assert.equal(dict.get('kbui.automations.set').kybernos, 'Automatisations')
+assert.equal(dict.get('tasks.title').kybernos, 'Automatisations', 'the page title is the sidebar word')
 assert.ok(dict.get('kbui.workspaces.unavailable').kybernos.startsWith(dict.get('menu.projects').kybernos), 'the Workspaces empty state uses the sidebar word')
-assert.ok(!/Automatisations de Kybernos|Espaces? de travail indisponibles/.test(src), 'no second name for the Automations page or the Workspaces page')
-ok('the French names of Automations and Workspaces are the same in the sidebar, in Settings and in the empty states')
+assert.ok(!/Espaces? de travail indisponibles/.test(src), 'no second name for the Workspaces page')
+{
+  // No French text calls the page « Automations » any more. The dedicated workspace is the one exception: « Automations » is that workspace's own name (DEDICATED_TITLE).
+  const bad = []
+  for (const [k, v] of dict) {
+    if (typeof v.kybernos === 'string' && /Automations/.test(v.kybernos) && !k.startsWith('tasks.ws.')) bad.push(k)
+  }
+  assert.deepEqual(bad, [], 'a French text names the page « Automations »')
+}
+ok('the French names of Automatisations and Workspaces are the same in the sidebar, in Settings and in the empty states')
 
 // 12. C-10: « Mini-app » is the one spelling of the object (the home tile, the Suite, the Creations filter, the badges): « MiniApp » is the
 //     name of the code (KbMiniApp, *.miniapp.json), never a label.

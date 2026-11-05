@@ -85,8 +85,8 @@ let kbLocaleRead = () => 'en'
       'kbcs.occ.many': { kybernos: 'occurrences', en: 'occurrences' },
       'kbcs.see.all': { kybernos: 'Voir tous les messages de ce chat', en: 'Show every message in this chat' },
       // ── tâches planifiées ──
-      'menu.tasks': { kybernos: 'Automations', en: 'Automations' },
-      'tasks.title': { kybernos: 'Automations', en: 'Automations' },
+      'menu.tasks': { kybernos: 'Automatisations', en: 'Automations' },
+      'tasks.title': { kybernos: 'Automatisations', en: 'Automations' },
       'tasks.subtitle': { kybernos: 'Des Agent Teams qui démarrent seules — sur un planning, à une date ou quand un webhook est appelé.', en: 'Agent Teams that start by themselves — on a schedule, on a date or when a webhook is called.' },
       'tasks.filter.all': { kybernos: 'Toutes', en: 'All' },
       'tasks.filter.active': { kybernos: 'Actives', en: 'Active' },
@@ -515,7 +515,7 @@ let kbLocaleRead = () => 'en'
       'tasks.sug.safe': { kybernos: 'Si tu l’ajoutes, elle reste éteinte : rien ne tourne tant que tu ne l’as pas approuvée et allumée.', en: 'If you add it, it stays off: nothing runs until you approve it and switch it on.' },
       'tasks.sug.editfull': { kybernos: 'Modifier dans l’éditeur complet', en: 'Edit in the full editor' },
       'tasks.sug.added': { kybernos: 'Ajoutée, éteinte. Tu l’allumes quand tu veux.', en: 'Added, switched off. Switch it on when you want.' },
-      'tasks.sug.title': { kybernos: 'Automations suggérées', en: 'Suggested automations' },
+      'tasks.sug.title': { kybernos: 'Automatisations suggérées', en: 'Suggested automations' },
       // ── the certification gate and the initiative queue (the Automations page) ──
       // Nine statuses: the eight the host stores, plus `unknown`, which is a VIEW value only — it is written when the host
       // sent nothing usable and never reaches a body or the store.
@@ -1279,7 +1279,7 @@ let kbLocaleRead = () => 'en'
       // The name of the person's own assistant, as the sidebar row and its page show it (the packages/kybernos-kyber bundle has its one NAME to match).
       'kbui.kyber': { kybernos: 'Kaby', en: 'Kaby' },
       'kbui.cloudcomputer': { kybernos: 'Cloud Computer', en: 'Cloud Computer' },
-      'kbui.automations.set': { kybernos: 'Automations', en: 'Automations' },
+      'kbui.automations.set': { kybernos: 'Automatisations', en: 'Automations' },
       // New chat: Build / Create / Cloud Computer cards
       'kbnc.g.docs': { kybernos: 'Documents', en: 'Documents' },
       'kbnc.g.media': { kybernos: 'Médias', en: 'Media' },
@@ -1476,7 +1476,7 @@ let kbLocaleRead = () => 'en'
       'kbauto.set.paused': { kybernos: 'Mettre toutes les automatisations en pause', en: 'Pause all automations' },
       'kbauto.set.paused.d': { kybernos: 'Rien ne se déclenche tant que c’est activé. Ce qui est arrivé à échéance pendant la pause se déclenche une fois au premier passage après la reprise.', en: 'Nothing fires while this is on. What came due during the pause fires once at the first check after you resume.' },
       'kbauto.set.native': { kybernos: 'Afficher la liste « Automation tasks » de DSH', en: 'Show DSH’s own “Automation tasks” list' },
-      'kbauto.set.native.d': { kybernos: 'La page Automations de Kybernos est le lieu de tes automatisations : la liste native de DSH, qui la double, est masquée du menu. Active pour la retrouver.', en: 'The Kybernos Automations page is where your automations live: DSH’s own list, which overlaps it, is hidden from the menu. Turn on to get it back.' },
+      'kbauto.set.native.d': { kybernos: 'La page Automatisations de Kybernos est le lieu de tes automatisations : la liste native de DSH, qui la double, est masquée du menu. Active pour la retrouver.', en: 'The Kybernos Automations page is where your automations live: DSH’s own list, which overlaps it, is hidden from the menu. Turn on to get it back.' },
       'kbauto.set.skill': { kybernos: 'Suggérer des skills depuis les automatisations stables', en: 'Suggest skills from stable automations' },
       'kbauto.set.skill.d': { kybernos: 'Quand une automatisation a tourné sans échec le nombre de fois choisi ci-dessous, son texte est proposé comme skill réutilisable dans Skills. Règle fixe : aucun modèle ne décide, et rien n’est actif avant que tu acceptes. Activé par défaut ; une fois accepté, le fichier est à toi.', en: 'When an automation has run without a failure the number of times chosen below, its text is suggested as a reusable skill on the Skills page. Fixed rule: no model decides, and nothing is active before you accept. On by default; once accepted, the file is yours.' },
       'kbauto.set.stable': { kybernos: 'Stable après', en: 'Stable after' },
@@ -3469,7 +3469,7 @@ const KB_SS_FR = {
   'widget|Floating window': ['Fenêtre flottante', 'Toujours au-dessus des autres fenêtres. Kybernos doit rester ouvert dans un onglet.'],
   'widget|Tell me when': ['Prévenir', 'Quand quelque chose m’attend, à chaque run, ou jamais.'],
   'widget|Banners and badge': ['Bannières et badge', 'Une bannière par événement. Un nombre sur l’onglet et sur le Dock.'],
-  'widget|Quiet automations': ['Automations silencieuses', 'Sans bannière quand elles finissent.'],
+  'widget|Quiet automations': ['Automatisations silencieuses', 'Sans bannière quand elles finissent.'],
   'activity log|Family': ['Famille', 'Coche les familles à afficher : appels modèle, connecteurs, recherche web, outils, titres automatiques et compactages.'],
   'activity log|Live': ['En direct', 'Regarde les appels arriver au fil de l’eau, ou cherche un modèle, un outil, une erreur.'],
   'kaby|Name, portrait and voice': ['Nom, portrait et voix', 'Donne à ton assistant un nom, un portrait et une voix.', 'Identité'],
