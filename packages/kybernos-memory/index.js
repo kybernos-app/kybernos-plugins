@@ -340,6 +340,9 @@ const lessonForgetTool = () => ({
   },
 })
 
+/** A text in the two languages of the product: English first (the base), then French. */
+const twice = (en, fr) => ({ en, fr })
+
 /** The `tools/pre-execute` answer for a `lesson_forget` call: the card the person approves, with the lesson's own words. Anything else (or a lesson that does not exist: the tool says so) passes. */
 const forgetGate = (exec) => {
   if (exec === null || typeof exec !== 'object' || exec.name !== 'lesson_forget' || lessonsCut()) return null
@@ -347,9 +350,8 @@ const forgetGate = (exec) => {
   const lesson = lessonOfId(args.id)
   if (lesson === null) return null
   const said = lesson.text.length > 200 ? lesson.text.slice(0, 197) + '…' : lesson.text
-  const en = 'Forget this lesson? “' + said + '” It is kept in the archive.'
-  const fr = 'Oublier cette leçon ? « ' + said + ' » Elle reste dans l’archive.'
-  return { kind: 'ask', reason: en, displayReason: { en, fr } }
+  const words = twice('Forget this lesson? “' + said + '” It is kept in the archive.', 'Oublier cette leçon ? « ' + said + ' » Elle reste dans l’archive.')
+  return { kind: 'ask', reason: words.en, displayReason: words }
 }
 
 // ── Routes ──────────────────────────────────────────────────────────────────
