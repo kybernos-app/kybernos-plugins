@@ -141,6 +141,13 @@ const PRICED = [
   ok('the Stripe link is handed to Kaby with what to do with it', r.ok === true && sent[0].path === '/v1/computer/shop/connect' && /https:\/\/connect\.stripe\.com\/setup\/e\/abc123/.test(r.text) && /works once/.test(r.text) && /tell you when they are done/.test(r.text), r)
   ok('a link that is not https is not passed on', !/evil/.test((await tools({ status: 200, body: { products: PRICED, shop: WINDOW, url: 'javascript:evil()' } }).shop_connect.execute({})).text))
   ok('cards already open is said, with no link', /already open/.test((await tools({ status: 200, body: { products: PRICED, shop: { ...WINDOW, connected: true, payable: true } } }).shop_connect.execute({})).text))
+  // A Stripe TEST account made from Stripe's test data: asked for explicitly, no link comes back, the question says so, and the answer says whether cards are open yet.
+  sent.length = 0
+  const made = await tools({ status: 200, body: { products: PRICED, shop: { ...WINDOW, connected: true, payable: false } } }).shop_connect.execute({ test_account: true }, { agent: { id: 'a1' } })
+  ok('a test account is asked for with test_account, and cards not open yet is said', sent[0].path === '/v1/computer/shop/connect' && sent[0].body.test_account === true && made.ok === true && /test account was made/.test(made.text) && /has not switched card payments on yet/.test(made.text) && !/works once/.test(made.text))
+  ok('a test account with cards open says so', /card payments are open\./.test((await tools({ status: 200, body: { products: PRICED, shop: { ...WINDOW, connected: true, payable: true } } }).shop_connect.execute({ test_account: true })).text))
+  ok('without it the plain link is asked for, with no extra argument', (sent.length = 0, await tools({ status: 200, body: { products: PRICED, shop: WINDOW } }).shop_connect.execute({}), Object.keys(sent[0].body).length === 0))
+  ok('the question for a test account says nothing is to be filled in', /Stripe test account/.test(shopShown({ test_account: true }, 'shop_connect')) && /nothing to fill in/.test(shopShown({ test_account: true }, 'shop_connect')))
 }
 {
   ok('the first call needs a name', /needs a name/.test(sayShop({ status: 400, body: { error: 'name_required' } }, 'define').text))
