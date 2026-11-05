@@ -1,4 +1,5 @@
-// Kaby runs the person's trial shop: `shop_list`, `shop_stock`, `shop_define` (name, products with a price and a cost) and `shop_connect` (the merchant's Stripe link) (docs/dev/shop-poc-contract.md). The shop is the one the person sees in their Telegram Mini App
+// Kaby runs the person's trial shop: `shop_list`, `shop_stock`, `shop_define` (name, products with a price and a cost), `shop_connect` (the merchant's Stripe link) and `shop_photo` (the photos the person sent
+// in the chat, retouched and put on their products) (docs/dev/shop-poc-contract.md). The shop is the one the person sees in their Telegram Mini App
 // (docs/etudes/2026-11-05-shop-in-chat-central-core.md): it lives on the server, keyed by their Kaby account, so what Kaby sets is what the Mini App shows and the other way round.
 // This file owns what Kaby may ask (a product by a part of its name, a number to set or to add) and what it is told back, in one plain sentence. Pure: the network is given by `deps`,
 // so the tools are tested without DSH and without a server. The trial is a walking skeleton: three products, in the server's memory, no money.
@@ -20,6 +21,11 @@ export const MAX_PRODUCTS = 50
 export const MAX_EUR = 100_000
 /** Stripe's smallest charge. */
 export const MIN_PRICE_EUR = 0.5
+/** The most photos one `shop_photo` call may carry: the person is asked once, the server allows 60 calls a minute and each photo takes two. */
+export const MAX_PHOTOS = 6
+/** The looks a photo may be given (shop-photo.mjs holds what each one does). */
+export const LOOKS = ['natural', 'bright', 'vivid']
+const PHOTO_NAME = /^ph\d{1,6}$/u
 
 const eur = (v) => (typeof v === 'number' && Number.isFinite(v) ? `${Number(v.toFixed(2))} €` : '')
 const sentenceProducts = (list) => {
@@ -32,6 +38,12 @@ const sentenceProducts = (list) => {
 export const shopShown = (args, tool = 'shop_stock') => {
   const a = args !== null && typeof args === 'object' ? args : {}
   if (tool === 'shop_connect') return 'Ask Stripe for the link where the shop\'s owner fills in their payment details (test mode)'
+  if (tool === 'shop_photo') {
+    const items = (Array.isArray(a.photos) ? a.photos : []).filter((p) => p !== null && typeof p === 'object')
+    const names = items.slice(0, 5).map((p) => dataLine(p.product, 40)).filter((n) => n !== '')
+    const n = items.length
+    return `Put ${n === 1 ? 'the photo' : n + ' photos'} you sent on the shop` + (names.length > 0 ? ': ' + names.join(', ') + (n > 5 ? ` (+${n - 5} more)` : '') : '')
+  }
   if (tool === 'shop_define') {
     const name = dataLine(a.name, 60)
     const products = sentenceProducts(a.products)
@@ -46,7 +58,7 @@ export const shopShown = (args, tool = 'shop_stock') => {
 /** The products, as lines Kaby can read: the words are the server's data, so each is bounded and flattened. The merchant's own cost and margin are for Kaby, never for a client. */
 const lines = (products) => products.slice(0, 50).map((p) => {
   const cost = typeof p.cost === 'string' ? `, cost ${dataLine(p.cost, 20)}` + (Number.isFinite(p.margin_pct) ? `, margin ${p.margin_pct}%` : '') : ''
-  return `${dataLine(p.name, 80)} (id ${dataLine(p.id, 16)}): ${Number.isFinite(p.stock) ? p.stock : '?'} in stock, ${dataLine(p.price, 20)}${cost}`
+  return `${dataLine(p.name, 80)} (id ${dataLine(p.id, 16)}): ${Number.isFinite(p.stock) ? p.stock : '?'} in stock, ${dataLine(p.price, 20)}${cost}, ${p.photo === true ? 'with a photo' : 'no photo'}`
 }).join('\n')
 const productsOf = (res) => (res !== null && res !== undefined && res.body !== null && typeof res.body === 'object' && Array.isArray(res.body.products)
   ? res.body.products.filter((p) => p !== null && typeof p === 'object' && typeof p.name === 'string' && typeof p.id === 'string')
@@ -57,14 +69,16 @@ const shopSentence = (shop) => {
   if (shop === null || typeof shop !== 'object') return ''
   const name = dataLine(shop.name, 60)
   const url = addressOf(shop.url) !== '' ? dataLine(shop.url, 300) : ''
-  if (name === '') return 'The shop is still the demo (three sample products): it has no address yet. Define it with shop_define.'
+  const waiting = (Array.isArray(shop.photos_waiting) ? shop.photos_waiting : []).filter((n) => typeof n === 'string' && PHOTO_NAME.test(n)).slice(0, 12)
+  const photos = waiting.length > 0 ? ` Photos the person sent that no product has yet: ${waiting.join(', ')} (kept two hours). Ask which product each one is for, then use shop_photo.` : ''
+  if (name === '') return 'The shop is still the demo (three sample products): it has no address yet. Define it with shop_define.' + photos
   const stripe = shop.payable === true ? 'card payments are open'
     : shop.connected === true ? 'a Stripe account was made but the owner has not finished there yet (card payments closed)'
     : 'not connected to Stripe yet (card payments closed)'
-  return `Shop "${name}"` + (url !== '' ? `, window ${url}` : '') + `: ${stripe}.`
+  return `Shop "${name}"` + (url !== '' ? `, window ${url}` : '') + `: ${stripe}.` + photos
 }
 
-/** What the server's answer means for Kaby, as one sentence it can pass on. `kind` is what was asked: `read`, `stock`, `define` or `connect`. */
+/** What the server's answer means for Kaby, as one sentence it can pass on. `kind` is what was asked: `read`, `stock`, `define`, `connect`, `photo_get` (taking the person's photo) or `photo_put` (putting the retouched one on a product). */
 export const sayShop = (res, kind = 'read') => {
   const status = res !== null && res !== undefined && typeof res.status === 'number' ? res.status : 0
   const body = res !== null && res !== undefined && res.body !== null && typeof res.body === 'object' ? res.body : {}
@@ -78,6 +92,11 @@ export const sayShop = (res, kind = 'read') => {
     const c = body.changed
     if (c !== null && typeof c === 'object' && typeof c.name === 'string' && Number.isFinite(c.before) && Number.isFinite(c.after)) {
       return { ok: true, text: `${dataLine(c.name, 80)}: stock ${c.before} → ${c.after}.` + (c.before === c.after ? ' (Nothing moved: the stock cannot go below 0.)' : '') }
+    }
+    const ph = body.photo
+    if (kind === 'photo_put' && ph !== null && typeof ph === 'object' && typeof ph.product === 'string') {
+      const size = Number.isFinite(ph.width) && Number.isFinite(ph.height) ? `${ph.width}×${ph.height}, ${Math.max(1, Math.round((Number.isFinite(ph.bytes) ? ph.bytes : 0) / 1024))} KB` : 'saved'
+      return { ok: true, text: `Photo of ${dataLine(ph.product, 80)} put on the shop (${size}): clients see it in the window now.` }
     }
     const where = shopSentence(body.shop)
     const link = addressOf(body.url)
@@ -102,9 +121,13 @@ export const sayShop = (res, kind = 'read') => {
     nothing_to_define: 'Give a name, a line for the window, or products.',
     shop_full: 'A shop holds at most ' + MAX_PRODUCTS + ' products.',
     shop_not_defined: 'The shop is not defined yet: call shop_define first (a name and the products), then ask for the Stripe link.',
-    payments_off: 'This server takes no payment: say so in one line.'
+    payments_off: 'This server takes no payment: say so in one line.',
+    not_a_photo: 'The server did not accept that picture (it must be a JPEG of 100 to 4096 pixels). Say so in one line.',
+    photo_too_big: 'The retouched photo weighs more than the shop keeps (250 KB). Say so in one line.',
+    photos_full: 'The shop holds as many photos as it may (2.5 MB in all): say so in one line, and that a photo can be replaced but not added.'
   }
   if (sentences[code] !== undefined) return { ok: false, text: sentences[code] }
+  if (kind === 'photo_get' && (status === 404 || code === 'not_found')) return { ok: false, text: 'That photo is not there any more (a photo is kept two hours) or never arrived. Ask the person to send it again.' }
   if (code === 'payments_unavailable') return { ok: false, text: 'Stripe did not accept the request' + (typeof body.message === 'string' ? ': ' + dataLine(body.message, 200) : '') + '. Say so in one line; do not look for another way.' }
   if (status === 404 || code === 'not_found') return { ok: false, text: 'No such product in the shop, or the trial shop is not available on this server. Read the list first, and say so if it is empty.' }
   if (status === 400) return { ok: false, text: kind === 'define'
@@ -160,7 +183,7 @@ export function createShopTools (deps) {
   }
   const define = {
     name: 'shop_define',
-    description: 'Creates or updates the person\'s shop, the one their clients see at the address you get back: `name` (needed the first time) and `tagline` for the shop window, and `products`, each with a `price_eur` (what a client pays) and, when the person said it, a `cost_eur`. A product whose name the shop already has is updated, the others are added; the three demo products go away the first time. Put ALL the products in ONE call: the person is asked once. When the person gave you costs and no prices, first PROPOSE a price per product in your answer (the cost, the margin you chose and why, one line each) and wait for their yes before calling; never invent a cost. Photos are not supported yet: if asked, say so in one line.',
+    description: 'Creates or updates the person\'s shop, the one their clients see at the address you get back: `name` (needed the first time) and `tagline` for the shop window, and `products`, each with a `price_eur` (what a client pays) and, when the person said it, a `cost_eur`. A product whose name the shop already has is updated, the others are added; the three demo products go away the first time. Put ALL the products in ONE call: the person is asked once. When the person gave you costs and no prices, first PROPOSE a price per product in your answer (the cost, the margin you chose and why, one line each) and wait for their yes before calling; never invent a cost. Photos are not set here: the person sends them in the chat, then you use shop_photo.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -216,5 +239,83 @@ export function createShopTools (deps) {
     output: out(),
     async execute (args, exec) { return answer(await ask('/v1/computer/shop/connect', {}, exec, 'connect')) }
   }
-  return [list, stock, define, connect]
+  const photo = {
+    name: 'shop_photo',
+    description: 'Takes photos the person sent in the chat (they show as `[The person sent a photo: ph1]`, and `shop_list` names the ones no product has yet), retouches each one (turned upright, cropped square on the subject, the light lifted when the photo is dark, sharpened, location data removed, made small) and puts it on a product of the shop: clients see it in the window at once. `photos` is a list of `{ product, photo }` (`product` as in shop_stock, `photo` the name like ph1, `look` optionally natural, bright or vivid). Put ALL the photos in ONE call: the person is asked once. Only when the person said which photo is for which product (a caption counts); otherwise ask. This is a careful retouch of THEIR picture, not a new picture: it cannot change the background or invent anything, and a dark or blurred photo stays so, so say that plainly when a photo is poor and suggest they take it again in daylight. A photo is kept two hours: if one is gone, ask them to send it again.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        photos: {
+          type: 'array',
+          minItems: 1,
+          maxItems: MAX_PHOTOS,
+          description: 'The photos to put, one entry per photo.',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              product: { type: 'string', description: 'The product, by the name the person uses (a part of the name is enough).' },
+              photo: { type: 'string', pattern: '^ph[0-9]{1,6}$', description: 'The name of the photo in the person\'s message, for example ph1.' },
+              look: { type: 'string', enum: LOOKS, description: 'natural (default): as it is, only lighter if it is dark. bright: lighter, for a dark room. vivid: richer colours, for food or flowers.' }
+            },
+            required: ['product', 'photo']
+          }
+        }
+      },
+      required: ['photos']
+    },
+    output: out(),
+    async execute (args, exec) {
+      const a = args !== null && typeof args === 'object' ? args : {}
+      if (!Array.isArray(a.photos) || a.photos.length === 0) return { ok: false, text: 'Give `photos`: a list of { product, photo }, for example { product: "bougie", photo: "ph1" }.' }
+      if (a.photos.length > MAX_PHOTOS) return { ok: false, text: 'At most ' + MAX_PHOTOS + ' photos in one call: do the others in a second call.' }
+      const asked = []
+      for (const p of a.photos) {
+        const q = p !== null && typeof p === 'object' ? p : {}
+        const product = typeof q.product === 'string' ? q.product.trim().slice(0, 80) : ''
+        if (product === '') return { ok: false, text: 'Say which product each photo is for: its id or a part of its name.' }
+        if (typeof q.photo !== 'string' || !PHOTO_NAME.test(q.photo)) return { ok: false, text: 'A photo is named like ph1, as in the person\'s message.' }
+        if (q.look !== undefined && q.look !== null && !LOOKS.includes(q.look)) return { ok: false, text: 'The look is one of: ' + LOOKS.join(', ') + '.' }
+        asked.push({ product, photo: q.photo, look: LOOKS.includes(q.look) ? q.look : 'natural' })
+      }
+      if (typeof deps.retouch !== 'function') return { ok: false, text: 'This computer has no picture library to retouch photos. Say so in one line.' }
+      const lines = []
+      let failed = 0
+      for (const one of asked) {
+        let res
+        try { res = await deps.call('/v1/computer/shop/photo/raw', { photo: one.photo }, exec) } catch (e) { res = { status: 0, body: null } }
+        const body = res !== null && res !== undefined && res.body !== null && typeof res.body === 'object' ? res.body : {}
+        if (!(res !== null && res !== undefined && res.status === 200 && typeof body.jpeg_base64 === 'string' && body.jpeg_base64 !== '')) {
+          const said = sayShop(res, 'photo_get')
+          // The door is shut for every photo (no turn, no account, too many calls): say it once, do not knock again.
+          const code = typeof body.error === 'string' ? body.error : ''
+          const shut = res === null || res === undefined || res.status === 0 || res.status === 401 || res.status === 403 || res.status === 429 || code === 'not_asked_here'
+          if (shut) return { ok: false, text: [...lines, `${one.photo}: ${said.text}`].join('\n') }
+          lines.push(`${one.photo}: not done. ${said.text}`)
+          failed += 1
+          continue
+        }
+        let made
+        try { made = await deps.retouch(Buffer.from(body.jpeg_base64, 'base64'), one.look) } catch (e) { made = { ok: false, why: 'failed' } }
+        if (made === null || typeof made !== 'object' || made.ok !== true || !Buffer.isBuffer(made.jpeg)) {
+          const reason = made !== null && typeof made === 'object' ? made.why : ''
+          const why = reason === 'too_small' ? 'it is too small to be a shop photo (under 100 pixels)' : reason === 'too_heavy' ? 'it could not be made small enough for the shop' : 'it could not be read as a picture'
+          lines.push(`${one.photo}: not done, ${why}. Ask the person to send it again.`)
+          failed += 1
+          continue
+        }
+        let put
+        try { put = await deps.call('/v1/computer/shop/photo/put', { product: one.product, jpeg_base64: made.jpeg.toString('base64') }, exec) } catch (e) { put = { status: 0, body: null } }
+        const said = sayShop(put, 'photo_put')
+        const done = Number.isFinite(made.lifted) && made.lifted > 0 ? ` What was done: turned upright, cropped square, sharpened, light lifted by ${Math.round(made.lifted)}% (the photo was dark).` : ' What was done: turned upright, cropped square, sharpened; the light was left as it was.'
+        lines.push(`${one.photo} → ${dataLine(one.product, 60)}: ` + (said.ok ? said.text + done : 'not done. ' + said.text))
+        if (!said.ok) failed += 1
+        // The shop cannot hold one more photo: the next ones would meet the same wall.
+        if (put !== null && put !== undefined && put.body !== null && typeof put.body === 'object' && put.body.error === 'photos_full') break
+      }
+      return { ok: failed === 0, text: lines.join('\n') }
+    }
+  }
+  return [list, stock, define, connect, photo]
 }

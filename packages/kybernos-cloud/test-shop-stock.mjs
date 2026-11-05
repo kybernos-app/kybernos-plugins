@@ -1,6 +1,6 @@
 // Kaby reads and sets the stock of the person's trial shop (shop-stock.mjs, docs/dev/shop-poc-contract.md): what Kaby may ask, what is sent to the server, what Kaby is told back.
 // Pure: the server is a fake that answers like the contract (the real routes are tested in the server's test/shoppoc.test.ts). Run: node test-shop-stock.mjs
-import { MAX_PRODUCTS, MAX_STOCK, createShopTools, sayShop, shopShown } from './shop-stock.mjs'
+import { MAX_PHOTOS, MAX_PRODUCTS, MAX_STOCK, createShopTools, sayShop, shopShown } from './shop-stock.mjs'
 
 let fail = 0
 const ok = (name, cond, detail) => { if (cond) console.log('ok   ' + name); else { fail += 1; console.log('FAIL ' + name + (detail === undefined ? '' : '  ' + JSON.stringify(detail).slice(0, 400))) } }
@@ -17,7 +17,7 @@ const tools = (answer) => Object.fromEntries(createShopTools(server(answer)).map
 
 // ── the tools exist and say what they are ────────────────────────────────────────────────────────────────────────
 const t = tools({ status: 200, body: { products: SHOP } })
-ok('four tools: a read, a stock, the shop and the Stripe link', Object.keys(t).sort().join(',') === 'shop_connect,shop_define,shop_list,shop_stock')
+ok('five tools: a read, a stock, the shop, the Stripe link and the photos', Object.keys(t).sort().join(',') === 'shop_connect,shop_define,shop_list,shop_photo,shop_stock')
 ok('the change needs a product, and says set or delta', JSON.stringify(t.shop_stock.parameters.required) === '["product"]' && t.shop_stock.parameters.properties.set !== undefined && t.shop_stock.parameters.properties.delta !== undefined)
 ok('every tool refuses unknown arguments', Object.values(t).every((x) => x.parameters.additionalProperties === false))
 
@@ -100,7 +100,7 @@ const PRICED = [
 {
   sent.length = 0
   const r = await tools({ status: 200, body: { products: PRICED, shop: WINDOW } }).shop_list.execute({})
-  ok('the read says where the shop stands and shows cost and margin to Kaby', r.ok === true && /Shop "Atelier Café", window https:\/\/dev\.example\/shop\/atelier-cafe-1a2b: not connected to Stripe yet/.test(r.text) && /Colombie Huila 250 g \(id p1\): 12 in stock, 15,90 €, cost 8,00 €, margin 50%/.test(r.text) && /Moulin manuel \(id p2\): 3 in stock, 54,00 €$/m.test(r.text), r)
+  ok('the read says where the shop stands and shows cost and margin to Kaby', r.ok === true && /Shop "Atelier Café", window https:\/\/dev\.example\/shop\/atelier-cafe-1a2b: not connected to Stripe yet/.test(r.text) && /Colombie Huila 250 g \(id p1\): 12 in stock, 15,90 €, cost 8,00 €, margin 50%/.test(r.text) && /Moulin manuel \(id p2\): 3 in stock, 54,00 €, no photo$/m.test(r.text), r)
   ok('a shop that is still the demo is said to be one', /still the demo/.test((await tools({ status: 200, body: { products: SHOP, shop: { name: '', tagline: '', url: null, connected: false, payable: false } } }).shop_list.execute({})).text))
   ok('the stage of Stripe is told: account made, cards open', /has not finished there yet/.test((await tools({ status: 200, body: { products: PRICED, shop: { ...WINDOW, connected: true } } }).shop_list.execute({})).text) && /card payments are open/.test((await tools({ status: 200, body: { products: PRICED, shop: { ...WINDOW, connected: true, payable: true } } }).shop_list.execute({})).text))
 }
@@ -155,6 +155,88 @@ ok('a question with nothing usable still says what it is about', shopShown({ pro
 ok('the question for a shop names it, and its first products with their price', shopShown({ name: 'Atelier Café', products: [{ name: 'Colombie', price_eur: 15.9 }, { name: 'Moulin', price_eur: 54 }] }, 'shop_define') === 'Set up the shop "Atelier Café": Colombie 15.9 €, Moulin 54 €')
 ok('a long list is cut with a count, and an update says so', /\(\+3 more\)$/.test(shopShown({ name: 'A', products: Array.from({ length: 8 }, (_, i) => ({ name: 'p' + i, price_eur: 5 })) }, 'shop_define')) && shopShown({ products: [{ name: 'Thé', price_eur: 9 }] }, 'shop_define') === 'Update the shop: Thé 9 €')
 ok('the question for the Stripe link says what it is', /Stripe for the link/.test(shopShown({}, 'shop_connect')))
+
+
+// ── photos ─────────────────────────────────────────────────────────────────────────────────────
+// The server is a fake of the two photo routes; the retouch is a stand-in that returns a small buffer (the real one is tested in test-shop-photo.mjs).
+{
+  const RAW = Buffer.from('raw-photo-bytes-of-a-phone-picture').toString('base64')
+  const retouched = []
+  const makeServer = (over = {}) => {
+    const calls = []
+    const deps = {
+      async call (path, body, exec) {
+        calls.push({ path, body, exec })
+        if (over[path] !== undefined) return typeof over[path] === 'function' ? over[path](body, calls) : over[path]
+        if (path === '/v1/computer/shop/photo/raw') return { status: 200, body: { photo: body.photo, bytes: 30, jpeg_base64: RAW } }
+        return { status: 200, body: { products: PRICED, shop: WINDOW, photo: { product: 'Colombie Huila 250 g', bytes: 61440, width: 1024, height: 1024 } } }
+      },
+      async retouch (bytes, look) { retouched.push({ bytes, look }); return { ok: true, jpeg: Buffer.from('retouched-' + look), width: 1024, height: 1024, lifted: look === 'bright' ? 40 : 0 } }
+    }
+    return { calls, tool: createShopTools(deps).find((x) => x.name === 'shop_photo') }
+  }
+
+  const a = makeServer()
+  const r = await a.tool.execute({ photos: [{ product: ' colombie ', photo: 'ph1' }, { product: 'moulin', photo: 'ph2', look: 'bright' }] }, { agent: { id: 'a1' } })
+  ok('each photo is fetched, retouched and put on its product, in order', a.calls.map((c) => c.path).join(' ') === '/v1/computer/shop/photo/raw /v1/computer/shop/photo/put /v1/computer/shop/photo/raw /v1/computer/shop/photo/put', a.calls.map((c) => c.path))
+  ok('the photo is asked for by its name, the product by what the person said', a.calls[0].body.photo === 'ph1' && a.calls[1].body.product === 'colombie' && a.calls[3].body.product === 'moulin')
+  ok('what is put is the retouched picture, in base64, with the look that was asked (natural by default)', a.calls[1].body.jpeg_base64 === Buffer.from('retouched-natural').toString('base64') && retouched[0].look === 'natural' && retouched[1].look === 'bright' && Buffer.compare(retouched[0].bytes, Buffer.from(RAW, 'base64')) === 0)
+  ok('the host turn travels with every call', a.calls.every((c) => c.exec.agent.id === 'a1'))
+  ok('Kaby is told each photo, the size and that clients see it', r.ok === true && /ph1 → colombie: Photo of Colombie Huila 250 g put on the shop \(1024×1024, 60 KB\)/.test(r.text) && /ph2 → moulin/.test(r.text), r)
+  ok('Kaby is told exactly what was done to each, so it does not invent more', /ph1 → colombie:.*the light was left as it was/.test(r.text) && /ph2 → moulin:.*light lifted by 40% \(the photo was dark\)/.test(r.text) && !/brighter|plus lumineuse|background/.test(r.text), r.text)
+
+  const gone = makeServer({ '/v1/computer/shop/photo/raw': (body) => (body.photo === 'ph1' ? { status: 404, body: { error: 'not_found' } } : { status: 200, body: { jpeg_base64: RAW } }) })
+  const g = await gone.tool.execute({ photos: [{ product: 'colombie', photo: 'ph1' }, { product: 'moulin', photo: 'ph2' }] })
+  ok('a photo that is gone is said, and the next one still goes', g.ok === false && /ph1: not done\. That photo is not there any more/.test(g.text) && /ph2 → moulin: Photo of/.test(g.text) && gone.calls.length === 3, g)
+
+  const several = makeServer({ '/v1/computer/shop/photo/put': { status: 200, body: { products: PRICED, shop: WINDOW, several: ['Colombie Huila 250 g', 'Colombie Narino 250 g'] } } })
+  const sv = await several.tool.execute({ photos: [{ product: 'colombie', photo: 'ph1' }] })
+  ok('a product that fits several is not guessed', sv.ok === false && /not done\. Several products fit: Colombie Huila 250 g; Colombie Narino 250 g/.test(sv.text), sv)
+
+  const noProduct = await makeServer({ '/v1/computer/shop/photo/put': { status: 404, body: { error: 'not_found' } } }).tool.execute({ photos: [{ product: 'zzz', photo: 'ph1' }] })
+  ok('an unknown product is said', noProduct.ok === false && /ph1 → zzz: not done\. No such product/.test(noProduct.text), noProduct)
+
+  const shut = makeServer({ '/v1/computer/shop/photo/raw': { status: 0, body: { error: 'not_asked_here' } } })
+  const sh = await shut.tool.execute({ photos: [{ product: 'a', photo: 'ph1' }, { product: 'b', photo: 'ph2' }, { product: 'c', photo: 'ph3' }] })
+  ok('where the shop cannot be reached, it is said once and nobody knocks twice', sh.ok === false && shut.calls.length === 1 && /reached from Kaby\'s chat on the phone/.test(sh.text), sh)
+  const limited = makeServer({ '/v1/computer/shop/photo/raw': { status: 429, body: { error: 'rate_limited' } } })
+  await limited.tool.execute({ photos: [{ product: 'a', photo: 'ph1' }, { product: 'b', photo: 'ph2' }] })
+  ok('a limit stops the batch too', limited.calls.length === 1)
+
+  const full = makeServer({ '/v1/computer/shop/photo/put': { status: 409, body: { error: 'photos_full' } } })
+  const fl = await full.tool.execute({ photos: [{ product: 'a', photo: 'ph1' }, { product: 'b', photo: 'ph2' }] })
+  ok('a shop that cannot hold one more photo stops the batch and says so', fl.ok === false && full.calls.length === 2 && /as many photos as it may/.test(fl.text), fl)
+
+  const bad = (res) => makeServer({ '/v1/computer/shop/photo/put': res }).tool.execute({ photos: [{ product: 'a', photo: 'ph1' }] })
+  ok('a picture the server refuses is said with its limits', /JPEG of 100 to 4096/.test((await bad({ status: 400, body: { error: 'not_a_photo' } })).text) && /250 KB/.test((await bad({ status: 400, body: { error: 'photo_too_big' } })).text))
+
+  const dead = createShopTools({ async call () { return { status: 200, body: { jpeg_base64: RAW } } }, async retouch () { return { ok: false, why: 'unreadable' } } }).find((x) => x.name === 'shop_photo')
+  const d = await dead.execute({ photos: [{ product: 'a', photo: 'ph1' }] })
+  ok('a picture that cannot be read is not put, and the person is asked to send it again', d.ok === false && /could not be read as a picture/.test(d.text) && /send it again/.test(d.text), d)
+  const tiny = createShopTools({ async call () { return { status: 200, body: { jpeg_base64: RAW } } }, async retouch () { return { ok: false, why: 'too_small' } } }).find((x) => x.name === 'shop_photo')
+  ok('a tiny picture is said as such', /under 100 pixels/.test((await tiny.execute({ photos: [{ product: 'a', photo: 'ph1' }] })).text))
+  const boom = createShopTools({ async call () { return { status: 200, body: { jpeg_base64: RAW } } }, async retouch () { throw new Error('boom') } }).find((x) => x.name === 'shop_photo')
+  ok('a retouch that throws does not take the turn down', (await boom.execute({ photos: [{ product: 'a', photo: 'ph1' }] })).ok === false)
+  const noLib = createShopTools({ async call () { throw new Error('must not be called') } }).find((x) => x.name === 'shop_photo')
+  ok('a computer with no image library says so before any call', /no picture library/.test((await noLib.execute({ photos: [{ product: 'a', photo: 'ph1' }] })).text))
+
+  const refuse = async (args) => (await a.tool.execute(args)).ok
+  a.calls.length = 0
+  ok('what cannot be sent is refused before any call', await refuse({}) === false && await refuse({ photos: [] }) === false && await refuse({ photos: [{ product: '', photo: 'ph1' }] }) === false
+    && await refuse({ photos: [{ product: 'a', photo: '../x' }] }) === false && await refuse({ photos: [{ product: 'a', photo: 'ph1', look: 'sepia' }] }) === false
+    && await refuse({ photos: Array.from({ length: MAX_PHOTOS + 1 }, (_, i) => ({ product: 'a', photo: 'ph' + i })) }) === false && a.calls.length === 0, a.calls.length)
+  ok('the parameters name the limits and refuse extras', a.tool.parameters.properties.photos.maxItems === MAX_PHOTOS && a.tool.parameters.properties.photos.items.additionalProperties === false && JSON.stringify(a.tool.parameters.properties.photos.items.properties.look.enum) === '["natural","bright","vivid"]')
+  ok('the description says it is a retouch and not a new picture', /not a new picture/.test(a.tool.description) && /ONE call/.test(a.tool.description))
+}
+{
+  const waiting = sayShop({ status: 200, body: { products: [{ id: 'p1', name: 'Bougie', price: '12,00 €', stock: 3, photo: false }, { id: 'p2', name: 'Savon', price: '6,00 €', stock: 3, photo: true }], shop: { ...WINDOW, photos_waiting: ['ph1', 'ph7', '<b>x</b>'] } } }, 'read')
+  ok('the list tells which product has a photo and which photos are waiting for one', /Bougie \(id p1\).*no photo/.test(waiting.text) && /Savon \(id p2\).*with a photo/.test(waiting.text) && /no product has yet: ph1, ph7 \(kept two hours\)/.test(waiting.text) && !/<b>/.test(waiting.text), waiting)
+  const demo = sayShop({ status: 200, body: { products: [], shop: { name: '', url: null, photos_waiting: ['ph2'] } } }, 'read')
+  ok('photos waiting are said even before the shop has a name', /no address yet/.test(demo.text) && /ph2/.test(demo.text), demo)
+}
+ok('the question for the photos names the products', shopShown({ photos: [{ product: 'Bougie lavande', photo: 'ph1' }] }, 'shop_photo') === 'Put the photo you sent on the shop: Bougie lavande'
+  && shopShown({ photos: [{ product: 'a', photo: 'ph1' }, { product: 'b', photo: 'ph2' }] }, 'shop_photo') === 'Put 2 photos you sent on the shop: a, b'
+  && /\(\+1 more\)$/.test(shopShown({ photos: Array.from({ length: 6 }, (_, i) => ({ product: 'p' + i, photo: 'ph' + i })) }, 'shop_photo')))
 
 if (fail > 0) { console.log(fail + ' failed'); process.exit(1) }
 console.log('all ok')

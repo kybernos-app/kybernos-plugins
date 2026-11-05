@@ -69,6 +69,7 @@ import { knowledgeTool } from './kyby-knowledge.mjs'
 import { accountTool } from './kyby-account.mjs'
 import { createSiteTools, siteShown } from './site-publish.mjs'
 import { createShopTools, shopShown } from './shop-stock.mjs'
+import { createLazyRetouch } from './shop-photo.mjs'
 import { createPageMap, createSitePages } from './site-page.mjs'
 import { readJson, writeJson } from './kyby-files.mjs'
 import { UNREADABLE, spaceKind, publishSpaceSeam } from './team-space.mjs'
@@ -5354,7 +5355,7 @@ const mountKabySites = (ctx) => {
 }
 
 // ── The trial shop: Kaby runs the shop the person sees in their Telegram Mini App and sells from at its own address (shop-stock.mjs, docs/dev/shop-poc-contract.md) ──────────────────────────────
-// Only a cloud computer inside one of its turns can speak for the person at the server (`POST /v1/computer/shop`, `…/shop/stock`, `…/shop/define`, `…/shop/connect`: the computer's own token and the turn it belongs to, so the
+// Only a cloud computer inside one of its turns can speak for the person at the server (`POST /v1/computer/shop`, `…/shop/stock`, `…/shop/define`, `…/shop/connect`, `…/shop/photo/raw`, `…/shop/photo/put`: the computer's own token and the turn it belongs to, so the
 // server checks the person is still there). Anywhere else the tools say so and do nothing. The read passes the turn's gate; the change is asked like any change.
 const mountKabyShop = (ctx) => {
   const deps = {
@@ -5367,7 +5368,9 @@ const mountKabyShop = (ctx) => {
       const { api, token } = computerSelf()
       if (jobId === undefined || api === '' || token === '') return notHere
       return apiFetch(path, { method: 'POST', token, base: api, body: { ...body, job_id: jobId }, timeoutMs: SHOP_TIMEOUT_MS })
-    }
+    },
+    // The photos the person sent are retouched here, on the computer, with its own image library (shop-photo.mjs): loaded when the first photo comes, never at start.
+    retouch: createLazyRetouch()
   }
   ctx.inject(['tools'], (scope) => {
     for (const tool of createShopTools(deps)) scope.tools.register(tool)
@@ -5419,7 +5422,7 @@ const turnApprovalSubject = (exec) => {
   // Putting a page on the public internet: the person reads the address it will have, not the arguments.
   if (name === 'site_publish' || name === 'site_remove') { const shown = siteShown(name, args); return { kind: 'other', summary: shown, shown } }
   // Changing the trial shop: the person reads the product and the number, the shop's name and prices, or that Stripe will be asked for a link, not the arguments (`shop_stock`, `shop_define` and `shop_connect` are asked, like any change; `shop_list` is a read).
-  if (name === 'shop_stock' || name === 'shop_define' || name === 'shop_connect') { const shown = shopShown(args, name); return { kind: 'other', summary: shown, shown } }
+  if (name === 'shop_stock' || name === 'shop_define' || name === 'shop_connect' || name === 'shop_photo') { const shown = shopShown(args, name); return { kind: 'other', summary: shown, shown } }
   let raw = ''
   try { raw = JSON.stringify(args) } catch (e) { raw = '' }
   const summary = (name + ' ' + raw).trim()
