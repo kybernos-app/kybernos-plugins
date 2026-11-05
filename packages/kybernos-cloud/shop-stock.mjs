@@ -308,7 +308,8 @@ export function createShopTools (deps) {
         let put
         try { put = await deps.call('/v1/computer/shop/photo/put', { product: one.product, jpeg_base64: made.jpeg.toString('base64') }, exec) } catch (e) { put = { status: 0, body: null } }
         const said = sayShop(put, 'photo_put')
-        lines.push(`${one.photo} → ${dataLine(one.product, 60)}: ` + (said.ok ? said.text : 'not done. ' + said.text))
+        const done = Number.isFinite(made.lifted) && made.lifted > 0 ? ` What was done: turned upright, cropped square, contrast evened, sharpened, light lifted by ${Math.round(made.lifted)}% (the photo was dark).` : ' What was done: turned upright, cropped square, contrast evened, sharpened; the light was left as it was.'
+        lines.push(`${one.photo} → ${dataLine(one.product, 60)}: ` + (said.ok ? said.text + done : 'not done. ' + said.text))
         if (!said.ok) failed += 1
         // The shop cannot hold one more photo: the next ones would meet the same wall.
         if (put !== null && put !== undefined && put.body !== null && typeof put.body === 'object' && put.body.error === 'photos_full') break

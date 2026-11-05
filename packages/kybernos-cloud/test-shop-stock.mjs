@@ -171,7 +171,7 @@ ok('the question for the Stripe link says what it is', /Stripe for the link/.tes
         if (path === '/v1/computer/shop/photo/raw') return { status: 200, body: { photo: body.photo, bytes: 30, jpeg_base64: RAW } }
         return { status: 200, body: { products: PRICED, shop: WINDOW, photo: { product: 'Colombie Huila 250 g', bytes: 61440, width: 1024, height: 1024 } } }
       },
-      async retouch (bytes, look) { retouched.push({ bytes, look }); return { ok: true, jpeg: Buffer.from('retouched-' + look), width: 1024, height: 1024 } }
+      async retouch (bytes, look) { retouched.push({ bytes, look }); return { ok: true, jpeg: Buffer.from('retouched-' + look), width: 1024, height: 1024, lifted: look === 'bright' ? 40 : 0 } }
     }
     return { calls, tool: createShopTools(deps).find((x) => x.name === 'shop_photo') }
   }
@@ -183,6 +183,7 @@ ok('the question for the Stripe link says what it is', /Stripe for the link/.tes
   ok('what is put is the retouched picture, in base64, with the look that was asked (natural by default)', a.calls[1].body.jpeg_base64 === Buffer.from('retouched-natural').toString('base64') && retouched[0].look === 'natural' && retouched[1].look === 'bright' && Buffer.compare(retouched[0].bytes, Buffer.from(RAW, 'base64')) === 0)
   ok('the host turn travels with every call', a.calls.every((c) => c.exec.agent.id === 'a1'))
   ok('Kaby is told each photo, the size and that clients see it', r.ok === true && /ph1 → colombie: Photo of Colombie Huila 250 g put on the shop \(1024×1024, 60 KB\)/.test(r.text) && /ph2 → moulin/.test(r.text), r)
+  ok('Kaby is told exactly what was done to each, so it does not invent more', /ph1 → colombie:.*the light was left as it was/.test(r.text) && /ph2 → moulin:.*light lifted by 40% \(the photo was dark\)/.test(r.text) && !/brighter|plus lumineuse|background/.test(r.text), r.text)
 
   const gone = makeServer({ '/v1/computer/shop/photo/raw': (body) => (body.photo === 'ph1' ? { status: 404, body: { error: 'not_found' } } : { status: 200, body: { jpeg_base64: RAW } }) })
   const g = await gone.tool.execute({ photos: [{ product: 'colombie', photo: 'ph1' }, { product: 'moulin', photo: 'ph2' }] })

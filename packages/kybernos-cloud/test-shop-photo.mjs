@@ -1,13 +1,13 @@
 // The retouch of a shop photo (shop-photo.mjs). Two kinds of check: the logic (which sides and qualities are tried, what is refused) against a stand-in for the image library, and the
 // real thing against `sharp` when this machine has it (the cloud image does; a Mac running the plugin tests may not, and then that part says it was skipped, it does not pass in silence).
 // Run: node test-shop-photo.mjs
-import { LOOK_SETTINGS, MAX_BYTES, QUALITIES, SIDES, createLazyRetouch, createRetouch, loadSharp } from './shop-photo.mjs'
+import { LOOK_SETTINGS, MAX_BYTES, MAX_LIFT, QUALITIES, SIDES, TARGET_MEAN, createLazyRetouch, createRetouch, exposureFor, loadSharp } from './shop-photo.mjs'
 
 let fail = 0
 const ok = (name, cond, detail) => { if (cond) console.log('ok   ' + name); else { fail += 1; console.log('FAIL ' + name + (detail === undefined ? '' : '  ' + JSON.stringify(detail).slice(0, 400))) } }
 
 /** A stand-in for sharp: a chain that records what was asked and weighs the output by a table of `edge/quality → bytes`. */
-const standIn = ({ width = 3000, height = 4000, weigh = () => 100_000, broken = false } = {}) => {
+const standIn = ({ width = 3000, height = 4000, weigh = () => 100_000, broken = false, mean = TARGET_MEAN, noStats = false } = {}) => {
   const log = []
   const make = (ops) => {
     const chain = {
@@ -19,6 +19,7 @@ const standIn = ({ width = 3000, height = 4000, weigh = () => 100_000, broken = 
       modulate: (o) => { ops.push({ modulate: o }); return chain },
       sharpen: (o) => { ops.push({ sharpen: o }); return chain },
       jpeg: (o) => { ops.push({ jpeg: o }); return chain },
+      stats: async () => { if (noStats) throw new Error('no stats'); return { channels: [{ mean }, { mean }, { mean }] } },
       toBuffer: async () => {
         if (broken) throw new Error('Input buffer contains unsupported image format')
         const edge = ops.find((x) => x.resize !== undefined).resize.width
@@ -33,6 +34,7 @@ const standIn = ({ width = 3000, height = 4000, weigh = () => 100_000, broken = 
   return { sharp, log }
 }
 const tries = (log) => log.filter((x) => x.edge !== undefined)
+const brightnessOf = (t) => t.ops.find((o) => o.modulate !== undefined).modulate.brightness
 
 // ── the logic ──────────────────────────────────────────────────────────────────────────────────
 {
@@ -94,6 +96,28 @@ const tries = (log) => log.filter((x) => x.edge !== undefined)
   ok('a library that blows up at load is a plain « unreadable », never a throw', throwing.ok === false && throwing.why === 'unreadable', throwing)
 }
 
+// ── light ─────────────────────────────────────────────────────────────────────────────────────
+{
+  ok('a photo lighter than the target is never darkened', exposureFor(TARGET_MEAN) === 1 && exposureFor(200) === 1 && exposureFor(255) === 1)
+  ok('a dark photo is lifted towards the target, by no more than the cap', exposureFor(TARGET_MEAN / 1.2) > 1.19 && exposureFor(TARGET_MEAN / 1.2) < 1.21 && exposureFor(10) === MAX_LIFT && exposureFor(1) === 1, [exposureFor(TARGET_MEAN / 1.2), exposureFor(10)])
+  ok('a measure that is no number changes nothing', exposureFor(null) === 1 && exposureFor(NaN) === 1 && exposureFor(undefined) === 1 && exposureFor(0) === 1)
+  const dark = standIn({ mean: 50 })
+  const d = await createRetouch(dark.sharp)(Buffer.from('x'), 'natural')
+  const renders = tries(dark.log)
+  ok('a dark photo is rendered again with its light lifted, and says by how much', d.ok === true && renders.length === 2 && brightnessOf(renders[0]) === LOOK_SETTINGS.natural.brightness && brightnessOf(renders[1]) === LOOK_SETTINGS.natural.brightness * MAX_LIFT && d.lifted === 50, { n: renders.length, lifted: d.lifted })
+  const fine = standIn({ mean: 140 })
+  const f = await createRetouch(fine.sharp)(Buffer.from('x'), 'natural')
+  ok('a photo that is light enough is rendered once and left as it was', f.ok === true && tries(fine.log).length === 1 && f.lifted === 0 && brightnessOf(tries(fine.log)[0]) === LOOK_SETTINGS.natural.brightness, { n: tries(fine.log).length, lifted: f.lifted })
+  const near = standIn({ mean: TARGET_MEAN / 1.02 })
+  ok('a lift under 3% is not worth a second pass', (await createRetouch(near.sharp)(Buffer.from('x'))).lifted === 0 && tries(near.log).length === 1)
+  const blind = standIn({ mean: 20, noStats: true })
+  const b = await createRetouch(blind.sharp)(Buffer.from('x'))
+  ok('when the library cannot measure the light the photo is still made, as it is', b.ok === true && b.lifted === 0 && tries(blind.log).length === 1, b)
+  const darkHeavy = standIn({ mean: 50, weigh: (edge, q) => (edge === 1024 ? 400_000 : 100_000) })
+  const dh = await createRetouch(darkHeavy.sharp)(Buffer.from('x'))
+  ok('a dark photo that is also too heavy keeps its lift while it is shrunk', dh.ok === true && dh.width === 800 && dh.lifted === 50 && tries(darkHeavy.log).slice(2).every((t) => brightnessOf(t) === LOOK_SETTINGS.natural.brightness * MAX_LIFT), tries(darkHeavy.log).map((t) => t.edge + '/' + t.quality + '/' + brightnessOf(t)))
+}
+
 // ── the real library, where there is one ───────────────────────────────────────────────────────
 const sharp = loadSharp()
 if (sharp === null) console.log('SKIPPED: the real retouch — sharp is not installed on this machine (the cloud image has it; checked live)')
@@ -112,6 +136,14 @@ else {
   ok('real: a phone picture becomes a square JPEG that fits the shop', r.ok === true && r.width === r.height && r.width <= 1024 && r.width >= 100 && r.jpeg.length <= MAX_BYTES && r.jpeg[0] === 0xff && r.jpeg[1] === 0xd8, r.ok ? { w: r.width, bytes: r.jpeg.length } : r)
   const meta = await sharp(r.jpeg).metadata()
   ok('real: the camera\'s metadata does not leave with it', meta.exif === undefined && meta.format === 'jpeg', { exif: meta.exif === undefined })
+  // A dim picture really gets lighter, a light one does not get darker: the average brightness is measured on what comes out.
+  const lumaOf = async (jpeg) => { const st = await sharp(jpeg).stats(); const c = st.channels; return 0.299 * c[0].mean + 0.587 * c[1].mean + 0.114 * c[2].mean }
+  const dim = await sharp({ create: { width: 800, height: 600, channels: 3, background: { r: 38, g: 40, b: 52 } } }).composite([{ input: { create: { width: 300, height: 300, channels: 3, background: { r: 112, g: 88, b: 120 } } }, left: 250, top: 150 }]).jpeg({ quality: 95 }).toBuffer()
+  const dimOut = await createRetouch(sharp)(dim, 'natural')
+  ok('real: a dim picture comes out lighter than it went in', dimOut.ok === true && dimOut.lifted > 0 && (await lumaOf(dimOut.jpeg)) > (await lumaOf(dim)), dimOut.ok ? { lifted: dimOut.lifted, before: await lumaOf(dim), after: await lumaOf(dimOut.jpeg) } : dimOut)
+  const white = await sharp({ create: { width: 800, height: 600, channels: 3, background: { r: 245, g: 245, b: 245 } } }).composite([{ input: { create: { width: 300, height: 300, channels: 3, background: { r: 120, g: 90, b: 60 } } }, left: 250, top: 150 }]).jpeg({ quality: 95 }).toBuffer()
+  const whiteOut = await createRetouch(sharp)(white, 'natural')
+  ok('real: a picture on a white background stays white', whiteOut.ok === true && whiteOut.lifted === 0 && (await lumaOf(whiteOut.jpeg)) > 0.9 * (await lumaOf(white)), whiteOut.ok ? { lifted: whiteOut.lifted, before: await lumaOf(white), after: await lumaOf(whiteOut.jpeg) } : whiteOut)
   const bad = await createRetouch(sharp)(Buffer.from('this is not a picture at all'))
   ok('real: a file that is not a picture is unreadable, not a throw', bad.ok === false && bad.why === 'unreadable', bad)
 }
