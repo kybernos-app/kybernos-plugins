@@ -45,7 +45,7 @@ const toDefinition = (o) => ({ name: o.name, description: o.description, paramet
 const literalDefinition = (o) => ({ name: o.name, description: o.description, parameters: { type: 'object', properties: o.parameters }, output: { schema: {}, render: (args, value) => o.render(args, value) }, execute: o.execute })
 
 /** The disk the `create_deck` tool writes to and reads pictures from (it checks every path is inside the working folder before it asks). */
-const DECK_IO = { stat: fsp.stat, readFile: fsp.readFile, writeFile: fsp.writeFile, mkdir: (dir) => fsp.mkdir(dir, { recursive: true }), rename: fsp.rename }
+const DECK_IO = { stat: fsp.stat, readFile: fsp.readFile, writeFile: fsp.writeFile, mkdir: (dir) => fsp.mkdir(dir, { recursive: true }), rename: fsp.rename, readdir: fsp.readdir, rm: (file) => fsp.rm(file, { force: true }) }
 
 /**
  * The `deliver_files` tool (and the observer that writes its card) and, when the host is given, the `create_deck` tool. Every service is read at call time with `get` (a property read of a

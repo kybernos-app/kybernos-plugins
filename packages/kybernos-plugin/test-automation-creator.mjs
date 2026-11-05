@@ -103,11 +103,11 @@ console.log('a schedule')
 
 console.log('one date and webhook')
 {
-  const w = world({ name: 'Board deck', prompt: '1. Build the deck', schedule: { mode: 'once', at: '2999-12-15T09:00', tz: 'Europe/Paris' }, approvals: 'auto', notify: ['push', 'push', 'sms'] })
+  const w = world({ name: 'Board deck', prompt: '1. Build the deck', schedule: { mode: 'once', at: '2999-12-15T09:00', tz: 'Europe/Paris' }, approvals: 'auto' })
   const r = w.run()
   const t = w.tasks()[0]
   check('one-time: date and zone are kept', r.status === 0 && t.schedule.mode === 'once' && t.schedule.at === '2999-12-15T09:00' && t.schedule.cron === undefined)
-  check('approvals auto and a clean notify list', t.approvals === 'auto' && JSON.stringify(t.notify) === '["push"]')
+  check('approvals auto, and no notify list: nothing reads one', t.approvals === 'auto' && t.notify === undefined)
 }
 {
   const w = world({ name: 'Stripe alerts', prompt: '1. Read the event', schedule: { mode: 'webhook' } }, undefined, { DSH_WEB_PORT: '3091' })
@@ -172,7 +172,7 @@ for (const [label, patch] of [
 }
 
 console.log('changing an automation that exists (« Edit in chat », V-19)')
-const stored = (extra) => Object.assign({ id: 'st-abc-123456', createdAt: '2026-10-01T08:00:00.000Z', updatedAt: '2026-10-01T08:00:00.000Z', history: [{ at: '2026-10-12T06:00:00.000Z', sessionId: 's-1', status: 'fired' }], lastRun: '2026-10-12T06:00:00.000Z', nextRun: '2026-10-19T06:00:00.000Z', name: 'Weekly product report', prompt: '1. Collect', schedule: { mode: 'cron', cron: '0 8 * * 1', tz: 'Europe/Paris' }, runsOn: 'local', active: true, approvals: 'ask', notify: [] }, extra || {})
+const stored = (extra) => Object.assign({ id: 'st-abc-123456', createdAt: '2026-10-01T08:00:00.000Z', updatedAt: '2026-10-01T08:00:00.000Z', history: [{ at: '2026-10-12T06:00:00.000Z', sessionId: 's-1', status: 'fired' }], lastRun: '2026-10-12T06:00:00.000Z', nextRun: '2026-10-19T06:00:00.000Z', name: 'Weekly product report', prompt: '1. Collect', schedule: { mode: 'cron', cron: '0 8 * * 1', tz: 'Europe/Paris' }, runsOn: 'local', active: true, approvals: 'ask' }, extra || {})
 {
   const w = world(Object.assign({}, base, { id: 'st-abc-123456', name: 'Weekly report (edited)', schedule: { mode: 'cron', cron: '30 9 * * 1-5', tz: 'Europe/Paris' }, approvals: 'auto' }), JSON.stringify([stored(), { id: 'other', name: 'other' }]))
   const r = w.run(); const o = out(r)

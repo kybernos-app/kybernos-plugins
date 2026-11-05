@@ -155,11 +155,11 @@ for (const k of ['chip', 'add', 'discard', 'what', 'why', 'when', 'more', 'less'
 }
 eq('the old row strings are gone (nothing reads them)', table['tasks.sug.by'] === undefined && table['tasks.sug.edit'] === undefined, true)
 {
-  const t = { id: 'st-1', name: 'N', prompt: 'P', schedule: { mode: 'cron', cron: '0 8 * * *', tz: 'UTC' }, runsOn: 'local', active: true, approvals: 'auto', notify: ['push'], nextRun: 'x', lastRun: 'y', history: [{ at: 'z' }], trigger: { type: 'webhook', hookId: 'hk_aaaaaaaaaaaa', secret: 'SECRET0123456789' }, pendingFires: ['an event'] }
+  const t = { id: 'st-1', name: 'N', prompt: 'P', schedule: { mode: 'cron', cron: '0 8 * * *', tz: 'UTC' }, runsOn: 'local', active: true, approvals: 'auto', nextRun: 'x', lastRun: 'y', history: [{ at: 'z' }], trigger: { type: 'webhook', hookId: 'hk_aaaaaaaaaaaa', secret: 'SECRET0123456789' }, pendingFires: ['an event'] }
   const exported = JSON.stringify(mod.kbExportTask(t))
   eq('the export never holds the webhook secret', exported.indexOf('SECRET0123456789') < 0 && exported.indexOf('hk_aaaaaaaaaaaa') < 0, true)
   eq('...nor the history, the id or queued events', ['history', 'st-1', 'an event', 'nextRun'].every((x) => exported.indexOf(x) < 0), true)
-  eq('...but the whole definition', JSON.stringify(Object.keys(JSON.parse(exported))), '["name","prompt","schedule","runsOn","active","approvals","notify"]')
+  eq('...but the whole definition', JSON.stringify(Object.keys(JSON.parse(exported))), '["name","prompt","schedule","runsOn","active","approvals"]')
   const c = mod.kbCloneDefinition(t, 'N copy')
   eq('a clone is created paused (an active one ran the same work twice)', c.active, false)
   eq('...with the same schedule, zone and approvals', JSON.stringify(c.schedule) + c.approvals, '{"mode":"cron","cron":"0 8 * * *","tz":"UTC"}auto')
@@ -204,19 +204,19 @@ eq('a paused webhook test is explained', mod.kbTaskError('automation paused', en
 
 /* ── V-19: « Edit → chat » opens the automation-creator skill with the definition ── */
 {
-  const t = { id: 'st-abc-123456', name: 'Weekly product report', prompt: '1. Collect the changes\n2. Summarise them', schedule: { mode: 'cron', cron: '0 8 * * 1', tz: 'Europe/Paris' }, approvals: 'auto', notify: ['push', 'email'], active: true, runsOn: 'local', nextRun: '2026-10-19T06:00:00.000Z', history: [{ at: '2026-10-12T06:00:00.000Z', sessionId: 's-1', status: 'fired' }], trigger: { type: 'webhook', hookId: 'hk_aaaaaaaaaaaa', secret: 'SECRET0123456789' } }
+  const t = { id: 'st-abc-123456', name: 'Weekly product report', prompt: '1. Collect the changes\n2. Summarise them', schedule: { mode: 'cron', cron: '0 8 * * 1', tz: 'Europe/Paris' }, approvals: 'auto', active: true, runsOn: 'local', nextRun: '2026-10-19T06:00:00.000Z', history: [{ at: '2026-10-12T06:00:00.000Z', sessionId: 's-1', status: 'fired' }], trigger: { type: 'webhook', hookId: 'hk_aaaaaaaaaaaa', secret: 'SECRET0123456789' } }
   const text = mod.kbEditChatText(t, en, 'en')
   eq('it names the skill, so the chat starts the interview the same way « Create » does', text.startsWith('Skill automation-creator'), true)
   eq('...it says this is an edit and not a new automation', /do not create a new one/.test(text), true)
   eq('...it carries the id the script needs', text.indexOf('st-abc-123456') >= 0, true)
   eq('...the name, the words of the schedule and the cron with its zone', text.indexOf('Weekly product report') >= 0 && text.indexOf('Every Monday, 08:00') >= 0 && text.indexOf('0 8 * * 1') >= 0 && text.indexOf('Europe/Paris') >= 0, true)
-  eq('...the approvals, the notifications and the prompt', text.indexOf('Always allow') >= 0 && text.indexOf('push, email') >= 0 && text.indexOf('1. Collect the changes\n2. Summarise them') >= 0, true)
+  eq('...the approvals and the prompt, and no line about notifications (nothing reads one)', text.indexOf('Always allow') >= 0 && text.indexOf('Notifications') < 0 && text.indexOf('1. Collect the changes\n2. Summarise them') >= 0, true)
   eq('...never the webhook secret, the hook id or the history', text.indexOf('SECRET0123456789') < 0 && text.indexOf('hk_aaaaaaaaaaaa') < 0 && text.indexOf('s-1') < 0, true)
   eq('...it ends where the person types what to change', text.endsWith(en('tasks.edit.chat.ask')), true)
   eq('a one-time and a webhook-only automation say what they are', mod.kbEditChatText({ id: 'a', name: 'N', prompt: 'p', schedule: { mode: 'once', at: '2026-12-15T09:00', tz: 'UTC' } }, en, 'en').indexOf('2026-12-15T09:00') >= 0 && mod.kbEditChatText({ id: 'a', name: 'N', prompt: 'p', schedule: { mode: 'webhook' } }, en, 'en').indexOf('External webhook') >= 0, true)
   eq('an automation with nothing but an id does not throw', typeof mod.kbEditChatText({ id: 'a' }, en, 'en'), 'string')
   eq('in French, through the dictionary', mod.kbEditChatText(t, fr, 'fr').startsWith('Skill automation-creator'), true)
-  eq('V-18: the line under the name says how it runs (an automation has no team of its own to name)', mod.kbTaskWho({ approvals: 'ask', notify: [] }, en) + '|' + mod.kbTaskWho({ approvals: 'auto', notify: ['push'] }, en), 'Ask me first|Always allow · notifications on')
+  eq('V-18: the line under the name says how it runs (an automation has no team of its own to name)', mod.kbTaskWho({ approvals: 'ask' }, en) + '|' + mod.kbTaskWho({ approvals: 'auto' }, en), 'Ask me first|Always allow')
 }
 {
   const keys = ['tasks.trigger.plushook', 'tasks.delete.title', 'tasks.delete.body', 'tasks.delete', 'tasks.deleted', 'tasks.load.error.title', 'tasks.loading', 'tasks.retry', 'tasks.preset.webhook', 'tasks.webhook.hint', 'tasks.hook.regen.title', 'tasks.hook.regen.body', 'tasks.hook.revoke.title', 'tasks.hook.revoke.body', 'tasks.hook.regen', 'tasks.hook.revokeBtn', 'tasks.cancel', 'tasks.err.paused']

@@ -16,7 +16,7 @@ const file = (dsh) => join(dsh, 'kybernos', 'skills-learned-sessions.json')
 
 // Tools that stay on this computer and read or write what the person works with. Everything else is untrusted until proven otherwise (fail closed).
 const LOCAL = new Set(['read', 'write', 'edit', 'multi_edit', 'multiedit', 'notebook_edit', 'glob', 'grep', 'ls', 'list', 'todo_write', 'todoread', 'todowrite', 'ask_user_question',
-  'skill', 'lesson_write', 'lesson_search', 'skill_propose', 'skill_improve', 'memory_write', 'memory_search', 'session_msg_propose', 'exit_plan_mode', 'enter_plan_mode'])
+  'skill', 'lesson_write', 'lesson_search', 'lesson_forget', 'skill_propose', 'skill_improve', 'memory_write', 'memory_search', 'session_msg_propose', 'exit_plan_mode', 'enter_plan_mode'])
 const SHELL = /^(bash|shell|sh|zsh|run_command|exec|execute|terminal)$/i
 const NETWORK = /\b(curl|wget|http:|https:|ftp:|scp|ssh|nc|netcat|git\s+(clone|fetch|pull)|npm\s+(i|install)|pip\s+install|brew\s+install)\b/i
 

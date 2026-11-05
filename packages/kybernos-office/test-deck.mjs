@@ -130,7 +130,7 @@ const cwd = join(base, 'work')
 mkdirSync(cwd, { recursive: true })
 writeFileSync(join(cwd, 'shot.png'), PNG)
 writeFileSync(join(cwd, 'notes.txt'), 'mine')
-const io = { stat: fsp.stat, readFile: fsp.readFile, writeFile: fsp.writeFile, mkdir: (d) => fsp.mkdir(d, { recursive: true }), rename: fsp.rename }
+const io = { stat: fsp.stat, readFile: fsp.readFile, writeFile: fsp.writeFile, mkdir: (d) => fsp.mkdir(d, { recursive: true }), rename: fsp.rename, readdir: fsp.readdir, rm: (f) => fsp.rm(f, { force: true }) }
 let assets = { ok: true, ...ASSETS }
 const services = () => ({ workingDirectory: { ensure: async () => cwd }, deckAssets: async () => assets, io })
 const exec = { agent: {}, signal: new AbortController().signal }
@@ -151,6 +151,23 @@ const exec = { agent: {}, signal: new AbortController().signal }
   await t.options.execute({ ...clone(args), title: 'Q3 review, second take' }, exec)
   assert.match(readFileSync(join(cwd, 'talk', 'q3.deck.html'), 'utf8'), /Q3 review, second take/)
   ok('a deck it made is replaced by the same path')
+
+  // UJ-140: a deck the person saved by hand is kept as a copy before the agent replaces it, and the answer says so.
+  const mineBefore = readFileSync(join(cwd, 'talk', 'q3.deck.html'), 'utf8')
+  writeFileSync(join(cwd, 'talk', 'q3.deck.html'), mineBefore.replace('Q3 review, second take', 'Q3 review, edited by the person'))
+  const copiesBefore = readdirSync(join(cwd, 'talk')).filter((n) => n.endsWith('.bak')).length
+  const again = await t.options.execute({ ...clone(args), title: 'Q3 review, third take' }, exec)
+  const copies = readdirSync(join(cwd, 'talk')).filter((n) => n.endsWith('.bak')).sort()
+  assert.equal(copies.length, copiesBefore + 1, 'one more copy: the replaced deck')
+  assert.match(readFileSync(join(cwd, 'talk', copies[copies.length - 1]), 'utf8'), /edited by the person/, 'the newest copy is the person\'s version')
+  assert.equal(again.previous, 'talk/' + copies[copies.length - 1])
+  assert.match(t.options.render(args, again)[0].text, /previous version is kept as talk\/q3\.deck\.html\.[0-9-]+\.bak\. Tell the person\./)
+  assert.match(readFileSync(join(cwd, 'talk', 'q3.deck.html'), 'utf8'), /Q3 review, third take/)
+  const same = await t.options.execute({ ...clone(args), title: 'Q3 review, third take' }, exec)
+  assert.equal(same.previous, undefined, 'writing the same deck again keeps no copy')
+  for (let i = 0; i < 5; i++) { await t.options.execute({ ...clone(args), title: 'take ' + i }, exec); await new Promise((r) => setTimeout(r, 3)) }
+  assert.ok(readdirSync(join(cwd, 'talk')).filter((n) => n.endsWith('.bak')).length <= 3, 'only the newest copies stay')
+  ok('a deck the person saved is kept as a copy before it is replaced, the answer says so, and only the newest copies stay')
 
   for (const [bad, expect] of [
     [{ ...clone(args), path: 'talk/q3.html' }, /\.deck\.html/],

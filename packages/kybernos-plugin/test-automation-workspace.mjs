@@ -8,7 +8,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdir
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { DEDICATED_DIR, DEDICATED_TITLE, cleanHint, idOf, chooseWorkspace } from './automation-workspace.mjs'
+import { DEDICATED_DIR, DEDICATED_TITLE, cleanHint, idOf, chooseWorkspace, inDedicatedDir, creationsFolder } from './automation-workspace.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -195,5 +195,21 @@ const host = readFileSync(join(here, 'index.js'), 'utf8')
 assert.ok(/kbTaskWorkspaceId = async \(task\) => \{[\s\S]{0,600}autoWsChoose\(task\.workspaceHint, list\)/.test(host), 'the host chooses with the shared rule')
 assert.ok(host.includes('return autoWsIdOf(list[0])'), 'the first workspace stays the last resort')
 ok('the host chooses with the shared rule and keeps the first workspace as the last resort')
+// UJ-136: Creations of a chat that is an automation run reads the last normal chat's folder, not the run's own.
+{
+  const dir = '/h/.dsh/kybernos/automations'
+  assert.equal(inDedicatedDir(dir, dir), true)
+  assert.equal(inDedicatedDir(dir + '/run-1', dir), true)
+  assert.equal(inDedicatedDir('/h/.dsh/kybernos/automations-old', dir), false, 'a sibling that merely starts with the name is not inside it')
+  assert.equal(inDedicatedDir('/h/work', dir) || inDedicatedDir(null, dir) || inDedicatedDir('/h/work', ''), false)
+  ok('the dedicated folder is recognised exactly: itself and what is inside, not a sibling with the same start')
+  assert.equal(creationsFolder('/h/work', dir, ['/h/other']), '/h/work', 'a normal chat keeps its own folder')
+  assert.equal(creationsFolder(dir, dir, [dir, '/h/.dsh/kybernos/automations/x', '/h/work', '/h/other']), '/h/work', 'an automation run reads the newest normal chat folder')
+  assert.equal(creationsFolder(dir, dir, [dir]), dir, 'no normal chat yet: the run keeps its own')
+  assert.equal(creationsFolder(dir, dir, null), dir)
+  ok('Creations of an automation run reads the newest normal chat folder, and keeps its own when there is none')
+  assert.ok(/kbCreationsScanRoot\(sessionRoot !== null \? sessionRoot : workspaceRoot\)/.test(host), 'the load route scans through the helper')
+  ok('the load route scans through the helper')
+}
 console.log('\n' + pass + ' verifications OK')
 process.exit(0)

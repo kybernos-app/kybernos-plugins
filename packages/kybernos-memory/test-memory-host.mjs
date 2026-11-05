@@ -260,6 +260,22 @@ try {
   assert.equal(w.output.render({}, unknown)[0].type, 'text')
   const found = await s.execute({ q: 'rendering' })
   assert.equal(found.ok, true)
+  // UJ-177: the agent can forget a lesson, but the person is asked first, and it goes to the archive
+  {
+    const f = mod.lessonForgetTool()
+    await w.execute({ text: 'a wrong belief about the colour of the sky', tags: ['sky'] })
+    const hit = await s.execute({ q: 'colour of the sky' })
+    const id = hit.found.split('\n')[0].slice(1).split(' ')[0]
+    const card = mod.forgetGate({ name: 'lesson_forget', arguments: { id } })
+    assert.equal(card.kind, 'ask')
+    assert.ok(card.displayReason.en.includes('a wrong belief about the colour of the sky') && card.displayReason.fr.startsWith('Oublier cette leçon'), 'the card carries the lesson words, in two languages')
+    assert.equal(mod.forgetGate({ name: 'lesson_search', arguments: { id } }), null, 'another tool passes')
+    assert.equal(mod.forgetGate({ name: 'lesson_forget', arguments: { id: 'default:000000000000' } }), null, 'a lesson that does not exist asks nothing: the tool says so')
+    assert.equal((await f.execute({ id: 'default:000000000000' })).error, 'lecon_introuvable')
+    assert.equal((await f.execute({ id })).ok, true)
+    assert.equal(rows('default').some((l) => l.text.includes('colour of the sky')), false, 'the lesson is gone from the list')
+    assert.equal(f.output.render({}, { ok: true })[0].text, 'Lesson forgotten.')
+  }
   assert.equal(found.count, 1)
   assert.equal(rows('default').find((l) => l.text.startsWith('always verify')).uses, 1, 'a lesson the search returned counts as used')
   assert.equal((await s.execute({ q: 'zzzzzz' })).count, 0)
@@ -319,7 +335,7 @@ try {
   assert.equal(Number.isFinite(entry.order), true)
   assert.equal(typeof entry.text, 'function')
   assert.equal(typeof entry.text(ctxFor(SESSION_A)), 'string')
-  assert.deepEqual([...tools.keys()].sort(), ['lesson_search', 'lesson_write'])
+  assert.deepEqual([...tools.keys()].sort(), ['lesson_forget', 'lesson_search', 'lesson_write'])
   const res = () => ({ status: 0, body: null, writeHead(s) { this.status = s }, end(p) { this.body = p === undefined ? null : JSON.parse(p) } })
   const hit = async (path, method, headers, body) => {
     const r = res()

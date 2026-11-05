@@ -55,7 +55,7 @@ assert.equal(mod.kbwDefaultPick([canAsk(computers[0]), computers[1]], true), PRO
 assert.equal(mod.kbwDefaultPick([{ id: PROS, isHome: false }]), PROS)
 assert.equal(mod.kbwDefaultPick([]), null)
 assert.equal(mod.kbwDefaultPick(null), null)
-assert.deepEqual(mod.kbwDefinition(linkedTask({ workspaceHint: 'ws', homeSessionId: 's', notify: ['email'], needs: ['gmail'], id: 'st-1' }), true), { name: 'Collecteur', prompt: 'Collect', schedule: { mode: 'cron', cron: '0 3 * * *', tz: 'UTC' }, active: true, approvals: 'auto', needs: ['gmail'] }, 'six fields, and active is what it was before it was linked')
+assert.deepEqual(mod.kbwDefinition(linkedTask({ workspaceHint: 'ws', homeSessionId: 's', needs: ['gmail'], id: 'st-1' }), true), { name: 'Collecteur', prompt: 'Collect', schedule: { mode: 'cron', cron: '0 3 * * *', tz: 'UTC' }, active: true, approvals: 'auto', needs: ['gmail'] }, 'six fields, and active is what it was before it was linked')
 assert.equal(mod.kbwDefinition(linkedTask(), false).active, false)
 assert.equal('needs' in mod.kbwDefinition(linkedTask({ needs: [] }), true), false)
 // the runs a computer reported

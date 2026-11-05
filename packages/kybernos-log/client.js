@@ -32,7 +32,7 @@ window.__ModuleLoader__.load({
         title: ['Journal d’activité', 'Activity log'],
         lead: ['Tout ce que cette machine envoie : appels modèle, connecteurs, recherche web, outils — et les appels que personne n’a demandés (titres, compactages, sondes).',
           'Everything this machine sends out: model calls, connectors, web search, tools — and the calls nobody asked for (titles, compactions, probes).'],
-        privacy: ['Métadonnées seulement : aucun texte de message ni argument d’outil n’est enregistré.', 'Metadata only: no message text, no tool argument is recorded.'],
+        privacy: ['Métadonnées seulement : le titre de chaque session est gardé, mais aucun texte de message ni argument d’outil.', 'Metadata only: the title of each session is kept, but no message text and no tool argument.'],
         filters: ['Familles', 'Families'],
         search: ['Rechercher (modèle, outil, session, erreur)…', 'Search (model, tool, session, error)…'],
         session: ['Session', 'Session'],

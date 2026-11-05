@@ -107,7 +107,7 @@ const okIn = mod.kbSanitizeTaskInput({ name: ' a ', prompt: ' b ', schedule: { m
 eq('valid input normalized', okIn.task.schedule.cron, '0 8 * * 1-5')
 eq('runsOn forced local', okIn.task.runsOn, 'local')
 eq('approvals defaults ask', okIn.task.approvals, 'ask')
-eq('notify filtered', JSON.stringify(mod.kbSanitizeTaskInput({ name: 'a', prompt: 'b', notify: ['push', 'sms'] }).task.notify), '["push"]')
+eq('no notify list is kept (nothing reads one)', mod.kbSanitizeTaskInput({ name: 'a', prompt: 'b', notify: ['push', 'sms'] }).task.notify, undefined)
 
 /* ── 4b. Form validation: types, zones, dates ──────────────────────────── */
 const bad = (task) => String(mod.kbSanitizeTaskInput(task).error)
@@ -124,7 +124,6 @@ eq('active must be a boolean', bad(base({ active: 'false' })) + bad(base({ activ
 eq('active false is kept', mod.kbSanitizeTaskInput(base({ active: false })).task.active, false)
 eq('zero-width-only name refused', bad({ name: '​​', prompt: 'p' }), 'name required')
 { const n = mod.kbSanitizeTaskInput({ name: 'a'.repeat(119) + '\u{1F600}', prompt: 'p' }).task.name; eq('a name cut at 120 never ends on half an emoji', n.length === 119 && n.isWellFormed(), true) }
-eq('duplicate notify entries removed', JSON.stringify(mod.kbSanitizeTaskInput(base({ notify: ['push', 'push', 'email'] })).task.notify), '["push","email"]')
 eq('cron that never fires refused', bad(base({ schedule: { mode: 'cron', cron: '0 0 31 2 *' } })), 'this schedule never fires')
 eq('cron with an empty element refused', bad(base({ schedule: { mode: 'cron', cron: '0 8 * * 1,' } })), 'invalid cron expression')
 eq('31 February refused (one-time)', bad(base({ schedule: { mode: 'once', at: '2027-02-31T10:00' } })), 'invalid one-off date')

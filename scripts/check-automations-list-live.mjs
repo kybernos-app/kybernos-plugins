@@ -76,7 +76,7 @@ const other = tz === 'Asia/Kolkata' ? 'America/New_York' : 'Asia/Kolkata'
 const otherCity = other.split('/').pop().replace(/_/g, ' ')
 const SEED = [
   mk('wp18-2h', 'A very long automation name that keeps going and going to see how the row truncates it', { mode: 'cron', cron: '0 */2 * * *', tz }),
-  mk('wp18-month', 'Monthly digest', { mode: 'cron', cron: '0 8 1 * *', tz }, { notify: ['push'], history: [ran(-1, 8, 0)] }),
+  mk('wp18-month', 'Monthly digest', { mode: 'cron', cron: '0 8 1 * *', tz }, { history: [ran(-1, 8, 0)] }),
   mk('wp18-31', 'End of month close', { mode: 'cron', cron: '30 23 31 * *', tz }),
   mk('wp18-zone', 'Morning brief abroad', { mode: 'cron', cron: '0 8 * * *', tz: other }, { approvals: 'auto', history: [ran(-2, 8, 0), ran(-1, 8, 0)] }),
   mk('wp18-weekdays', 'Weekdays 9:15', { mode: 'cron', cron: '15 9 * * 1-5', tz }, { history: [ran(-1, 9, 15)] }),
