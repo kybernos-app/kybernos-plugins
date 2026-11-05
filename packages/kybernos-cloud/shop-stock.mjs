@@ -86,7 +86,7 @@ export function createShopTools (deps) {
       type: 'object',
       additionalProperties: false,
       properties: {
-        product: { type: 'string', description: 'The product: its id (eth, col, mil) or a part of its name.' },
+        product: { type: 'string', description: 'The product, by the name the person uses: a part of the name is enough, for example "colombie". Prefer the name to the id (eth, col, mil): the person reads it in the question they are asked.' },
         set: { type: 'integer', description: 'The new stock, from 0 to ' + MAX_STOCK + '.' },
         delta: { type: 'integer', description: 'A number to add to the stock (negative to remove).' }
       },
