@@ -1747,6 +1747,8 @@ try {
           if (u.pathname === '/v1/computer/sites') return new Response(JSON.stringify({ slug: 'pizzaone', url: 'https://pizzaone.kaby.app', state: 'live', updated: false }), { status: 200 })
           if (u.pathname === '/v1/computer/shop') return new Response(JSON.stringify({ products: [{ id: 'eth', name: 'Ethiopie', price: '16,90 EUR', stock: 4 }] }), { status: 200 })
           if (u.pathname === '/v1/computer/shop/stock') return new Response(JSON.stringify({ products: [], changed: { name: 'Ethiopie', before: 4, after: 10 } }), { status: 200 })
+          if (u.pathname === '/v1/computer/shop/define') return new Response(JSON.stringify({ products: [{ id: 'p1', name: 'Colombie', price: '15,90 €', stock: 0, cost: null, margin_pct: null }], shop: { name: 'Atelier Café', tagline: '', url: 'https://dev.example/shop/atelier-cafe-1a2b', connected: false, payable: false }, added: ['Colombie'], updated: [] }), { status: 200 })
+          if (u.pathname === '/v1/computer/shop/connect') return new Response(JSON.stringify({ products: [], shop: { name: 'Atelier Café', tagline: '', url: 'https://dev.example/shop/atelier-cafe-1a2b', connected: true, payable: false }, url: 'https://connect.stripe.com/setup/e/abc123' }), { status: 200 })
           if (init.method === 'POST') return new Response(JSON.stringify({ id: 'ap-1', state: 'pending', expires_at: '2099-01-01T00:00:00Z' }), { status: 200 })
           return new Response(JSON.stringify({ id: 'ap-1', state: answers.shift() ?? 'pending' }), { status: 200 })
         }
@@ -1821,6 +1823,22 @@ try {
           assert.deepEqual(shopCalls().map((c) => [c.path, c.auth, c.body.job_id, c.body.product, c.body.set]), [['/v1/computer/shop', 'Bearer kyd_computer', JOB, undefined, undefined], ['/v1/computer/shop/stock', 'Bearer kyd_computer', JOB, 'ethiopie', 10]])
           assert.equal((await shopTools('shop_stock').execute({ product: 'ethiopie', set: 10 }, { agent: { id: 'someone-elses-session' } })).ok, false)
           assert.equal(shopCalls().length, 2, 'a session this route did not make sends nothing to the shop')
+          // Defining the shop and asking for the Stripe link are asked in plain words too, and go through the computer's own routes with the turn.
+          assert.equal(mod.TURN_GATE_SAFE_TOOLS.has('shop_define'), false, 'shop_define is asked about')
+          assert.equal(mod.TURN_GATE_SAFE_TOOLS.has('shop_connect'), false, 'shop_connect is asked about')
+          await turnOf('s-shop')
+          answers = ['allowed', 'allowed']
+          const defineBefore = seen.length
+          assert.deepEqual(await run('shop_define', { name: 'Atelier Café', products: [{ name: 'Colombie', price_eur: 15.9 }] }, 's-shop'), { kind: 'allow' })
+          assert.match(seen.slice(defineBefore).find((c) => c.method === 'POST').body.summary, /Set up the shop "Atelier Café": Colombie 15\.9 €$/)
+          const connectBefore = seen.length
+          assert.deepEqual(await run('shop_connect', {}, 's-shop'), { kind: 'allow' })
+          assert.match(seen.slice(connectBefore).find((c) => c.method === 'POST').body.summary, /Ask Stripe for the link where the shop's owner fills in their payment details/)
+          const defined = await shopTools('shop_define').execute({ name: 'Atelier Café', products: [{ name: 'Colombie', price_eur: 15.9 }] }, { agent: { id: 's-shop' } })
+          assert.ok(defined.ok === true && /Added: Colombie/.test(defined.text) && /window https:\/\/dev\.example\/shop\/atelier-cafe-1a2b/.test(defined.text), defined.text)
+          const linked = await shopTools('shop_connect').execute({}, { agent: { id: 's-shop' } })
+          assert.ok(linked.ok === true && /https:\/\/connect\.stripe\.com\/setup\/e\/abc123/.test(linked.text), linked.text)
+          assert.deepEqual(seen.filter((c) => c.path === '/v1/computer/shop/define' || c.path === '/v1/computer/shop/connect').map((c) => [c.path, c.auth, c.body.job_id]), [['/v1/computer/shop/define', 'Bearer kyd_computer', JOB], ['/v1/computer/shop/connect', 'Bearer kyd_computer', JOB]])
           // The page itself goes through the computer's own route, with the turn it belongs to; a session this route did not make cannot publish.
           const pageDir = mkdtempSync(join(tmpdir(), 'cloud-page-'))
           writeFileSync(join(pageDir, 'index.html'), '<h1>Pizza One</h1>')
