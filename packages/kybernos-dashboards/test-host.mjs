@@ -5,7 +5,7 @@ import { mkdtempSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
-import { createHost, applyOps, runTool, toolOptions, makeDoc, dashboardOfDoc, TOOL, KEEP } from './dashboard-host.mjs'
+import { createHost, applyOps, runTool, lossless, toolOptions, makeDoc, dashboardOfDoc, TOOL, KEEP } from './dashboard-host.mjs'
 import * as M from './model.mjs'
 import { PRESETS } from './presets.mjs'
 const PRESETS_N = PRESETS.length
@@ -171,6 +171,13 @@ const CHART = { type: 'chart', title: 'Per day', kind: 'columns', x: 'day', y: '
   const pr = await run({ preset: 'usage-tokens', name: 'My usage' })
   ok('tool: from a preset', pr.ok && pr.id === 'my-usage' && pr.widgets.length >= 6 && pr.warnings.length === 0, pr)
   ok('tool: an id is slugged, never a path', (await run({ id: '../../etc/passwd', dashboard: { widgets: [] } })).id === 'etc-passwd')
+  // UJ-223: a listing with nothing to report used to carry `message: undefined` and `unreadable: undefined`, which the engine refuses (« value is not lossless JSON »).
+  const rawList = await run({})
+  const survives = (v) => JSON.stringify(JSON.parse(JSON.stringify(v))) === JSON.stringify(v) && !JSON.stringify(v, (k, x) => (x === undefined ? '__undefined__' : x)).includes('__undefined__')
+  ok('tool: the raw listing holds keys set to undefined (the cause)', survives(rawList) === false)
+  const viaTool = await tool.execute({}, { agent: { id: 'sess-1' } })
+  ok('tool: what the engine receives is lossless JSON, listing and read back and write', survives(viaTool) && survives(await tool.execute({ id: 'tokens' }, { agent: { id: 'sess-1' } })) && survives(await tool.execute({ id: 'fresh', dashboard: { name: 'Fresh', widgets: [{ type: 'note' }] } }, { agent: { id: 'sess-1' } })), JSON.stringify(viaTool).slice(0, 160))
+  ok('tool: lossless() keeps the values and drops only the undefined keys', same(lossless({ a: 1, b: undefined, c: [{ d: 'x', e: undefined }] }), { a: 1, c: [{ d: 'x' }] }))
   const lst = await run({})
   ok('tool: lists dashboards and the current one', lst.dashboards.length >= 4 && lst.current === 'my-usage' || lst.current !== null)
   await host.setFlags('fresh', { archived: true })

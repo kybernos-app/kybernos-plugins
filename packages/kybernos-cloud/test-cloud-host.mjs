@@ -649,6 +649,10 @@ mod.MEMORY_TUNING.tickMs = 3600000
 // A route the test breaks on purpose is mended by itself 10 s, 30 s and 2 min later (L3-76): this file runs longer than that and counts the server's calls, so the tries are off here
 // (test-route-hold.mjs plays them).
 mod.ROUTE_REPAIR_TUNING.delaysMs = []
+// The host reads the account's profile 3 s after it starts (profileRefreshTick): this file runs longer than that, so the read landed in the middle of a section that counts the
+// server's calls or the settings it wrote, and the file ended on a wrong count or hung about one run in two. test-profile-refresh.mjs plays the tick.
+mod.PROFILE_REFRESH_TUNING.firstMs = 3600000
+mod.PROFILE_REFRESH_TUNING.tickMs = 3600000
 mod.apply(ctx)
 
 const fakeRes = () => ({

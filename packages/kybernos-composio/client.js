@@ -255,7 +255,7 @@ window.__ModuleLoader__.load({
       'kb.cp.set.connH': { fr: 'Connexions', en: 'Connections' },
       'kb.cp.set.connSub': { fr: 'Les apps reliées à ta clé, avec leurs comptes.', en: 'The apps linked to your key, with their accounts.' },
       'kb.cp.set.connNone': { fr: 'Aucune connexion active pour l’instant.', en: 'No active connection yet.' },
-      'kb.cp.set.open': { fr: 'Ouvrir Connectors', en: 'Open Connectors' },
+      'kb.cp.set.open': { fr: 'Ouvrir les connecteurs', en: 'Open Connectors' },
       // (POC) "Kybernos" pill of the engine's Plugins page.
       'kb.cp.kbf.help': { fr: 'Ne montrer que les plugins Kybernos (@local/kybernos-*)', en: 'Show only Kybernos plugins (@local/kybernos-*)' },
       'kb.cp.yours.go': { fr: 'Parcourir le catalogue', en: 'Browse the catalog' },

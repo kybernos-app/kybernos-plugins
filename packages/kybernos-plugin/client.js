@@ -927,10 +927,10 @@ let kbLocaleRead = () => 'en'
       'voice.dictate.start': { kybernos: 'Dicter (le texte arrive dans le brouillon)', en: 'Dictate (text lands in the draft)' },
       'voice.dictate.unavailable': { kybernos: 'Dictée indisponible — ', en: 'Dictation unavailable — ' },
       'voice.reason.nocreds': { kybernos: 'le service d’identifiants n’est pas disponible dans ce profil', en: 'the credentials service is not available in this profile' },
-      'voice.reason.nokey': { kybernos: 'la clé Qwen n’est pas configurée', en: 'the Qwen key is not set' },
-      'voice.reason.credserror': { kybernos: 'la clé n’a pas pu être lue', en: 'the key could not be read' },
+      'voice.reason.nokey': { kybernos: 'aucun modèle de voix n’est connecté', en: 'no voice model is connected' },
+      'voice.reason.credserror': { kybernos: 'la clé du modèle de voix n’a pas pu être lue', en: 'the voice model’s key could not be read' },
       'voice.reason.quota': { kybernos: 'le dernier essai a été refusé (quota)', en: 'the last attempt was refused (quota)' },
-      'voice.no.key': { kybernos: 'clé du fournisseur absente', en: 'provider key missing' },
+      'voice.no.key': { kybernos: 'aucun modèle de voix connecté', en: 'no voice model connected' },
       'voice.device': { kybernos: 'Périphérique d\'entrée', en: 'Input device' },
       'art.selector.create': { kybernos: 'Créer un artefact', en: 'Create an artifact' },
       'art.sending': { kybernos: 'Envoi en cours…', en: 'Sending…' },
@@ -1108,7 +1108,7 @@ let kbLocaleRead = () => 'en'
       'kbui.new.project.noworkspaces': { kybernos: 'Service des espaces de travail indisponible.', en: 'Workspace service unavailable.' },
       'kbui.new.project.noid': { kybernos: 'Espace de travail créé sans identifiant.', en: 'Workspace created without an id.' },
       'kbui.new.project.hint': { kybernos: 'Un workspace, avec ou sans dossier de ton ordinateur.', en: 'A workspace, with or without a folder of your computer.' },
-      'kbui.no.kyber': { kybernos: 'Aucune Agent Team pour l’instant. Crées-en une avec « Nouvelle Agent Team ».', en: 'No Agent Team yet. Create one with “New Agent Team”.' },
+      'kbui.no.kyber': { kybernos: 'Aucune Agent Team pour l’instant. Appuie sur « Créer », puis sur « Nouvelle Agent Team ».', en: 'No Agent Team yet. Press “Create”, then “New Agent Team”.' },
       'kbui.no.engine': { kybernos: 'Aucun moteur disponible.', en: 'No engine available.' },
       'kbui.no.icon': { kybernos: 'Aucune icône ne correspond.', en: 'No icon matches.' },
       'kbui.no.project.match': { kybernos: 'Aucun projet ne correspond à « ', en: 'No project matches “' },
@@ -11805,7 +11805,7 @@ return {
       })
     } catch (e) { /* pas de window (hors navigateur) */ }
     const kbStartTeamChat = () => {
-      const text = '/skill-ai-team-creator Help me create an Agent Team. First ask me what the skill should do.'
+      const text = '/skill-ai-team-creator Help me create an Agent Team. First ask me what the team should do.'
       kbStartChatText(text)
     }
     ctx.effect(() => styles.insert(CSS), 'kybers: sidebar styles')
@@ -37392,7 +37392,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 /* Detail dialog resize handle (user request, 2026-10-13 recipe): a slim
    col-resize strip on the dialog's LEFT edge. */
 .kb6-popresize{position:absolute;top:0;bottom:0;left:0;width:8px;z-index:3;cursor:col-resize;border-radius:14px 0 0 14px}
-.kb6-popx.on{background:var(--dsw-alias-brand-primary)}
+.kb6-popx.on{background:var(--dsw-alias-bg-layer-3);border-color:var(--dsw-alias-brand-primary)}
 .kb6-pophead{display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid var(--dsw-alias-border-l1);flex:none}
 .kb6-poptitle{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
 .kb6-popname{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;font-weight:700;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

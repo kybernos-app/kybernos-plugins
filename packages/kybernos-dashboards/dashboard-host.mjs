@@ -415,10 +415,16 @@ export function toolOptions (host) {
       const a = isObj(raw) ? raw : {}
       const sessionId = exec && exec.agent && typeof exec.agent.id === 'string' ? exec.agent.id : null
       if (sessionId === null) return { ok: false, message: 'Cannot identify the current session.' }
-      return runTool(host, sessionId, a)
+      return lossless(await runTool(host, sessionId, a))
     },
   }
 }
+
+/**
+ * What the engine accepts from a tool is JSON that survives a round trip: a key set to `undefined` (a listing with nothing to say has no `message`, a widget may have no
+ * `title`) made the call end with « tool returned invalid output: value is not lossless JSON ». Dropping those keys changes nothing a reader sees.
+ */
+export const lossless = (value) => JSON.parse(JSON.stringify(value))
 
 const brief = (r) => ({ id: r.id, name: r.dashboard.name, rev: r.rev, widgets: r.dashboard.widgets.map((w) => ({ id: w.id, type: w.type, title: w.title, w: w.w, h: w.h, source: w.source ? w.source.provider : null })) })
 
