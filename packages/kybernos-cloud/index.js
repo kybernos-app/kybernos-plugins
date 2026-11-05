@@ -5931,10 +5931,13 @@ const COMPUTER_REFUSALS = ['always_on', 'run_hours_exhausted', 'computer_deletin
 const findHomeComputer = async (state) => {
   const get = (p) => apiCall(p, { method: 'GET', token: state.token, timeoutMs: 15000 })
   const ws = await get('/v1/workspaces')
+  // Status 0 is the network: a server that did not answer says nothing about whether the computer exists.
+  if (ws.status === 0) return { unreachable: true }
   const list = ws.status === 200 && ws.body !== null && Array.isArray(ws.body.workspaces) ? ws.body.workspaces : []
   const personal = list.find((w) => w !== null && typeof w === 'object' && w.personal === true && typeof w.id === 'string')
   if (personal === undefined) return null
   const c = await get('/v1/workspaces/' + encodeURIComponent(personal.id) + '/computers')
+  if (c.status === 0) return { unreachable: true }
   const rows = c.status === 200 && c.body !== null && Array.isArray(c.body.computers) ? c.body.computers : []
   const found = rows.find((r) => r !== null && typeof r === 'object' && String(r.name).toLowerCase() === 'home' && typeof r.id === 'string')
   return found === undefined ? null : { workspaceId: personal.id, computer: found }
@@ -5956,6 +5959,7 @@ const computerAction = async (verb) => {
   if (!isConnected(state)) return { ok: false, error: 'not_connected' }
   const home = await findHomeComputer(state)
   if (home === null) return { ok: false, error: 'no_computer' }
+  if (home.unreachable === true) return { ok: false, error: 'server_unreachable' }
   const path = '/v1/workspaces/' + encodeURIComponent(home.workspaceId) + '/computers/' + encodeURIComponent(home.computer.id) + '/' + COMPUTER_VERBS[verb]
   const res = await apiCall(path, { method: 'POST', token: state.token, body: {}, timeoutMs: 25000 })
   if (res.status !== 200) {

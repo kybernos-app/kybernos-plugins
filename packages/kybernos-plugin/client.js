@@ -1477,6 +1477,7 @@ let kbLocaleRead = () => 'en'
       'kbnc.cc.err.no_computer': { kybernos: 'Pas encore d’ordinateur.', en: 'No computer yet.' },
       'kbnc.cc.err.not_connected': { kybernos: 'Connecte-toi à Kybernos.', en: 'Sign in to Kybernos.' },
       'kbnc.cc.err.refused': { kybernos: 'Le serveur a refusé.', en: 'The server refused.' },
+      'kbnc.cc.err.server_unreachable': { kybernos: 'Le serveur Kybernos ne répond pas : réessaie dans un instant.', en: 'The Kybernos server did not answer: try again in a moment.' },
       'kbnc.cc.err.unreachable': { kybernos: 'DSH ne répond pas.', en: 'DSH did not answer.' },
       'kbnc.cc.sub.awake': { kybernos: 'Continue de travailler quand ton portable est éteint.', en: 'Keeps working when your laptop is off.' },
       'kbnc.cc.sub.none': { kybernos: 'Créé à ton premier message Telegram qui demande d’agir.', en: 'Made at your first Telegram message that asks it to act.' },
@@ -9273,7 +9274,7 @@ const kbNcActions = (cloud) => {
   return []
 }
 /** The server's short refusal code → the key of the sentence the card shows. Anything else is « refused »; a network failure is « unreachable ». */
-const KB_NC_REFUSALS = ['always_on', 'run_hours_exhausted', 'computer_deleting', 'computers_off_for_workspace', 'not_allowed_to_open', 'computer_not_ready', 'owner_left', 'rate_limited', 'no_computer', 'not_connected']
+const KB_NC_REFUSALS = ['always_on', 'run_hours_exhausted', 'computer_deleting', 'computers_off_for_workspace', 'not_allowed_to_open', 'computer_not_ready', 'owner_left', 'rate_limited', 'no_computer', 'not_connected', 'server_unreachable']
 const kbNcRefusalKey = (answer) => {
   const a = kbNcObj(answer)
   if (a === null) return 'unreachable'
@@ -42061,6 +42062,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'key.done.unk': ['Saved for {name}. We couldn’t check it just now: you’ll see at your first message.', 'Enregistrée pour {name}. On n’a pas pu la vérifier maintenant : tu le verras au premier message.', 'Guardada para {name}. No pudimos comprobarla ahora: lo verás en tu primer mensaje.', 'تم الحفظ لدى {name}. تعذّر التحقق الآن: سترى عند أول رسالة.'],
       'loc.reco': ['Recommended for you', 'Recommandé pour toi', 'Recomendado para ti', 'الموصى به لك'],
       'loc.reco.v': ['{id} · ≈ {gb} GB', '{id} · ≈ {gb} Go', '{id} · ≈ {gb} GB', '{id} · ≈ {gb} غيغابايت'],
+      'loc.use': ['Use {id} (already on this machine)', 'Utiliser {id} (déjà sur cette machine)', 'Usar {id} (ya está en este equipo)', 'استخدام {id} (موجود على هذا الجهاز)'],
       'loc.install': ['Install {id} (≈ {gb} GB)', 'Installer {id} (≈ {gb} Go)', 'Instalar {id} (≈ {gb} GB)', 'تثبيت {id} (≈ {gb} غيغابايت)'],
       'loc.ins.t': ['Installing {id}', 'Installation de {id}', 'Instalando {id}', 'جارٍ تثبيت {id}'],
       'loc.ins.prep': ['Preparing… the local engine is set up first if it’s missing.', 'Préparation… le moteur local est installé d’abord s’il manque.', 'Preparando… el motor local se instala primero si falta.', 'جارٍ التحضير… يُثبَّت المحرك المحلي أولًا إن كان مفقودًا.'],
@@ -42260,6 +42262,13 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       return null
     }
     /** Where « Back » goes from a screen (null = nowhere). */
+    /** Is that model already pulled on this machine? Ollama lists a model by name and adds « :latest » when none was given. Pure. */
+    const kbObHasModel = (machine, id) => {
+      const o = machine !== null && typeof machine === 'object' ? machine.ollama : null
+      if (o === null || o === undefined || o.present !== true || !Array.isArray(o.models) || typeof id !== 'string' || id === '') return false
+      const bare = (x) => String(x).replace(/:latest$/, '')
+      return o.models.some((x) => x !== null && typeof x === 'object' && typeof x.id === 'string' && bare(x.id) === bare(id))
+    }
     const kbObBack = (screen) => ({ job: 'welcome', goals: 'job', model: 'goals', about: 'model', agents: 'about', kit: 'agents', plan: 'kit', key: 'model', providers: 'key', nomodel: 'model', local: 'model', free: 'model', 'local-err': 'local', 'cloud-wait': 'model', 'cloud-err': 'model' }[screen] || null)
     /** Where « Back » goes in the wizard as it stands (null = nowhere). The button and Escape share it. `S` is the wizard's state. */
     const kbObBackOf = (S) => {
@@ -43044,6 +43053,16 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         try { r = seam !== null ? await connectModel(seam, S.localId) : null } catch (e) { r = null }
         if (root === null) return
         if (r !== null && r !== undefined && r.ok === true) { S.model = 'local'; await autoSelect('ollama-local', S.localId); if (root === null) return; go('local-done') } else { S.localError = 'connect'; go('local-err') }
+      }
+      // A model that is already pulled is only connected: no download, no engine set-up.
+      let usingLocal = false
+      const useInstalled = async (reco) => {
+        if (usingLocal) return
+        usingLocal = true
+        S.localId = reco.id
+        S.job = null
+        S.localError = null
+        try { await connectLocal() } finally { usingLocal = false }
       }
       const jobTick = async () => {
         jobTimer = null
@@ -44226,6 +44245,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           const m = S.machine
           const seam = localSeam()
           const reco = seam !== null && m !== null ? seam.recommend(typeof m.ramGo === 'number' ? m.ramGo : null) : null
+          // The model this machine would be offered is already pulled: there is nothing to download, only to connect.
+          const have = reco !== null && kbObHasModel(m, reco.id)
           const rows = []
           if (m !== null) {
             if (typeof m.chip === 'string' && typeof m.ramGo === 'number') rows.push([T('loc.machine'), T('loc.machine.v', { chip: m.chip, gb: m.ramGo })])
@@ -44241,7 +44262,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           if (noEngine) s.appendChild(h('p', 'kb-ob-hint', T('loc.err.noengine')))
           else s.appendChild(h('p', 'kb-ob-hint', T('loc.hint')))
           const a = actions()
-          if (reco !== null && !noEngine) a.appendChild(primary(T('loc.install', { id: reco.id, gb: gbOf(reco) }), () => { startInstall(reco) }))
+          if (have) a.appendChild(primary(T('loc.use', { id: reco.id }), () => { useInstalled(reco) }))
+          else if (reco !== null && !noEngine) a.appendChild(primary(T('loc.install', { id: reco.id, gb: gbOf(reco) }), () => { startInstall(reco) }))
           else a.appendChild(primary(T('loc.go'), () => { S.model = 'local'; finish(['kybernos-ollama', 'models']) }))
           a.appendChild(button('kb-ob-ghost', T('loc.other'), () => go('model')))
           s.appendChild(a)

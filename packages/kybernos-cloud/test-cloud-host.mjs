@@ -48,6 +48,9 @@ const WA_PAIR_ID = '44444444-4444-4444-8444-444444444444'
 const WA_LINK = 'https://wa.me/33600000000?text=pair_abcdefghij0123456789wxyz'
 // What the server answers to POST …/computers/{id}/resume | suspend | ticket (the computers module, ADR 0052): a status and a body.
 let computerActionAnswer = null
+// The server drops the connection on the call that finds the Home computer (a network failure, not an answer).
+let workspacesDown = false
+let computerListDown = false
 const computerActionSeen = []
 let kyberTelegram = { configured: true, enabled: true, bot_username: 'kybernos_bot', linked: { display: 'Amina @alex', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } }
 let kyberHome = { id: 'cmp-home', origin_host: 'cmp-home.computers.test', paused_reason: null, name: 'Home', state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-14T22:50:00.000Z', reported_version: 'p12', network: { mode: 'public', allow: [] } }
@@ -318,11 +321,13 @@ const api = createServer((req, res) => {
     }
     if (req.url === '/v1/workspaces/ws-1/computers' && req.method === 'GET') {
       seen.computerListReads += 1
+      if (computerListDown === true) { req.socket.destroy(); return }
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
       return send(200, { computers: [{ name: 'Other', state: 'running' }, kyberHome], policy: {}, standing: {} })
     }
     if (req.url === '/v1/workspaces') {
       seen.authHeaders.push(auth)
+      if (workspacesDown === true) { req.socket.destroy(); return }
       if (computerRestricted === true) return send(403, { error: 'computer_route_not_allowed', message: 'A cloud computer cannot call this route.' })
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
       return send(200, { workspaces: [{ id: 'ws-1', name: 'My workspace', kyber_count: 2, created_at: '2026-09-04 15:31:21', personal: true }, ...(teamSpaceListed === true ? [{ id: 'ws-team', name: 'Acme Crew', kyber_count: 0, created_at: '2026-10-08 10:00:00' }] : [])] })
@@ -1626,7 +1631,18 @@ try {
     computerActionSeen.length = 0
     kyberHome = { name: 'Notes', state: 'running' }
     assert.equal((await act('resume')).body.error, 'no_computer')
+    // A server that does not answer is not « no computer yet »: the computer may well exist (UJ-157).
     kyberHome = { id: 'cmp-home', origin_host: 'cmp-home.computers.test', name: 'Home', state: 'running' }
+    for (const down of ['workspacesDown', 'computerListDown']) {
+      if (down === 'workspacesDown') workspacesDown = true; else computerListDown = true
+      for (const verb of ['resume', 'suspend', 'open']) {
+        const gone = await act(verb)
+        assert.equal(gone.body.ok, false); assert.equal(gone.body.error, 'server_unreachable', down + ' / ' + verb)
+      }
+      workspacesDown = false; computerListDown = false
+    }
+    assert.equal((await act('resume')).body.ok, true, 'the server is back: the Home computer answers again')
+    computerActionSeen.length = 0
     assert.equal((await act('resume', 'https://evil.example')).status, 403, 'a foreign origin is refused before anything')
     assert.equal((await act('resume', 'null')).status, 403)
     // The right Origin without the signed session is a local program, not the person's page: refused, and nothing is asked of the server.

@@ -468,11 +468,11 @@ const SHOWCASE = [
 ];
 const KEYWORDS = [
   [/ch[aâ]teau|castle|forteresse|donjon|fortress/i, 'castle'],
-  [/chalet|alpin|cabine|cabin|montagne|mountain|ski/i, 'chalet'],
+  [/chalet|alpin|cabine|cabin|montagne|mountain|ski|maison|\bhouse\b/i, 'chalet'],
   [/phare|lighthouse|port|harbor|harbour|marin/i, 'lighthouse'],
   [/fus[ée]e|rocket|navette|spatial|espace|space/i, 'rocket'],
   [/robot|andro[iï]de|mecha|automate/i, 'robot'],
-  [/canal|place|horloge|clock|square|ville|town|maison|house/i, 'canal'],
+  [/canal|place|horloge|clock|square|ville|town/i, 'canal'],
   [/mosa[iï]que|mosaic|tableau|affiche|poster|coucher|sunset/i, 'mosaic'],
   [/van|camping|car|camper|surf|plage|beach/i, 'camper'],
   [/colibri|hummingbird|oiseau|bird/i, 'hummingbird']

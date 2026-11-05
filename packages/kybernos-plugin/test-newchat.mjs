@@ -186,9 +186,10 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.equal(api.kbNcRefusalKey({ ok: false, error: 'always_on' }), 'always_on')
   assert.equal(api.kbNcRefusalKey({ ok: false, error: 'database exploded' }), 'refused', 'a code nobody planned is « refused », never shown')
   assert.equal(api.kbNcRefusalKey(null), 'unreachable')
+  assert.equal(api.kbNcRefusalKey({ ok: false, error: 'server_unreachable' }), 'server_unreachable', 'a server that did not answer is not « no computer yet »')
   // every sentence the card can show exists in both languages
   for (const key of ['resume', 'suspend', 'open', 'busy']) assert.ok(new RegExp("'kbnc\\.cc\\.act\\." + key + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src), 'act.' + key)
-  for (const key of ['always_on', 'run_hours_exhausted', 'computer_deleting', 'computers_off_for_workspace', 'not_allowed_to_open', 'computer_not_ready', 'owner_left', 'rate_limited', 'no_computer', 'not_connected', 'refused', 'unreachable']) {
+  for (const key of ['always_on', 'run_hours_exhausted', 'computer_deleting', 'computers_off_for_workspace', 'not_allowed_to_open', 'computer_not_ready', 'owner_left', 'rate_limited', 'no_computer', 'not_connected', 'server_unreachable', 'refused', 'unreachable']) {
     assert.ok(new RegExp("'kbnc\\.cc\\.err\\." + key + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src), 'err.' + key)
   }
   ok('the actions follow the state and never offer what the server refuses; every refusal has its sentence in both languages')

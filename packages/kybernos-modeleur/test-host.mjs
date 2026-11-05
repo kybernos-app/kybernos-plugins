@@ -31,6 +31,7 @@ const ok = (label, condition, detail) => {
 const magasin = creerMagasin()
 const definition = optionsOutil(magasin)
 ok('l\'outil porte le nom attendu', definition.name === 'modeliser', definition.name)
+ok('UJ-227: the text says a box is placed by its minimum corner and a cylinder by its centre, and how to align them', /box. is placed by its MINIMUM CORNER/.test(definition.description) && /CENTRE \(cx,cy\)/.test(definition.description) && /x = cx − w\/2/.test(definition.description))
 ok('il déclare espace + prompt + ops + mode + titre + duree_ms',
   ['espace', 'prompt', 'ops', 'mode', 'titre', 'duree_ms'].every((k) => k in definition.parameters))
 ok('le repli littéral garde la forme compilée de defineTool',

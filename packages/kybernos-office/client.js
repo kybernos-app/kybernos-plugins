@@ -319,6 +319,14 @@ window.__ModuleLoader__.load({
 
         // The dot before the status says it at a glance: grey = nothing to save, amber = unsaved changes, green = saved, pulsing = working, red = a problem.
         const paintTone = () => statusEl.setAttribute('data-tone', statusEl.className.indexOf('kyo-bad') >= 0 ? 'bad' : state.busy ? 'busy' : state.dirty ? 'dirty' : state.saved ? 'ok' : 'idle')
+        // What the frame reports when it fails. The spreadsheet engine's own words (a WebAssembly trap says « unreachable ») mean nothing to a person: they read « the file could not be opened ».
+        const frameProblem = (raw) => {
+          const word = String(raw || '').trim().slice(0, 200)
+          if (/^(?:unreachable|runtimeerror|memory access out of bounds|call stack|wasm)|\bwasm\b|\bunreachable\b|out of bounds/i.test(word)) {
+            return kt('Ce fichier n’a pas pu être ouvert dans l’éditeur léger : il est peut-être abîmé ou écrit par un programme qu’il ne connaît pas. Il n’a pas été modifié.', 'The light editor could not open this file: it may be damaged or written by a program it does not know. The file was not changed.')
+          }
+          return kt('L’éditeur a un problème : ', 'The editor has a problem: ') + word
+        }
         const status = (text, bad) => { statusEl.textContent = text; statusEl.className = 'kyo-status' + (bad ? ' kyo-bad' : ''); paintTone() }
         const refresh = () => {
           paintTone()
@@ -390,7 +398,7 @@ window.__ModuleLoader__.load({
             if (state.dirty) state.saved = false
             // « Saved » stays on screen until the next change: the frame says « clean » right after a save too.
             if (!state.busy && !state.readOnly && !(state.saved && !state.dirty)) status(state.dirty ? kt('Changements non enregistrés', 'Unsaved changes') : kt('Aucun changement', 'No changes'))
-          } else if (m.op === 'error') status(kt('L’éditeur a un problème : ', 'The editor has a problem: ') + String(m.message || '').slice(0, 200), true)
+          } else if (m.op === 'error') status(frameProblem(m.message), true)
           else if (m.op === 'exported' && typeof m.id === 'number' && pending.has(m.id)) {
             const p = pending.get(m.id)
             pending.delete(m.id)
