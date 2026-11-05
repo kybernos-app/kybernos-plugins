@@ -17,8 +17,9 @@ if errorlevel 1 (
   exit /b 1
 )
 
-rem No invented minimum version: DSH declares none (engines absent).
-rem We test what the robot needs -- ES modules -- and display the version.
+rem The minimum Node depends on the engine being installed (DSH 0.2.2 needs 24.9 or later, older lines declare none), and the
+rem engine is not chosen yet: the robot reads the floor from dsh-compat.json (dsh.node) and refuses with a plain message.
+rem Here we only test what the robot itself needs -- ES modules -- and display the version.
 for /f "delims=" %%v in ('node --version 2^>nul') do set "VNOEUD=%%v"
 node --input-type=module -e "await import('node:child_process')" >nul 2>&1
 if errorlevel 1 (

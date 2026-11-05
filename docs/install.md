@@ -12,7 +12,7 @@ This page is for a person on their own computer. For a server or a container, se
 | | |
 |---|---|
 | A computer | macOS, Linux or Windows |
-| Node.js | version 22 or later ([nodejs.org](https://nodejs.org)); check with `node -v` |
+| Node.js | version 24.9 or later ([nodejs.org](https://nodejs.org)); check with `node -v` |
 | DSH | installed for you when it is missing. The versions this release was played on are listed in [`dsh-compat.json`](../dsh-compat.json) |
 | git | only for the "clone" route below |
 | A model | not needed to install. The first screens help you connect one (see [The welcome pages](#the-welcome-pages)) |
@@ -140,7 +140,7 @@ node scripts/dsh-lifecycle.mjs rollback                                   # rest
 node scripts/dsh-lifecycle.mjs uninstall                                  # unlink the plugins from the profile (the rest is intact)
 ```
 
-- `node: command not found`, or a version that cannot run the installer: install Node.js 22 or later.
+- `node: command not found`, or a version that cannot run the installer: install Node.js 24.9 or later.
 - The page shows « Failed to load plugins »: `safe-mode status` names the plugin that fails and the exact command that
   switches it off.
 - Port 3080 is already used: another DSH is running. Stop it, or give `dsh web` another `--port`.

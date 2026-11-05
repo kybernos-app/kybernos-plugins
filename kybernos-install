@@ -20,8 +20,9 @@ if ! command -v node >/dev/null 2>&1; then
   exit 1
 fi
 
-# No invented minimum version is imposed: DSH declares none (`engines: undefined`, measured on
-# 0.1.7-alpha.1). So we test what the robot really needs (ES modules) and DISPLAY the version.
+# The minimum Node depends on the engine being installed (DSH 0.2.2 needs 24.9 or later, the older lines declare none), and the
+# engine is not chosen yet: the robot reads the floor from dsh-compat.json (`dsh.node`) and refuses with a plain message.
+# Here we only test what the robot itself needs (ES modules) and DISPLAY the version.
 version_noeud=$(node --version 2>/dev/null || echo '?')
 if ! node --input-type=module -e "await import('node:child_process')" >/dev/null 2>&1; then
   echo "Node $version_noeud cannot run the robot (ES modules unavailable)."

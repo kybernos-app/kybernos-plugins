@@ -108,6 +108,34 @@ export function testerCompatibilite ({ cible, compat, force = false }) {
 }
 
 /**
+ * Pure. Is the Node that runs the engine recent enough for this engine version? `compat.dsh.node` is `{ min, from }`: an engine at or
+ * above `from` needs Node `min` or later (DSH declares it in its own `engines`; the older lines declare none, so nothing is asked of
+ * them). `noeud` is `process.versions.node` or the output of `node --version` ("22.23.4" or "v22.23.4"). A fact that cannot be read
+ * never blocks: the robot only refuses on what it measured.
+ */
+export function testerNoeud ({ cible, compat, noeud, force = false }) {
+  const exigence = compat?.dsh?.node
+  const min = exigence?.min
+  if (typeof min !== 'string' || min === '') return { verdict: 'ok', bloquant: false, raison: 'no Node requirement declared' }
+  if (typeof cible !== 'string' || cible === '') return { verdict: 'inconnu', bloquant: false, raison: 'target version unknown: Node not checked' }
+  if (typeof exigence.from === 'string' && exigence.from !== '' && comparerVersions(cible, exigence.from) < 0) {
+    return { verdict: 'ok', bloquant: false, raison: `DSH ${cible} declares no Node requirement` }
+  }
+  const lu = String(noeud ?? '').trim().replace(/^v/, '')
+  if (!/^\d+\.\d+/.test(lu)) return { verdict: 'inconnu', bloquant: false, raison: 'the Node version could not be read: not checked' }
+  if (comparerVersions(lu, min) >= 0) return { verdict: 'ok', bloquant: false, raison: `Node ${lu} fits DSH ${cible} (needs ${min} or later)` }
+  const phrase = `Node ${lu} is too old for DSH ${cible}, which needs Node ${min} or later.`
+  if (force) {
+    return { verdict: 'force', bloquant: false, avertissement: true, raison: phrase + ' Going on because of --force: it may start, but it is not supported.' }
+  }
+  return {
+    verdict: 'refuse', bloquant: true,
+    raison: phrase + ' Install Node 24 (https://nodejs.org/en/download, `brew install node@24` or `nvm install 24`), open a new terminal and run this again. ' +
+      'Nothing was changed. To try anyway, run again with --force.'
+  }
+}
+
+/**
  * Pure. Why a patch is NO LONGER applied on this engine, or null when it is.
  * Two forms in `patches.json`:
  *   · `retire: "reason"` — removed everywhere (the robot undoes it wherever it lingers);
@@ -146,7 +174,7 @@ export async function versionDuPlugin ({ exec, repoDir }) {
 
 // ── 3. doctor — read without writing ──────────────────────────────────────
 
-export async function etatDoctor ({ fs, exec, profilDir, repoDir, packages = [], patches = [], compatChemin }) {
+export async function etatDoctor ({ fs, exec, profilDir, repoDir, packages = [], patches = [], compatChemin, noeud }) {
   const global = await versionDuGlobal({ exec })
   const plugin = await versionDuPlugin({ exec, repoDir })
   const compat = lireCompat({ fs, chemin: compatChemin })
@@ -191,6 +219,9 @@ export async function etatDoctor ({ fs, exec, profilDir, repoDir, packages = [],
     for (const b of bundlesManquants) problemes.push(`the bundle ${b} is not declared in the profile`)
   }
   if (compatVerdict.verdict === 'refuse') problemes.push(compatVerdict.raison)
+  // The Node that starts `dsh` must fit the engine installed (a Node too old gives a DSH that half starts). Only when the caller measured it.
+  const noeudVerdict = moteurAbsent || noeud === undefined ? null : testerNoeud({ cible: global, compat, noeud })
+  if (noeudVerdict !== null && noeudVerdict.verdict === 'refuse') problemes.push(noeudVerdict.raison.replace(' To try anyway, run again with --force.', '').replace(' Nothing was changed.', ''))
 
   const couleur = problemes.length === 0 ? 'verte' : 'orange'
   return { global, plugin, moteur: moteurAbsent ? 'absent' : 'present', profil: profilAbsent ? 'absent' : 'present', alignePins, pinsDivergents, liensManquants, bundlesManquants, compatVerdict, problemes, couleur, patches }
