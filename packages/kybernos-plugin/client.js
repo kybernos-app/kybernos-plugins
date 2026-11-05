@@ -1108,7 +1108,7 @@ let kbLocaleRead = () => 'en'
       'kbui.new.project.noworkspaces': { kybernos: 'Service des espaces de travail indisponible.', en: 'Workspace service unavailable.' },
       'kbui.new.project.noid': { kybernos: 'Espace de travail créé sans identifiant.', en: 'Workspace created without an id.' },
       'kbui.new.project.hint': { kybernos: 'Un workspace, avec ou sans dossier de ton ordinateur.', en: 'A workspace, with or without a folder of your computer.' },
-      'kbui.no.kyber': { kybernos: 'Aucune Agent Team pour l’instant. Crées-en une avec « Nouvelle Agent Team ».', en: 'No Agent Team yet. Create one with “New Agent Team”.' },
+      'kbui.no.kyber': { kybernos: 'Aucune Agent Team pour l’instant. Appuie sur « Créer », puis sur « Nouvelle Agent Team ».', en: 'No Agent Team yet. Press “Create”, then “New Agent Team”.' },
       'kbui.no.engine': { kybernos: 'Aucun moteur disponible.', en: 'No engine available.' },
       'kbui.no.icon': { kybernos: 'Aucune icône ne correspond.', en: 'No icon matches.' },
       'kbui.no.project.match': { kybernos: 'Aucun projet ne correspond à « ', en: 'No project matches “' },
@@ -11805,7 +11805,7 @@ return {
       })
     } catch (e) { /* pas de window (hors navigateur) */ }
     const kbStartTeamChat = () => {
-      const text = '/skill-ai-team-creator Help me create an Agent Team. First ask me what the skill should do.'
+      const text = '/skill-ai-team-creator Help me create an Agent Team. First ask me what the team should do.'
       kbStartChatText(text)
     }
     ctx.effect(() => styles.insert(CSS), 'kybers: sidebar styles')
