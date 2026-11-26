@@ -18,14 +18,16 @@
 
 import { randomUUID } from 'node:crypto'
 import { chargerMoteur } from './moteur.mjs'
-import { runOneShot, texteTache, RunFailure } from './noyau.mjs'
+import { runOneShot, texteTache, RunFailure, cleDuRun } from './noyau.mjs'
 
 const { subagent, subprocess, brand, z } = await chargerMoteur()
-const { NO_START_CAPABILITIES, resolveChildCwd, settleRunResult, subprocessRunHandle } = subagent
+const { NO_START_CAPABILITIES, assertUsableCwd, resolveChildCwd, settleRunResult, subprocessRunHandle } = subagent
 const { scrubbedParentEnv } = subprocess
 const { brandString } = brand
 
 const DEFAULT_DISPOSE_GRACE_MS = 3000
+
+
 
 /**
  * spec : { nomModule, produit, bin, argv(bin, model, taches) -> argv, defautNom?, envCle?, varEnvCle?, resoudreModel? }
@@ -54,11 +56,13 @@ export function fabriquerProvider (spec) {
     }
 
     async start (request) {
-      const parentCwd = request.parent.session.header.cwd
-      if (parentCwd === undefined) throw new Error(`${spec.produit}: no working folder for the child — delegate from a session that has one`)
+      const targetCwd = request.cwd ?? request.parent?.session?.header?.cwd
+      if (targetCwd === undefined) throw new Error(`${spec.produit}: no working folder for the child — delegate from a session that has one`)
       let cwd
       try {
-        cwd = resolveChildCwd(spec.nomModule, undefined, parentCwd)
+        cwd = typeof assertUsableCwd === 'function'
+          ? assertUsableCwd(spec.nomModule, 'child cwd', targetCwd)
+          : resolveChildCwd(spec.nomModule, undefined, targetCwd)
       } catch (error) {
         if (request.signal.aborted) throw new Error(`${spec.produit}: request cancelled before the launch`)
         throw new RunFailure(spec.produit, { stage: 'exec', categorie: 'unknown' }, error)
@@ -71,11 +75,12 @@ export function fabriquerProvider (spec) {
       if ((model == null || model === '') && typeof spec.resoudreModel === 'function') {
         model = await spec.resoudreModel({ baseUrl: this.config.baseUrl, env: this.config.env })
       }
-      const argv = spec.argv(this.config.bin, model, taches, { apiKey: this.config.apiKey, baseUrl: this.config.baseUrl })
+      const apiKey = await cleDuRun(this.ctx, this.config.apiKey, spec.envCle)
+      const argv = spec.argv(this.config.bin, model, taches, { apiKey, baseUrl: this.config.baseUrl })
       const env = { ...scrubbedParentEnv(), ...this.config.env }
       // The API key also goes in the environment (under spec.varEnvCle) for the CLIs that read it there (gemini reads
       // GEMINI_API_KEY): scrubbedParentEnv removed the secrets, so ours is put back explicitly.
-      if (spec.varEnvCle != null && this.config.apiKey) env[spec.varEnvCle] = this.config.apiKey
+      if (spec.varEnvCle != null && apiKey !== '') env[spec.varEnvCle] = apiKey
       const spawn = (spawnSpec) => this.ctx.subprocess.spawn(spawnSpec)
 
       const { attempt, requestCancel, onAbort, teardown } = runOneShot(spec.produit, argv, {
@@ -115,13 +120,10 @@ export function fabriquerProvider (spec) {
   }
 
   function apply (ctx, config) {
-    // Key and endpoint: the config carries them when it has them; otherwise the provider's environment is read (spec.envCle =
-    // variable names tried in order). The key lives outside git (~/.dsh/.credentials.yaml, injected in the environment at
-    // launch), never in the code — so a key stored while DSH runs reaches a provider at the next DSH start.
-    let apiKey = config.apiKey ?? ''
-    if (apiKey === '' && Array.isArray(spec.envCle)) {
-      for (const nom of spec.envCle) { const v = process.env[nom]; if (typeof v === 'string' && v !== '') { apiKey = v; break } }
-    }
+    // Key and endpoint: only an explicit config.apiKey is frozen here. Otherwise `cleDuRun` resolves the key
+    // per run in precedence order: explicit config.apiKey -> live ctx.credentials store -> launch process.env.
+    // Caching process.env here would permanently mask a newer key saved in ctx.credentials while DSH is running.
+    const apiKey = config.apiKey ?? ''
     const baseUrl = (config.baseUrl ?? '') !== '' ? config.baseUrl : (process.env[spec.envBaseUrl ?? ''] ?? spec.baseUrlDefaut ?? '')
     const resolved = {
       providerName: config.providerName ?? spec.defautNom ?? spec.bin,

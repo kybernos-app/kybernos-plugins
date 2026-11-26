@@ -5,6 +5,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { hasEntry } from './lib-i18n-test.mjs'
 import {
   DEFAULT_MAX_PARALLEL, MAX_PARALLEL_CEILING, HOLD_LIMIT_MS, START_GRACE_MS, RUN_MAX_MS, LEVELS,
   maxParallelFrom, defaultMaxParallel, SIZE_TIERS, guardOff, forcedLevel, parseMeminfo, memoryUnreadable, levelOf, pressureOf,
@@ -339,7 +340,7 @@ ok('ios: memory is unknown, so the cap lets a run start')
   assert.ok(/kbt\(max === 1 \? 'kbld\.m\.idle1' : 'kbld\.m\.idle'\)/.test(cli), 'the strip says "one at a time" when the maximum is one')
   assert.ok(/'kbld\.foot\.' \+ level \+ \(level === 'ok' && max === 1 \? '1' : ''\)/.test(cli), 'the detail footer says it in the singular')
   assert.ok(/ld\.maxParallel === 1 \? 'ok1' : 'ok'/.test(cli), 'the settings row says it in the singular')
-  for (const k of ['kbld.m.idle1', 'kbld.foot.ok1', 'kbauto.set.load.ok1']) assert.ok(new RegExp("'" + k.replace(/\./g, '\\.') + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(cli), k + ' has both languages')
+  for (const k of ['kbld.m.idle1', 'kbld.foot.ok1', 'kbauto.set.load.ok1']) assert.ok(hasEntry(k), k + ' has both languages')
   ok('size wiring: the memory reaches the maximum; one at a time is said in the singular, in both languages')
 }
 
@@ -411,13 +412,13 @@ ok('ios: memory is unknown, so the cap lets a run start')
   assert.deepEqual(kept.total.slice(-3), [37, 38, 39])
   assert.deepEqual([kept.cpu.length, kept.mem.length, kept.runs.length], [30, 30, 30])
 
-  assert.ok(/h\('div', \{ className: 'kbld-row' \},\s+h\('div', \{ className: 'kba-sub', role: 'tablist'[\s\S]{0,700}h\(KbLoadStrip, \{ load: machineLoadPair\[0\], computers: computersPair\[0\]\.list, computersAt: computersPair\[0\]\.at \}\)\)/.test(cli), 'the strip sits on the tabs row, to the right of Yours / Discover')
+  assert.ok(/h\('div', \{ className: 'kbld-row' \},\s+h\(KbTabsBar, \{ dataKb: 'automations-sections'[\s\S]{0,700}h\(KbLoadStrip, \{ load: machineLoadPair\[0\], computers: computersPair\[0\]\.list, computersAt: computersPair\[0\]\.at \}\)\)/.test(cli), 'the strip sits on the tabs row, to the right of Yours / Discover')
   assert.ok(/fetch\('\/kybernos-cloud\/computers', \{ cache: 'no-store', credentials: 'same-origin' \}\)/.test(cli) && !/fetch\('\/kybernos-cloud\/computers', \{[^}]*method/.test(cli), 'the page reads the computers, never writes them')
   assert.ok(/timer = setTimeout\(read, list\.length > 0 \? 10000 : 60000\)/.test(cli), 'with no computer to show it asks once a minute, with some every ten seconds')
   assert.ok(/role: 'tablist', 'aria-label': kbt\('kbld\.tabs'\)/.test(cli) && /role: 'tab', className: 'kbld-tab', 'aria-selected'/.test(cli), 'the computers are tabs with their state')
   assert.ok(/cloud === null \? h\('button', \{ type: 'button', className: 'kbld-link', 'data-kb': 'load-settings'/.test(cli), 'only this machine has a settings link: no dead link for a computer in the cloud')
   assert.ok(/'data-kb': 'load-else'/.test(cli) && /kbt\('kbld\.elseN'\)/.test(cli), 'another computer that is busy is said on the strip')
-  for (const k of ['kbld.here', 'kbld.tabs', 'kbld.st.asleep', 'kbld.st.waking', 'kbld.st.winding_down', 'kbld.st.off', 'kbld.st.noreading', 'kbld.else1', 'kbld.elseN', 'kbld.note.asleep', 'kbld.note.waking', 'kbld.note.winding_down', 'kbld.note.off', 'kbld.note.noreading', 'kbld.sinceOpen', 'kbld.unit.mb', 'kbld.unit.gb']) assert.ok(new RegExp("'" + k.replace(/\./g, '\\.') + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(cli), k + ' has both languages')
+  for (const k of ['kbld.here', 'kbld.tabs', 'kbld.st.asleep', 'kbld.st.waking', 'kbld.st.winding_down', 'kbld.st.off', 'kbld.st.noreading', 'kbld.else1', 'kbld.elseN', 'kbld.note.asleep', 'kbld.note.waking', 'kbld.note.winding_down', 'kbld.note.off', 'kbld.note.noreading', 'kbld.sinceOpen', 'kbld.unit.mb', 'kbld.unit.gb']) assert.ok(hasEntry(k), k + ' has both languages')
   assert.ok(/a\.weight !== null \? kbLdStateCell\(a\) : h\('span', \{ className: 'kba-last'/.test(cli), 'a row with a weight draws it, any other row is untouched')
   assert.ok(/weight: kbLdRowWeight\(machineLoadPair\[0\], t, runIds\.indexOf\(t\.id\) >= 0, Date\.now\(\)\)/.test(cli), 'the weight is only for a run the engine also says is running')
   const stripSrc = cli.slice(cli.indexOf('const KbLoadStrip = '), cli.indexOf('const kbLdRowWeight = '))
@@ -434,8 +435,8 @@ ok('ios: memory is unknown, so the cap lets a run start')
   // every string of the strip exists in both languages
   const keys = Array.from(new Set(cli.match(/kbt\('kbld\.[a-zA-Z.]+'\)/g) || [])).map((k) => k.slice(5, -2))
   assert.ok(keys.length > 20, 'the strip uses its strings')
-  for (const k of keys) assert.ok(new RegExp("'" + k.replace(/\./g, '\\.') + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(cli), 'both languages for ' + k)
-  for (const k of ['kbld.foot.ok', 'kbld.foot.busy', 'kbld.foot.high', 'kbld.level.ok', 'kbld.level.busy', 'kbld.level.high']) assert.ok(cli.indexOf("'" + k + "'") > 0, k)
+  for (const k of keys) assert.ok(hasEntry(k), 'both languages for ' + k)
+  for (const k of ['kbld.foot.ok', 'kbld.foot.busy', 'kbld.foot.high', 'kbld.level.ok', 'kbld.level.busy', 'kbld.level.high']) assert.ok(hasEntry(k), 'the dictionary has ' + k) // built as 'kbld.level.' + level in the client: the dictionary is where they are written
   ok('client: the drawing helpers (path, stairs, ring, clock) and the wiring of strip, detail and rows')
 }
 

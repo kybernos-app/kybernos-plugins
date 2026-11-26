@@ -26,12 +26,13 @@ const shown = []
 class FakeNotification { constructor (title, opts) { this.title = title; this.opts = opts; shown.push(this) } close () {} }
 FakeNotification.permission = 'granted'
 FakeNotification.requestPermission = async () => 'granted'
+const rootAttrs = {} // the attributes of <html>: the Theme puts `data-kbth-counters` there
 const doc = {
   title: 'Kybernos',
   hidden: false,
   head: { children: [], appendChild (n) { this.children.push(n); n.remove = () => { this.children.splice(this.children.indexOf(n), 1) } } },
   createElement: () => ({ dataset: {}, textContent: '' }),
-  documentElement: {},
+  documentElement: { getAttribute: (k) => (Object.prototype.hasOwnProperty.call(rootAttrs, k) ? rootAttrs[k] : null) },
   listeners: {},
   addEventListener (t, fn) { (this.listeners[t] = this.listeners[t] || []).push(fn) },
   removeEventListener (t, fn) { this.listeners[t] = (this.listeners[t] || []).filter((x) => x !== fn) },
@@ -40,12 +41,14 @@ const doc = {
 const timers = []
 const opened = []
 let focused = 0
+const winListeners = {} // the listeners of the window: the Theme tells pulse of a change with `kb-counters-change`
+const fireCounters = () => (winListeners['kb-counters-change'] || []).slice().forEach((fn) => fn())
 globalThis.window = {
   __ModuleLoader__: { load: (def) => { globalThis.definition = def } },
   __KB_LANG_RESOLVE__: () => resolved,
   setTimeout: (fn, ms) => { timers.push({ fn, ms }); return timers.length },
   clearTimeout: () => {},
-  addEventListener: () => {}, removeEventListener: () => {},
+  addEventListener: (t, fn) => { (winListeners[t] = winListeners[t] || []).push(fn) }, removeEventListener: (t, fn) => { winListeners[t] = (winListeners[t] || []).filter((x) => x !== fn) },
   focus: () => { focused += 1 },
   __KB_OPEN__: Object.assign((arg) => { opened.push(arg); return true }, { views: ['tasks', 'skills'] }),
   __KB_BRAND__: { faviconHref: () => 'data:image/svg+xml,%3Csvg%3E%3C/svg%3E' },
@@ -202,6 +205,30 @@ ok('and marks the item read', fetchLog.some((f) => f.method === 'POST' && f.body
 state = mkSnap({ settings: { ...mkSnap().settings, badge: false }, unread: 4 })
 await T.refresh()
 ok('with the badge switched off the title carries no count', doc.title === 'Kybernos' && calls.includes('badge:clear'), doc.title)
+
+console.log('── the Theme\'s « Notification counters » ──')
+// The Theme publishes `data-kbth-counters` on <html>: 'hidden' by default (owner's call, 2026-11-24), 'shown' when the person switched the counters on. Absent = no Theme: pulse's own switch decides alone.
+ok('no Theme attribute: the counters are not hidden (pulse\'s own switch decides)', T.countersHidden() === false)
+state = mkSnap({ inbox: [fresh], unread: 3 })
+await T.refresh()
+ok('...so the count shows, in the title and on the app icon', doc.title === '(3) Kybernos' && calls[calls.length - 1] === 'badge:3', doc.title + ' / ' + calls[calls.length - 1])
+rootAttrs['data-kbth-counters'] = 'hidden'
+ok('hidden (the Theme\'s default): the module sees it', T.countersHidden() === true)
+ok('...and the Theme\'s event (`kb-counters-change`) is heard, so the count goes at once (no new poll): title stripped, app badge cleared', (winListeners['kb-counters-change'] || []).length === 1 && (fireCounters(), doc.title === 'Kybernos' && calls[calls.length - 1] === 'badge:clear'), doc.title + ' / ' + calls[calls.length - 1])
+const callsBefore = calls.length
+state = mkSnap({ inbox: [fresh], unread: 7 })
+await T.refresh()
+ok('...and a new poll with unread events keeps it away: no count in the title, no badge set', doc.title === 'Kybernos' && !calls.slice(callsBefore).some((c) => /^badge:[1-9]/.test(c)), doc.title + ' / ' + calls.slice(callsBefore).join())
+doc.title = '(48) Skills — Kybernos'
+await T.refresh()
+ok('...a title that DSH wrote with a count in front is stripped of it (the owner\'s « (48) Skills — Kybernos »)', doc.title === 'Skills — Kybernos', doc.title)
+ok('banners are not part of the setting: with the counters hidden a fresh event still makes its banner', T.countersHidden() === true && T.bannersToShow(mkSnap({ inbox: [fresh], banners: ['fresh'] }), NOW, true).show.length === 1)
+rootAttrs['data-kbth-counters'] = 'shown'
+fireCounters()
+ok('shown: the count comes back (title and app badge), on the Theme\'s change', doc.title === '(7) Skills — Kybernos' && calls[calls.length - 1] === 'badge:7', doc.title + ' / ' + calls[calls.length - 1])
+delete rootAttrs['data-kbth-counters']
+doc.title = 'Kybernos'
+ok('the source: the attribute is read in one place, the listener is released with the effect, no MutationObserver (so no `ui.dom` permission), and the Settings switch says the Theme sets the default', /countersHidden = \(\) => \{ try \{ return document\.documentElement\.getAttribute\('data-kbth-counters'\) === 'hidden' \}/.test(source) && /window\.removeEventListener\('kb-counters-change', onCounters\)/.test(source) && !/MutationObserver/.test(source) && /Theme › Notification counters/.test(source))
 
 console.log('── the floating window ──')
 ok('without Document Picture-in-Picture the window is simply not available', (await T.openFloating()) === false && T.isFloating() === false)

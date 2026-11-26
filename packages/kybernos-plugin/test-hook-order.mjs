@@ -69,19 +69,23 @@ const storeHook = (store) => (selector) => { React.useRef(null); return selector
   const a = src.indexOf('// KB-NEWCHAT-BEGIN')
   const b = src.indexOf('// KB-NEWCHAT-END')
   assert.ok(a > 0 && b > a, 'the KB-NEWCHAT block exists')
-  const pure = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_TEMPLATES, KB_NC_ART, kbNcChapters, kbNcAdaptText, kbNcDetect, kbNcFill, kbNcSuggest, kbNcActions, kbNcDot, kbNcRefusalKey })')
+  const pure = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_TEMPLATES, KB_NC_ART, kbNcChapters, kbNcPhoneCards, kbNcAdaptText, kbNcDetect, kbNcFill, kbNcSuggest, kbNcActions, kbNcDot, kbNcRefusalKey })')
   const win = { addEventListener () {}, removeEventListener () {}, __KB_KYBER__: undefined }
   const Cards = make(cut('const KbNewChatCards = (props) => {', "\n    ctx.effect(() => slots.inject('conversation.input.dock', () => slots.register(\n      { name: 'conversation.input.dock', id: 'kybernos-newchat'"), {
     React, h, window: win, fetch: () => new Promise(() => {}), kbt: (k) => k, Icon: (n) => h('i', { 'data-icon': n }),
     ...pure,
-    kbNcBootIds: () => [], kbDomainHome: () => undefined, kbFmtWhen: (s) => s, kbNcCloudBurst () {},
+    kbNcBootIds: () => [], kbDomainHome: () => undefined, kbFmtWhen: (s) => s, kbNcCloudBurst () {}, kbSimpleMode: () => false,
     useNcCloud: () => React.useState({ kind: 'awake', lastActive: '', pausedReason: '' })[0],
     // the hooks of the shelf's data (one state each, as the real ones hold at least one) and the two views, stubbed
     useNcCatalogue: () => React.useState(null)[0],
     useNcKits: () => [React.useState(null)[0], () => {}],
     KbNcShelf: (sp) => h('div', { 'data-kb': 'newchat-shelf' }, sp.groups.length + ' chapters'),
     KbNcDialog: () => null,
+    // the phone's cards: the sheet « See all » and the focus the card gives the composer are views and DOM, stubbed
+    KbNcsSheet: () => h('div', { 'data-kb': 'ncs-sheet' }),
+    kbNcGiveFocus () {},
   })
+  const phone = (root) => lite.find(root.tree, (n) => n.props['data-kb'] === 'ncs').length
   const tiles = (root) => lite.find(root.tree, (n) => n.props['data-kb'] === 'newchat-shelf').length
   const cloud = (root) => lite.find(root.tree, (n) => n.props['data-kb'] === 'newchat-cloud').length
   const blank = { sessionId: 's1', session: { blank: true }, input: { draft: '' }, inputActions: { setDraft () {} } }
@@ -91,6 +95,7 @@ const storeHook = (store) => (selector) => { React.useRef(null); return selector
   const root = lite.mount(h(Cards, blank))
   await root.settle()
   assert.equal(tiles(root), 1, 'a blank chat shows the tiles')
+  assert.equal(phone(root), 1, 'and the phone\'s cards (shown under 600 px by the page\'s CSS)')
   assert.equal(cloud(root), 1, 'and the Cloud Computer row')
   // The first message is sent: the chat is no longer blank. Real React threw error #300 here (two hooks sat after the early return).
   assert.doesNotThrow(() => root.update(h(Cards, sent)), 'the chat stops being blank: the dock renders again, with the same hooks')
@@ -107,6 +112,8 @@ const storeHook = (store) => (selector) => { React.useRef(null); return selector
   win.__KB_KYBER__ = { isKybySession: () => true }
   assert.doesNotThrow(() => kaby.update(h(Cards, Object.assign({}, blank))), 'Kaby\'s chat is recognised after the cards were drawn')
   assert.equal(tiles(kaby), 0, 'its strip is all that sits above the composer: no tiles')
+  assert.equal(phone(kaby), 1, 'but the phone\'s cards are drawn there (list item 22: the new-chat home is shown in Simple)')
+  assert.equal(cloud(kaby), 0, 'and not the Cloud Computer row')
   win.__KB_KYBER__ = { isKybySession: () => false }
   assert.doesNotThrow(() => kaby.update(h(Cards, Object.assign({}, blank))), 'and back to an ordinary chat')
   assert.equal(tiles(kaby), 1)

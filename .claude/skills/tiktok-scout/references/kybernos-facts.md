@@ -15,7 +15,6 @@ product changes, change this page first. Kybernos is **beta**.
 | **Kaby** is your assistant: a real chat with your account's memory, Telegram connected by QR code or link, and a cloud computer it works on. | `packages/kybernos-kyber/README.md` |
 | Agent Teams: roles, a crew view, a run journal; a run can be held until a person approves. | `README.md`; `packages/kybernos-plugin/README.md` |
 | **Automations**: tasks that run on a schedule (cron), once, or from a webhook, with a board showing what is running and what waits for approval. | `packages/kybernos-plugin/README.md`, « The Automations board » |
-| Cloud computers for agents (E2B, you bring your own key). | `README.md`, bundles table |
 | Slide decks, motion design (titles, charts, 3D, characters, sound, MP4 export), dashboards, brick mockups and 2D/3D models can all be made by chatting. | `README.md`, bundles table |
 | Free language models of OpenCode Zen with no account and no API key. | `README.md`, `kybernos-free-llms` |
 | Web search for the agents with or without an API key; local models installable from a panel (Ollama). | `README.md`, `kybernos-websearch`, `kybernos-modeles-locaux` |

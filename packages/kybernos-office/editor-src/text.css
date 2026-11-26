@@ -1,0 +1,28 @@
+html,body,#app{margin:0;height:100%}
+#app{display:flex;flex-direction:column;background:#fff;color:#1c1c1e;font:14px/1.5 system-ui,sans-serif}
+.kytx-top{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid #e1e3e8;background:#f6f7f9}
+.kytx-modes{display:flex;border:1px solid #c9ccd4;border-radius:8px;overflow:hidden}
+.kytx-mode{border:0;background:#fff;padding:4px 12px;font:inherit;cursor:pointer;color:#333}
+.kytx-mode.on{background:#1c1c1e;color:#fff}
+.kytx-mode:disabled{opacity:.5;cursor:default}
+.kytx-tools{display:flex;flex-wrap:wrap;align-items:center;gap:2px}
+.kytx-tools[hidden],.kytx-tool[hidden]{display:none}
+.kytx-tool{height:28px;padding:0 10px;border:1px solid #c9ccd4;border-radius:14px;background:#fff;font:inherit;font-size:13px;cursor:pointer;color:#222}
+.kytx-tool:hover:not(:disabled){background:#e8eaef}
+.kytx-tool:disabled{opacity:.5;cursor:default}
+.kytx-info{margin-left:auto;font-size:12px;color:#555}
+.kytx-info.bad{color:var(--dsw-alias-label-error,#b3261e)}
+.kytx-hint{flex:none;padding:6px 10px;border-bottom:1px solid #e1e3e8;background:#fffbea;font-size:13px}
+.kytx-hint[hidden]{display:none}
+.kytx-table{flex:1;min-height:0;overflow:auto;background:#fff}
+.kytx-table[hidden]{display:none}
+.kytx-grid{border-collapse:collapse;font-size:13px}
+.kytx-grid td,.kytx-grid th{border:1px solid #d3d6dd;padding:0}
+.kytx-rn{position:sticky;left:0;min-width:36px;padding:0 6px;background:#f1f2f5;color:#666;font-weight:400;font-size:12px;text-align:right}
+.kytx-grid input{display:block;width:150px;box-sizing:border-box;margin:0;padding:5px 8px;border:0;outline:none;background:transparent;font:inherit;color:inherit}
+.kytx-grid input:focus{background:#eef2ff;box-shadow:inset 0 0 0 2px #5563d6}
+.kytx-grid tr:first-child input{font-weight:600;background:#f6f7f9}
+.kytx-grid tr:first-child input:focus{background:#eef2ff}
+.kytx-text{flex:1;min-height:0;width:100%;box-sizing:border-box;margin:0;padding:16px clamp(12px,5vw,48px);border:0;outline:none;resize:none;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;color:#1c1c1e;background:#fff}
+.kytx-text.nowrap{white-space:pre;overflow:auto}
+.kytx-text[hidden]{display:none}

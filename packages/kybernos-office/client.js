@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════
-// kybernos-office — browser half: the window where the person edits the Office files of Creations (a .docx, an .xlsx), its Markdown and PDF files and its slide decks (.deck.html).
+// kybernos-office — browser half: the window where the person edits the Office files of Creations (a .docx, an .xlsx), its Markdown and PDF files, its text, JSON and CSV files and its slide decks (.deck.html).
 //
 // The core viewer of a file shows « Edit » when a plugin declared an editor that takes the file's name (`window.__KB_EDITORS__`, docs/dev/office-editors-open-save-contract-2026-11-03.md).
 // This plugin declares one. Its window is a full-screen layer with a bar (Save, Save a copy, Undo, Close) and, under it, the editor in a sandboxed iframe.
@@ -36,11 +36,12 @@ window.__ModuleLoader__.load({
       const kt = (fr, en) => (lang() === 'fr' ? fr : en)
       const plain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 
-      /** Whether the editors take this file name: a .docx, .xlsx, .pdf, Markdown or .deck.html (a slide deck) file that is not the lock file Word and Excel leave beside an open file. */
-      const canEdit = (name) => typeof name === 'string' && !name.startsWith('~$') && /\.(docx|xlsx|pdf|md|markdown|deck\.html)$/i.test(name)
-      /** The viewer of Creations draws what the editors draw, except Markdown: its own rendered preview stays, the pencil opens the editor. */
+      /** Whether the editors take this file name: a .docx, .xlsx, .pdf, Markdown, .deck.html (a slide deck), plain text (.txt .rst .yaml .yml .toml), CSV (.csv .tsv) or .json file that is not the lock file Word and Excel leave beside an open file. */
+      const canEdit = (name) => typeof name === 'string' && !name.startsWith('~$') && /\.(docx|xlsx|pdf|md|markdown|deck\.html|txt|rst|yaml|yml|toml|csv|tsv|json)$/i.test(name)
+      /** The viewer of Creations draws what the editors draw, except Markdown and the text kinds: its own preview stays (the rendered Markdown, the fields of a JSON, the rows of a CSV), the pencil opens the editor. */
       const isMarkdown = (name) => typeof name === 'string' && /\.(md|markdown)$/i.test(name)
-      const viewerDraws = (name) => canEdit(name) && !isMarkdown(name)
+      const isPlainText = (name) => typeof name === 'string' && /\.(txt|rst|yaml|yml|toml|csv|tsv|json)$/i.test(name)
+      const viewerDraws = (name) => canEdit(name) && !isMarkdown(name) && !isPlainText(name)
 
       // ── the host ─────────────────────────────────────────────────────────────────
       /** `{ ok, … }` always: a network failure, an unreadable answer or a refusal is an answer too. The session cookie travels with the request. */
@@ -66,14 +67,15 @@ window.__ModuleLoader__.load({
           'not-found': kt('Ce fichier est introuvable.', 'This file cannot be found.'),
           'not-a-file': kt('Ce chemin n’est pas un fichier.', 'This path is not a file.'),
           'not-allowed': kt('Les éditeurs n’ouvrent pas ce dossier.', 'The editors do not open this folder.'),
-          'unsupported-format': kt('Seuls les fichiers .docx, .xlsx, .pdf, .md et .deck.html s’ouvrent ici.', 'Only .docx, .xlsx, .pdf, .md and .deck.html files open here.'),
+          'unsupported-format': kt('Seuls les fichiers .docx, .xlsx, .pdf, .md, .deck.html, .txt, .csv, .tsv, .json, .yaml, .yml, .toml et .rst s’ouvrent ici.', 'Only .docx, .xlsx, .pdf, .md, .deck.html, .txt, .csv, .tsv, .json, .yaml, .yml, .toml and .rst files open here.'),
           'too-big': kt('Ce fichier dépasse 64 Mo.', 'This file is larger than 64 MB.'),
           'not-a-zip': kt('Ce fichier n’est pas un vrai document Office : il est peut-être abîmé.', 'This is not a real Office file: it may be damaged.'),
           'not-a-docx': kt('Ce fichier n’est pas un vrai document Word.', 'This is not a real Word document.'),
           'not-a-xlsx': kt('Ce fichier n’est pas un vrai classeur Excel.', 'This is not a real Excel workbook.'),
           'not-a-pdf': kt('Ce fichier n’est pas un vrai PDF.', 'This is not a real PDF.'),
           'not-a-deck': kt('Ce fichier n’est pas une présentation faite ici : il ne s’ouvre pas comme des slides.', 'This is not a slide deck made here: it does not open as slides.'),
-          'not-text': kt('Ce fichier n’est pas du texte (UTF-8) : il ne s’ouvre pas comme du Markdown.', 'This file is not text (UTF-8): it does not open as Markdown.'),
+          'not-text': kt('Ce fichier n’est pas du texte (UTF-8) : il ne s’ouvre pas dans cet éditeur.', 'This file is not text (UTF-8): it does not open in this editor.'),
+          'text-too-big': kt('Ce fichier texte dépasse 5 Mo : l’éditeur léger ne l’ouvre pas.', 'This text file is larger than 5 MB: the light editor does not open it.'),
           'invalid-output': kt('L’éditeur a rendu un fichier invalide : rien n’a été écrit.', 'The editor returned an invalid file: nothing was written.'),
           'unknown-token': kt('Ce lien a expiré : rouvre le fichier.', 'This link has expired: open the file again.'),
           'nothing-to-undo': kt('Il n’y a aucun enregistrement à annuler.', 'There is no save to undo.'),
@@ -647,7 +649,7 @@ window.__ModuleLoader__.load({
       return {
         name: NAME,
         apply: start,
-        __test: { canEdit, viewerDraws, isMarkdown, errorText, notices, thing, openFile, embedFile, makePaneBody, startPane, PANE_ID, PANE_KIND, paneTitle, baseName, CSS, lang, kt, BASE, REGISTRY, HASH, current: () => current },
+        __test: { canEdit, viewerDraws, isMarkdown, isPlainText, errorText, notices, thing, openFile, embedFile, makePaneBody, startPane, PANE_ID, PANE_KIND, paneTitle, baseName, CSS, lang, kt, BASE, REGISTRY, HASH, current: () => current },
       }
     } catch (e) {
       console.warn('[kybernos-office] disabled:', e)

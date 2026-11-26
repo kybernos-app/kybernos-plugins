@@ -1,0 +1,13 @@
+{
+  "name": "@local/kybernos-phone-model",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "The small model that runs on the phone itself, for plain chat: declares it as a provider of the engine, adds the « Discussion » preset (no tools), the « Light agent » preset (four tools, writes behind approval) when the app says the model takes tools, and one quiet line saying what it is. Inert without the Kybernos app.",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./index.js", "./client": "./client.js", "./discussion-scope": "./discussion-scope.js", "./light-agent-scope": "./light-agent-scope.js", "./package.json": "./package.json" },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": { "platform": "web", "immediately": true }
+  }
+}

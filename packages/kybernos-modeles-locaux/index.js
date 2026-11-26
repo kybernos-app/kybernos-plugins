@@ -15,6 +15,7 @@ import { execFile, spawn } from 'node:child_process'
 import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { isCloudId } from './modeles-catalogue.mjs'
 import { loadKeys, loadShipped, serveCatalogue } from './modeles-distant.mjs'
 import { writeGuard } from './session-guard.mjs'
 
@@ -334,6 +335,8 @@ export function apply(ctx) {
         if (job !== null && job.running === true) { sendJson(res, 409, { ok: false, error: 'occupe', cmd: job.cmd }); return }
         if (cible !== 'ollama' && ID_VALIDE.test(cible) !== true) { sendJson(res, 400, { ok: false, error: 'id-invalide' }); return }
         if (cible !== 'ollama' && cible.indexOf('..') >= 0) { sendJson(res, 400, { ok: false, error: 'id-invalide' }); return }
+        // A hosted model (`name:cloud`, `name:120b-cloud`) is not installed here: the prompts would go to Ollama's servers while the page says "local".
+        if (cible !== 'ollama' && isCloudId(cible)) { sendJson(res, 400, { ok: false, error: 'id-cloud' }); return }
         const veutMoteur = body !== null && body.installeMoteur === true
         if (cible === 'ollama') {
           if (process.platform !== 'darwin') {

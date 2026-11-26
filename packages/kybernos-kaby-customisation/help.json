@@ -27,7 +27,7 @@
     "page": true
   },
   "good": {
-    "fr": "Le portrait reste sur cet ordinateur. Autorisations signées par toi, réveil approuvé par toi ; une application connectée et le redémarrage de DSH te sont toujours demandés, même pendant un réveil.",
-    "en": "The portrait stays on this computer. Permissions are signed by you, the wake-up approved by you; a connected app and restarting DSH are always asked of you, even during a wake-up."
+    "fr": "Le portrait reste sur cet ordinateur. Autorisations signées par toi, réveil approuvé par toi ; une application connectée et le redémarrage de Kybernos te sont toujours demandés, même pendant un réveil.",
+    "en": "The portrait stays on this computer. Permissions are signed by you, the wake-up approved by you; a connected app and restarting Kybernos are always asked of you, even during a wake-up."
   }
 }

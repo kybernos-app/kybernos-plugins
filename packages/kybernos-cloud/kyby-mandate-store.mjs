@@ -60,7 +60,7 @@ export function createMandateStore (deps) {
         const verdict = decide(readJson(recordFile()), secret(), readJson(usageFile()), toolName, t)
         if (verdict.allow !== true) return { allow: false, why: verdict.why }
         writeJson(usageFile(), countUse(readJson(usageFile()), verdict.klass, t))
-        audit({ kind: 'ran', tool: toolName, klass: verdict.klass, session: typeof sessionId === 'string' && SAFE_ID.test(sessionId) ? sessionId : null, ...(source === 'automation' ? { source } : {}) })
+        audit({ kind: 'ran', tool: toolName, klass: verdict.klass, session: typeof sessionId === 'string' && SAFE_ID.test(sessionId) ? sessionId : null, ...(source === 'automation' || source === 'assistant' || source === 'turn' ? { source } : {}) })
         return { allow: true, why: 'covered' }
       } catch (e) { return { allow: false, why: 'error' } }
     },

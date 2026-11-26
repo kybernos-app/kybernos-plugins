@@ -43,22 +43,25 @@ import { dirname, join, resolve } from 'node:path'
 import { lireCatalogue, resoudreItem, slugSur, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
 import { rank as rankByRelevance, tokens as relevanceTokens } from './relevance.mjs'
 import { findDuplicateGroups, unclearPairs, likeness, negates, numbersOf } from './dedupe.mjs'
-import { MAP_TUNING, textHash, packVector, unpackVector, buildMap } from './mapproj.mjs'
 import { TEAM_CHUNK_NAME, TEAM_CHUNK_ORDER, TEAM_TUNING, teamWorkspace, displayName, asTeamLesson, teamFailure, teamPlan, renderTeamChunk, applicable } from './team-lessons.mjs'
 import { teamSkillsBase, isSkillId, teamSkillsFailure, asTeamSkill, hiddenPlaceOf } from './team-skills.mjs'
 import { teamAutomationsBase, isAutomationId, teamAutomationsFailure, asTeamAutomation, asTeamAutomationsPage, teamAutomationShape, definitionOf, versionOf, accessEntry, TEAM_AUTOMATION_LIMITS, TEAM_AUTOMATION_VIEWS } from './team-automations.mjs'
 import { createConnections } from './connections-host.mjs'
-import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyChoice, brainGroups, askModel, brainPrompt, parseVerdicts, BRAIN_BATCH, BRAIN_TIMEOUT_MS } from './tidy.mjs'
+import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, AUTO_MAX_BRAIN_MERGES, autoRequest, removalChunks, readStudyChoice, brainGroups, askModel, brainPrompt, parseVerdicts, BRAIN_BATCH, BRAIN_TIMEOUT_MS } from './tidy.mjs'
 import { zstdDecompressSync } from 'node:zlib'
 import { activeServer, stateFileName, llmBase, publicProfile } from './server-profile.mjs'
 import { agentsFile, readInstructions, writeInstructions } from './instructions.mjs'
 import { createKybyRoutes, pairingSupport } from './kyby.mjs'
 import { computersOf } from './computers-view.mjs'
+import { createComputerUpdate } from './computer-update.mjs'
+import { createDoorSessions } from './door-sessions.mjs'
 import { createComputerTurn, targetOf, renderTargetPrompt, cloudComputerTaskTool } from './computer-turn.mjs'
+import { stopTurn } from './turn-stop.mjs'
 import { createPublish } from './computers-publish.mjs'
 import { identityOf } from './computer-identity.mjs'
 import { lireSecretSession, writeGuard } from './session-guard.mjs'
 import { createMandateStore } from './kyby-mandate-store.mjs'
+import { shellIsReadOnly } from './turn-gate-rules.mjs'
 import { createConnectorAsks } from './connector-ask.mjs'
 import { createUntrustedChats, riskOf, bringsUntrusted, hostOf, hostsIn } from './untrusted-turn.mjs'
 import { LIST_TEXT, UNATTENDED_NEVER, createUnattended } from './kyby-unattended.mjs'
@@ -66,8 +69,11 @@ import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby
 import { appendEntry as journalAppend, journalTool, toolsOfTurn, turnEntry as journalEntry } from './kyby-journal.mjs'
 import { actionKey, readItems as askRead, writeItems as askWrite, verdict as askVerdict, denyReason as askDeny, continuationText as askContinuation, ofRun as askOfRun, toContinue as askToContinue } from './automation-approvals.mjs'
 import { knowledgeTool } from './kyby-knowledge.mjs'
+import { createStepLog } from './kyby-steps.mjs'
+import { makeJournalLink, pagesDir } from './kyby-journal-link.mjs'
 import { accountTool } from './kyby-account.mjs'
 import { createSiteTools, siteShown } from './site-publish.mjs'
+import { imageTool, imageShown } from './kyby-image.mjs'
 import { createShopTools, shopShown } from './shop-stock.mjs'
 import { createLazyRetouch } from './shop-photo.mjs'
 import { createPageMap, createSitePages } from './site-page.mjs'
@@ -443,7 +449,7 @@ const readSpacePlan = async (state, id) => {
   // A workspace that asks for a second factor turns away a member who has none, once the grace is over: the plan is unknown, the reason is not. DSH itself can only
   // say « API key is invalid » to that person (a 403 is AUTH to it), so the card carries the reason.
   if (res.status === 403 && res.body !== null && typeof res.body === 'object' && res.body.error === 'mfa_required_by_workspace') {
-    return { workspace_id: id, key: 'none', name: null, level: null, label: null, status: null, credit_balance_credits: null, mfa: { state: 'blocked', ends: null } }
+    return { workspace_id: id, key: 'none', name: null, level: null, label: null, status: null, credit_balance_credits: null, credit_balance_usd: null, mfa: { state: 'blocked', ends: null } }
   }
   if (res.status !== 200 || res.body === null || typeof res.body !== 'object') return null
   const b = res.body
@@ -456,9 +462,12 @@ const readSpacePlan = async (state, id) => {
   const kind = plan !== null && typeof plan.kind === 'string' ? plan.kind : null
   const label = name === null ? null : (kind === 'individual' && level !== null && level.toLowerCase() !== name.toLowerCase() ? name + ' ' + level : name)
   const credits = Number(b.credit_balance_credits)
+  // What the person is shown is dollars: the server's own `credit_balance_usd` (a decimal string such as '5.43'), never a conversion made here. Absent = unknown.
+  const usd = typeof b.credit_balance_usd === 'string' && b.credit_balance_usd.trim() !== '' ? Number(b.credit_balance_usd) : (typeof b.credit_balance_usd === 'number' ? b.credit_balance_usd : NaN)
   const extra = extraLineOf(b.extra)
   return { workspace_id: id, key, name, level, label, status: typeof b.status === 'string' ? b.status : null,
     credit_balance_credits: Number.isFinite(credits) ? credits : null,
+    credit_balance_usd: Number.isFinite(usd) ? usd : null,
     ...(extra !== null ? { extra } : {}),
     ...(res.grace !== null ? { mfa: { state: 'grace', ends: res.grace } } : {}) }
 }
@@ -2603,7 +2612,7 @@ const artifactDetail = async (req, body) => {
 // The Kybernos server already carries the whole model (migration 003): a table
 // `kybernos.memories` with two scopes (account | kyber), four kinds
 // (fact|preference|event|policy), a mandatory source, pinning and a
-// retention (180 days by default, never expired if `pinned`). Contract read
+// retention (0 = never, since 2026-11-20; the server deletes what expires, and never a pinned note). Contract read
 // off the API on 22/09/2026: POST → 201 + the object, GET → {memories:[…]},
 // DELETE → 200; everything in snake_case.
 //
@@ -2638,6 +2647,7 @@ const CAPTURE_MIN_CHARS = 60
 // group can starve all the others (observed: 47 pinned = the whole budget,
 // so none of the 543 captured memories ever reached the model).
 const MEMORY_PINNED_SHARE = 0.6
+const MEMORY_CORE_CHARS = 3000
 const MEMORY_KYBER_SHARE = 0.3
 // The FRAME of the chunk (header, « other memories » line, final instruction) counts in
 // the cap: MEMORY_MAX_INJECT_CHARS bounds the whole injected text, not only
@@ -2677,14 +2687,17 @@ const writeSide = (suffix, value) => {
  * for anyone who does not touch them. Read at every prompt assembly (tiny file,
  * synchronous read) — no cache to invalidate when another process writes.
  */
-const MEMORY_SETTING_KEYS = ['memories', 'context', 'capture', 'meaning', 'relevant', 'team_use', 'team_share']
+const MEMORY_SETTING_KEYS = ['memories', 'context', 'capture', 'meaning', 'relevant', 'team_use', 'team_share', 'core', 'sensitive']
 // `meaning` (search by meaning) is OFF until the user turns it on: it sends the text of a memory to the
 // embedding model of the Kybernos cloud, which nothing else in this plugin does outside a chat turn.
 // `relevant` (pick the memories that match the current question, on top of the pinned and the newest) is ON: it is
 // local, nothing goes anywhere extra, and the page lets the user turn it off.
+// `core` (2026-11-20, OFF until it is measured on a real week): what is sent without a question is a small stable core, the rules and the
+// preferences newest first within MEMORY_CORE_CHARS, instead of the whole budget filled by date; the other notes come when the question matches.
+// `sensitive` (2026-11-20, « Include sensitive topics », OFF): when off the end-of-turn capture is told to leave out health, beliefs and the like.
 // `team_use` (the agents also read the lessons the team approved) and `team_share` (« Propose to team » is offered) only mean something on a Team
 // workspace; both are on by default there, and the page locks them with the reason everywhere else.
-const MEMORY_SETTING_DEFAULTS = { memories: true, context: true, capture: true, meaning: false, relevant: true, team_use: true, team_share: true }
+const MEMORY_SETTING_DEFAULTS = { memories: true, context: true, capture: true, meaning: false, relevant: true, team_use: true, team_share: true, core: false, sensitive: false }
 const readMemorySettings = () => {
   const raw = readSide('memory', {})
   const out = {}
@@ -2721,6 +2734,28 @@ const originOf = (m, ledger) => {
   if (MEMORY_ORIGINS.indexOf(known) >= 0) return { origin: known, originKnown: true }
   const derived = (m.source === 'taught' || m.source === 'correction' || m.source === 'admin') ? 'taught' : m.source === 'call' ? 'agent' : 'capture'
   return { origin: derived, originKnown: false }
+}
+
+// ── The « Noted » line of the chat (2026-11-20) ───────────────────────────────
+// When a note is written DURING a conversation (the model's `memory_write`, the end-of-turn capture) the chat shows one quiet line under the last answer. The host
+// keeps only WHICH chat the note came from and when: ids and times, never the words (the account holds those, and the line reads them from there, so a note
+// the person took out since is simply not shown). A few chats, a few notes each: it is a short-lived pointer, not a log.
+const NOTED_PER_CHAT = 6
+const NOTED_CHATS = 40
+const NOTED_WINDOW_MS = 30 * 60 * 1000
+
+const noteNoted = (sessionId, memory) => {
+  if (typeof sessionId !== 'string' || sessionId === '' || memory === null || memory === undefined || memory.id === undefined || memory.id === null) return
+  try {
+    const log = readSide('memory-noted', {})
+    const list = Array.isArray(log[sessionId]) ? log[sessionId] : []
+    list.push({ id: memory.id, at: Date.now() })
+    log[sessionId] = list.slice(-NOTED_PER_CHAT)
+    const lastAt = (k) => (Array.isArray(log[k]) && log[k].length > 0 ? Number(log[k][log[k].length - 1].at) || 0 : 0)
+    const chats = Object.keys(log)
+    if (chats.length > NOTED_CHATS) chats.sort((a, b) => lastAt(b) - lastAt(a)).slice(NOTED_CHATS).forEach((k) => { delete log[k] })
+    writeSide('memory-noted', log)
+  } catch (e) { /* the pointer is a convenience: never blocking, never a reason to refuse a write */ }
 }
 
 /** Injection cache: read by the prompt (synchronous), filled from the network. */
@@ -2800,7 +2835,8 @@ const validateMemory = (body) => {
   const source = MEMORY_SOURCES.indexOf(body.source) >= 0 ? body.source : 'conversation'
   const scope = body.scope === 'kyber' ? 'kyber' : 'account'
   const pinned = body.pinned === true
-  let retention = 180
+  // 0 = never expires. The server deletes an expired note for good, so a note only gets an end date when someone asks for one (2026-11-20).
+  let retention = 0
   if (body.retentionDays !== undefined && body.retentionDays !== null) {
     const n = parseInt(body.retentionDays, 10)
     if (!Number.isFinite(n) || n < 0) return { error: 'retention_invalide' }
@@ -2815,11 +2851,30 @@ const validateMemory = (body) => {
   return { error: null, payload }
 }
 
-const createMemory = async (state, body, origin) => {
+/** The note an incoming one repeats, or null: the same words in other letters, then a near-repeat by the capture's rule (`nearKnown`). */
+const findRepeat = (content, items) => {
+  const key = normalizeMemory(content)
+  if (key === '') return null
+  for (const m of items) if (normalizeMemory(m.content) === key) return m
+  for (const m of items) if (nearKnown(content, [String(m.content)]) === true) return m
+  return null
+}
+
+/**
+ * `opts.gated`: the caller already ran the repeat check (the capture, the Undo of a tidy-up). `body.force`: the person asked twice.
+ * Every other write meets the same gate, whoever the door: a repeat is answered `{ ok, same: true, memory }` with the note it matches
+ * and nothing is written. The read is fail-open: when it fails the note is written.
+ */
+const createMemory = async (state, body, origin, opts = {}) => {
   // Whatever the model writes (its tool, the end-of-turn capture) lands in the PERSONAL account: never from a team space. The person's own hand (the page) is not stopped.
   if ((origin === 'agent' || origin === 'capture') && spaceOf(readStateForSpace()) === 'team') return { ok: false, error: 'espace_equipe' }
   const checked = validateMemory(body)
   if (checked.error !== null) return { ok: false, error: checked.error }
+  if (opts.gated !== true && body.force !== true) {
+    const known = await listMemories(state, checked.payload.scope, checked.payload.kyber_id)
+    const twin = known.ok === true ? findRepeat(checked.payload.content, known.items) : null
+    if (twin !== null) return { ok: true, same: true, memory: twin }
+  }
   const res = await apiCall('/v1/memories', { method: 'POST', token: state.token, body: checked.payload })
   const failure = memoryFailure(res)
   if (failure !== null) return { ok: false, error: failure, status: res.status }
@@ -3018,6 +3073,32 @@ const noteUserTurn = (sessionId, message, turn) => {
   } catch (e) { /* never break a turn */ }
 }
 
+// -- Lookups (2026-11-20): how often a note was really looked at, kept on this machine beside the origins ledger --------------------
+// Two events count: the agent searched and got the note back (`memory_search`), and a question of the person picked it to go in full
+// (`pickRelevant`, once per question). The newest-first fill does not count: that is a note sent, not looked at. Nothing is sent anywhere,
+// and nothing is ever deleted for it: it is the signal the stable core and a later fading rule are measured against.
+const LOOKUPS_SIDE = 'memory-lookups'
+const LOOKUPS_MAX = 1000
+const readLookups = () => {
+  const raw = readSide(LOOKUPS_SIDE, {})
+  return raw !== null && typeof raw === 'object' && Array.isArray(raw) === false ? raw : {}
+}
+/** Counts one lookup for each id. Never throws: a counter must not break a turn. */
+const noteLookups = (ids) => {
+  try {
+    if (ids.length === 0) return
+    const ledger = readLookups()
+    const at = new Date().toISOString()
+    for (const id of ids) {
+      const prev = ledger[String(id)]
+      ledger[String(id)] = { n: (prev !== undefined && Number.isFinite(prev.n) ? prev.n : 0) + 1, at }
+    }
+    const keys = Object.keys(ledger)
+    if (keys.length > LOOKUPS_MAX) for (const k of keys.sort((a, b) => (String(ledger[a].at) < String(ledger[b].at) ? -1 : 1)).slice(0, keys.length - LOOKUPS_MAX)) delete ledger[k]
+    writeSide(LOOKUPS_SIDE, ledger)
+  } catch (e) { /* the counter is only a measure */ }
+}
+
 const overlapOf = (a, b) => {
   if (a.length === 0 && b.length === 0) return 1
   const set = new Set(a)
@@ -3046,6 +3127,7 @@ const pickRelevant = (sessionId, candidates, picks = sessionPick, tuning = RELEV
     const spaced = q.turn - prev.turn >= T.minTurnsBetweenChanges
     if (overlapOf(ids, prev.ids) >= T.keepOverlap || !spaced) { next = prev.ids; turn = prev.turn }
   }
+  if (prev === undefined || prev.key !== q.key) noteLookups(next)
   picks.delete(sessionId)
   picks.set(sessionId, { key: q.key, ids: next, turn })
   forgetOldest(picks)
@@ -3090,8 +3172,13 @@ const selectForPrompt = (items, budget, pinnedShare, preferred = [], preferredSh
   const pinCap = Math.floor(budget * pinnedShare)
   // 1. Safety policies first, at the full budget: a full block can never crowd them out.
   policies.forEach((m) => take(m, budget))
+  // The stable core (`options.core`): the rules and the preferences, newest first, within MEMORY_CORE_CHARS in all; no pinned fact and no
+  // fill by date without a question. What matches the question still comes below, so a question changes the block only by its matches.
+  if (options.core === true) {
+    items.filter((m) => m.kind === 'policy' || m.kind === 'preference').sort(newestFirst).forEach((m) => take(m, Math.min(budget, MEMORY_CORE_CHARS)))
+  }
   // 3. Base selection (no relevance pick): pinned memories share their cap.
-  if (relevance !== true) pinned.forEach((m) => take(m, pinCap))
+  if (relevance !== true && options.core !== true) pinned.forEach((m) => take(m, pinCap))
   // What matches the current question comes right after the pinned and BEFORE the newest, within its own share.
   let relevantUsed = 0
   const relevantCap = Math.floor(budget * preferredShare)
@@ -3101,10 +3188,10 @@ const selectForPrompt = (items, budget, pinnedShare, preferred = [], preferredSh
     take(m, budget)
     relevantUsed += c
   }
-  loose.forEach((m) => take(m, budget))
+  if (options.core !== true) loose.forEach((m) => take(m, budget))
   // Of the budget left free (few free memories): pinned ones are put back into it — but never with a relevance
   // pick ON (rule 2: a pinned memory that did not match the question stays out, that was the blind injection).
-  if (relevance !== true) pinned.forEach((m) => take(m, budget))
+  if (relevance !== true && options.core !== true) pinned.forEach((m) => take(m, budget))
   return { chosen: sortMemories(items.filter((m) => chosen.has(m))), used, omitted: items.length - chosen.size }
 }
 
@@ -3132,7 +3219,7 @@ const planInjection = (state, info) => {
   // visible, see selectForPrompt). `pickRelevant` applies RELEVANCE_TUNING.maxPicked to the non-pinned picks.
   const candidates = hasQuery ? memoryCache.account.filter((m) => m.pinned !== true || m.kind !== 'policy') : []
   const preferred = hasQuery ? pickRelevant(info.sessionId, candidates) : []
-  const account = selectForPrompt(memoryCache.account, accountBudget, MEMORY_PINNED_SHARE, preferred, RELEVANCE_TUNING.share, { relevance: hasQuery })
+  const account = selectForPrompt(memoryCache.account, accountBudget, MEMORY_PINNED_SHARE, preferred, RELEVANCE_TUNING.share, { relevance: hasQuery, core: cfg.core === true })
   const kyber = {}
   let used = account.used
   const left = lineBudget - used
@@ -3160,7 +3247,7 @@ const renderMemoryChunk = (state, info) => {
     }
     for (const local of Object.keys(plan.kyber)) {
       if (plan.kyber[local].chosen.length === 0) continue
-      parts.push('', 'Memory of the Agent Team “' + local + '”:')
+      parts.push('', 'Memory of the AI Agent Team “' + local + '”:')
       plan.kyber[local].chosen.forEach((m) => parts.push(memoryLine(m)))
       if (plan.kyber[local].omitted > 0) parts.push('- … (' + String(plan.kyber[local].omitted) + ' more not sent)')
     }
@@ -3309,16 +3396,87 @@ const memoryCreateRoute = async (req, body) => {
   return await createMemory(state, body === null ? {} : body, 'taught')
 }
 
+/**
+ * The notes that still carry an end date (retention > 0, not pinned): the server deletes an expired note for good, so this takes the date
+ * off. A dry run counts (and says when the first one would go); `{ apply: true, confirm: true }` changes them, one PATCH each. Nothing runs it
+ * by itself (2026-11-20): it is the person's call, and no note is ever deleted here.
+ */
+const memoryNoExpiryRoute = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const listed = await listMemories(state, 'account')
+  if (listed.ok !== true) return { ok: false, error: listed.error }
+  const dated = listed.items.filter((m) => m.pinned !== true && Number(m.retentionDays) > 0)
+  const byKind = {}
+  for (const m of dated) byKind[m.kind] = (byKind[m.kind] || 0) + 1
+  const first = dated.map((m) => m.expiresAt).filter((v) => typeof v === 'string').sort()[0]
+  const summary = { ok: true, total: listed.items.length, dated: dated.length, byKind, firstExpiry: first === undefined ? null : first }
+  if (body === null || body === undefined || body.apply !== true || body.confirm !== true) return { ...summary, dryRun: true }
+  let changed = 0
+  let failed = 0
+  for (const m of dated) {
+    const res = await patchMemory(state, { id: m.id, retentionDays: 0 })
+    if (res.ok === true) changed += 1
+    else failed += 1
+  }
+  return { ...summary, dryRun: false, changed, failed }
+}
+
 const memoryUpdateRoute = async (req, body) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
   return await patchMemory(state, body === null ? {} : body)
 }
 
+/**
+ * The person deletes a note: it goes to the tidy archive and log first (`by: 'you'`, `kind: 'delete'`), so « Recently removed » can bring it
+ * back for 30 days with the same Undo as a tidy-up (2026-11-20). A delete the server refuses leaves nothing in the list.
+ */
+const deleteWithUndo = async (state, body) => {
+  const id = body.id === undefined || body.id === null ? '' : String(body.id)
+  if (id === '') return { ok: false, error: 'id_manquant' }
+  const find = () => [...memoryCache.account, ...Object.values(memoryCache.kyber).flat()].find((m) => String(m.id) === id)
+  let note = find()
+  if (note === undefined) { await refreshMemoryCache(state, true); note = find() }
+  if (note === undefined) return await deleteMemory(state, body)
+  const runId = 'd' + Date.now().toString(36) + id
+  const archive = tidyArchive()
+  archive.runs[runId] = { at: new Date().toISOString(), removed: [archiveRow(note)], edited: [] }
+  writeTidyArchive(archive)
+  const del = await deleteMemory(state, { id })
+  if (del.ok !== true) { const a2 = tidyArchive(); delete a2.runs[runId]; writeTidyArchive(a2); return del }
+  const t = tidyState()
+  t.log = [{ id: runId, at: new Date().toISOString(), by: 'you', kind: 'delete', groupId: null, kept: null, removed: 1, edited: false, partial: false, undone: false, label: labelOf(note.content) }, ...t.log]
+  writeTidy(t)
+  return { ...del, run: runId }
+}
+
 const memoryDeleteRoute = async (req, body) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
-  return await deleteMemory(state, body === null ? {} : body)
+  return await deleteWithUndo(state, body === null ? {} : body)
+}
+
+/**
+ * « Delete all memory »: every note of the account, for good. It needs `{ confirm: true }`, and it also empties what « Recently removed »
+ * held, so nothing can bring a deleted note back. The lessons are another store with their own switch: this does not touch them.
+ */
+const memoryWipeRoute = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  if (body === null || body === undefined || body.confirm !== true) return { ok: false, error: 'confirmation_requise' }
+  const listed = await listMemories(state, 'account')
+  if (listed.ok !== true) return { ok: false, error: listed.error }
+  let deleted = 0
+  let failed = 0
+  for (const m of listed.items) {
+    const res = await deleteMemory(state, { id: m.id })
+    if (res.ok === true) deleted += 1
+    else failed += 1
+  }
+  writeTidyArchive({ runs: {} })
+  bumpMemoryCache()
+  return { ok: failed === 0, deleted, failed }
 }
 
 // ── Settings + paginated list (« Memory & Lessons learned » page) ────────────
@@ -3501,7 +3659,6 @@ const indexMemories = async (state, max) => {
     if (rows.length === 0) break
     const emb = await embedTexts(state, rows.map((r) => String(r.content)))
     if (emb.ok !== true) { noteEmbedFailure(emb); return { ok: false, error: emb.error, requiredTier: emb.requiredTier, indexed } }
-    rememberVectors(rows.map((r) => String(r.content)), emb.vectors)
     for (let i = 0; i < rows.length; i++) {
       const put = await putEmbedding(state, rows[i].id, emb.vectors[i])
       if (put.ok !== true && put.error !== 'souvenir_introuvable') { noteMeaningUnavailable(put.error); return { ok: false, error: put.error, indexed } }
@@ -3521,7 +3678,6 @@ const indexOneInBackground = (state, memory) => {
     void (async () => {
       const emb = await embedTexts(state, [String(memory.content)])
       if (emb.ok !== true) { noteEmbedFailure(emb); return }
-      rememberVectors([String(memory.content)], emb.vectors)
       const put = await putEmbedding(state, memory.id, emb.vectors[0])
       if (put.ok !== true) noteMeaningUnavailable(put.error)
     })().catch(() => {})
@@ -3543,103 +3699,6 @@ const findByMeaning = async (state, q, limit) => {
   if (failure !== null) return { ok: false, error: failure }
   const raw = res.body !== null && Array.isArray(res.body.memories) ? res.body.memories : []
   return { ok: true, items: raw.map((m) => ({ ...asMemory(m), distance: typeof m.distance === 'number' ? m.distance : null })) }
-}
-
-// ── The map: memories placed by meaning ─────────────────────────────────────────────────────────────────
-// Close dots mean close meaning. The positions are worked out HERE (mapproj.mjs) from the embedding vectors of a sample of memories
-// (pinned first, then the ones sent to the model, then the newest). The vectors come from the same route as the search by meaning and
-// sit behind the same `meaning` switch (the text of a memory goes to the embeddings model, nothing else); they are kept in a side file
-// next to the state (`memory-vectors`: int8 + scale, keyed by a hash of the text, so an edited memory is simply a new key), which also
-// fills while the memories are indexed, so opening the map is usually free. No server route is involved.
-
-const MAP_VECTORS_MAX = 800
-const MAP_TEXT_MAX = 1000
-let mapInFlight = null
-
-const readVectorCache = () => {
-  const raw = readSide('memory-vectors', {})
-  if (raw.model !== embedModelId() || raw.dim !== EMBED_DIM || raw.v === null || typeof raw.v !== 'object' || Array.isArray(raw.v)) return {}
-  return raw.v
-}
-
-const writeVectorCache = (cache, keep) => {
-  let keys = Object.keys(cache)
-  if (keep !== undefined) keys = keys.filter((k) => keep.has(k))
-  if (keys.length > MAP_VECTORS_MAX) keys = keys.slice(keys.length - MAP_VECTORS_MAX)
-  const v = {}
-  for (const k of keys) v[k] = cache[k]
-  try { writeSide('memory-vectors', { model: embedModelId(), dim: EMBED_DIM, v }) } catch (e) { /* the map just recomputes next time */ }
-}
-
-/** Keeps vectors that were just paid for (indexing, a new memory) so the map does not ask for them again. Never throws. */
-const rememberVectors = (texts, vectors) => {
-  try {
-    const cache = readVectorCache()
-    texts.forEach((t, i) => { if (Array.isArray(vectors[i]) && vectors[i].length === EMBED_DIM) cache[textHash(String(t).slice(0, MAP_TEXT_MAX))] = packVector(vectors[i]) })
-    writeVectorCache(cache)
-  } catch (e) { /* a cache, nothing more */ }
-}
-
-/** At most `limit` memories: the pinned ones, then the ones sent to the model, then the newest. */
-const mapSample = (rows, limit) => {
-  if (rows.length <= limit) return rows
-  const out = []
-  const seen = new Set()
-  const add = (r) => { if (out.length < limit && !seen.has(r.id)) { seen.add(r.id); out.push(r) } }
-  rows.filter((r) => r.pinned).forEach(add)
-  rows.filter((r) => r.sent).forEach(add)
-  rows.forEach(add)
-  return out
-}
-
-const buildMemoryMap = async (state, limit) => {
-  if (readMemorySettings().meaning !== true) return { ok: false, error: 'sens_desactive' }
-  const paused = meaningPaused()
-  if (paused !== null) return { ok: false, error: paused, requiredTier: paused === 'offre_requise' ? meaningCache.requiredTier : undefined, plan: paused === 'offre_requise' ? meaningCache.plan : undefined }
-  await refreshMemoryCache(state, false)
-  if (memoryCache.error !== null && memoryCache.account.length === 0) return { ok: false, connected: true, error: memoryCache.error }
-  const { rows: all } = accountRows(state)
-  const rows = all.map((r) => ({ ...r, text: String(r.content).slice(0, MAP_TEXT_MAX) }))
-  const sample = mapSample(rows, limit)
-  const cache = readVectorCache()
-  const vectors = new Array(sample.length).fill(null)
-  const missing = []
-  sample.forEach((r, i) => {
-    const hit = cache[textHash(r.text)]
-    const v = hit === undefined ? null : unpackVector(hit, EMBED_DIM)
-    if (v !== null) vectors[i] = v; else missing.push(i)
-  })
-  let changed = false
-  for (let at = 0; at < missing.length; at += EMBED_BATCH) {
-    const part = missing.slice(at, at + EMBED_BATCH)
-    const emb = await embedTexts(state, part.map((i) => sample[i].text))
-    if (emb.ok !== true) {
-      noteEmbedFailure(emb)
-      if (changed) writeVectorCache(cache)   // what was paid for is kept: the next try goes on from here
-      return { ok: false, error: emb.error, requiredTier: emb.requiredTier, plan: emb.plan }
-    }
-    part.forEach((i, k) => { cache[textHash(sample[i].text)] = packVector(emb.vectors[k]); vectors[i] = unpackVector(cache[textHash(sample[i].text)], EMBED_DIM); changed = true })
-  }
-  if (changed) writeVectorCache(cache, new Set(rows.map((r) => textHash(r.text))))
-  meaningCache.lastError = null
-  const map = buildMap(sample.map((r) => ({ id: r.id, text: r.text })), vectors)
-  return {
-    ok: true, total: rows.length, shown: sample.length, embedded: missing.length,
-    // each dot carries the memory as the list shows it, so the page can open it as it does from the list
-    nodes: sample.map((r, i) => { const { text, ...memory } = r; return { ...memory, x: map.nodes[i].x, y: map.nodes[i].y, cl: map.nodes[i].cl } }),
-    clusters: map.clusters, links: map.links,
-  }
-}
-
-const memoryMeaningMapRoute = async (req) => {
-  const state = readState()
-  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
-  let params = new URLSearchParams('')
-  try { params = new URL(req.url, 'http://localhost').searchParams } catch (e) { /* request without a query */ }
-  const limit = intParam(params.get('limit'), MAP_TUNING.sample, 10, MAP_TUNING.sample)
-  // two openings at once (the page remounts) share one computation, so the texts are embedded once
-  if (mapInFlight === null) mapInFlight = buildMemoryMap(state, limit).finally(() => { mapInFlight = null })
-  return await mapInFlight
 }
 
 // ── Tidy up: near-duplicates among the account's memories (dedupe.mjs, local, no model) ─────────────────
@@ -3683,6 +3742,10 @@ const TIDY_TUNING = { firstMs: 90000, tickMs: 600000 }
 const tidyFlags = { running: false, bootDone: false, retryAt: 0 }
 const tidyArchive = () => { const raw = readSide('tidy-archive', {}); return { runs: raw.runs !== null && typeof raw.runs === 'object' ? raw.runs : {} } }
 const writeTidyArchive = (a) => writeSide('tidy-archive', a)
+/** What the archive keeps of a removed note: everything needed to write it again. */
+const archiveRow = (m) => ({ id: m.id, content: m.content, kind: m.kind, scope: m.scope, kyberId: m.kyberId, source: m.source, pinned: m.pinned === true, retentionDays: m.retentionDays, createdAt: m.createdAt })
+/** A note in a few words, for the « Recently removed » list. */
+const labelOf = (text) => { const t = String(text).replace(/\s+/g, ' ').trim(); return t.length > 60 ? t.slice(0, 57) + '…' : t }
 
 const forgetOldArchive = () => {
   const limit = Date.now() - TIDY_UNDO_DAYS * 86400000
@@ -3714,8 +3777,9 @@ const tidyView = () => {
 
 /**
  * One run: look (local detection, and — when the user allowed it and a Study model is set — its judgement of the pairs
- * the word count cannot decide), then, in `auto` mode, merge by itself the local groups at or above the line. Anything
- * else is left for the review. A run that was started by the schedule is `trigger: 'schedule'`.
+ * the word count cannot decide, the local pairs under the line first), then, in `auto` mode, merge by itself the local groups at
+ * or above the line (the Study model's verdicts are suggestions only: AUTO_MAX_BRAIN_MERGES is 0), each through applyGroups (archive
+ * first, one Undo per merge). Anything else, a Study-model verdict included, is left for the review. A run that was started by the schedule is `trigger: 'schedule'`, by memory_tidy `'tool'`.
  */
 const tidyRun = async (state, trigger, now = Date.now()) => {
   if (tidyFlags.running) return { ok: false, error: 'deja_en_cours' }
@@ -3725,7 +3789,7 @@ const tidyRun = async (state, trigger, now = Date.now()) => {
     if (memoryCache.error !== null && memoryCache.account.length === 0) return { ok: false, error: memoryCache.error }
     const items = memoryCache.account.map((m) => ({ id: m.id, content: m.content, createdAt: m.createdAt, pinned: m.pinned === true, bucket: m.kind }))
     const t = tidyState()
-    const local = findDuplicateGroups(items)
+    let local = findDuplicateGroups(items)
     const taken = new Set(local.flatMap((g) => g.items.map((i) => i.id)))
     let suggestions = []
     let unclear = 0
@@ -3734,8 +3798,11 @@ const tidyRun = async (state, trigger, now = Date.now()) => {
     if (t.settings.brain === true && spaceOf(readStateForSpace()) !== 'team') {
       brain.model = studyModel()
       const llm = tidyLlm()
-      const judged = await brainGroups({ items, taken, judged: t.judged, dismissed: t.dismissed, llm: brain.model === '' ? null : llm, model: brain.model, maxMerged: MEMORY_MAX_CONTENT, noun: 'memories' })
+      const judged = await brainGroups({ items, taken, judged: t.judged, dismissed: t.dismissed, llm: brain.model === '' ? null : llm, model: brain.model, maxMerged: MEMORY_MAX_CONTENT, noun: 'memories', review: local })
       suggestions = judged.groups
+      // a verdict on a local pair under the line takes the place of that group (same id)
+      const verdicts = new Set(suggestions.map((g) => g.id))
+      local = local.filter((g) => !verdicts.has(g.id))
       unclear = judged.unclear
       brain.asked = judged.asked
       brain.error = brain.model === '' ? 'pas_de_modele_detude' : (llm === undefined ? 'llm_indisponible' : judged.error)
@@ -3745,22 +3812,30 @@ const tidyRun = async (state, trigger, now = Date.now()) => {
     } else {
       unclear = unclearPairs(items, { taken }).filter((p) => t.dismissed.indexOf(p.id) < 0).length
     }
-    t.scan = { at: new Date(now).toISOString(), total: items.length, unclear, groups: [...local, ...suggestions] }
-    writeTidy(t)
+    // The run may have waited for the Study model: what the person did meanwhile (a setting, « Keep both ») lives in the file, not in
+    // `t`, which is a stale copy. Re-read, put only this run's findings on it, and decide from what the file says NOW.
+    const fresh = tidyState()
+    fresh.scan = { at: new Date(now).toISOString(), total: items.length, unclear, groups: [...local, ...suggestions] }
+    fresh.judged = t.judged
+    writeTidy(fresh)
     // 2. what the user allowed to be merged without asking
-    const auto = { groups: 0, removed: 0, runs: [], failed: 0 }
-    const picked = pickAuto(local.filter((g) => t.dismissed.indexOf(g.id) < 0), t.settings)
-    for (const chunk of removalChunks(picked, TIDY_MAX_REMOVALS)) {
-      const done = await applyGroups(state, chunk.map((g) => ({ id: g.id })), 'auto', now)
-      if (done.error !== undefined) { auto.failed += chunk.length; continue }
-      for (const r of done.results) {
-        if (r.ok === true) { auto.groups += 1; auto.removed += r.removed || 0; if (r.run) auto.runs.push(r.run) } else auto.failed += 1
+    const auto = { groups: 0, removed: 0, runs: [], failed: 0, brain: 0 }
+    const picked = pickAuto([...local, ...suggestions].filter((g) => fresh.dismissed.indexOf(g.id) < 0), fresh.settings)
+    // the local merges are logged 'auto', the Study model's 'brain' (the page says who merged)
+    for (const by of ['auto', 'brain']) {
+      for (const chunk of removalChunks(picked.filter((g) => (g.by === 'brain') === (by === 'brain')), TIDY_MAX_REMOVALS)) {
+        if (tidyState().settings.mode !== 'auto') break   // « ask » was chosen while this run was merging: stop
+        const done = await applyGroups(state, chunk.map(autoRequest), by, now)
+        if (done.error !== undefined) { auto.failed += chunk.length; continue }
+        for (const r of done.results) {
+          if (r.ok === true) { auto.groups += 1; auto.removed += r.removed || 0; if (by === 'brain') auto.brain += 1; if (r.run) auto.runs.push(r.run) } else auto.failed += 1
+        }
       }
     }
     const after = tidyState()
-    after.last = { at: new Date(now).toISOString(), trigger, total: items.length - auto.removed, found: local.length + suggestions.length, autoGroups: auto.groups, autoRemoved: auto.removed, brainAsked: brain.asked, brainError: brain.error, ok: true }
+    after.last = { at: new Date(now).toISOString(), trigger, total: items.length - auto.removed, found: local.length + suggestions.length, autoGroups: auto.groups, autoRemoved: auto.removed, autoBrain: auto.brain, brainAsked: brain.asked, brainError: brain.error, ok: true }
     writeTidy(after)
-    return { ...tidyView(), auto, brain }
+    return { ...tidyView(), auto, brain, counts: { before: items.length, after: items.length - auto.removed } }
   } finally {
     tidyFlags.running = false
   }
@@ -3875,9 +3950,8 @@ const applyGroups = async (state, asked, by, now = Date.now()) => {
   for (const step of plan) {
     const runId = 't' + Date.now().toString(36) + step.group.id
     const archive = tidyArchive()
-    const row = (m) => ({ id: m.id, content: m.content, kind: m.kind, scope: m.scope, kyberId: m.kyberId, source: m.source, pinned: m.pinned === true, retentionDays: m.retentionDays, createdAt: m.createdAt })
     // 1. the archive FIRST: if anything below fails half way, what was removed can always be put back
-    archive.runs[runId] = { at: new Date().toISOString(), removed: step.removed.map(row), edited: step.edit === null ? [] : [{ id: step.keeper.id, before: step.keeper.content }] }
+    archive.runs[runId] = { at: new Date().toISOString(), removed: step.removed.map(archiveRow), edited: step.edit === null ? [] : [{ id: step.keeper.id, before: step.keeper.content }] }
     writeTidyArchive(archive)
     let edited = false
     if (step.edit !== null) {
@@ -3898,7 +3972,7 @@ const applyGroups = async (state, asked, by, now = Date.now()) => {
     if (!edited) kept.runs[runId].edited = []
     if (kept.runs[runId].removed.length === 0 && kept.runs[runId].edited.length === 0) delete kept.runs[runId]
     writeTidyArchive(kept)
-    if (gone.length > 0 || edited) log.push({ id: runId, at: new Date(now).toISOString(), by, groupId: step.group.id, kept: step.keeper.id, removed: gone.length, edited, partial: failure !== null, undone: false })
+    if (gone.length > 0 || edited) log.push({ id: runId, at: new Date(now).toISOString(), by, groupId: step.group.id, kept: step.keeper.id, removed: gone.length, edited, partial: failure !== null, undone: false, label: labelOf(step.keeper.content) })
     results.push({ id: step.group.id, ok: failure === null, removed: gone.length, edited, run: gone.length > 0 || edited ? runId : null, error: failure === null ? undefined : failure })
   }
   const after = tidyState()
@@ -3923,7 +3997,7 @@ const tidyUndo = async (state, body) => {
   let restored = 0
   const failed = []
   for (const r of run.removed) {
-    const made = await createMemory(state, { scope: r.scope === 'kyber' ? 'kyber' : 'account', kind: r.kind, content: r.content, source: r.source, pinned: r.pinned === true, retentionDays: r.retentionDays, kyberId: r.kyberId === null ? undefined : r.kyberId }, 'taught')
+    const made = await createMemory(state, { scope: r.scope === 'kyber' ? 'kyber' : 'account', kind: r.kind, content: r.content, source: r.source, pinned: r.pinned === true, retentionDays: r.retentionDays, kyberId: r.kyberId === null ? undefined : r.kyberId }, 'taught', { gated: true })
     if (made.ok === true) restored += 1
     else failed.push(r)
   }
@@ -4396,17 +4470,44 @@ const accountRows = (state) => {
   const plan = planInjection(state)
   const sentIds = new Set(plan.account.chosen.map((m) => String(m.id)))
   const ledger = readSide('memory-origins', {})
+  const lookups = readLookups()
   const now = Date.now()
   const rows = memoryCache.account.slice().sort(newestFirst).map((m) => {
     const o = originOf(m, ledger)
+    const seen = lookups[String(m.id)]
     const when = parseWhen(m.createdAt)
     return {
       id: m.id, kind: m.kind, content: m.content, source: m.source, origin: o.origin, originKnown: o.originKnown,
       pinned: m.pinned === true, sent: sentIds.has(String(m.id)), createdAt: m.createdAt, expiresAt: m.expiresAt, retentionDays: m.retentionDays,
+      lookups: seen === undefined ? 0 : seen.n, lastLookup: seen === undefined ? null : seen.at,
       ageMinutes: Number.isFinite(when) ? Math.max(0, Math.round((now - when) / 60000)) : null,
     }
   })
   return { plan, rows }
+}
+
+/**
+ * What this chat has just noted, for the line under its last answer: `?sessionId=…` → `{ ok, notes: [{ id, at, item }] }`, `item` in the shape of the Memory page's rows (so « Open »
+ * lands on the note without another read). Only the notes of the last half hour that the account still holds are listed, oldest first: one the person took out since
+ * (Undo, or the page) is not there. A pointer to a note the cache does not know yet is checked with one fresh read of the account.
+ */
+const memoryNotedRoute = async (req) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  let sid = ''
+  try { sid = String(new URL(req.url, 'http://localhost').searchParams.get('sessionId') || '') } catch (e) { sid = '' }
+  const log = sid === '' ? [] : readSide('memory-noted', {})[sid]
+  const recent = (Array.isArray(log) ? log : []).filter((n) => n !== null && typeof n === 'object' && n.id !== undefined && Date.now() - Number(n.at) < NOTED_WINDOW_MS)
+  if (recent.length === 0) return { ok: true, notes: [] }
+  await refreshMemoryCache(state, false)
+  let rows = accountRows(state).rows
+  if (recent.some((n) => !rows.some((r) => String(r.id) === String(n.id)))) { await refreshMemoryCache(state, true); rows = accountRows(state).rows }
+  const notes = []
+  for (const n of recent) {
+    const item = rows.find((r) => String(r.id) === String(n.id))
+    if (item !== undefined) notes.push({ id: item.id, at: n.at, item })
+  }
+  return { ok: true, notes }
 }
 
 const memoryListRoute = async (req) => {
@@ -4533,7 +4634,7 @@ const TEXT_RESULT = (text) => [{
 
 const memoryWriteTool = () => ({
   name: 'memory_write',
-  description: 'Saves a lasting memory in the Kybernos account (shared with the user\'s other agents). Use it only for an explicit teaching or a correction — never to guess.',
+  description: 'Saves a lasting memory in the Kybernos account (shared with the user\'s other agents). Use it only for an explicit teaching or a correction — never to guess. A fact the account already holds is not written twice: the answer says `same` and gives the id of the note it matches.',
   parameters: {
     type: 'object',
     additionalProperties: false,
@@ -4553,12 +4654,13 @@ const memoryWriteTool = () => ({
         ok: { type: 'boolean' },
         id: { type: 'integer' },
         error: { type: 'string' },
+        same: { type: 'boolean' },
       },
       required: ['ok'],
     },
-    render: (args, value) => TEXT_RESULT(value.ok === true ? 'Memory saved in the Kybernos account (' + String(args.kind) + ').' : 'Memory not saved: ' + String(value.error)),
+    render: (args, value) => TEXT_RESULT(value.ok === true ? (value.same === true ? 'Already in the Kybernos account: nothing new was written.' : 'Memory saved in the Kybernos account (' + String(args.kind) + ').') : 'Memory not saved: ' + String(value.error)),
   },
-  async execute(args) {
+  async execute(args, exec) {
     if (spaceOf(readStateForSpace()) === 'team') return { ok: false, error: TEAM_SPACE_REFUSAL }
     const state = readState()
     if (isConnected(state) !== true) return { ok: false, error: 'compte_kybernos_non_connecte' }
@@ -4570,7 +4672,11 @@ const memoryWriteTool = () => ({
       source: typeof args.source === 'string' ? args.source : 'conversation',
       pinned: args.pinned === true,
     }, 'agent')
-    return made.ok === true ? { ok: true, id: made.memory === null ? 0 : Number(made.memory.id) } : { ok: false, error: made.error }
+    if (made.ok !== true) return { ok: false, error: made.error }
+    const id = made.memory === null ? 0 : Number(made.memory.id)
+    // A note really written (not a repeat) is pointed at from this chat, for the line under the answer.
+    if (made.same !== true) noteNoted(exec !== null && typeof exec === 'object' ? sessionIdOfAgent(exec.agent) : undefined, made.memory)
+    return made.same === true ? { ok: true, same: true, id } : { ok: true, id }
   },
 })
 
@@ -4606,6 +4712,7 @@ const memorySearchTool = () => ({
     if (readMemorySettings().memories !== true) return { ok: false, error: 'memoire_desactivee' }
     const found = await searchMemories(state, args.q)
     if (found.ok !== true) return { ok: false, error: found.error }
+    noteLookups(sortMemories(found.items).slice(0, 10).map((m) => m.id))
     const lines = sortMemories(found.items).slice(0, 10).map((m) => '#' + String(m.id) + ' (' + String(m.kind) + (m.scope === 'kyber' ? ', kyber' : '') + ') ' + String(m.content))
     return { ok: true, count: found.items.length, found: lines.join('\n') }
   },
@@ -4715,6 +4822,13 @@ const CAPTURE_PROMPT = 'You read the end of a conversation turn between a user a
   + 'Answer in strict JSON: {"memories":[{"content":"…","kind":"fact|preference|event|policy"},…]} '
   + 'or {"memories":[]} if there is nothing. No text around the JSON.'
 
+/** The capture prompt: when the person did not allow sensitive topics (the default), it is told to leave them out. */
+const SENSITIVE_CLAUSE = ' Never extract anything about sensitive topics: health or medical details, religion or beliefs, politics, sexual orientation, ethnic origin, criminal records or money troubles; leave them out even when the user says them.'
+const capturePromptFor = (settings) => {
+  const sensitive = settings !== null && typeof settings === 'object' && settings.sensitive === true
+  return sensitive ? CAPTURE_PROMPT : CAPTURE_PROMPT.replace(' Answer in strict JSON', SENSITIVE_CLAUSE + ' Answer in strict JSON')
+}
+
 const extractFacts = async (ctx, agent, text, signal) => {
   const llm = ctx.get('llm')
   if (llm === undefined) return []
@@ -4725,7 +4839,7 @@ const extractFacts = async (ctx, agent, text, signal) => {
     ? { provider: options.provider, model: options.model }
     : latest
   if (target === undefined || typeof target.provider !== 'string' || typeof target.model !== 'string') return []
-  const messages = [{ role: 'user', content: [{ type: 'text', text: CAPTURE_PROMPT + '\n\n---\n' + text }] }]
+  const messages = [{ role: 'user', content: [{ type: 'text', text: capturePromptFor(readMemorySettings()) + '\n\n---\n' + text }] }]
   let raw = ''
   const stream = llm.stream({
     provider: target.provider,
@@ -4769,6 +4883,18 @@ const noteCapture = (status, facts) => {
 /** The sessions that took a message while the space was a team: the turn they are in is a team's, even if the person switches before it ends. */
 const teamTurns = new Set()
 
+/**
+ * Chats on these providers are never read back for the account's memory. `phone-local` is the small model of the phone (kybernos-phone-model): a chat there is meant to stay on the phone,
+ * and a capture would both write what the person said to the account and keep the phone model busy with a second request (about 260 tokens) after every answer, ahead of the next question.
+ */
+const NO_CAPTURE_PROVIDERS = new Set(['phone-local'])
+const providerOfChat = (agent) => {
+  try {
+    const header = agent.session.requestHeader()
+    return header !== undefined && header !== null && header.config !== undefined && header.config !== null && typeof header.config.provider === 'string' ? header.config.provider : null
+  } catch (e) { return null }
+}
+
 const captureTurn = async (ctx, agent, signal) => {
   try {
     // First of all, before the switches and before any model call: the words of a team conversation are not read for the person's own memory — not when the
@@ -4779,8 +4905,12 @@ const captureTurn = async (ctx, agent, signal) => {
     // The person said no to a write of memory in this turn: the capture is no way round it (it would write the same fact a second later).
     const said = typeof sid === 'string' ? refusedTools.get(sid) : undefined
     if (typeof sid === 'string') refusedTools.delete(sid)
+    // What an outside assistant relayed is not what the person typed: it may carry words from a third party, so it is never read for their memory.
+    if (isAssistantTurn(sid)) return noteCapture('assistant', 0)
     if (said !== undefined && (said.has('memory_write') || said.has('lesson_write'))) return noteCapture('refusee', 0)
     if (straddled || spaceOf(readStateForSpace()) === 'team') return noteCapture('espace_equipe', 0)
+    const chatProvider = providerOfChat(agent)
+    if (chatProvider !== null && NO_CAPTURE_PROVIDERS.has(chatProvider)) return noteCapture('modele_du_telephone', 0)
     const state = readState()
     if (isConnected(state) !== true) return noteCapture('hors_connexion', 0)
     // The switches come BEFORE any network or LLM call: « Capture: no »
@@ -4811,9 +4941,8 @@ const captureTurn = async (ctx, agent, signal) => {
       if (key === '' || known.has(key) === true || nearKnown(fact.content, pool) === true) { skipped += 1; continue }
       known.add(key)
       pool.push(fact.content)
-      const made = await createMemory(state, { scope: 'account', kind: fact.kind, content: fact.content, source: 'conversation' }, 'capture')
-      if (made.ok === true) written += 1
-      else failed += 1
+      const made = await createMemory(state, { scope: 'account', kind: fact.kind, content: fact.content, source: 'conversation' }, 'capture', { gated: true })
+      if (made.ok === true) { written += 1; noteNoted(sid, made.memory) } else failed += 1
     }
     // Nothing written because EVERYTHING failed is not « written: 0 »: the card
     // must be able to say that the capture is down.
@@ -5161,11 +5290,21 @@ const turnJobs = new Map()
 const turnBudgets = new Map()
 /** How many questions each turn session has put to the person. */
 const turnAsks = new Map()
-/** Sessions whose person said « for the rest of this task »: the gate does not ask again in them. */
+/** The lines of work of each turn session (who did what: kyby-steps.mjs): the runner reads them while the turn runs and passes them to the platform, so that the person's assistant can show the work. */
+const turnSteps = new Map()
+/** Sessions whose person said « for the rest of this task »: the gate does not ask again in them (never a strict one: see `turnStrict`). */
 const turnAllowAll = new Set()
+/** Sessions the runner marked `strict` (a request an entrance filter found suspect, relayed by an outside assistant): the gate never keeps « Allow for this task » in them, so each consequential call asks again. */
+const turnStrict = new Set()
+/** Sessions the runner stopped (`turn/stop`: cancelled by the platform, out of time, or the lease lost): the gate refuses every call a session of them might still make, and `turn/continue` takes no more words for them. */
+const turnStopped = new Set()
 const TURN_JOB_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-const rememberTurnSession = (id, jobId, budgetMs) => {
+// Which session each task ran in, kept on the volume: the way back to a task's Journal after DSH restarted or the machine slept (door-sessions.mjs).
+const doorSessions = createDoorSessions({ file: () => join(dshHome(), 'kybernos', 'door-sessions.json') })
+const rememberTurnSession = (id, jobId, budgetMs, strict = false) => {
   turnSessions.add(id)
+  if (typeof jobId === 'string' && TURN_JOB_RE.test(jobId)) doorSessions.note(jobId, id)
+  if (strict === true) turnStrict.add(id)
   if (typeof jobId === 'string' && TURN_JOB_RE.test(jobId)) turnJobs.set(id, jobId)
   if (Number.isFinite(budgetMs) && budgetMs > 0 && budgetMs <= 3_600_000) turnBudgets.set(id, { at: Date.now(), ms: budgetMs })
   if (turnSessions.size > 200) {
@@ -5173,8 +5312,11 @@ const rememberTurnSession = (id, jobId, budgetMs) => {
     turnSessions.delete(old)
     turnJobs.delete(old)
     turnAllowAll.delete(old)
+    turnStrict.delete(old)
+    turnStopped.delete(old)
     turnBudgets.delete(old)
     turnAsks.delete(old)
+    turnSteps.delete(old)
   }
 }
 
@@ -5184,14 +5326,21 @@ const rememberTurnSession = (id, jobId, budgetMs) => {
 // is never raised. Whatever goes wrong (no job, the platform unreachable, no answer in time) is a refusal, never a pass.
 // What reads and changes nothing passes without a question. `memory_search` is the person's own memory read back to them: asking before it made every « what do you know about me » a question
 // and, when it was refused, a turn with no answer (measured on dev, step 0 of the Kaby baseline). `memory_write` changes something and still asks.
-// Audit of 2026-10-20, every tool a computer can have, by what it does. READS (listed here): the engine's `read`, `read_image`, `web_search`, `web_fetch`, `job_list`, `schedule_list` and
+// Audit of 2026-10-20, every tool a computer can have, by what it does. READS (listed here): the engine's `read`, `grep` and `glob` (a search in the computer's own files reads what `read` reads: asked about, Kaby put a raw « grep {"pattern":…} » to the person, measured on Telegram 2026-11-06), `read_image`, `web_search`, `web_fetch`, `job_list`, `schedule_list` and
 // `todo_write` (the plan the model keeps for itself: one session event, nothing outside the chat); the plugins' `memory_search`, `connections_list`, `connections_search_tools` (the catalogue
 // of a connected app's actions), `kaby_journal`, `kaby_knowledge`, `kaby_account`, `computer_list` (the sandboxes this machine tracks: a file on its own disk, no call out; it is NOT the
 // person's list of cloud computers, which is what the model took it for), `computer_read` (a file of a sandbox the person already allowed to start) and `site_list` (the person's own pages
-// online, read at the server), `shop_list` (the person's trial shop read at the server: products and stock, changes nothing) and `deliver_files` (the Office plugin's cards: it only names files that already exist in the chat's folder, nothing is written or sent). `site_publish` and `site_remove` put something on the public internet or take it down: ASKED, and in no mandate. ASKED (not listed): the engine's
-// `bash`, `write`, `edit`; `memory_write`, `lesson_write` and `lesson_search` (which counts the lessons it returns as used: a write), `connections_execute`, `computer_start/exec/write/stop/pause/
+// online, read at the server), `shop_list` (the person's trial shop read at the server: products and stock, changes nothing), `shop_terms` (its terms of sale, read) and `deliver_files` (the Office plugin's cards: it only names files that already exist in the chat's folder, nothing is written or sent). `site_publish` and `site_remove` put something on the public internet or take it down: ASKED, and in no mandate. ASKED (not listed): the engine's
+// `bash`, `write`, `edit`; `memory_write`, `lesson_write`, `lesson_search` and `lesson_read` (which count the lessons they return as used: a write), `memory_tidy` (it merges and rewrites lessons), `connections_execute`, `computer_start/exec/write/stop/pause/
 // resume/task`, `relancer_dsh`, `kybernos_report_feedback` (it sends), `creer_slides`, `animer_briques`, `modeliser` and the motion and dashboards tools (they write files), and every `mcp__` tool.
-export const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch', 'memory_search', 'job_list', 'schedule_list', 'connections_list', 'connections_search_tools', 'todo_write', 'kaby_journal', 'kaby_knowledge', 'kaby_account', 'computer_list', 'computer_read', 'site_list', 'shop_list', 'deliver_files'])
+// The tools the SERVER publishes beyond the connectors' three (the bridge, connections-host.mjs) are not listed here: the server says what each does (MCP annotations) and the host remembers it. A tool that only reads passes
+// like those above; one that changes nothing outside the person's own Kybernos data passes in a request nobody found suspect; any other, and one with no annotation, asks like `connections_execute`.
+// `skill` loads a skill's written instructions into the chat (a text file read: it acts on nothing, and every call the skill then leads to is gated on its own). It asked a tap on its own
+// and made a harmless « which skills do you have, use one » a question (measured through the MCP door, 2026-11-20).
+// The agent-tree tools (`subagent`, `subagent_fork`, `list_subagent_models`, `list_agents`, `send_message`, `wait_agent`, `interrupt_agent`) and the team task board (`team_task_*`) only start, steer or list
+// agents of this very turn: a sub-agent's own calls are gated as its root session's (turnRootOf), so a team can be made on the fly with no tap for the delegation itself and a tap for anything it then
+// changes. `workflow` is NOT in the list: its script runs in a Node VM the engine says « is not a security boundary », under this computer's full-access file policy, so it is code execution and asks.
+export const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'skill', 'subagent', 'subagent_fork', 'list_subagent_models', 'list_agents', 'send_message', 'wait_agent', 'interrupt_agent', 'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update', 'web_search', 'web_fetch', 'memory_search', 'job_list', 'schedule_list', 'connections_list', 'connections_search_tools', 'todo_write', 'kaby_journal', 'kaby_knowledge', 'kaby_account', 'computer_list', 'computer_read', 'site_list', 'shop_list', 'shop_terms', 'grep', 'glob', 'deliver_files'])
 // How long one unanswered question is waited for. The person is on a chat, not at a desk: five minutes, and never past the end of the turn (the runner says how long the turn may last), so that
 // the model still has time to answer with what it knows (measured on WhatsApp: a question put at minute 4 outlived the 10-minute turn, which ended with no words at all).
 const turnGateWaitMs = () => { const v = Number(process.env.KYBERNOS_TURN_GATE_WAIT_MS); return Number.isFinite(v) && v > 0 ? v : 5 * 60_000 }
@@ -5212,6 +5361,8 @@ const turnRootOf = (ctx, id) => {
 }
 /** Where each turn session's message came from (the runner says so when it starts the turn). */
 const turnChannels = new Map()
+/** Is this session a turn an outside assistant relayed (channel `assistant`, the platform's MCP door)? Its text is not the person's own typed words: it is neither mirrored on their thread nor read for their memory. */
+export const isAssistantTurn = (sid) => typeof sid === 'string' && turnChannels.get(sid) === 'assistant'
 /** The actions the person refused in a session since its last journal line (the gates count them). */
 const turnRefusals = new Map()
 /** The tools whose call the person refused, per session, until the end of the turn: a refused write of memory is not done by the capture either. */
@@ -5354,8 +5505,60 @@ const mountKabySites = (ctx) => {
   })
 }
 
+// ── Kaby makes a picture (kyby-image.mjs, `POST /v1/images/generations`, ADR 0003 § 11.5) ───────────────────────────────────────────────────────────────────────────────────────────
+// On a cloud computer the call carries the computer's own token (the server bills the workspace it belongs to, as it does for the chat); on the person's computer it carries their account
+// token and the active space's header, like the chat route. The pictures are written in the chat's working folder. On a cloud computer, inside a turn, each one is also put among the
+// person's own files (`POST /v1/artifacts`, tagged with the turn) so that a private link can be given back: that is what carries a picture to an outside assistant (the MCP door).
+const IMAGE_TIMEOUT_MS = 120_000
+const IMAGE_ARTIFACT_TIMEOUT_MS = 30_000
+const mountKabyImages = (ctx) => {
+  const onComputer = () => computerSelf().id !== ''
+  const viaAccount = (method, path, body, timeoutMs) => {
+    const state = readState()
+    if (state === null || state === UNREADABLE || isConnected(state) !== true) return { status: 401, body: { error: 'not_connected' } }
+    return apiCall(path, { method, token: state.token, ...(body === undefined ? {} : { body }), headers: spaceHeaders(state), ...(timeoutMs === undefined ? {} : { timeoutMs }) })
+  }
+  const viaComputer = (method, path, body, timeoutMs) => {
+    const { api, token } = computerSelf()
+    if (api === '' || token === '') return { status: 401, body: { error: 'not_connected' } }
+    return apiFetch(path, { method, token, base: api, ...(body === undefined ? {} : { body }), ...(timeoutMs === undefined ? {} : { timeoutMs }) })
+  }
+  const call = (method, path, body, timeoutMs) => (onComputer() ? viaComputer : viaAccount)(method, path, body, timeoutMs)
+  const deps = {
+    models: () => call('GET', '/v1/models'),
+    generate: (body) => call('POST', '/v1/images/generations', body, IMAGE_TIMEOUT_MS),
+    // The folder a relative path starts from, as the engine resolves it for this chat (it follows a change of folder).
+    async workingFolder (exec) {
+      const agent = exec && exec.agent ? exec.agent : undefined
+      try {
+        const wd = ctx.get('workingDirectory')
+        if (agent !== undefined && wd !== undefined && wd !== null && typeof wd.ensure === 'function') {
+          const c = await wd.ensure(agent, exec.signal)
+          if (typeof c === 'string' && c !== '') return c
+        }
+      } catch (e) { /* the folder the session header names stands in */ }
+      return agent === undefined ? '' : (currentDirOf(ctx, agent) || cwdOf(agent))
+    },
+    io: { mkdir: (dir) => mkdirSync(dir, { recursive: true }), writeFile: (file, bytes) => writeFileSync(file, bytes, { mode: 0o644 }) },
+    // Only a cloud computer inside one of its turns keeps a picture on the person's account: the turn's id tags it, so that the door can find what this task made.
+    async keep (file, exec) {
+      if (!onComputer()) return null
+      const root = turnRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
+      const jobId = root === null ? undefined : turnJobs.get(root)
+      if (jobId === undefined) return null
+      const put = await viaComputer('POST', '/v1/artifacts', { kind: 'note', title: file.title, filename: file.name, mime: file.mime, content_b64: file.bytes.toString('base64'), push: { run_id: jobId } }, IMAGE_ARTIFACT_TIMEOUT_MS)
+      const id = put.status === 200 || put.status === 201 ? put.body && put.body.artifact && put.body.artifact.id : undefined
+      if (typeof id !== 'string') return null
+      const one = await viaComputer('GET', '/v1/artifacts/' + encodeURIComponent(id), undefined, IMAGE_ARTIFACT_TIMEOUT_MS)
+      const url = one.status === 200 && one.body && one.body.artifact ? one.body.artifact.url : undefined
+      return typeof url === 'string' ? { link: url } : null
+    }
+  }
+  ctx.inject(['tools'], (scope) => { scope.tools.register(imageTool(deps)) })
+}
+
 // ── The trial shop: Kaby runs the shop the person sees in their Telegram Mini App and sells from at its own address (shop-stock.mjs, docs/dev/shop-poc-contract.md) ──────────────────────────────
-// Only a cloud computer inside one of its turns can speak for the person at the server (`POST /v1/computer/shop`, `…/shop/stock`, `…/shop/define`, `…/shop/connect`, `…/shop/photo/raw`, `…/shop/photo/put`: the computer's own token and the turn it belongs to, so the
+// Only a cloud computer inside one of its turns can speak for the person at the server (`POST /v1/computer/shop`, `…/shop/stock`, `…/shop/define`, `…/shop/connect`, `…/shop/terms`, `…/shop/photo/raw`, `…/shop/photo/put`: the computer's own token and the turn it belongs to, so the
 // server checks the person is still there). Anywhere else the tools say so and do nothing. The read passes the turn's gate; the change is asked like any change.
 const mountKabyShop = (ctx) => {
   const deps = {
@@ -5421,13 +5624,16 @@ const turnApprovalSubject = (exec) => {
   if (name === 'edit') { const summary = text(args.file_path) || 'edit'; return { kind: 'edit', summary, shown: summary } }
   // Putting a page on the public internet: the person reads the address it will have, not the arguments.
   if (name === 'site_publish' || name === 'site_remove') { const shown = siteShown(name, args); return { kind: 'other', summary: shown, shown } }
-  // Changing the trial shop: the person reads the product and the number, the shop's name and prices, or that Stripe will be asked for a link, not the arguments (`shop_stock`, `shop_define` and `shop_connect` are asked, like any change; `shop_list` is a read).
-  if (name === 'shop_stock' || name === 'shop_define' || name === 'shop_connect' || name === 'shop_photo') { const shown = shopShown(args, name); return { kind: 'other', summary: shown, shown } }
+  // A picture: the person reads what is asked for, never the arguments.
+  if (name === 'create_image') { const shown = imageShown(args); return { kind: 'other', summary: shown, shown } }
+  // Changing the trial shop: the person reads the product and the number, the shop's name and prices, or that Stripe will be asked for a link, not the arguments (`shop_stock`, `shop_define`, `shop_connect`, `shop_photo` and `shop_terms_save` are asked, like any change; `shop_list` and `shop_terms` are reads).
+  if (name === 'shop_stock' || name === 'shop_define' || name === 'shop_connect' || name === 'shop_photo' || name === 'shop_terms_save') { const shown = shopShown(args, name); return { kind: 'other', summary: shown, shown } }
   let raw = ''
   try { raw = JSON.stringify(args) } catch (e) { raw = '' }
   const summary = (name + ' ' + raw).trim()
   // A connected app's tool carries its whole payload (a page to deploy, a mail with its body): the person is shown which app and which action, then each field cut short.
-  return { kind: name.startsWith('mcp__') ? 'connector' : 'other', summary, shown: name.startsWith('mcp__') ? connectorShown(name, args) : summary }
+  // Any other tool is worded the same way: its name in words and its fields, never the raw JSON (« memory write (text: …) », not « memory_write {"text":…} »).
+  return { kind: name.startsWith('mcp__') ? 'connector' : 'other', summary, shown: connectorShown(name, args) }
 }
 const turnPlatform = async (method, path, body) => {
   const { api, token } = computerSelf()
@@ -5444,14 +5650,47 @@ const turnPlatform = async (method, path, body) => {
     return { status: r.status, json }
   } catch (e) { return { status: 0, json: null } }
 }
+// What a request relayed through the MCP door still asks, even though the person signed in: whatever leaves the computer for other people, the public internet or money (a connected
+// app's tool, a page put online, the trial shop's changes) and restarting DSH. Everything that stays inside the computer (shell, files, memory, skills, a team of agents) runs with no question.
+const DOOR_ASKED_TOOLS = new Set(['connections_execute', 'relancer_dsh', 'site_publish', 'site_remove', 'shop_stock', 'shop_define', 'shop_connect', 'shop_photo', 'shop_terms_save'])
+const doorAsks = (name) => DOOR_ASKED_TOOLS.has(name) || name.startsWith('mcp__') || connections.bridgedKind(name) === 'ask'
+/** Whether the action a `connections_execute` call names only reads, by the server's own word. Never throws: a lookup that fails is « not a read », and the call asks. */
+const doorRead = async (exec) => { try { return await connections.readAction(exec && exec.arguments ? exec.arguments.tool_slug : '') === true } catch (e) { return false } }
 const turnGate = (ctx) => async (exec, next) => {
   if (computerSelf().id === '') return next()
   const root = turnRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
   if (root === null) return next()
   const name = String((exec && exec.name) || '')
+  // A stopped task does nothing more, whatever the tool and whoever calls it (a sub-agent the cancel did not reach included).
+  if (turnStopped.has(root)) return { kind: 'deny', reason: 'The task was stopped. Do nothing more.' }
+  // One line of the task's work for each call, whoever made it (Kaby or a member of its team) and whatever the gate then decides. A line is a name, never a content (kyby-steps.mjs); a failure here is no failure of the call.
+  try {
+    let log = turnSteps.get(root)
+    if (log === undefined) { log = createStepLog(); turnSteps.set(root, log) }
+    log.note(exec && exec.agent ? exec.agent.id : undefined, root, name, exec ? exec.arguments : undefined)
+  } catch (e) { /* the work is not shown, the task goes on */ }
   // DSH's own question card has nobody in front of it on a computer: waiting for it would hold the turn until it times out. The question goes in the reply instead.
   if (name === 'ask_user_question') return { kind: 'deny', reason: 'Nobody can answer here: ask the question in your reply to the person, in one short message, and stop.' }
-  if (TURN_GATE_SAFE_TOOLS.has(name) || turnAllowAll.has(root)) return next()
+  if (TURN_GATE_SAFE_TOOLS.has(name) || connections.bridgedKind(name) === 'read' || turnAllowAll.has(root)) return next()
+  // Three things pass with no question in a turn that is NOT strict (an entrance filter found nothing suspect in the words); a strict turn asks for every call, as before:
+  //  1. a shell command that only shows names and numbers (`ls -la`, `df -h`): turn-gate-rules.mjs, a closed list;
+  //  2. what the person's signed mandate covers, inside its daily limits (kyby-mandate.mjs: memory and cloud-computer tools), the same permission Kaby's own chat on a native computer
+  //     already reads. The mandate never reaches a shell command, a file write or a connected app: those still ask.
+  if (turnStrict.has(root) === false) {
+    if (name === 'bash' && shellIsReadOnly(exec && exec.arguments ? exec.arguments.command : '')) return next()
+    // A tool the server published that changes nothing outside the person's own Kybernos data (the bridge: connections.mjs, `bridgeKind`) passes here, as in a request the door relayed.
+    if (connections.bridgedKind(name) === 'own') return next()
+    // A picture is made with the person's own budget (the server holds and caps it) and written in the chat's own folder: nothing leaves the computer but the words of the prompt, sent to our own server. A strict turn still asks.
+    if (name === 'create_image') return next()
+    // A connected app's action that the server says only reads (Composio's `readOnlyHint`, asked once per action: connections-host.mjs `readAction`) passes in a request the door relayed: the person signed
+    // in there, and reading changes nothing in the app. A send, a delete, anything the server does not call a read still asks (DOOR_ASKED_TOOLS); so does every action in a strict turn, which never gets here.
+    if (name === 'connections_execute' && isAssistantTurn(root) && await doorRead(exec)) return next()
+    if (mandateStore.allow(name, root, isAssistantTurn(root) ? 'assistant' : 'turn').allow === true) return next()
+    // 3. A request an outside assistant relayed (the MCP door) is the person's own: they signed in at the door (OAuth consent, scope `kaby.run`) and that is the whole permission, with no
+    //    second signature in Settings and no tap per action (2026-11-20, the owner: « the user only needs to authenticate »). The entrance filter's verdict still counts (a strict turn
+    //    never gets here), and what leaves the computer still asks (DOOR_ASKED_TOOLS).
+    if (isAssistantTurn(root) && doorAsks(name) === false) return next()
+  }
   const refuse = (why, byPerson = true) => { noteRefusal(root, name, byPerson); return { kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' } }
   const jobId = turnJobs.get(root)
   if (jobId === undefined) return refuse('it could not be asked')
@@ -5478,7 +5717,8 @@ const turnGate = (ctx) => async (exec, next) => {
     const got = await turnPlatform('GET', '/v1/computer/approvals?id=' + encodeURIComponent(id))
     const state = got.status === 200 && got.json !== null ? got.json.state : null
     if (state === 'allowed') return next()
-    if (state === 'allowed_turn') { turnAllowAll.add(root); return next() }
+    // The tap lets THIS call through. In a strict turn it is not kept for the rest of the task: the next consequential call asks again (the cap of questions still holds).
+    if (state === 'allowed_turn') { if (turnStrict.has(root) === false) turnAllowAll.add(root); return next() }
     if (state === 'denied') return refuse('they refused it')
     if (state === 'expired') return refuse('they did not answer in time', false)
   }
@@ -5546,11 +5786,12 @@ const askPerson = async (ctx, exec, text) => {
   return { kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' }
 }
 const ordinaryAsk = async (ctx, exec, name) => {
-  if (!ORDINARY_ASK_TOOLS.has(name) || exec === null || typeof exec !== 'object' || exec.agent === undefined || exec.agent === null) return null
+  const bridgedAsk = connections.bridgedKind(name) === 'ask'
+  if ((!ORDINARY_ASK_TOOLS.has(name) && !bridgedAsk) || exec === null || typeof exec !== 'object' || exec.agent === undefined || exec.agent === null) return null
   const args = exec.arguments !== null && typeof exec.arguments === 'object' ? exec.arguments : {}
   const slug = typeof args.tool_slug === 'string' ? args.tool_slug.trim() : ''
   const [app, ...action] = slug.split('_')
-  const shown = connectorShown(slug === '' ? 'mcp__connected_app' : 'mcp__' + app.toLowerCase() + '__' + action.join('_').toLowerCase(), args.params).slice(0, 500)
+  const shown = (bridgedAsk ? turnApprovalSubject(exec).shown : connectorShown(slug === '' ? 'mcp__connected_app' : 'mcp__' + app.toLowerCase() + '__' + action.join('_').toLowerCase(), args.params)).slice(0, 500)
   return askPerson(ctx, exec, { en: 'Connected app: ' + shown, fr: 'Application connectée : ' + shown })
 }
 // ── A chat that has just read the web (journey UJ-163) ──────────────────────────────────────────────────────────
@@ -5560,11 +5801,13 @@ const ordinaryAsk = async (ctx, exec, name) => {
 // automation as a whole), and so is Kaby's own chat (its gate is above).
 const untrustedChats = createUntrustedChats()
 const cwdOf = (agent) => { try { const c = agent.session.header.cwd; return typeof c === 'string' ? c : '' } catch (e) { return '' } }
+/** The folder the engine resolves a relative path in right now (it follows a change of folder), or '' when it cannot be told: then the project folder stands for it. */
+const currentDirOf = (ctx, agent) => { try { const wd = ctx.get('workingDirectory'); const c = wd !== undefined && wd !== null && typeof wd.get === 'function' ? wd.get(agent.session) : ''; return typeof c === 'string' ? c : '' } catch (e) { return '' } }
 const untrustedAsk = async (ctx, exec, name) => {
   if (exec === null || typeof exec !== 'object' || exec.agent === undefined || exec.agent === null) return null
   const chat = chatRootOf(ctx, exec.agent.id)
   if (chat === '' || untrustedChats.tainted(chat) === null || inAutomationRun(exec.agent)) return null
-  const risk = riskOf(name, exec.arguments, { cwd: cwdOf(exec.agent), known: (host) => untrustedChats.knows(chat, host) })
+  const risk = riskOf(name, exec.arguments, { cwd: cwdOf(exec.agent), current: currentDirOf(ctx, exec.agent), known: (host) => untrustedChats.knows(chat, host) })
   if (risk === null || nativeRootOf(ctx, exec.agent.id) !== null) return null
   return askPerson(ctx, exec, risk.text)
 }
@@ -5588,7 +5831,8 @@ const mountUntrusted = (ctx) => {
       const source = data !== null && typeof data === 'object' ? data.source : null
       if (source === null || typeof source !== 'object' || source.kind !== 'user') return
       const chat = chatRootOf(ctx, session.id)
-      if (chat === '') return
+      // Only the chat itself hears the person: the engine hands a sub-agent its prompt as a user message too, but the model wrote that prompt (maybe on a page's orders).
+      if (chat === '' || chat !== session.id) return
       for (const part of Array.isArray(data.content) ? data.content : []) {
         if (part !== null && typeof part === 'object' && typeof part.text === 'string') for (const host of hostsIn(part.text)) untrustedChats.know(chat, host)
       }
@@ -5603,7 +5847,7 @@ const nativeGate = (ctx) => async (exec, next) => {
     const own = nativeRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
     if (own !== null) { noteRefusal(own, name); return { kind: 'deny', reason: 'The standing permission belongs to the person: its files are not yours to read or change. Say so in your answer, do not try again.' } }
   }
-  if (!NATIVE_ASK_TOOLS.has(name)) {
+  if (!NATIVE_ASK_TOOLS.has(name) && connections.bridgedKind(name) !== 'ask') {
     // During a turn an automation started nobody can answer a question, and a schedule would be a standing action the person did not sign: refused outright.
     if (UNATTENDED_NEVER.includes(name)) {
       const own = nativeRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
@@ -5661,7 +5905,7 @@ const automationGate = () => async (exec, next) => {
   const name = String((exec && exec.name) || '')
   // DSH's own question card has nobody in front of it on a computer.
   if (name === 'ask_user_question') return { kind: 'deny', reason: askDeny('nobody') }
-  if (TURN_GATE_SAFE_TOOLS.has(name)) return next()
+  if (TURN_GATE_SAFE_TOOLS.has(name) || connections.bridgedKind(name) === 'read') return next()
   const subject = turnApprovalSubject(exec)
   const key = actionKey(subject.kind, subject.summary)
   // The verdict, and the question to the platform when it is one, under the same lock: two calls of the same step must not put two questions.
@@ -5770,7 +6014,7 @@ const turnStart = async (req, body) => {
   const sessionId = unwrap(await sc.create({}))
   if (sessionId === null) return { ok: false, error: 'no_session' }
   // Known to the gate BEFORE the prompt is queued: the first tool call must already find it gated.
-  rememberTurnSession(sessionId, body.jobId, Number(body.budgetMs))
+  rememberTurnSession(sessionId, body.jobId, Number(body.budgetMs), body.strict === true)
   // Where the message came from, as the runner knows it (a closed word, for the journal); anything else is a phone.
   turnChannels.set(sessionId, typeof body.channel === 'string' && /^[a-z]{2,20}$/u.test(body.channel) ? body.channel : 'phone')
   // Lets the session settle before the turn is assembled, as an automation's fire does.
@@ -5791,6 +6035,7 @@ const turnContinue = async (req, body) => {
   const sessionId = body !== null && typeof body === 'object' && typeof body.sessionId === 'string' ? body.sessionId : ''
   const prompt = body !== null && typeof body === 'object' && typeof body.prompt === 'string' ? body.prompt.trim() : ''
   if (turnSessions.has(sessionId) !== true || prompt === '') return { ok: false, error: 'unknown_session' }
+  if (turnStopped.has(sessionId)) return { ok: false, error: 'stopped' }
   const sc = hostCtx !== null && hostCtx !== undefined ? hostCtx.get('sessionController') : undefined
   if (sc === undefined || sc === null || typeof sc.prompt !== 'function') return { ok: false, error: 'sessions_unavailable' }
   const controller = new AbortController()
@@ -5803,10 +6048,50 @@ const turnContinue = async (req, body) => {
   if (ack !== null && typeof ack === 'object' && ack.ok === false) return { ok: false, error: 'prompt_refused' }
   return { ok: true }
 }
+
+/**
+ * Stops a turn for real (docs/dev/task-contract.md § 8): the session this route's own `turn` made and every sub-agent session below it are cancelled, what waits in their queues is removed,
+ * and the turn is remembered as stopped. The runner calls it when the platform cancels the task, when the turn runs out of time and when its lease is lost; it is safe to call again.
+ */
+const turnStop = async (req, body) => {
+  if (turnAuthorized(req) !== true) return { ok: false, error: 'unavailable' }
+  const sessionId = body !== null && typeof body === 'object' && typeof body.sessionId === 'string' ? body.sessionId : ''
+  if (turnSessions.has(sessionId) !== true) return { ok: false, error: 'unknown_session' }
+  // Marked first: from this moment the gate refuses the turn's calls, even if the cancel below takes a moment to land.
+  turnStopped.add(sessionId)
+  const sc = hostCtx !== null && hostCtx !== undefined ? hostCtx.get('sessionController') : undefined
+  const sessions = hostCtx !== null && hostCtx !== undefined ? hostCtx.get('sessions') : undefined
+  return stopTurn({ sc, sessions, sessionId })
+}
+
+/**
+ * The Journal of a turn as a page behind a link that expires (kyby-journal-link.mjs): the runner asks for it once the turn is done and hands the link to the platform with the answer, so that the
+ * assistant who relayed the task can give the person the whole story of the work. Only a session this route's own `turn` made (like `continue`), and the page is built by the plugin that reads the chat
+ * (`/kybernos/journal/page`, asked over loopback as the person's own page asks). Nothing here changes anything: a refusal or a failure is a short code and the answer goes on without a link.
+ */
+const turnJournal = async (req, body) => {
+  if (turnAuthorized(req) !== true) return { ok: false, error: 'unavailable' }
+  let sessionId = body !== null && typeof body === 'object' && typeof body.sessionId === 'string' ? body.sessionId : ''
+  // By the TASK's id (a new link asked for hours later, by the assistant that relayed it): the session it ran in, from the file the `turn` route wrote. Never a session this route did not make.
+  const byTask = sessionId === '' && body !== null && typeof body === 'object' && typeof body.jobId === 'string'
+  if (byTask) sessionId = doorSessions.sessionOf(body.jobId) || ''
+  if (sessionId === '' || (byTask !== true && turnSessions.has(sessionId) !== true)) return { ok: false, error: 'unknown_session' }
+  const port = req !== null && req !== undefined && req.socket !== null && req.socket !== undefined && typeof req.socket.localPort === 'number' ? req.socket.localPort : 0
+  if (port === 0) return { ok: false, error: 'no_port' }
+  const home = dshHome()
+  return makeJournalLink({ port, sessionId, computerToken: computerSelf().token, secret: lireSecretSession(home), dir: pagesDir(home), lang: body.lang })
+}
 const turnAnswer = async (req, body) => {
   if (turnAuthorized(req) !== true) return { ok: false, error: 'unavailable' }
   const sessionId = body !== null && typeof body === 'object' && typeof body.sessionId === 'string' ? body.sessionId : ''
   if (/^[A-Za-z0-9_-]{1,80}$/.test(sessionId) === false) return { ok: false, error: 'a session id is expected' }
+  // `steps`: the lines of work noted so far from number `since` on, read from memory (the runner asks every few seconds while the turn runs; the session's own events are not read).
+  if (body.steps === true) {
+    if (turnSessions.has(sessionId) !== true) return { ok: false, error: 'unknown_session' }
+    const log = turnSteps.get(sessionId)
+    const got = log === undefined ? { steps: [], total: 0, dropped: 0 } : log.since(Number(body.since))
+    return { ok: true, steps: got.steps, total: got.total, dropped: got.dropped }
+  }
   const persistence = hostCtx !== null && hostCtx !== undefined ? hostCtx.get('sessionPersistence') : undefined
   if (persistence === undefined || persistence === null || typeof persistence.open !== 'function') return { ok: false, error: 'persistence_unavailable' }
   let events = []
@@ -5823,6 +6108,11 @@ const turnAnswer = async (req, body) => {
   // person's words or a provider's): the runner passes this to the platform as the reason of a failed turn, where an owner can read it.
   let failure = ''
   let lastBlocks = ''
+  // The answer is the last RUN of messages that have words: the ones that follow each other with no tool call between them. A sub-agent that finishes after the answer was written sends a notice, and
+  // the model's one line about it (« the writer has finished, its output is above ») is a second message with words in the same run: taking only that one returned an answer that pointed at
+  // nothing (measured through the MCP door, 2026-11-20). A message with words, then a tool call, then another message with words is still only the last of them, as before.
+  let run = []
+  let brokenByTool = false
   // A model that could not be reached: the engine logs each retry as `llm/retry` with the failure's code (RATE_LIMIT, SERVER, TIMEOUT, TRANSPORT, EMPTY_RESPONSE). The last cause, when the model
   // never answered after it, is the reason of the turn. `model_429` is the code the platform's door already reads as « busy ».
   let modelFailure = ''
@@ -5830,7 +6120,7 @@ const turnAnswer = async (req, body) => {
   const codeOf = (v) => (typeof v === 'string' && /^[A-Za-z0-9_.:-]{1,60}$/.test(v) ? v.toLowerCase() : '')
   for (const ev of events) {
     if (ev === null || ev === undefined) continue
-    if (typeof ev.type === 'string' && ev.type.startsWith('tool/')) tools += 1
+    if (typeof ev.type === 'string' && ev.type.startsWith('tool/')) { tools += 1; brokenByTool = true }
     if (ev.type === 'llm/retry') {
       const f = ev.data !== null && ev.data !== undefined && typeof ev.data === 'object' ? ev.data.failure : null
       modelFailure = MODEL_FAILURES[codeOf(f !== null && f !== undefined && typeof f === 'object' ? f.code : '')] || 'model_error'
@@ -5851,8 +6141,13 @@ const turnAnswer = async (req, body) => {
       if (block !== null && block !== undefined && block.type === 'text' && typeof block.text === 'string') parts.push(block.text)
     }
     lastBlocks = kinds.filter((k) => k !== '').join('-')
-    // The last message that has words is the answer: a message that only called a tool has none.
-    if (parts.join('').trim() !== '') text = parts.join('\n')
+    // The last run of messages that have words is the answer: a message that only called a tool has none.
+    if (parts.join('').trim() !== '') {
+      if (brokenByTool === true) { run = []; brokenByTool = false }
+      run.push(parts.join('\n'))
+      text = run.join('\n\n')
+    }
+    if (message.content.some((block) => block !== null && block !== undefined && typeof block.type === 'string' && /^tool/i.test(block.type))) brokenByTool = true
   }
   if (text === '' && modelFailure !== '') return { ok: true, text, tools, failure: modelFailure }
   // No error event: how the session ended, by the type of its last event (`ended_turn_end`), so that « no words » is never a mystery.
@@ -6002,6 +6297,9 @@ const computerAction = async (verb) => {
   return { ok: true, state: String(c.state || ''), desired: String(c.desired || '') }
 }
 
+// ── Updating THIS cloud computer (computer-update.mjs; ADR 0052, addendum 2026-11-21) ─────────────────────────────────────────────────
+const computerUpdate = createComputerUpdate({ computerSelf, apiCall })
+
 // The person's cloud computers and how loaded each one is, for the strip on the Automations page (read-only). The list is the personal space's, as the
 // Home actions above; the load of each is what the computer said in its last beat (computers-view.mjs cuts the rows down to a closed set of fields).
 // One answer is shared for 8 seconds, the page asks every 10; a failure is an empty list with a short code, never the server's words.
@@ -6094,9 +6392,9 @@ const mandateStore = createMandateStore({ home: () => dshHome(), secret: () => l
 // Kaby wakes by itself through an ordinary automation (kybernos-plugin): the rhythm, the time box, « when I write in its chat » and the Stop button are its own. What this package keeps is the
 // gate: a turn that an automation started has nobody to answer (kyby-unattended.mjs). Desktop only: a cloud computer has its own scheduler.
 const unattended = createUnattended()
-const kybyNative = createKybyNative({
+export const kybyNative = createKybyNative({
   pointerFile: kybyPointerFile, readState, isConnected, apiCall, assistantName: kabyGivenName, mandate: () => mandateStore.text(),
-  list: () => LIST_TEXT, isUnattended: (sid) => unattended.isRun(sid)
+  list: () => LIST_TEXT, isUnattended: (sid) => unattended.isRun(sid), isOutside: isAssistantTurn, platform: process.platform
 })
 // Kaby's own folder: its chat lives in a workspace of its own, so that DSH's « New chat » never reuses it (a chat with no message yet is a
 // blank, and a blank is taken back by the next new chat of its workspace) and it has a home on this machine.
@@ -6137,8 +6435,8 @@ const mountKybyNative = (ctx) => {
 // Origin alone and that a page drives too: the Account page's instructions (the file every agent reads), the Telegram and WhatsApp pairing
 // and unlinking, Kaby's computer, the Home computer's actions, the console link and the two payment pages.
 // A POST row is either `session: true`, or it says in `noSession` which caller that is not a browser keeps it at the strict Origin alone
-// (test-write-guard.mjs reads the table and fails on a row that is neither). Those are the only ones, five: `server/apply`, `turn`,
-// `turn/answer`, `turn/continue` and `computer/claimed`. docs/dev/route-origin-rule.md carries the table and the exceptions.
+// (test-write-guard.mjs reads the table and fails on a row that is neither). Those are the only ones, seven: `server/apply`, `turn`,
+// `turn/answer`, `turn/continue`, `turn/journal`, `turn/stop` and `computer/claimed`. docs/dev/route-origin-rule.md carries the table and the exceptions.
 const ROUTES = [
   { path: '/kybernos-cloud/kyber', method: 'GET', guarded: true, run: kyberRoute },
   // A pairing creates a link that, once opened in Telegram and confirmed there, connects the chat to the account's Kaby: same origin, strictly, and the signed session (L3-05).
@@ -6164,6 +6462,8 @@ const ROUTES = [
   { path: '/kybernos-cloud/computer/resume', method: 'POST', guarded: true, strict: true, session: true, run: () => computerAction('resume') },
   { path: '/kybernos-cloud/computer/suspend', method: 'POST', guarded: true, strict: true, session: true, run: () => computerAction('suspend') },
   { path: '/kybernos-cloud/computer/open', method: 'POST', guarded: true, strict: true, session: true, run: () => computerAction('open') },
+  { path: '/kybernos-cloud/computer/update', method: 'GET', guarded: true, run: () => computerUpdate.state() },
+  { path: '/kybernos-cloud/computer/update/start', method: 'POST', guarded: true, strict: true, session: true, run: () => computerUpdate.start() },
   // The cloud computer a chat hands its work to: the composer's menu reads and sets it. It writes a choice that later spends the person's budget, so same origin strictly AND the signed session.
   { path: '/kybernos-cloud/computer/target', method: 'GET', guarded: true, run: computerTargetRoute },
   { path: '/kybernos-cloud/computer/target/set', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: computerTargetSet },
@@ -6213,6 +6513,8 @@ const ROUTES = [
   { path: '/kybernos-cloud/turn', method: 'POST', strict: true, noSession: "the cloud computer's own runner starts a turn here with no browser session (turnAuthorized is the handler's own check)", body: true, cap: 200000, run: turnStart },
   { path: '/kybernos-cloud/turn/answer', method: 'POST', strict: true, noSession: "the cloud computer's own runner answers a turn here with no browser session (turnAuthorized is the handler's own check)", body: true, cap: 4096, run: turnAnswer },
   { path: '/kybernos-cloud/turn/continue', method: 'POST', strict: true, noSession: "the cloud computer's own runner continues a turn here with no browser session (turnAuthorized is the handler's own check)", body: true, cap: 8192, run: turnContinue },
+  { path: '/kybernos-cloud/turn/stop', method: 'POST', strict: true, noSession: "the cloud computer's own runner stops a turn here with no browser session (turnAuthorized is the handler's own check)", body: true, cap: 1024, run: turnStop },
+  { path: '/kybernos-cloud/turn/journal', method: 'POST', strict: true, noSession: "the cloud computer's own runner asks for the Journal page of a finished turn here with no browser session (turnAuthorized is the handler's own check)", body: true, cap: 1024, run: turnJournal },
   // The terms and privacy addresses of the active server (public document, no token).
   { path: '/kybernos-cloud/legal', method: 'GET', guarded: true, run: legalRoute },
   // Strict only: the servers page drives it too, but kybernos-servers' host (packages/kybernos-servers/host.mjs) calls it over loopback with this listener's Origin and no cookie when it
@@ -6267,16 +6569,18 @@ const ROUTES = [
   { path: '/kybernos-cloud/memory', method: 'GET', guarded: true, run: memoryRoute },
   { path: '/kybernos-cloud/memory/add', method: 'POST', guarded: true, session: true, body: true, run: memoryCreateRoute },
   { path: '/kybernos-cloud/memory/update', method: 'POST', guarded: true, session: true, body: true, run: memoryUpdateRoute },
+  { path: '/kybernos-cloud/memory/no-expiry', method: 'POST', guarded: true, session: true, body: true, run: memoryNoExpiryRoute },
+  { path: '/kybernos-cloud/memory/wipe', method: 'POST', guarded: true, session: true, body: true, run: memoryWipeRoute },
   { path: '/kybernos-cloud/memory/delete', method: 'POST', guarded: true, session: true, body: true, run: memoryDeleteRoute },
   // « Memory & Lessons learned » page: paginated/filtered list and settings.
   // Distinct paths (GET and POST cannot share a path).
   { path: '/kybernos-cloud/memory/list', method: 'GET', guarded: true, run: memoryListRoute },
+  { path: '/kybernos-cloud/memory/noted', method: 'GET', guarded: true, run: memoryNotedRoute },
   { path: '/kybernos-cloud/memory/settings', method: 'GET', guarded: true, run: memorySettingsRoute },
   { path: '/kybernos-cloud/memory/settings/set', method: 'POST', guarded: true, session: true, body: true, run: memorySettingsSetRoute },
   // Search by meaning (off by default): status, then one indexing batch per POST — each batch calls the embeddings route.
   { path: '/kybernos-cloud/memory/index', method: 'GET', guarded: true, run: memoryIndexStatusRoute },
   { path: '/kybernos-cloud/memory/index/run', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: memoryIndexRunRoute },
-  { path: '/kybernos-cloud/memory/meaning-map', method: 'GET', guarded: true, run: memoryMeaningMapRoute },
   // Tidy up (near-duplicates): the last scan and the log, a scan (it only looks), what to apply / keep apart / undo.
   { path: '/kybernos-cloud/team/status', method: 'GET', guarded: true, run: teamStatusRoute },
   { path: '/kybernos-cloud/team/lessons', method: 'GET', guarded: true, run: teamListRoute },
@@ -6326,10 +6630,13 @@ const mountWebRoutes = (ctx, webServer) => {
       if (route.cors === true) {
         // Targeted CORS: only the known dev webapp origins — never
         // « * » (the content of conversations is local and private).
-        const origin = String((req.headers && req.headers.origin) || '')
-        const autorise = DSH_CORS_ORIGINS.includes(origin)
-        res.setHeader('Access-Control-Allow-Origin', autorise ? origin : 'null')
+        // A page of any other origin, an opaque one (Origin: null, a sandboxed frame) included, is refused, and the header never says 'null': a browser lets an opaque page read that.
+        // A request with no Origin (the GUI's own GET, a local process) is not a page of another site: it goes on to the route's other checks.
+        const hasOrigin = req.headers !== undefined && req.headers !== null && typeof req.headers.origin === 'string'
+        const origin = hasOrigin ? req.headers.origin : ''
         res.setHeader('Vary', 'Origin')
+        if (hasOrigin && !DSH_CORS_ORIGINS.includes(origin)) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (hasOrigin) res.setHeader('Access-Control-Allow-Origin', origin)
         if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
       }
       // A Host that is not this listener's is a rebound page: refused before anything is read, whatever the route (the open ones included).
@@ -6649,7 +6956,7 @@ const janitorMemoryScanAndClean = async (options = {}) => {
     }
     // What may be applied: the store's own « merge without asking » rule decides pass 1 (mode « auto »); pass 2
     // only adds the model's « same » verdicts, and the janitor's removals budget caps the whole run.
-    const order = apply === true && t.settings.mode === 'auto' ? [...pickAuto(local, t.settings), ...semantic] : []
+    const order = apply === true && t.settings.mode === 'auto' ? [...pickAuto(local, t.settings), ...semantic.slice(0, AUTO_MAX_BRAIN_MERGES)] : []
     const picked = []
     let removals = 0
     for (const group of order) {
@@ -6694,6 +7001,47 @@ const janitorMemoryScanAndClean = async (options = {}) => {
   }
 }
 
+// ── The memories tidy seam: memory_tidy (kybernos-memory) runs this tidy-up now ──────────────────────────────────────
+// globalThis[Symbol.for('kybernos.memoriesTidy')] is a function ({ dryRun }) => Promise<{ ok, before, after, merged, suggestions, error }>:
+// the run of "Clean up now" (trigger 'tool', the person's settings: auto or ask, brain on or off), or with `dryRun` a look that writes
+// nothing and asks no model. Counts only: no memory text and never the account token leave this bundle. Not connected answers
+// { ok: false, error: 'not_connected' }, which the caller says as a plain line. Removed when the plugin unloads.
+const MEMORIES_TIDY_SEAM = Symbol.for('kybernos.memoriesTidy')
+
+const memoriesTidyNow = async (options) => {
+  const dryRun = options !== null && typeof options === 'object' && options.dryRun === true
+  try {
+    if (spaceOf(readStateForSpace()) === 'team') return { ok: false, error: 'espace_equipe' }
+    const state = readState()
+    if (isConnected(state) !== true) return { ok: false, error: 'not_connected' }
+    if (readMemorySettings().memories !== true) return { ok: false, error: 'memoires_desactivees' }
+    if (dryRun) {
+      if (tidyFlags.running) return { ok: false, error: 'deja_en_cours' }
+      await refreshMemoryCache(state, true)
+      if (memoryCache.error !== null && memoryCache.account.length === 0) return { ok: false, error: String(memoryCache.error) }
+      const t = tidyState()
+      const items = memoryCache.account.map((m) => ({ id: m.id, content: m.content, createdAt: m.createdAt, pinned: m.pinned === true, bucket: m.kind }))
+      const local = findDuplicateGroups(items).filter((g) => t.dismissed.indexOf(g.id) < 0)
+      const picked = pickAuto(local, t.settings)
+      const removals = picked.reduce((n, g) => n + g.items.length - 1, 0)
+      return { ok: true, dryRun: true, before: items.length, after: items.length - removals, merged: picked.length, suggestions: local.length - picked.length, error: null }
+    }
+    const res = await tidyRun(state, 'tool')
+    if (res.ok !== true) return { ok: false, error: String(res.error) }
+    const studyError = res.brain.error === null || res.brain.error === 'pas_de_modele_detude' ? null : String(res.brain.error)
+    return { ok: true, before: res.counts.before, after: res.counts.after, merged: res.auto.groups, suggestions: res.groups.length, error: studyError }
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e).slice(0, 160) }
+  }
+}
+
+/** Publishes the seam and answers what takes it off again (only if it is still ours). A frozen global is not an error. */
+const publishMemoriesTidySeam = (target = globalThis) => {
+  const seam = (options) => memoriesTidyNow(options)
+  try { target[MEMORIES_TIDY_SEAM] = seam } catch (e) { return () => {} }
+  return () => { try { if (target[MEMORIES_TIDY_SEAM] === seam) delete target[MEMORIES_TIDY_SEAM] } catch (e) { /* already gone */ } }
+}
+
 const janitorMemorySeam = () => Object.freeze({
   version: 1,
   enabled: janitorMemoryEnabled,
@@ -6712,6 +7060,7 @@ export function apply(ctx) {
   try { publishJanitorSeam() } catch (e) { console.error('[kybernos-cloud] janitor seam: ' + String((e && e.message) || e)) }
   try { publishPersonSeam() } catch (e) { console.error('[kybernos-cloud] person seam: ' + String((e && e.message) || e)) }
   try { publishSnapshotsSeam() } catch (e) { console.error('[kybernos-cloud] snapshots seam: ' + String((e && e.message) || e)) }
+  try { ctx.effect(() => publishMemoriesTidySeam(), 'kybernos-cloud: memories tidy seam') } catch (e) { console.error('[kybernos-cloud] memories tidy seam: ' + String((e && e.message) || e)) }
   // The other bundles ask here whether the active space is a team (kybernos-memory cuts its lessons there).
   try { publishSpaceSeam(() => spaceOf(readStateForSpace()), globalThis, () => pinnedSpace() !== '') } catch (e) { console.error('[kybernos-cloud] space seam: ' + String((e && e.message) || e)) }
   // Before anything can use a token: a connection of another server (an install from before the new server became the default) is set aside.
@@ -6729,6 +7078,7 @@ export function apply(ctx) {
   try { mountKabyKnowledge(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby knowledge: ' + String((e && e.message) || e)) }
   try { mountKabyAccount(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby account: ' + String((e && e.message) || e)) }
   try { mountKabySites(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby sites: ' + String((e && e.message) || e)) }
+  try { mountKabyImages(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby images: ' + String((e && e.message) || e)) }
   try { mountKabyShop(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby shop: ' + String((e && e.message) || e)) }
   try { mountMemoryTools(ctx) } catch (e) { console.error('[kybernos-cloud] memory tools: ' + String((e && e.message) || e)) }
   try { mountComputerTaskTool(ctx) } catch (e) { console.error('[kybernos-cloud] cloud computer task tool: ' + String((e && e.message) || e)) }
@@ -6744,7 +7094,7 @@ export function apply(ctx) {
 // Exported for the out-of-DSH test (scripts/test-cloud-host.mjs): no other
 // public surface is promised.
 export {
-  cloudSeamCall, publishCloudSeam, SEAM_PREFIXES, publishJanitorSeam, JANITOR_MEMORY_SEAM, publishPersonSeam, PERSON_SEAM, personSeamRead, publishSnapshotsSeam, SNAPSHOTS_SEAM,
+  cloudSeamCall, publishCloudSeam, SEAM_PREFIXES, publishJanitorSeam, JANITOR_MEMORY_SEAM, publishMemoriesTidySeam, MEMORIES_TIDY_SEAM, memoriesTidyNow, publishPersonSeam, PERSON_SEAM, personSeamRead, publishSnapshotsSeam, SNAPSHOTS_SEAM,
   dshHome, resolveApi, stateFile, server, serverApply, serverRoute, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID, connections,
   // Keeping the picture of the account current (test: kybernos-cloud/test-profile-refresh.mjs).
   profileRefreshTick, PROFILE_REFRESH_TUNING, ROUTE_REPAIR_TUNING, sameOrigin, hostAllowed,
@@ -6760,7 +7110,7 @@ export {
   refreshMemoryCache, memoryCache, computerTaskModel,
   emptyMemoryCache, bumpMemoryCache, localLessons, localKybers, stateKyberMap,
   listMemories, lastTurnText, isLasting, keepCaptured, nearKnown, CAPTURE_PROMPT, memoryWriteTool, memorySearchTool, MEMORY_KINDS, MEMORY_SOURCES,
-  captureTurn, lastCapture, extractFacts, stripMemoryBlock, normalizeMemory,
-  MEMORY_MAX_CONTENT, MEMORY_MAX_INJECT_CHARS, MEMORY_TUNING,
-  selectForPrompt, planInjection, readMemorySettings, noteOrigins, originOf, scheduleMemoryRefresh, parseWhen,
+  captureTurn, lastCapture, extractFacts, capturePromptFor, stripMemoryBlock, normalizeMemory,
+  MEMORY_MAX_CONTENT, MEMORY_MAX_INJECT_CHARS, MEMORY_CORE_CHARS, MEMORY_TUNING,
+  selectForPrompt, planInjection, readMemorySettings, noteOrigins, noteNoted, originOf, scheduleMemoryRefresh, parseWhen, readLookups,
 }

@@ -182,7 +182,7 @@ window.__ModuleLoader__.load({
 
       /** What the panel says when DSH does not answer (the Mac app shows the page even then); `down` false is the moment before the first answer. */
       const offlineHTML = (down) => '<div class="kbpu-win" data-kb="pulse-window"><div class="kbpu-empty"><b>' + esc(down ? kt('Kybernos n’est pas lancé', 'Kybernos is not running') : '…') + '</b>' +
-        (down ? '<span>' + esc(kt('Lance DSH pour voir tes automatisations ici.', 'Start DSH to see your automations here.')) + '</span>' : '') + '</div></div>'
+        (down ? '<span>' + esc(kt('Lance Kybernos pour voir tes automatisations ici.', 'Start Kybernos to see your automations here.')) + '</span>' : '') + '</div></div>'
 
       const PANEL_CSS = [
         '.kbpu-i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}',
@@ -460,9 +460,13 @@ window.__ModuleLoader__.load({
           if (ids.length > 0) await inboxAct({ action: 'banner-shown', ids })
         } finally { handling = false }
       }
+      /** The Theme's setting « Notification counters » (Theme › Advanced › Effects): `data-kbth-counters` on <html>, 'shown' or 'hidden'. The Theme publishes `hidden` unless the person switched the counters on
+       *  (owner's call, 2026-11-24). Absent (no Theme plugin) = this module's own switch decides alone. Banners and the floating window are not part of it. Never throws. */
+      const countersHidden = () => { try { return document.documentElement.getAttribute('data-kbth-counters') === 'hidden' } catch (e) { return false } }
       const applyBadge = (snap) => {
         try {
-          const n = snap !== null && snap.settings.badge === true ? snap.unread : 0
+          // hidden by the Theme: no count (the title is stripped of one and the app badge is cleared, as with the switch off)
+          const n = snap !== null && snap.settings.badge === true && !countersHidden() ? snap.unread : 0
           const want = badgeTitle(document.title, n)
           if (document.title !== want) document.title = want
           if (typeof navigator.setAppBadge === 'function') { if (n > 0) void navigator.setAppBadge(n).catch(() => {}); else if (typeof navigator.clearAppBadge === 'function') void navigator.clearAppBadge().catch(() => {}) }
@@ -513,7 +517,7 @@ window.__ModuleLoader__.load({
           const leadFallback = () => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h('p', { className: 'kbpu-lead' }, lead) } catch (e) { return h('p', { className: 'kbpu-lead' }, lead) } }
           return h('div', { className: 'kbpu-page', 'data-kb': 'pulse-page' },
             h('div', null, pageHead({ id: 'kybernos-pulse', lead: lead, title: title, className: 'kbpu-title' }), leadFallback()),
-            store.error && snap === null ? h('p', { className: 'kbpu-note', role: 'alert', 'data-kb': 'pulse-error' }, kt('Cette page n’a pas de réponse de son assistant. Si DSH vient d’être mis à jour, redémarre DSH.', 'This page\'s helper is not answering. If DSH was just updated, restart DSH.')) : null,
+            store.error && snap === null ? h('p', { className: 'kbpu-note', role: 'alert', 'data-kb': 'pulse-error' }, kt('Cette page n’a pas de réponse de son assistant. Si l’appli vient d’être mise à jour, redémarre-la.', 'This page\'s helper is not answering. If the app was just updated, restart it.')) : null,
             h('div', { className: 'kbpu-block', 'data-kb': 'pulse-where' },
               h('h3', null, kt('Où il vit', 'Where it lives')),
               h('div', { className: 'kbpu-line' },
@@ -540,7 +544,7 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'kbpu-ctl' },
                   perm[0] === 'granted' ? h('span', { className: 'kbpu-chip st ok' }, kt('Autorisée', 'Allowed')) : perm[0] === 'denied' ? h('span', { className: 'kbpu-chip st bad' }, kt('Bloquée', 'Blocked')) : perm[0] === 'default' ? h('button', { type: 'button', className: 'kbpu-btn', 'data-kb': 'pulse-allow', onClick: allow }, kt('Autoriser', 'Allow')) : null,
                   perm[0] === 'granted' ? h('button', { type: 'button', className: 'kbpu-btn', 'data-kb': 'pulse-test', onClick: test }, kt('Tester', 'Test')) : null)),
-              sw('badge', kt('Nombre sur l’onglet et sur le Dock', 'Count on the tab and the Dock'), kt('Le Dock demande Kybernos installé comme appli (Chrome ou Edge).', 'The Dock needs Kybernos installed as an app (Chrome or Edge).'))),
+              sw('badge', kt('Nombre sur l’onglet et sur le Dock', 'Count on the tab and the Dock'), kt('Le Dock demande Kybernos installé comme appli (Chrome ou Edge). Masqué par défaut : Thème › Compteurs de notifications.', 'The Dock needs Kybernos installed as an app (Chrome or Edge). Hidden by default: Theme › Notification counters.'))),
             h('div', { className: 'kbpu-block', 'data-kb': 'pulse-quiet' },
               h('h3', null, kt('Automatisations silencieuses', 'Quiet automations')),
               h('div', { className: 'kbpu-line' },
@@ -577,16 +581,19 @@ window.__ModuleLoader__.load({
               if (!stopped) timer = window.setTimeout(loop, document.hidden ? POLL_HIDDEN_MS : POLL_MS)
             }
             const onWake = () => { if (!document.hidden) void refresh() }
+            // The Theme switches the counters on or off without a new poll: it says so with a window event (`kb-counters-change`), and the attribute holds the value.
+            const onCounters = () => applyBadge(store.get())
+            window.addEventListener('kb-counters-change', onCounters)
             document.addEventListener('visibilitychange', onWake)
             window.addEventListener('focus', onWake)
             void loop()
-            return () => { stopped = true; if (timer !== null) window.clearTimeout(timer); unsub(); document.removeEventListener('visibilitychange', onWake); window.removeEventListener('focus', onWake); clearBadge(); closeFloating() }
+            return () => { stopped = true; if (timer !== null) window.clearTimeout(timer); unsub(); window.removeEventListener('kb-counters-change', onCounters); document.removeEventListener('visibilitychange', onWake); window.removeEventListener('focus', onWake); clearBadge(); closeFloating() }
           }, 'kybernos-pulse: follow the runs')
           ctx.inject(['slots'], (scope) => { mountPage(ctx, scope || {}) })
         } catch (e) { /* optional */ }
       }
 
-      return { name: NAME, inject: [], apply: start, __test: { esc, fmtDur, ago, itemText, CODE_TEXT, hero, badgeTitle, bannersToShow, panelHTML, validSnap, kt, kn, PACK_STRINGS, CSS, TOKENS, FRESH_MS, POLL_MS, openFloating, closeFloating, isFloating, openKybernos, openMySettings, refresh, buildPage } }
+      return { name: NAME, inject: [], apply: start, __test: { esc, fmtDur, ago, itemText, CODE_TEXT, hero, badgeTitle, countersHidden, applyBadge, bannersToShow, panelHTML, validSnap, kt, kn, PACK_STRINGS, CSS, TOKENS, FRESH_MS, POLL_MS, openFloating, closeFloating, isFloating, openKybernos, openMySettings, refresh, buildPage } }
     } catch (e) {
       console.warn('[kybernos-pulse] disabled:', e)
       return { apply () {} }

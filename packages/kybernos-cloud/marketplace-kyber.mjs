@@ -158,14 +158,14 @@ export const lireCatalogue = async (lirePage, limites = {}) => {
     }
     if (panne !== null) {
       if (page === 1) return { ok: false, items: [], motif: 'catalogue ' + panne, echec: true, raison: codePanne }
-      note = 'incomplete catalogue: page ' + page + ' is ' + panne + ', ' + items.length + ' Agent Team(s) read'
+      note = 'incomplete catalogue: page ' + page + ' is ' + panne + ', ' + items.length + ' AI Agent Team(s) read'
       break
     }
     const brut = rep.body !== null && typeof rep.body === 'object' && Array.isArray(rep.body.items) ? rep.body.items : null
     if (brut === null) {
       // Not a page of the catalogue. On the first page that is the answer's own reason; later it is a broken server.
       if (page === 1) return Object.assign(normaliserCatalogue(rep.body), { ok: false })
-      note = 'incomplete catalogue: page ' + page + ' is unreadable, ' + items.length + ' Agent Team(s) read'
+      note = 'incomplete catalogue: page ' + page + ' is unreadable, ' + items.length + ' AI Agent Team(s) read'
       break
     }
     for (const it of brut) {
@@ -178,17 +178,17 @@ export const lireCatalogue = async (lirePage, limites = {}) => {
     const limite = 'incomplete catalogue: reading limited to ' + page + ' page(s), plugin limit'
     if (items.length > lim.items) {
       items.length = lim.items
-      note = limite + ' (' + items.length + ' Agent Team(s) kept)'
+      note = limite + ' (' + items.length + ' AI Agent Team(s) kept)'
       break
     }
     // An old server has no `has_more`: this was the only page.
     if (rep.body.has_more !== true) break
     const dernier = brut.length > 0 ? brut[brut.length - 1] : null
     const curseur = dernier !== null && typeof dernier === 'object' && typeof dernier.id === 'string' && dernier.id !== '' ? dernier.id : null
-    if (curseur === null) note = 'incomplete catalogue: page ' + page + ' announces a next page without saying where to resume, ' + items.length + ' Agent Team(s) read'
-    else if (curseurs.has(curseur)) note = 'incomplete catalogue: the server repeats page ' + page + ', ' + items.length + ' Agent Team(s) read'
-    else if (page >= lim.pages || items.length >= lim.items) note = limite + ' (' + items.length + ' Agent Team(s) read)'
-    else if (Date.now() - debut > lim.budgetMs) note = 'incomplete catalogue: time exceeded after ' + page + ' page(s), ' + items.length + ' Agent Team(s) read'
+    if (curseur === null) note = 'incomplete catalogue: page ' + page + ' announces a next page without saying where to resume, ' + items.length + ' AI Agent Team(s) read'
+    else if (curseurs.has(curseur)) note = 'incomplete catalogue: the server repeats page ' + page + ', ' + items.length + ' AI Agent Team(s) read'
+    else if (page >= lim.pages || items.length >= lim.items) note = limite + ' (' + items.length + ' AI Agent Team(s) read)'
+    else if (Date.now() - debut > lim.budgetMs) note = 'incomplete catalogue: time exceeded after ' + page + ' page(s), ' + items.length + ' AI Agent Team(s) read'
     curseurs.add(curseur)
     avant = curseur
   }
@@ -224,8 +224,8 @@ export const resoudreItem = async (slug, { lireItem, lirePage, limites }) => {
   if (cat.echec === true) return { erreur: cat.motif }
   const trouve = cat.items.filter((i) => i.slug === slug)[0]
   if (trouve !== undefined) return { item: trouve }
-  if (cat.partiel === true) return { erreur: 'this Agent Team was not found under the id “' + slug + '” (' + cat.motif + ')' }
-  return { erreur: 'this Agent Team is no longer published under the id “' + slug + '”' }
+  if (cat.partiel === true) return { erreur: 'this AI Agent Team was not found under the id “' + slug + '” (' + cat.motif + ')' }
+  return { erreur: 'this AI Agent Team is no longer published under the id “' + slug + '”' }
 }
 
 // ── YAML scalars ────────────────────────────────────────────────────────────
@@ -373,6 +373,6 @@ export const ymlDuKyber = (item) => {
 export const verdictInstallation = (existants, slug, { ecraser = false } = {}) => {
   const noms = Array.isArray(existants) ? existants.filter((n) => typeof n === 'string') : []
   const pris = noms.indexOf(slug) >= 0
-  if (pris === true && ecraser !== true) return { action: 'refus', motif: 'an Agent Team “' + slug + '” already exists', cible: slug }
-  return { action: 'ecrire', motif: pris === true ? 'overwrite explicitly requested' : 'new Agent Team', cible: slug }
+  if (pris === true && ecraser !== true) return { action: 'refus', motif: 'an AI Agent Team “' + slug + '” already exists', cible: slug }
+  return { action: 'ecrire', motif: pris === true ? 'overwrite explicitly requested' : 'new AI Agent Team', cible: slug }
 }

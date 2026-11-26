@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Where a new Agent Team is written (A6-24): the project for a team made on the Teams page, DSH's own home for the
-// first-run starter kit, so that a welcome screen never puts `kybers/` into the person's project.
+// first-run starter kit, so that a welcome screen never puts `kybers/` into the person's project. A phone has no project: its installs and clones go to the home too.
 //
 //   cd packages/kybernos-plugin && node test-kyber-root.mjs
 import { readFileSync } from 'node:fs'
@@ -43,7 +43,11 @@ const createBody = host.slice(createStart, host.indexOf('\n    const ', createSt
 check('and nothing of the old workspace-only choice is left in it (an undefined name made the route fail once)', createBody.length > 2000 && !/\bwsRoot\b/.test(createBody) && createBody.includes('rootId: target.id'), createBody.length)
 const kit = client.slice(client.indexOf('const kitApply = async () => {'), client.indexOf('// ── the profession in the person\'s memory ──'))
 check('the starter kit asks for the home store', kit.includes("host.call('kybers/create'") && /\bhome: true,/.test(kit), kit.length)
-check('and nothing else asks for it (the Teams page still writes into the project)', (client.match(/home: true/g) || []).length === 1)
+check('nothing else asks for it on a desktop (the Teams page still writes into the project)', (client.match(/home: true/g) || []).length === 1)
+// A phone has no project: what is installed from the Marketplace or cloned goes to the person's home, where the Danger Zone can remove it (recette 2026-11-08, N5)
+const phoneHome = client.match(/home: kbOnPhone\(\) \? true : undefined,/g) || []
+check('on a phone, installing a template and cloning a team ask for the home store', phoneHome.length === 2, phoneHome.length)
+check('...and the request carries `home` only as the boolean true, so a desktop sends nothing (JSON drops undefined)', JSON.stringify({ home: undefined, name: 'x' }) === '{"name":"x"}')
 
 console.log(`\n${pass} ✓  ${fail} ✗`)
 process.exit(fail === 0 ? 0 : 1)

@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-/** The tab « Where it runs » of an automation (client.js): its pure rules, its words, and the order of what it does (never two copies of an automation running).
+/** The « Where it runs » card of an automation's Overview sheet (client.js): its pure rules, its words, and the order of what it does (never two copies of an automation running).
  *  Usage: node packages/kybernos-plugin/test-where-it-runs.mjs   (exit 0 = all pass) */
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { I18N_DIR, table, entry, hasEntry, execEntry } from './lib-i18n-test.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -87,32 +88,41 @@ assert.deepEqual(mod.kbwAnswered('x', 'st-1'), [])
 ok('rules: dirty, count, why it cannot go, the phase of what was sent, the default computer, the six fields, the runs that came back')
 
 // 2. the words: both languages, no key defined twice anywhere, every key used is defined
-const keys = Array.from(cli.matchAll(/^      '([A-Za-z0-9_.\-]+)': \{ kybernos: '((?:[^'\\]|\\.)*)', en: '((?:[^'\\]|\\.)*)' \},?$/gm)).map((m) => m[1])
-const seen = new Map()
-for (const k of keys) seen.set(k, (seen.get(k) || 0) + 1)
-assert.deepEqual(Array.from(seen).filter(([, n]) => n > 1).map(([k]) => k), [], 'a key defined twice: the later one wins and hides the earlier (this is how « kbw.back » hid a button label)')
-const mine = Array.from(seen.keys()).filter((k) => k.indexOf('kbwr.') === 0)
+// The files are flat, one `"key": "text",` per line: a key written twice is only visible in the raw text (JSON.parse keeps the last one without a word).
+const dupes = []
+for (const lang of ['fr', 'en']) {
+  const count = new Map()
+  for (const line of readFileSync(join(I18N_DIR, lang + '.json'), 'utf8').split('\n')) {
+    const m = /^\s+("(?:[^"\\]|\\.)*"):/.exec(line)
+    if (m !== null) { const k = JSON.parse(m[1]); count.set(k, (count.get(k) || 0) + 1) }
+  }
+  for (const [k, n] of count) if (n > 1) dupes.push(lang + ': ' + k)
+}
+assert.deepEqual(dupes, [], 'a key defined twice: the later one wins and hides the earlier (this is how « kbw.back » hid a button label)')
+const seen = { has: hasEntry } // defined = a non-empty text in both languages
+const mine = Object.keys(table()).filter((k) => k.indexOf('kbwr.') === 0 && hasEntry(k))
 assert.ok(mine.length >= 55, 'my keys: ' + mine.length)
 const used = new Set(Array.from(cli.matchAll(/'(kbwr\.[A-Za-z0-9_.]+)'/g)).map((m) => m[1]).filter((k) => !k.endsWith('.')))
 for (const k of used) assert.ok(seen.has(k), 'used but not defined: ' + k)
 for (const code of ['approval_path_missing', 'run_hours_exhausted', 'owner_left', 'budget', 'failed_runs', 'owner_locked', 'computer_deleting', 'too_many_pending', 'rate_limited', 'tasks_unavailable', 'not_allowed', 'no_computer', 'unreachable', 'not_connected', 'invalid_definition', 'too_frequent', 'never_runs', 'expired', 'late', 'unknown']) assert.ok(seen.has('kbwr.err.' + code), 'a refusal with no words: ' + code)
-// The greyed « Cloud » chip of the Schedule form used to say « Coming soon — only local mode works today » while this very tab publishes to the cloud (T2-29, 2026-10-24): it now points at the tab.
+// The greyed « Cloud » chip of the Schedule form used to say « Coming soon — only local mode works today » while the Where it runs card publishes to the cloud (T2-29, 2026-10-24): it now points at the card.
 {
-  const chip = /'tasks\.cloud\.soon': \{ kybernos: '([^']*)', en: '([^']*)' \}/.exec(cli)
-  const tab = /'tasks\.tab\.where': \{ kybernos: '([^']*)', en: '([^']*)' \}/.exec(cli)
-  assert.ok(chip !== null && tab !== null, 'both strings exist')
-  assert.ok(chip[1].includes(tab[1]) && chip[2].includes(tab[2]), 'the chip\'s hover names the tab by its own label, in both languages: ' + chip[2])
+  const chip = execEntry('tasks.cloud.soon') // [key, fr, en]
+  const card = execEntry('kbwr.where')
+  assert.ok(chip !== null && card !== null, 'both strings exist')
+  assert.ok(chip[1].includes(card[1]) && chip[2].includes(card[2]), 'the chip\'s hover names the card by its own label, in both languages: ' + chip[2])
+  assert.ok(/carte/.test(chip[1]) && /card/.test(chip[2]) && !/onglet|\btab\b/i.test(chip[1] + chip[2]), 'and says a card of the Overview, no longer a tab')
   assert.ok(!/coming soon|bientôt|only local mode|seul le mode local/i.test(chip[1] + chip[2]), 'and no longer says that cloud is not there yet')
 }
 const { CODES } = await import('../kybernos-cloud/computers-publish.mjs')
 for (const code of CODES) assert.ok(seen.has('kbwr.err.' + code), 'a code the host can answer reads « Refused (' + code + ') » for want of its own words: kbwr.err.' + code)
 for (const reason of ['old', 'none', 'off', 'webhook']) assert.ok(seen.has('kbwr.block.' + reason), reason)
-assert.equal(seen.has('kbwr.block.ask'), false, 'no automation is refused for asking any more: only for a computer that cannot')
+assert.equal(entry('kbwr.block.ask') !== null, false, 'no automation is refused for asking any more: only for a computer that cannot')
 for (const k of ['shell', 'write', 'edit', 'connector', 'other']) assert.ok(seen.has('kbwr.ap.kind.' + k), 'kind ' + k)
 for (const k of ['allowed', 'allowed_turn', 'denied', 'expired']) assert.ok(seen.has('kbwr.ap.st.' + k), 'state ' + k)
 for (const k of ['completed', 'error', 'capped', 'timeout', 'waiting_approval']) assert.ok(seen.has('kbwr.runs.out.' + k), 'outcome ' + k)
 for (const k of ['cron', 'once', 'webhook', 'run_now']) assert.ok(seen.has('kbwr.runs.via.' + k), 'via ' + k)
-assert.ok(/'tasks\.tab\.where': \{ kybernos: 'Où ça tourne', en: 'Where it runs' \}/.test(cli))
+assert.ok(!/'tasks\.tab\.where'/.test(cli) && entry('tasks.tab.where') === null, 'no tab of its own any more, so no word for one')
 ok('words: both languages, nothing defined twice, every key used is defined, every refusal has words')
 
 // 3. the order of what the tab does: never two copies of an automation running
@@ -134,16 +144,19 @@ before(update, "kbwPost(linked.computerId, [{ op: 'put'", 'props.link({ computer
 ok('order: pause before sending, take away before bringing back, put on the new before removing from the old')
 
 // 4. the tab is on the page
-assert.ok(/h\(KbWhereTab, \{ key: t\.id, task: t, computers: computersPair\[0\]\.list, connected: computersPair\[0\]\.connected === true, tasks: tasks,/.test(cli), 'the tab gets the computers and the tasks')
+assert.ok(/whereBody: h\(KbWhereTab, \{ key: t\.id, bare: true, task: t, computers: computersPair\[0\]\.list, connected: computersPair\[0\]\.connected === true, tasks: tasks,/.test(cli), 'the tab gets the computers and the tasks')
 assert.ok(/action: 'cloud-link', id: t\.id, cloud/.test(cli), 'the link goes through the task store')
-assert.ok(/'data-kb': 'tab-where', onClick: \(\) => setTab\('where'\) \}, kbt\('tasks\.tab\.where'\)/.test(cli), 'a tab next to Workflow and Sessions')
+assert.ok(!/'data-kb': 'tab-where'/.test(cli) && !/tab === 'where'/.test(cli) && !/setTab\('where'\)/.test(cli), 'no tab of its own: it lives in the Where card of the Overview sheet')
+assert.ok(/h\('div', \{ key: 'wb', className: 'kba-sheet-where', 'data-kb': 'sheet-where-body' \}, props\.whereBody\)/.test(cli) && /'data-kb': 'sheet-edit-where', 'aria-expanded'/.test(cli), 'the card unfolds the controls the page handed over (Change / Hide)')
+assert.ok(/const whereOpenPair = React\.useState\(f\.cloud !== null\)/.test(cli), 'an automation already on a cloud computer shows how it is going without a click')
+assert.ok(/props\.bare === true \? null : h\('div', \{ className: 'kbwr-h' \}/.test(cli), 'drawn in the card, it does not repeat the card title')
 assert.ok(/kbt\('kbwr\.runson'\)\.replace\('\{name\}', \(\) => String\(t\.cloud\.name\)\)/.test(cli), 'the header says where it runs')
 assert.ok(/fetch\('\/kybernos-cloud\/computers\/publish', \{ method: 'POST', credentials: 'same-origin'/.test(cli), 'publishing goes through the cloud plugin, with the browser session')
 assert.ok(!/className: '[^']*\bkbw-/.test(comp) && !/'kbw\.[a-z]/.test(comp), 'the tab uses no class and no string key under the name another page already uses (kbw)')
 assert.ok(/\.kbwr-seg\{/.test(cli) && /\.kbwr-opt\{/.test(cli), 'its styles are under kbwr-')
 assert.ok(/else if \(cloudLinked === true\) \{ lastLabel = kbt\(cloudWait === true \? 'kbwr\.row\.cloudWait' : kbwDirty\(t\) === true \? 'kbwr\.row\.cloudDirty' : cloudBad === true \? 'kbwr\.row\.cloudFailed' : 'kbwr\.row\.cloud'\)\.replace\('\{name\}', \(\) => String\(t\.cloud\.name\)\); lastCls = cloudWait === true \|\| kbwDirty\(t\) === true \? 'cloudwarn' : cloudBad === true \? 'fail' : 'cloud' \}\s+else if \(kbOnceDone\(t\) === true\) \{[^\n]*\}\s+else if \(t\.active === false\) \{ lastLabel = kbt\('tasks\.paused'\)/.test(cli), 'in the list, an automation that lives in the cloud is not « Paused » (and a one-time one that ran is Done, after it): it says that it waits for your OK, that it was changed since, that its last run failed, or where it is')
 assert.ok(/'data-kb': 'row-cloud'/.test(cli) && /kbt\('kbwr\.row\.sub'\)/.test(cli), 'the list marks it with a cloud and « Cloud · Home » under the name')
-ok('page: a tab, the computers and tasks handed over, the link through the task store, the header, the session on the write')
+ok('page: the card of the Overview sheet, the computers and tasks handed over, the link through the task store, the header, the session on the write')
 
 // 5. the runs are on the page
 assert.ok(/fetch\('\/kybernos-cloud\/computers\/runs\?computerId=' \+ encodeURIComponent\(computerId\) \+ '&ref=' \+ encodeURIComponent\(t\.id\)/.test(cli), 'the tab asks for the runs of one automation')

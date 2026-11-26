@@ -30,15 +30,15 @@ console.log('the title and its help button')
   check('no page gives the button a row of its own, with an inline style or with the old shared row (it pushed the title down, or sat at the far right of the column)', left.length === 0, left)
   const hub = read('kybernos-hub')
   check('the hub draws the title and the button as one head: the title inline, the button after its last word (a long title wraps, the button stays with it)', /\.kbhp-head>\.kbhp-title\{display:inline;/.test(hub) && /\.kbhp-head>\.kbhp-wrap,\.kbhp-tail,\.kbhp-nhead\{vertical-align:middle;margin-inline-start:8px\}/.test(hub))
-  for (const b of ['kybernos-free-llms', 'kybernos-modeles-locaux', 'kybernos-plugin', 'kybernos-sessions', 'kybernos-skills', 'kybernos-slash', 'kybernos-theme']) check(b + ' draws its head through pageHead', /\bpageHead\(\{/.test(read(b)))
-  check('the class prefix stays the hub\'s alone: no other bundle declares a .kbhp- rule (the core frame names .kbhp-title once, to size it; the phone page places .kbhp-head in its grid)', readdirSync(PACKAGES).filter((b) => b !== 'kybernos-hub' && b !== 'kybernos-plugin' && b !== 'kybernos-mobile').every((b) => { try { return !/\.kbhp-/.test(read(b)) } catch (e) { return true } }))
+  for (const b of ['kybernos-door', 'kybernos-free-llms', 'kybernos-modeles-locaux', 'kybernos-plugin', 'kybernos-sessions', 'kybernos-skills', 'kybernos-slash', 'kybernos-theme']) check(b + ' draws its head through pageHead', /\bpageHead\(\{/.test(read(b)))
+  check('the class prefix stays the hub\'s alone: no other bundle declares a .kbhp- rule (the core frame names .kbhp-title once, to size it; the phone page places .kbhp-head in its grid)', readdirSync(PACKAGES).filter((b) => b !== 'kybernos-hub' && b !== 'kybernos-plugin' && b !== 'kybernos-mobile').every((b) => { try { return !/\.kbhp-/.test(read(b).replace(/\/\/ kb-pres:begin[\s\S]*?\/\/ kb-pres:end/g, '')) } catch (e) { return true } }))
 }
 
 console.log('the page boxes')
 {
   const usage = read('kybernos-usage')
   check('Usage has no padding of its own (it was 22 px 28 px: the title sat at x 300, y 76)', /\.kbus-page\{padding:0 0 32px;/.test(usage) && /@media \(max-width:760px\)\{\.kbus-page\{padding:0 0 24px\}/.test(usage))
-  for (const [b, cls] of [['kybernos-modeles-locaux', 'kml-root'], ['kybernos-free-llms', 'kfl-root']]) {
+  for (const [b, cls] of [['kybernos-modeles-locaux', 'kml-root'], ['kybernos-free-llms', 'kfl-root'], ['kybernos-door', 'kdm-root']]) {
     const s = read(b)
     const rule = s.slice(s.indexOf('.' + cls + ' {'), s.indexOf('}', s.indexOf('.' + cls + ' {')))
     check(b + ': the page is not a card inside the page (no border, background or padding on ' + cls + ')', rule.length > 0 && !/border|background|padding/.test(rule), rule)

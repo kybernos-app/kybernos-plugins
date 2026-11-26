@@ -235,3 +235,78 @@ export const rpcOutcome = (status, body) => {
   if (result.isError === true) return { ok: false, error: toolCode(result, text), text }
   return { ok: true, text }
 }
+
+// ── the bridge (2026-11-20): the tools the server publishes ────────────────────────────────────────────────────────────
+// The computer used to carry its own copy of the server's tools, so every new power of the server meant a new tool here and a new image. The endpoint now lists its tools (MCP `tools/list`)
+// and the host registers the ones it does not already have, so a tool added at the server is there within a minute with nothing to build here. What it does to the world comes with it (the
+// MCP `annotations`), and the gate reads that: a tool that only reads passes, one that changes nothing outside the person's own data passes in a request nobody found suspect, any other asks,
+// and a tool with no annotation asks. Only names of this endpoint's own family are taken (`connections_…`): a published name can never replace a tool of the engine or of another plugin.
+
+/** The `tools/list` message. */
+export const rpcList = (id) => ({ jsonrpc: '2.0', id, method: 'tools/list' })
+
+/**
+ * Whether an action only reads, from what `connections_describe_tool` answered (its JSON text): `true` or `false` when the server said so in a boolean `read_only` (its own word: Composio's `readOnlyHint`),
+ * `null` for anything else (no JSON, no field, not a boolean): no clear answer. The gate lets only `true` through with no tap.
+ */
+export const readOnlyOf = (text) => { try { const v = obj(JSON.parse(text)).read_only; return typeof v === 'boolean' ? v : null } catch (e) { return null } }
+/** What a slug may look like before it is looked up: the same shape the server accepts. */
+export const isActionSlug = (v) => typeof v === 'string' && /^[A-Za-z0-9_.-]{1,120}$/.test(v)
+
+const BRIDGE_NAME = /^connections_[a-z0-9_]{1,48}$/
+/** The most tools taken from one list: a list longer than this is a server gone wrong, not a catalogue. */
+export const BRIDGE_MAX_TOOLS = 20
+
+/** What a published tool does to the world: 'read' (it only reads), 'own' (it changes only the person's own Kybernos data: nothing destructive, nothing outside), 'ask' (anything else, and no annotation at all). */
+export const bridgeKind = (annotations) => {
+  const a = obj(annotations)
+  if (a.readOnlyHint === true) return 'read'
+  if (a.destructiveHint === false && a.openWorldHint === false) return 'own'
+  return 'ask'
+}
+
+const words = (v, max) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max) : '')
+
+/**
+ * A published input schema in the small subset the engine enforces: types, properties, required, items, enum and descriptions, nothing else (a bound such as `minimum` is the server's to check).
+ * An object with no declared property stays open (a free-form `params`); one the server closed stays closed.
+ */
+export const cleanSchema = (node, depth = 0) => {
+  const n = obj(node)
+  const description = words(n.description, 300)
+  const base = description === '' ? {} : { description }
+  if (depth > 4) return base
+  switch (n.type) {
+    case 'object': {
+      const properties = {}
+      for (const [k, v] of Object.entries(obj(n.properties)).slice(0, 30)) if (/^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(k)) properties[k] = cleanSchema(v, depth + 1)
+      const required = Array.isArray(n.required) ? n.required.filter((k) => typeof k === 'string' && Object.hasOwn(properties, k)) : []
+      return { type: 'object', ...base, ...(Object.keys(properties).length > 0 ? { properties } : {}), ...(required.length > 0 ? { required } : {}), ...(n.additionalProperties === false ? { additionalProperties: false } : {}) }
+    }
+    case 'array': return { type: 'array', ...base, items: cleanSchema(n.items, depth + 1) }
+    case 'string': case 'number': case 'integer': case 'boolean': {
+      const kind = n.type === 'integer' ? 'number' : n.type
+      const hasEnum = Array.isArray(n.enum) && n.enum.length > 0 && n.enum.length <= 50 && n.enum.every((e) => typeof e === kind)
+      return { type: n.type, ...base, ...(hasEnum ? { enum: n.enum } : {}) }
+    }
+    default: return base
+  }
+}
+
+/** What a `tools/list` answered → [{ name, description, parameters, kind }], or null when it is not a list (the tools already registered are then left as they are). */
+export const asToolList = (status, body) => {
+  if (status !== 200) return null
+  const r = obj(obj(body).result)
+  if (!Array.isArray(r.tools)) return null
+  const out = new Map()
+  for (const t of r.tools) {
+    const o = obj(t)
+    if (typeof o.name !== 'string' || !BRIDGE_NAME.test(o.name) || out.has(o.name)) continue
+    const description = words(o.description, 1500)
+    if (description === '') continue
+    const parameters = cleanSchema(o.inputSchema)
+    out.set(o.name, { name: o.name, description, parameters: parameters.type === 'object' ? parameters : { type: 'object', properties: {}, additionalProperties: false }, kind: bridgeKind(o.annotations) })
+    if (out.size >= BRIDGE_MAX_TOOLS) break
+  }
+  return [...out.values()]
+}

@@ -23,7 +23,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 window.__ModuleLoader__.load({
-  id: '@local/kybernos-maintenance/client',
+  id: '@local/kybernos-maintenance',
   factory (require) {
     const React = require('react')
     const h = React.createElement
@@ -51,8 +51,8 @@ window.__ModuleLoader__.load({
       'unknown': 'inconnu',
       'tested': 'testée',
       'installed': 'installée',
-      'A DSH package of the profile is pinned to a different version than the engine.': 'Un paquet DSH du profil est épinglé à une autre version que le moteur.',
-      'The server started before the last update: it is still serving the old engine. Restart DSH.': 'Le serveur a démarré avant la dernière mise à jour : il sert encore l’ancien moteur. Redémarre DSH.',
+      'A Kybernos package of the profile is pinned to a different version than the engine.': 'Un paquet Kybernos du profil est épinglé à une autre version que le moteur.',
+      'The server started before the last update: it is still serving the old engine. Restart Kybernos.': 'Le serveur a démarré avant la dernière mise à jour : il sert encore l’ancien moteur. Redémarre Kybernos.',
       'Engine outside the supported range — go back to the tested version or wait for a matching plugin.': 'Moteur hors de la zone supportée — reviens à la version testée ou attends un plugin adapté.',
       'npm registry unreachable — cannot tell whether an update exists.': 'Registre npm injoignable — impossible de savoir si une mise à jour existe.',
       'A newer engine version would re-enable the patches that are not applied.': 'Une version plus récente du moteur réactiverait les retouches non posées.',
@@ -97,7 +97,7 @@ window.__ModuleLoader__.load({
       'Office skills (Word / PPT / Excel)': 'compétences Office (Word / PPT / Excel)',
     }
     const FR_HOST_RX = [
-      [/^(\d+) DSH packages of the profile are pinned to a different version than the engine\.$/, '$1 paquets DSH du profil sont épinglés à une autre version que le moteur.'],
+      [/^(\d+) Kybernos packages of the profile are pinned to a different version than the engine\.$/, '$1 paquets Kybernos du profil sont épinglés à une autre version que le moteur.'],
       [/^Package (.+) is not linked to the profile\.$/, 'Le paquet $1 n’est pas lié au profil.'],
       [/^Bundle (.+) is not declared\.$/, 'Le bundle $1 n’est pas déclaré.'],
       [/^(.+): “(.+)” is no longer true in the installed engine \((.+)\)\.$/, '$1 : « $2 » n’est plus vrai dans le moteur installé ($3).'],
@@ -129,6 +129,8 @@ window.__ModuleLoader__.load({
 /* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
 body:not([data-ds-dark-theme]) .kbmz-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 [data-slot="settings.section"]:has(.kbmz-page){width:100%;max-width:none}
+/* The parts other bundles file under About (window.__KB_ABOUT_EXTRA__): one column with the page's own rhythm */
+.kbmz-extras{display:flex;flex-direction:column;gap:14px;min-width:0}
 /* Identity: wordmark + version on the left, « Check now » on the right */
 .kbmz-haut{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .kbmz-id{display:flex;flex-direction:column;gap:6px;min-width:0}
@@ -243,14 +245,14 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
 
     const FR = {
       titre: 'À propos',
-      moteurDsh: 'Moteur DSH',
+      moteurDsh: 'Moteur',
       zoneTestee: 'Zone testée',
       licence: 'Licence Apache-2.0',
       marque: 'Politique de marque',
       modules: 'Modules : Kybernos Suite',
       details: 'Détails techniques',
       detailsAide: 'compatibilité, dernière opération, journal',
-      indispo: 'État indisponible — le serveur DSH ne répond pas sur /kybernos-maintenance/state.',
+      indispo: 'État indisponible — le serveur Kybernos ne répond pas sur /kybernos-maintenance/state.',
       moteur: 'Moteur (harness)',
       plugin: 'Plugin Kybernos',
       compat: 'Compatibilité',
@@ -295,14 +297,14 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
 
     const EN = {
       titre: 'About',
-      moteurDsh: 'DSH engine',
+      moteurDsh: 'Engine',
       zoneTestee: 'Tested zone',
       licence: 'License Apache-2.0',
       marque: 'Trademark policy',
       modules: 'Modules: Kybernos Suite',
       details: 'Technical details',
       detailsAide: 'compatibility, last operation, journal',
-      indispo: 'Status unavailable — the DSH server did not answer on /kybernos-maintenance/state.',
+      indispo: 'Status unavailable — the Kybernos server did not answer on /kybernos-maintenance/state.',
       moteur: 'Engine (harness)',
       plugin: 'Kybernos plugin',
       compat: 'Compatibility',
@@ -357,9 +359,16 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
     const ligneVersion = (v) => 'Version ' + hs(String(v))
     // The version the page shows for the plugin: the shipped semver when the
     // host read one, else what the host state already had (the git hash).
-    const versionPlugin = (etat) => (typeof etat.version === 'string' && etat.version !== ''
-      ? etat.version
-      : (typeof etat.plugin === 'string' && etat.plugin !== '' ? etat.plugin : 'unknown'))
+    // Inside the Kybernos phone app (its WebView says `KybernosHost/<version> (ios|android)`) there is no VERSION file and no git hash: the page used to read
+    // « Version unknown » while « The Kybernos app » next to it said « Version 0.1.0 · Android ». The app's own version is the last thing tried before « unknown ».
+    const versionApp = (ua) => { const m = /KybernosHost\/([0-9][0-9A-Za-z.+-]*) \((?:ios|android)\)/.exec(String(ua)); return m === null ? null : m[1] }
+    const uaCourant = () => { try { return window.navigator.userAgent } catch (e) { return '' } }
+    const versionPlugin = (etat, ua = uaCourant()) => {
+      if (typeof etat.version === 'string' && etat.version !== '') return etat.version
+      if (typeof etat.plugin === 'string' && etat.plugin !== '' && etat.plugin !== 'unknown') return etat.plugin
+      const app = versionApp(ua)
+      return app !== null ? app : (typeof etat.plugin === 'string' && etat.plugin !== '' ? etat.plugin : 'unknown')
+    }
     const zoneTexte = (compat) => (compat !== null && compat !== undefined && compat.min !== null
       ? compat.min + (compat.max ? ' → ' + compat.max : '') : '—')
 
@@ -410,6 +419,33 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         if (B && B.Wordmark) return h(Garde, { repli }, h(B.Wordmark, { size: taille }))
       } catch (e) { /* brand component unreachable */ }
       return repli
+    }
+
+    // ── the parts other bundles file under About ───────────────────────────
+    // About is where a person finds what this app is and how to reach its own parts (the phone app's notifications, account, help, the licences of what it is made of). A bundle that has such a part
+    // does not register a Settings page of its own: it pushes `{ id, order, component }` on `window.__KB_ABOUT_EXTRA__` and sends the window event `kb-about-extra` (when it is added and when it is
+    // taken back). Load order is not promised, so the array belongs to whoever comes first, and a part that arrives before this page, or after it opened, is drawn all the same. `component` is a React
+    // component (it may use hooks); one that throws is cut off by `Garde` and the rest of the page stays.
+    const EVT_EXTRA = 'kb-about-extra'
+    const extrasLire = () => {
+      try {
+        const liste = window.__KB_ABOUT_EXTRA__
+        if (!Array.isArray(liste)) return []
+        const valides = liste.filter((x) => x !== null && typeof x === 'object' && typeof x.id === 'string' && x.id !== '' && (typeof x.component === 'function' || (typeof x.component === 'object' && x.component !== null)))
+        const rang = (x) => (typeof x.order === 'number' && isFinite(x.order) ? x.order : 100)
+        return valides.map((x, i) => ({ x, i })).sort((a, b) => rang(a.x) - rang(b.x) || a.i - b.i).map((e) => e.x)
+      } catch (e) { return [] }
+    }
+    function Extras () {
+      const [, setN] = React.useState(0)
+      React.useEffect(() => {
+        const on = () => setN((n) => n + 1)
+        try { window.addEventListener(EVT_EXTRA, on) } catch (e) { return undefined }
+        return () => { try { window.removeEventListener(EVT_EXTRA, on) } catch (e) { /* gone */ } }
+      }, [])
+      const liste = extrasLire()
+      if (liste.length === 0) return null
+      return h('div', { className: 'kbmz-extras', 'data-kb': 'about-extras' }, liste.map((x) => h(Garde, { key: x.id, repli: null }, h(x.component, null))))
     }
 
     function Page ({ etat, onRafraichir, charge, reglage, onReglage }) {
@@ -511,8 +547,8 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         h('div', { className: 'kbmz-auto-txt' },
           h('span', { className: 'kbmz-auto-t' }, titreAuto),
           h('span', { className: 'kbmz-auto-d' }, kt(
-            'Kybernos demande à GitHub la version courante de la suite, au registre npm celle de DSH, puis à GitHub encore le catalogue signé de la Suite (un fichier de la version publiée), 15 secondes après l’ouverture puis toutes les 6 heures. Rien de ton travail n’est envoyé : ces serveurs voient ton adresse IP et les en-têtes habituels d’une requête web. Désactivé, aucune des trois demandes n’est faite tant que tu n’appuies pas sur « Vérifier maintenant ».',
-            'Kybernos asks GitHub which suite version is current, the npm registry which DSH version is, and GitHub again for the signed catalogue of the Suite (a release file), 15 seconds after it opens and then every 6 hours. Nothing about your work is sent: those servers see your IP address and the usual headers of a web request. Switched off, none of the three is asked until you press “Check now”.')),
+            'Kybernos demande à GitHub la version courante de la suite, au registre npm celle du moteur, puis à GitHub encore le catalogue signé de la Suite (un fichier de la version publiée), 15 secondes après l’ouverture puis toutes les 6 heures. Rien de ton travail n’est envoyé : ces serveurs voient ton adresse IP et les en-têtes habituels d’une requête web. Désactivé, aucune des trois demandes n’est faite tant que tu n’appuies pas sur « Vérifier maintenant ».',
+            'Kybernos asks GitHub which suite version is current, the npm registry which engine version is, and GitHub again for the signed catalogue of the Suite (a release file), 15 seconds after it opens and then every 6 hours. Nothing about your work is sent: those servers see your IP address and the usual headers of a web request. Switched off, none of the three is asked until you press “Check now”.')),
           // Why the last press did not take (the switch has gone back to where it was).
           typeof auto.erreur === 'string' && auto.erreur !== ''
             ? h('span', { className: 'kbmz-auto-err', role: 'alert', 'data-kb': 'maintenance-settings-error' }, kt('Réglage non enregistré : ', 'Setting not saved: ') + auto.erreur)
@@ -611,6 +647,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         statut,
         tuiles,
         liens,
+        h(Extras, null),
         carteAuto,
         h('div', null, bascule, panneau))
     }
@@ -646,7 +683,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         // (the host's own reason when it gave one, else what the page itself saw): it used to move back alone, and « refused »,
         // « lost » and « bug » looked the same.
         const echoue = (motif) => setReglage({ autoCheck: !voulu, occupe: false, erreur: motif })
-        const sansReponse = () => kt('le serveur DSH ne répond pas', 'the DSH server did not answer')
+        const sansReponse = () => kt('le serveur Kybernos ne répond pas', 'the Kybernos server did not answer')
         setReglage({ autoCheck: voulu, occupe: true, erreur: null })
         try {
           fetch('/kybernos-maintenance/settings', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ autoCheck: voulu }), cache: 'no-store' })
@@ -668,7 +705,9 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
           h('div', { className: 'kbmz-status', 'data-tone': 'warn', 'data-kb': 'maintenance-status' },
             h('span', { className: 'kbmz-dot', 'aria-hidden': 'true' }),
             h('div', { className: 'kbmz-status-txt', role: 'status' }, h('span', { className: 'kbmz-verdict' }, t('indispo'))),
-            h('button', { type: 'button', className: 'kbmz-bouton', 'data-kb': 'maintenance-refresh', onClick: charger, disabled: charge }, charge ? '…' : t('verifier'))))
+            h('button', { type: 'button', className: 'kbmz-bouton', 'data-kb': 'maintenance-refresh', onClick: charger, disabled: charge }, charge ? '…' : t('verifier'))),
+          // account, help and the rest of the app's parts stay reachable when the engine's state cannot be read
+          h(Extras, null))
       }
       if (etat === null) return h('div', { className: 'kbmz-page' }, '…')
       return h(Page, { etat, onRafraichir: charger, charge, reglage, onReglage: changerReglage })
@@ -688,9 +727,11 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
     //     (unless the engine is below the minimum: then it stays);
     //   · the menu keeps the "Update available" line until it is applied —
     //     this is the reminder that never goes away.
-    // Nothing installs by itself: the update goes through the lifecycle robot
-    // (snapshot first, automatic rollback on failure); the dialog gives the
-    // exact command to copy.
+    // Nothing installs by itself: the person presses ONE button. On a laptop the
+    // update goes through the lifecycle robot (snapshot first, automatic rollback
+    // on failure); on a cloud computer the platform moves the machine onto the
+    // newest version (its files and settings are kept); the exact command is kept,
+    // folded, for developers, and a hosted instance is told to redeploy it.
     const KB_UPD_SNOOZE = 'kybernos.update.snooze'
     const KB_UPD_SKIP = 'kybernos.update.skip'
     const KB_UPD_EVERY = 6 * 3600 * 1000
@@ -698,7 +739,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
     const lsSet = (k, v) => { try { window.localStorage.setItem(k, v) } catch (e) { /* storage blocked: the card will come back */ } }
     const upd = { info: null, last: 0, busy: false, cardUp: false }
 
-    const updLabel = (p) => (p.kind === 'kybernos' ? 'Kybernos ' : 'DSH ') + p.cible
+    const updLabel = (p) => (p.kind === 'ordinateur' ? kt('Ton ordinateur cloud', 'Your cloud computer') : (p.kind === 'kybernos' ? 'Kybernos ' : kt('Moteur ', 'Engine ')) + p.cible)
     // The signal for the menu and the dot on the card: a SKIPPED version disappears (unless
     // it is required); a postponed version ("Later") stays flagged —
     // this is the reminder that never goes away.
@@ -728,15 +769,29 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         pending: { kind: 'kybernos', cible: distant.suite, installee: pk.installee, requis: false, note: '' }
       }
     }
+    /** Pure. On a cloud computer the PLATFORM decides what is installed (its software is its image, replaced as a whole): what this install could do alone, the published suite
+     *  or the engine of the registry, says nothing there, so it is never announced. The one update is the platform's, announced only when it says a newer version is ready.
+     *  `ord` = the answer of GET /kybernos-cloud/computer/update; anything that is not a cloud computer's answer leaves the host's own answer untouched. */
+    const fusionnerOrdinateur = (info, ord) => {
+      if (info === null || typeof info !== 'object' || ord === null || typeof ord !== 'object' || ord.applicable !== true) return info
+      const pret = ord.supported === true && ord.available === true
+      return {
+        ...info,
+        pending: pret ? { kind: 'ordinateur', cible: 'ordinateur-' + (typeof ord.target === 'string' && ord.target !== '' ? ord.target : 'latest'), installee: '', requis: false, note: '' } : null,
+        ordinateur: { available: pret, updating: ord.updating === true, supported: ord.supported === true, error: typeof ord.error === 'string' ? ord.error : null }
+      }
+    }
     /** Which way this install is updated. Pure.
      *  'suite' the Suite downloads, installs and restarts from here (one click) · 'heberge' a server or container: rebuild the instance ·
-     *  'archive' an unpacked archive: ./kybernos-update · 'git' a development checkout · 'moteur' the DSH engine · null nothing pending. */
+     *  'archive' an unpacked archive: ./kybernos-update · 'git' a development checkout · 'moteur' the DSH engine · 'ordinateur' a cloud computer (the platform moves it, one button) · null nothing pending. */
     const modeMiseAJour = (info) => {
       const p = info !== null && typeof info === 'object' && info.pending !== null && info.pending !== undefined ? info.pending : null
       if (p === null) return null
-      if (p.kind !== 'kybernos') return 'moteur'
+      if (p.kind === 'ordinateur') return 'ordinateur'
       const pk = info.pack || {}
+      // A server or container is rebuilt whatever is stale in it, the engine included: a terminal command has no place there.
       if (pk.heberge === true) return 'heberge'
+      if (p.kind !== 'kybernos') return 'moteur'
       if (pk.signe === true && pk.applicable === true) return 'suite'
       return pk.git !== true ? 'archive' : 'git'
     }
@@ -748,12 +803,23 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       const j = await r.json()
       if (j === null || typeof j !== 'object' || j.ok !== true) throw new Error('unexpected response')
       if (j.desactive === true) return null
+      let info = j
       // The signed catalogue (the Suite's own check). It never blocks or breaks the host's answer.
       try {
         const s = await fetch('/kybernos-hub/catalogue/refresh', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}', cache: 'no-store' })
-        if (s.ok === true) { const sj = await s.json(); return fusionnerSigne(j, sj !== null && typeof sj === 'object' ? sj.distant : null) }
+        if (s.ok === true) { const sj = await s.json(); info = fusionnerSigne(j, sj !== null && typeof sj === 'object' ? sj.distant : null) }
       } catch (e) { /* the hub is optional here */ }
-      return j
+      // On a cloud computer the platform's own answer replaces both (see fusionnerOrdinateur): the cloud plugin says whether this is one.
+      return fusionnerOrdinateur(info, await ordinateurFetch())
+    }
+    /** The cloud plugin's answer for THIS machine (`applicable: false` off a cloud computer). Null when the plugin is not there or says nothing usable. `appel` is fetch (a seam for the tests). */
+    const ordinateurFetch = async (appel) => {
+      try {
+        const r = await (appel || fetch)('/kybernos-cloud/computer/update', { cache: 'no-store' })
+        if (r.ok !== true) return null
+        const o = await r.json()
+        return o !== null && typeof o === 'object' && o.ok === true ? o : null
+      } catch (e) { return null }
     }
     const updMuted = (p) => {
       if (p.requis === true) return false
@@ -813,17 +879,17 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       if (t === null || typeof t !== 'object') return ''
       if (t.moteur === true) {
         const v = String(t.version || '')
-        if (t.etat === 'installation' || t.etat === 'telechargement') return kt('Remise de DSH sur la version testée (une photo est prise avant)…', 'Putting DSH back on the tested version (a snapshot is taken first)…')
-        if (t.etat === 'relance') return '✓ ' + kt('DSH ' + v + ' est en place. DSH redémarre : la page se recharge toute seule (sinon, recharge-la).', 'DSH ' + v + ' is in place. DSH is restarting: the page reloads by itself (otherwise, reload it).')
-        if (t.etat === 'termine') return '✓ ' + kt('DSH ' + v + ' est en place. Redémarre DSH pour terminer.', 'DSH ' + v + ' is in place. Restart DSH to finish.')
-        if (t.etat === 'echec') return kt('DSH n’a pas pu être remis sur la version testée ; rien n’a changé.', 'DSH could not be put back on the tested version; nothing changed.')
+        if (t.etat === 'installation' || t.etat === 'telechargement') return kt('Remise du moteur sur la version testée (une photo est prise avant)…', 'Putting the engine back on the tested version (a snapshot is taken first)…')
+        if (t.etat === 'relance') return '✓ ' + kt('Moteur ' + v + ' est en place. L’appli redémarre : la page se recharge toute seule (sinon, recharge-la).', 'Engine ' + v + ' is in place. The app is restarting: the page reloads by itself (otherwise, reload it).')
+        if (t.etat === 'termine') return '✓ ' + kt('Moteur ' + v + ' est en place. Redémarre l’appli pour terminer.', 'Engine ' + v + ' is in place. Restart the app to finish.')
+        if (t.etat === 'echec') return kt('Le moteur n’a pas pu être remis sur la version testée ; rien n’a changé.', 'The engine could not be put back on the tested version; nothing changed.')
         return ''
       }
       if (t.etat === 'telechargement') return kt('Téléchargement et vérification de l’archive…', 'Downloading and checking the archive…')
       if (t.etat === 'extraction') return kt('Extraction…', 'Extracting…')
       if (t.etat === 'installation') return kt('Installation (une photo est prise avant)…', 'Installing (a snapshot is taken first)…')
-      if (t.etat === 'relance') return '✓ ' + kt('Kybernos ' + String(t.version || '') + ' est installé. DSH redémarre : la page se recharge toute seule (sinon, recharge-la).', 'Kybernos ' + String(t.version || '') + ' is installed. DSH is restarting: the page reloads by itself (if it does not, reload it).')
-      if (t.etat === 'termine') return '✓ ' + kt('Kybernos ' + String(t.version || '') + ' est installé. Redémarre DSH pour terminer.', 'Kybernos ' + String(t.version || '') + ' is installed. Restart DSH to finish.')
+      if (t.etat === 'relance') return '✓ ' + kt('Kybernos ' + String(t.version || '') + ' est installé. L’appli redémarre : la page se recharge toute seule (sinon, recharge-la).', 'Kybernos ' + String(t.version || '') + ' is installed. The app is restarting: the page reloads by itself (if it does not, reload it).')
+      if (t.etat === 'termine') return '✓ ' + kt('Kybernos ' + String(t.version || '') + ' est installé. Redémarre l’appli pour terminer.', 'Kybernos ' + String(t.version || '') + ' is installed. Restart the app to finish.')
       if (t.etat === 'echec') return kt('La mise à jour a échoué, rien n’a changé : ', 'The update failed and nothing changed: ') + String(t.erreur || '')
       return ''
     }
@@ -873,6 +939,66 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       void suivre()
     }
 
+    /** The words of the cloud computer's update, in plain language: what is happening, never a code. `refus` = the closed code the cloud plugin answered. */
+    const motOrdinateur = (etat, code) => {
+      if (etat === 'demarrage') return kt('Démarrage…', 'Starting…')
+      if (etat === 'redemarrage') return kt('Ton ordinateur cloud redémarre sur la nouvelle version. Ça prend environ une minute : cette page se recharge toute seule.', 'Your cloud computer is restarting on the new version. It takes about a minute: this page reloads by itself.')
+      if (etat === 'termine') return '✓ ' + kt('Ton ordinateur cloud est à jour.', 'Your cloud computer is up to date.')
+      if (etat === 'echec') return kt('La mise à jour n’a pas abouti, rien n’a changé. Tu peux réessayer.', 'The update did not complete and nothing changed. You can try again.')
+      if (code === 'up_to_date') return kt('Ton ordinateur cloud est déjà à jour.', 'Your cloud computer is already up to date.')
+      if (code === 'update_running') return kt('Une mise à jour est déjà en cours : patiente une minute.', 'An update is already running: give it a minute.')
+      if (code === 'not_connected') return kt('Ton compte n’est pas connecté sur cet ordinateur : reconnecte-toi, puis réessaie.', 'Your account is not connected on this computer: sign in again, then try again.')
+      if (code === 'server_unreachable') return kt('Kybernos ne joint pas son serveur pour l’instant. Réessaie dans un instant.', 'Kybernos cannot reach its server right now. Try again in a moment.')
+      return kt('La mise à jour n’a pas pu démarrer. Réessaie dans un instant.', 'The update could not start. Try again in a moment.')
+    }
+    /** The click of « Update my cloud computer »: asks the platform (through the cloud plugin of this computer), then follows until the machine is back on the new version, and reloads the page.
+     *  The machine goes away while it restarts: an unanswered poll is expected, not an error. `d` = the seams of the tests (fetch, the pause, the clock, the reload). Resolves true when done. */
+    const updOrdinateurRun = async (btn, statut, fin, d) => {
+      const dep = Object.assign({
+        appel: (...a) => fetch(...a),
+        pause: (ms) => new Promise((r) => setTimeout(r, ms)),
+        maintenant: () => Date.now(),
+        recharger: () => { try { window.location.reload() } catch (e) { /* no window */ } }
+      }, d || {})
+      btn.disabled = true
+      statut.textContent = motOrdinateur('demarrage')
+      let r = null
+      try {
+        const x = await dep.appel('/kybernos-cloud/computer/update/start', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
+        r = await x.json().catch(() => null)
+      } catch (e) { r = null }
+      if (r === null || typeof r !== 'object' || r.ok !== true) {
+        statut.textContent = motOrdinateur('refus', r !== null && typeof r === 'object' && typeof r.error === 'string' ? r.error : '')
+        btn.disabled = false
+        return false
+      }
+      statut.textContent = motOrdinateur('redemarrage')
+      const debut = dep.maintenant()
+      for (;;) {
+        await dep.pause(3000)
+        let o = null
+        try { const x = await dep.appel('/kybernos-cloud/computer/update', { cache: 'no-store' }); o = x.ok === true ? await x.json() : null } catch (e) { o = null }
+        if (o === null || typeof o !== 'object' || o.ok !== true) {
+          // Out of reach: the machine is restarting. After ten minutes something is wrong, and the person is told so.
+          if (dep.maintenant() - debut > 600000) { statut.textContent = motOrdinateur('echec'); btn.disabled = false; return false }
+          continue
+        }
+        if (o.updating === true) continue
+        if (o.available !== true) {
+          statut.textContent = motOrdinateur('termine')
+          fin()
+          try { window.__kbUpdate = null; window.dispatchEvent(new Event('kybernos:update')) } catch (e) { /* no window */ }
+          await dep.pause(1500)
+          dep.recharger()
+          return true
+        }
+        // The platform answers, nothing is moving and a newer version is still ready: the move did not happen.
+        statut.textContent = motOrdinateur('echec')
+        btn.disabled = false
+        return false
+      }
+    }
+
     /** The dialog: versions, what changes, the steps to follow — or "you are up to date". */
     const updDialog = (info, opts) => {
       upCss()
@@ -900,19 +1026,25 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
 
       const rows = upEl('div', 'kbmu-rows')
       const row = (k, v) => { const r = upEl('div', 'kbmu-row'); r.appendChild(upEl('span', null, k)); r.appendChild(upEl('b', null, v)); rows.appendChild(r) }
-      if (info !== null) {
+      if (info !== null && info.ordinateur !== undefined && info.ordinateur !== null) {
+        // A cloud computer: one line, the platform's own word. Its engine and its plugins are its image's, never compared with what the registry publishes.
+        const o = info.ordinateur
+        row(kt('Ton ordinateur cloud', 'Your cloud computer'), o.available === true ? kt('une version plus récente est prête', 'a newer version is ready')
+          : (o.updating === true ? kt('mise à jour en cours…', 'updating…') : (o.error !== null ? kt('vérification impossible pour l’instant', 'cannot check right now') : kt('à jour', 'up to date'))))
+      } else if (info !== null) {
         const pk = info.pack || {}
         row('Kybernos', pk.installee === null || pk.installee === undefined ? kt('inconnue', 'unknown')
           : (pk.disponible === true ? pk.installee + '  →  ' + pk.latest : pk.installee + (pk.joignable === true ? ' · ' + kt('à jour', 'up to date') : ' · ' + kt('dépôt injoignable', 'repository unreachable'))))
         const m = info.moteur || {}
         const mv = m.installee === null || m.installee === undefined || m.installee === 'unknown' ? kt('inconnu', 'unknown')
           : (m.cible ? m.installee + '  →  ' + m.cible : m.installee + (m.latest && m.latest !== m.installee ? ' · ' + kt('plus récente publiée : ', 'latest published: ') + m.latest : ' · ' + kt('à jour', 'up to date')))
-        row('DSH', mv)
+        row(kt('Moteur', 'Engine'), mv)
       }
       dlg.appendChild(rows)
 
       let viaSuite = false
       let viaMoteur = false
+      let viaOrdinateur = false
       let statutMaj = null
       if (p !== null) {
         if (p.kind === 'moteur' && p.note) dlg.appendChild(upEl('p', 'kbmu-note', hs(p.note)))
@@ -928,14 +1060,21 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         }
         const pk = info.pack || {}
         const mode = modeMiseAJour(info)
-        if (mode === 'heberge') {
+        if (mode === 'ordinateur') {
+          // A cloud computer is moved onto the newest version by the platform: one button, nothing to type, nothing to copy.
+          viaOrdinateur = true
+          dlg.appendChild(upEl('p', 'kbmu-note', kt('Ton ordinateur cloud redémarre sur la nouvelle version. Tes conversations, tes fichiers et tes réglages sont gardés. Ça prend environ une minute, puis cette page se recharge toute seule.',
+            'Your cloud computer restarts on the new version. Your chats, files and settings are kept. It takes about a minute, then this page reloads by itself.')))
+          statutMaj = upEl('p', 'kbmu-note'); statutMaj.setAttribute('role', 'status'); statutMaj.setAttribute('data-kb', 'upd-status')
+          dlg.appendChild(statutMaj)
+        } else if (mode === 'heberge') {
           // A server or container deployment is rebuilt. Replacing files in a running container would be lost at the next redeploy.
           dlg.appendChild(upEl('p', 'kbmu-note', kt('Cette instance tourne sur un serveur ou dans un conteneur (Coolify, Docker…). Elle ne se met pas à jour sur place : elle se reconstruit.', 'This instance runs on a server or in a container (Coolify, Docker…). It is not updated in place: it is rebuilt.')))
           step(kt('Redéploie ou redémarre l’instance pour qu’elle reparte de la dernière version du Dockerfile. Si la construction réutilise son cache, force-la sans cache : sinon l’ancienne version est conservée.', 'Redeploy or restart the instance so that it starts from the latest version of the Dockerfile. If the build reuses its cache, force it without cache: otherwise the old version is kept.'))
           step(kt('Garde le volume de données attaché s’il y en a un : tes sessions et réglages y vivent. Sans volume, un redéploiement repart d’une instance vide.', 'Keep the data volume attached if there is one: your sessions and settings live in it. Without a volume, a redeploy starts from an empty instance.'))
         } else if (mode === 'suite') {
           viaSuite = true
-          dlg.appendChild(upEl('p', 'kbmu-note', kt('Kybernos télécharge l’archive signée, vérifie son empreinte, prend une photo de ton installation puis installe. En cas d’échec, tout revient à l’état d’avant. Ensuite DSH redémarre tout seul ; les sessions en cours reprennent après le redémarrage.', 'Kybernos downloads the signed archive, checks its hash, snapshots your install, then installs. If anything fails, everything goes back to how it was. Then DSH restarts by itself; running sessions pick up again after the restart.')))
+          dlg.appendChild(upEl('p', 'kbmu-note', kt('Kybernos télécharge l’archive signée, vérifie son empreinte, prend une photo de ton installation puis installe. En cas d’échec, tout revient à l’état d’avant. Ensuite l’appli redémarre toute seule ; les sessions en cours reprennent après le redémarrage.', 'Kybernos downloads the signed archive, checks its hash, snapshots your install, then installs. If anything fails, everything goes back to how it was. Then the app restarts by itself; running sessions pick up again after the restart.')))
           statutMaj = upEl('p', 'kbmu-note'); statutMaj.setAttribute('role', 'status'); statutMaj.setAttribute('data-kb', 'upd-status')
           dlg.appendChild(statutMaj)
         } else if (p.kind === 'kybernos' && pk.git !== true) {
@@ -947,8 +1086,8 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         } else if (p.kind === 'moteur' && pk.heberge !== true && typeof p.cible === 'string' && p.cible !== '') {
           // The engine is outside what this plugin was tested with: no terminal, one click. The terminal command stays, folded, for developers.
           viaMoteur = true
-          dlg.appendChild(upEl('p', 'kbmu-note', kt('Kybernos peut remettre DSH sur la version qu’il a testée (' + p.cible + '). Une photo de ton installation est prise avant, DSH redémarre tout seul, et en cas d’échec tout revient à l’état d’avant.',
-            'Kybernos can put DSH back on the version it was tested with (' + p.cible + '). A snapshot of your installation is taken first, DSH restarts by itself, and if anything fails everything goes back to how it was.')))
+          dlg.appendChild(upEl('p', 'kbmu-note', kt('Kybernos peut remettre le moteur sur la version qu’il a testée (' + p.cible + '). Une photo de ton installation est prise avant, l’appli redémarre toute seule, et en cas d’échec tout revient à l’état d’avant.',
+            'Kybernos can put the engine back on the version it was tested with (' + p.cible + '). A snapshot of your installation is taken first, the app restarts by itself, and if anything fails everything goes back to how it was.')))
           statutMaj = upEl('p', 'kbmu-note'); statutMaj.setAttribute('role', 'status'); statutMaj.setAttribute('data-kb', 'upd-status')
           dlg.appendChild(statutMaj)
           const dev = upEl('details', 'kbmu-dev')
@@ -960,8 +1099,8 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         } else {
           step(kt('Dans un terminal, depuis le dépôt :', 'In a terminal, from the repository:'), 'node scripts/dsh-lifecycle.mjs upgrade')
         }
-        if (viaSuite !== true && viaMoteur !== true && mode !== 'heberge') step(kt('Redémarre DSH si le robot le demande. Une photo est prise avant : en cas d’échec, tout revient à l’état d’avant.', 'Restart DSH if asked. A snapshot is taken first: if anything fails, everything goes back to how it was.'))
-        if (viaSuite !== true && viaMoteur !== true) dlg.appendChild(steps)
+        if (viaSuite !== true && viaMoteur !== true && viaOrdinateur !== true && mode !== 'heberge') step(kt('Redémarre Kybernos si le robot le demande. Une photo est prise avant : en cas d’échec, tout revient à l’état d’avant.', 'Restart Kybernos if asked. A snapshot is taken first: if anything fails, everything goes back to how it was.'))
+        if (viaSuite !== true && viaMoteur !== true && viaOrdinateur !== true) dlg.appendChild(steps)
       } else if (info !== null && info.checkedAt) {
         let quand = ''
         try { quand = new Date(info.checkedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } catch (e) { quand = '' }
@@ -978,7 +1117,18 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       const grow = upEl('span', 'grow'); foot.appendChild(grow)
       const again = upBtn(kt('Vérifier à nouveau', 'Check again'), 'kbmu-link', () => { again.textContent = kt('Vérification…', 'Checking…'); void updCheck(true, true) })
       foot.appendChild(again)
-      if (viaSuite === true || viaMoteur === true) {
+      if (viaOrdinateur === true) {
+        // Once the machine is back on the new version the dialog has nothing left to postpone or skip: only « Close » stays (the page reloads by itself).
+        let fini = false
+        const fin = () => {
+          fini = true
+          foot.querySelectorAll('.kbmu-b').forEach((b) => { if (b !== go) b.remove() })
+          go.textContent = kt('Fermer', 'Close'); go.disabled = false; go.removeAttribute('data-kb')
+        }
+        const go = upBtn(kt('Mettre à jour mon ordinateur cloud', 'Update my cloud computer'), 'kbmu-b main', () => { if (fini === true) close(); else void updOrdinateurRun(go, statutMaj, fin) })
+        go.setAttribute('data-kb', 'upd-go')
+        foot.appendChild(go)
+      } else if (viaSuite === true || viaMoteur === true) {
         // Once installed the dialog has nothing left to postpone or skip: only "Close" stays.
         const fin = () => {
           foot.querySelectorAll('.kbmu-b').forEach((b) => { if (b !== go) b.remove() })
@@ -1016,9 +1166,9 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       card.setAttribute('role', 'status')
       const head = upEl('div', 'kbmu-head'); head.appendChild(upEl('span', 'kbmu-dot')); head.appendChild(document.createTextNode(kt('Mise à jour disponible', 'Update available')))
       card.appendChild(head)
-      card.appendChild(upEl('p', 'kbmu-sub', updLabel(p) + ' — ' + kt('tu as ', 'you have ') + p.installee + '.'))
+      card.appendChild(upEl('p', 'kbmu-sub', p.kind === 'ordinateur' ? kt('Une version plus récente de ton ordinateur cloud est prête.', 'A newer version of your cloud computer is ready.') : updLabel(p) + ' — ' + kt('tu as ', 'you have ') + p.installee + '.'))
       const acts = upEl('div', 'kbmu-actions')
-      acts.appendChild(upBtn(kt('Voir comment', 'See how'), 'kbmu-b main', () => updDialog(upd.info)))
+      acts.appendChild(upBtn(p.kind === 'ordinateur' ? kt('Mettre à jour', 'Update') : kt('Voir comment', 'See how'), 'kbmu-b main', () => updDialog(upd.info)))
       if (p.requis !== true) acts.appendChild(upBtn(kt('Plus tard', 'Later'), 'kbmu-b', () => { lsSet(KB_UPD_SNOOZE, JSON.stringify({ cible: p.cible, until: Date.now() + 24 * 3600 * 1000 })); updCloseCard() }))
       card.appendChild(acts)
       document.body.appendChild(card)
@@ -1063,7 +1213,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         // Update detection: never blocks startup.
         try { updBoot() } catch (e) { try { console.warn('[kybernos-maintenance] update detection unavailable', e) } catch (e2) { /* console */ } }
       },
-      __test: { fusionnerSigne, modeMiseAJour, updRelancer, motMaj, ligneVersion, versionPlugin, zoneTexte, statutDe, etatValide, lireOuvert, ecrireOuvert, CLE_DETAILS, ID_DETAILS, Page, FR, EN }
+      __test: { fusionnerSigne, fusionnerOrdinateur, ordinateurFetch, updOrdinateurRun, motOrdinateur, updDialog, modeMiseAJour, updRelancer, motMaj, ligneVersion, versionPlugin, versionApp, zoneTexte, statutDe, etatValide, lireOuvert, ecrireOuvert, CLE_DETAILS, ID_DETAILS, Page, FR, EN }
     }
   }
 })

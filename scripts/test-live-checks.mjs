@@ -12,6 +12,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { entry } from '../packages/kybernos-plugin/lib-i18n-test.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 let failed = 0
@@ -47,7 +48,7 @@ console.log('the Memory page check follows the Settings nav grouping')
   const at = groupes.indexOf('const GROUPES = [')
   const mine = [...groupes.slice(at, at + 4000).matchAll(/\{ id: '([a-z]+)', titre: (?:null|kbt\('([^']+)'\))[^\n]*?mots: \[([^\]]*)\]/g)].map((m) => ({ id: m[1], key: m[2], mots: words(m[3]) })).find((x) => x.mots.indexOf('memory & lessons') >= 0)
   check('GROUPES has a group that holds the page', mine !== undefined)
-  const title = mine === undefined || mine.key === undefined ? null : /'settings\.group\.memory': \{ kybernos: '[^']*', en: '([^']*)' \}/.exec(groupes)
+  const title = mine === undefined || mine.key === undefined ? null : (entry('settings.group.memory') === null ? null : [null, entry('settings.group.memory').en])
   check('the check names that group by its English title', group !== null && title !== null && group[1] === title[1], [group && group[1], title && title[1]])
   if (above !== null && below !== null && mine !== undefined) {
     const rank = (label) => mine.mots.indexOf(label.toLowerCase())

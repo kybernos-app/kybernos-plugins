@@ -3,6 +3,7 @@
 import { readFileSync, writeFileSync, appendFileSync, mkdirSync, readdirSync, statSync, rmSync, copyFileSync, renameSync, existsSync, utimesSync, openSync, closeSync } from 'node:fs'
 import { resolve, relative, isAbsolute, dirname, basename, join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { unavailableProgramMessage } from './phone-errors.mjs'
 
 const tokenize = (src) => {
   const toks = []
@@ -92,7 +93,7 @@ export const runShell = async (script, { cwd, env, out, err, signal, policy }) =
     if (fileOut) target = (s) => { buf += s }
     const fn = builtins[argv[0]]
     let code
-    if (!fn) { err(`bash: ${argv[0]}: command not found (no processes on this device)\n`); code = 127 }
+    if (!fn) { err(`bash: ${argv[0]}: command not found. ${unavailableProgramMessage(argv[0])}\n`); code = 127 }
     else { try { code = await fn(argv.slice(1), { out: target, err, stdin }) } catch (e) { err(`bash: ${argv[0]}: ${e.message}\n`); code = 1 } }
     if (fileOut) { try { (fileOut.append ? appendFileSync : writeFileSync)(fileOut.p, buf) } catch (e) { err(`bash: ${fileOut.p}: ${e.message}\n`); code = 1 } }
     return code

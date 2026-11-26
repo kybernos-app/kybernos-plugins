@@ -1,0 +1,4 @@
+# dsh bundle patch: inserts kybernos-knowledge into the profile layer stack.
+- insert:
+    - id: kybernos-knowledge
+      name: '@local/kybernos-knowledge'

@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
+import { entry, hasEntry } from './lib-i18n-test.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -41,11 +42,11 @@ assert.ok(client.includes("kbt('kbui.connecteurs'), kbt('kbui.devices'), kbt('kb
 assert.ok(client.includes("s.projectTab.length > 0 && kbProjectTabHidden(s.projectTab) === false ? s.projectTab : 'Threads'"))
 ok('the tab bar is filtered and a hidden tab kept in the store opens Threads instead')
 assert.ok(client.includes("if (tab === kbt('kbui.insight')) return h(KbiProjetWsInsight"))
-assert.ok(client.includes("'kbui.budget': {"))
+assert.ok(hasEntry('kbui.budget'))
 ok('the panes and the translations are still there')
 
 // The Details tab (2026-10-23): one card laid out like the Identity tab of an Agent Team, the old « Advanced » block now a tab of its own, « Devices ».
-assert.ok(client.includes("'kbui.devices': { kybernos: 'Appareils', en: 'Devices' }"))
+assert.deepEqual(entry('kbui.devices'), { kybernos: 'Appareils', en: 'Devices' })
 ok('the new tab is called Devices (Appareils)')
 const details = between("if (tab === kbt('kbui.details')) {\n          // Laid out like", "// The body of the Devices tab comes from")
 assert.ok(details.includes("className: 'kbpd-card'") && details.includes("className: 'kbpd-danger'"))

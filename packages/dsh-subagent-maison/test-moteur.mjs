@@ -111,6 +111,28 @@ try {
     modules.qwen.apply(ctxEchec, { model: '', env: {} })
     const r3 = await (await enregistres.at(-1).start({ parent: parent(tmpdir()), prompt: [{ type: 'text', text: 'x' }], signal })).result
     ok('exit code 3 → stopReason "error" with a diagnostic naming the product', r3.stopReason === 'error' && /Qwen Code/.test(String(r3.diagnostic)), JSON.stringify(r3))
+
+    // Phase 0: boot-time process.env must NOT mask a newer key stored in ctx.credentials
+    const prevGemini = process.env.GEMINI_API_KEY
+    try {
+      process.env.GEMINI_API_KEY = 'sk-boot-stale'
+      const storeVals = { GEMINI_API_KEY: 'sk-store-fresh-1' }
+      const ctxStore = {
+        ...faux('ok', 0),
+        credentials: { resolve: async (nom) => (storeVals[nom] !== undefined ? { value: storeVals[nom], source: 'store' } : undefined) }
+      }
+      modules.gemini.apply(ctxStore, { env: {} })
+      await (await enregistres.at(-1).start({ parent: parent(tmpdir()), prompt: [{ type: 'text', text: 'x' }], signal })).result
+      ok('Phase 0: live ctx.credentials wins over boot-time process.env', etat.derniere.env.GEMINI_API_KEY === 'sk-store-fresh-1', etat.derniere.env.GEMINI_API_KEY)
+      storeVals.GEMINI_API_KEY = 'sk-store-fresh-2'
+      await (await enregistres.at(-1).start({ parent: parent(tmpdir()), prompt: [{ type: 'text', text: 'x' }], signal })).result
+      ok('Phase 0: rotating ctx.credentials reaches the next run without restart', etat.derniere.env.GEMINI_API_KEY === 'sk-store-fresh-2', etat.derniere.env.GEMINI_API_KEY)
+      delete storeVals.GEMINI_API_KEY
+      await (await enregistres.at(-1).start({ parent: parent(tmpdir()), prompt: [{ type: 'text', text: 'x' }], signal })).result
+      ok('Phase 0: falls back to process.env when ctx.credentials has no value', etat.derniere.env.GEMINI_API_KEY === 'sk-boot-stale', etat.derniere.env.GEMINI_API_KEY)
+    } finally {
+      if (prevGemini === undefined) delete process.env.GEMINI_API_KEY; else process.env.GEMINI_API_KEY = prevGemini
+    }
   }
 } catch (e) {
   echecs++; total++

@@ -7,7 +7,7 @@
 // the write but answered the reads (and every request that carries no Origin).
 //
 // Measured in the pre-production acceptance of 2026-10-10 against a real DSH: Host = Origin = attacker.example reached memory/add and
-// space/create (kybernos-cloud), the E2B sandboxes' exec and key routes (kybernos-computers), the local lessons (kybernos-memory), the
+// space/create (kybernos-cloud), the local lessons (kybernos-memory), the
 // local-model installer (kybernos-modeles-locaux), the models' annotations and scores (kybernos-models), the slash commands, and the reads
 // of a dozen more.
 //

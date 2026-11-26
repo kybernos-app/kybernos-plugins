@@ -7,7 +7,7 @@ A soft takeoff opens the product to a small invited audience, with a way back. T
 | File | What it holds |
 |---|---|
 | `cases.json` | The matrix: 86 cases in six waves, each with a priority, a runner (script, cheap agent or owner), an environment and a status |
-| `plugins.json` | The proposed bundle freeze: which of the 56 packages stay on, which go off for the takeoff, and why |
+| `plugins.json` | The proposed bundle freeze: which of the 59 packages stay on, which go off for the takeoff, and why |
 | `tester-brief.md` | The brief and the verdict format for the cheap tester (`.claude/agents/takeoff-tester.md` loads it) |
 | `ledger.md` | The defect ledger, text only, written by the lead session |
 | `scripts/soft-takeoff-run.mjs` | Runs the script cases and writes one verdict file each: the reference a cheap tester is compared with (`--light` runs the first wave) |
@@ -56,7 +56,7 @@ W4's replica journeys do not need W3: they can start as soon as W2 is green. W3 
 
 ## 4. The plugin freeze
 
-`plugins.json` is a proposal: **33 on, 20 off, 3 services** (not DSH bundles), of which 14 are judgement calls marked `owner`. Off for the takeoff: Widget (`kybernos-pulse`), Kaby (`kybernos-kyber`, `kybernos-kaby-customisation`), the front desk and Telegram bridge, the three mini-app style creators (mini-apps, Bricks, Webapp creator), and the other bundles that have no live check yet. A bundle comes back one at a time once its own live check is green.
+`plugins.json` is a proposal: **35 on, 21 off, 3 services** (not DSH bundles), of which 13 are judgement calls marked `owner`. Off for the takeoff: Widget (`kybernos-pulse`), Kaby (`kybernos-kyber`, `kybernos-kaby-customisation`), the front desk and Telegram bridge, the three mini-app style creators (mini-apps, Bricks, Webapp creator), and the other bundles that have no live check yet. A bundle comes back one at a time once its own live check is green.
 
 The freeze is applied to **sandbox profiles only**; the owner's real profile is never edited by this recette. Two things to check before it is final: turning Kaby off must not break a bundle that calls it (the boot and bundle-fault checks W0-05 and W5-05 must pass with it off), and `kybernos-computers` is the E2B sandbox with the person's own key, not the Kybernos Cloud Computer (that one lives in `kybernos-cloud`).
 
@@ -166,7 +166,7 @@ The suites that need a browser or React skip themselves when their dependencies 
 Defaults are what I will do unless told otherwise.
 
 1. « Widget » is `kybernos-pulse` and « Kaby » is `kybernos-kyber` plus its customisation. Right? *(default: yes)*
-2. Accept the 14 judgement calls in `plugins.json`? The ones that matter: Motion, Slides, Calls, Reference chips. *(default: as marked)*
+2. Accept the 13 judgement calls in `plugins.json`? The ones that matter: Motion, Slides, Calls, Reference chips. *(default: as marked)*
 3. What does the several-accounts switch forbid: (a) two Kybernos accounts in one DSH, (b) two keys for one provider, (c) one account on several devices? *(default: a and b forbidden by an owner switch; c out of scope)*
 4. Which staging hosts may the testers sign in to with test accounts, is Stripe test mode already wired there? *(no default: the staging half of W4 waits)* The Fly spend half is answered (« Oui, W3 », « lances le toi », 2026-11-03): W3 was played on a play server of the server repo with a 4-hour org token, under one dollar.
 5. Pictures: Haiku collects and measures, Sonnet reads the decisive images. *(default: yes)*
@@ -181,5 +181,5 @@ Defaults are what I will do unless told otherwise.
 14. **Free models (W2-06).** *(answered 2026-11-03: default taken)* Is a real free model supposed to answer today, with no account and no key? The script only proves the locked state is told honestly. *(default: not promised; the page is checked, no real turn)*
 15. **May W2 touch the outside?** *(answered 2026-11-03: yes to all three, default taken)* The free search engines (W2-10), one wrong key sent to a real provider (W2-08), and the real Ollama on this machine with the 0.8b model only (W2-12). *(default: yes to all three; no key of yours, no paid call)*
 16. **Local model in the composer (W2-14).** The only model wired in DSH is your qwen3.5:9b (8.3 GB loaded on this 16 GB machine, which also runs the sandboxes), and the small test model `tev1:0.8b` is not in the signed catalogue so the page cannot wire it. (a) one turn on the 9b in the sandbox, (b) wire the 0.8b by hand in the sandbox's configuration, (c) leave the DSH side of local models to you. *(default: c; the engine itself is checked by W2-12)*
-17. **Your default agent preset is « Minimal ».** With it a chat's system prompt is one line and none of the plugins' prompt blocks reach the model: not your personal memories, not an approved team lesson. The memory tools (`memory_search`, `lesson_search`) still answer. Is that what you want for your own chats? *(default: left as is, listed; the recette sandboxes run `standard`, which carries the blocks)*
+17. **Your default agent preset is « Minimal ».** With it a chat's system prompt is one line and none of the plugins' prompt blocks reach the model: not your personal memories, not an approved team lesson. The memory tools (`memory_search`, `lesson_search`, `lesson_read`) still answer. Is that what you want for your own chats? *(default: left as is, listed; the recette sandboxes run `standard`, which carries the blocks)*
 18. **A lesson the owner approves can take up to 5 minutes to reach a teammate's running team DSH** (`TEAM_TUNING.ttlMs`); a DSH that starts after the approval has it at once. Acceptable, or should opening the team's lessons page, or the approval, refresh it sooner? *(default: acceptable, listed; J2 restarts the member's DSH)*

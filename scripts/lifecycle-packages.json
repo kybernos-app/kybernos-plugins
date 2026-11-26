@@ -1,5 +1,5 @@
 {
-  "commentaire": "@local/* packages of the repository that the lifecycle links to the profile. Order = order of the bundles.",
+  "commentaire": "@local/* packages of the repository that the lifecycle links to the profile. Order = order of the bundles. `retires`: bundles whose folder is gone; every alignment removes them from the profiles that still carry them.",
   "packages": [
     {
       "dir": "kybernos-plugin",
@@ -90,10 +90,6 @@
       "nom": "@local/kybernos-miniapps"
     },
     {
-      "dir": "kybernos-computers",
-      "nom": "@local/kybernos-computers"
-    },
-    {
       "dir": "dsh-subagent-maison",
       "nom": "@local/dsh-subagent-maison"
     },
@@ -112,6 +108,10 @@
     {
       "dir": "kybernos-mobile",
       "nom": "@local/kybernos-mobile"
+    },
+    {
+      "dir": "kybernos-phone-model",
+      "nom": "@local/kybernos-phone-model"
     },
     {
       "dir": "kybernos-websearch",
@@ -212,6 +212,45 @@
     {
       "dir": "kybernos-office",
       "nom": "@local/kybernos-office"
+    },
+    {
+      "dir": "kybernos-door",
+      "nom": "@local/kybernos-door"
+    },
+    {
+      "dir": "kybernos-guard",
+      "nom": "@local/kybernos-guard"
+    },
+    {
+      "dir": "kybernos-knowledge",
+      "nom": "@local/kybernos-knowledge"
+    }
+  ],
+  "retires": [
+    {
+      "dir": "kybernos-computers",
+      "nom": "@local/kybernos-computers",
+      "patchId": "kybernos-computers",
+      "depuis": "2026-11-23",
+      "pourquoi": "E2B cloud computers for agents (BYOK) dropped: 2 uses in 1,094 chats; the code is in the tag archive/kybernos-computers-avant-suppression"
+    },
+    {
+      "dir": "kybernos-catalog",
+      "nom": "@local/kybernos-catalog",
+      "depuis": "2026-10-31",
+      "pourquoi": "the Business menu runs on the db plugin"
+    },
+    {
+      "dir": "kybernos-contacts",
+      "nom": "@local/kybernos-contacts",
+      "depuis": "2026-10-31",
+      "pourquoi": "the Business menu runs on the db plugin"
+    },
+    {
+      "dir": "kybernos-pipeline",
+      "nom": "@local/kybernos-pipeline",
+      "depuis": "2026-10-31",
+      "pourquoi": "the Business menu runs on the db plugin"
     }
   ]
 }

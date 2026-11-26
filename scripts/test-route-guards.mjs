@@ -72,7 +72,7 @@ check('every write route that an Origin alone lets through is written down with 
 // ── 3. the eight bundles that had no session-guard ──────────────────────────────────────────────────────────────
 const FAMILY = {
   'kybernos-hub': 5, 'kybernos-workers': 4, 'kybernos-servers': 5, 'kybernos-skills': 28,
-  'kybernos-search': 3, 'kybernos-websearch': 4, 'kybernos-free-llms': 3, 'kybernos-sessions': 13,
+  'kybernos-search': 3, 'kybernos-websearch': 4, 'kybernos-free-llms': 3, 'kybernos-sessions': 13, 'kybernos-door': 2,
 }
 const WRITES = ['POST', 'PUT', 'PATCH', 'DELETE']
 const cookieWrites = rows.flatMap((r) => WRITES.filter((m) => r.methods[m] !== undefined && r.methods[m].level === 'cookie').map((m) => ({ bundle: r.bundle, path: r.path, method: m })))

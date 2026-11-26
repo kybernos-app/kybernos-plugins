@@ -72,46 +72,39 @@ try {
   }
   check('the lessons were added through the real route', ids.length === 3, ids)
 
-  console.log('settings → Memory & Lessons → Lessons learned')
+  console.log('three lessons that share a tag, « Make a skill » for all of them (the Skills page route)')
+  const LESSONS = ['Live check: prove the interface language before you count missing strings.', 'Live check: extract keys line by line, a key can contain a colon.', 'Live check: diff the dictionary that is shown, not the source file.']
+  const sameTag = await post('/kybernos-skills/learned/from-lessons', { lessons: ids.map((id, i) => ({ text: LESSONS[i], tags: ['live-i18n'], kyber })) })
+  check('the host suggests one skill for them', sameTag !== null && sameTag.ok === true && sameTag.proposal !== undefined && sameTag.proposal.name === 'live-i18n-checklist', sameTag)
+  const after = await get('/kybernos-skills/learned')
+  check('the host holds one suggestion and the skills folder holds nothing', after.proposals.length === 1 && after.proposals[0].name === 'live-i18n-checklist' && !existsSync(join(dsh, 'skills', 'live-i18n-checklist')), after.proposals)
+  check('it is a checklist of pitfalls in the lessons\' own words', /## Watch out for\n- Live check: /.test(after.proposals[0].body) && ['prove the interface language', 'extract keys line by line', 'diff the dictionary that is shown'].every((w) => after.proposals[0].body.includes(w)), after.proposals[0].body)
+  await post('/kybernos-skills/learned/from-lessons', { lessons: ids.map((id, i) => ({ text: LESSONS[i], tags: ['live-i18n'], kyber })) })
+  check('the same lessons are not suggested twice', (await get('/kybernos-skills/learned')).proposals.length === 1)
+
+  console.log('a lesson, one by one: settings → Memory & Lessons → Manage → the lesson → Make a skill')
+  const own = await mk('A suggestion made from the page of the check, to be discarded.', ['discard-me'])
+  check('the lesson was added through the real route', own !== null && own.ok === true, own)
   if ((await openSettings(page, { minCells: 0 })) !== true) { console.error('○ not run: the Settings dialog did not open'); await live.close(); process.exit(3) }
   const there = await goToSettingsPage(page, 'Memory & Lessons', { marker: `!!document.querySelector('.kbmem-page')` })
   check('the Memory & Lessons page opens', there === true)
-  // The tab is pressed until the lessons stay on screen: the page picks its first tab when its lists arrive and takes an early press back.
-  const lessonsTabOn = `(() => { const b = document.querySelector('.kbmem-seg button[data-v="lessons"]'); return !!b && b.getAttribute('aria-pressed') === 'true' })()`
-  for (let i = 0; i < 30; i += 1) {
-    if ((await ev(lessonsTabOn)) === true) {
-      await sleep(900)
-      if ((await ev(lessonsTabOn)) === true && (await count('.kbmem-r')) > 0) break
-      continue
-    }
-    await clickText(page, 'Lessons learned', { within: '.kbmem-row2' }).catch(() => null)
-    await sleep(700)
-  }
-  await waitFor(page, `document.querySelectorAll('.kbmem-r').length > 0`, 12000)
-  await waitFor(page, `!!document.querySelector('[data-note="cluster"]')`, 15000)
-  await sleep(400)
-  await shot('01-lessons')
-  check('the lessons list shows the grouping hint, with the topic and the count', (await count('[data-note="cluster"]')) === 1 && /3 lessons are about “live-i18n”/.test((await text('[data-note="cluster"]')) || ''), await text('[data-note="cluster"]'))
-  check('the status line does not mention skills before there is one', !/made from experience/.test((await text('.kbmem-st')) || ''))
-  await pressDom('[data-act="cluster-skill"]')
+  await waitFor(page, `!!document.querySelector('button[data-act="manage"]')`, 15000)
+  await pressDom('button[data-act="manage"]')
+  await waitFor(page, `!!document.querySelector('.kbmem-ngrp')`, 15000)
+  await pressDom('.kbmem-ngrp[data-kyber=' + JSON.stringify(kyber) + ']')
+  await waitFor(page, `document.querySelectorAll('.kbmem-nrow.sub').length > 0`, 12000)
+  await shot('01-manage-lessons')
+  const opened = await ev(`(() => { const r = [...document.querySelectorAll('.kbmem-nrow.sub')].find((e) => /to be discarded/.test(e.getAttribute('title') || e.textContent)); if (!r) return false; r.scrollIntoView({ block: 'center' }); r.click(); return true })()`)
+  check('the lesson is in the list of its team, and opens on its own page', opened === true)
+  await waitFor(page, `!!document.querySelector('[data-act="make-skill"]')`, 8000)
+  check('the lesson page has « Make a skill », next to « Propose to team » when there is one', (await count('[data-act="make-skill"]')) === 1)
+  await shot('02-lesson-page')
+  await pressDom('[data-act="make-skill"]')
   await waitFor(page, `/Skill suggested/.test(document.body.innerText)`, 8000)
-  check('« Make a skill from them » says it was suggested and waits in Skills', /Skill suggested: “live-i18n-checklist”\. It waits for your yes in Skills\./.test((await ev('document.body.innerText')) || ''))
-  const after = await get('/kybernos-skills/learned')
-  check('the host holds one suggestion and the skills folder holds nothing', after.proposals.length === 1 && after.proposals[0].name === 'live-i18n-checklist' && !existsSync(join(dsh, 'skills', 'live-i18n-checklist')), after.proposals.map((p) => p.name))
-  check('it is a checklist of pitfalls in the lessons\' own words', /## Watch out for\n- Live check: /.test(after.proposals[0].body) && ['prove the interface language', 'extract keys line by line', 'diff the dictionary that is shown'].every((w) => after.proposals[0].body.includes(w)) && after.proposals[0].body.split('\n- ').length === 4, after.proposals[0].body)
-  await pressDom('[data-act="cluster-skill"]')
-  await sleep(1200)
-  check('the same lessons are not suggested twice', (await get('/kybernos-skills/learned')).proposals.length === 1)
-
-  console.log('a lesson, one by one')
-  await pressDom('.kbmem-r')
-  await waitFor(page, `!!document.querySelector('[data-act="make-skill"]')`, 6000)
-  check('the lesson sheet has « Make a skill »', (await count('[data-act="make-skill"]')) === 1)
-  await shot('02-lesson-sheet')
-  await ev(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`)
+  check('« Make a skill » says it was suggested and waits in Skills', /Skill suggested: “[a-z0-9-]+”\. It waits for your yes in Skills\./.test((await ev('document.body.innerText')) || ''))
+  check('the host now holds two suggestions, the skills folder still nothing', (await get('/kybernos-skills/learned')).proposals.length === 2)
 
   console.log('the Skills page')
-  await post('/kybernos-skills/learned/from-lessons', { lessons: [{ text: 'A suggestion made from the page of the check, to be discarded.', tags: ['discard-me'], kyber }] })
   await page.send('Page.reload', { ignoreCache: true })
   await waitFor(page, `document.readyState === 'complete'`, 15000)
   await sleep(3500)

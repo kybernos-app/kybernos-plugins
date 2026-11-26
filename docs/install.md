@@ -12,7 +12,7 @@ This page is for a person on their own computer. For a server or a container, se
 | | |
 |---|---|
 | A computer | macOS, Linux or Windows |
-| Node.js | version 24.9 or later ([nodejs.org](https://nodejs.org)); check with `node -v` |
+| Node.js | version 24.9 or later ([nodejs.org](https://nodejs.org)); check with `node -v`. The newest engine in the tested range (DSH 0.2.3-alpha.2) needs 24.22.3 or later in the 24 line, or 26.13.1 or later: the robot refuses it on an older Node and says what to update |
 | DSH | installed for you when it is missing. The versions this release was played on are listed in [`dsh-compat.json`](../dsh-compat.json) |
 | git | only for the "clone" route below |
 | A model | not needed to install. The first screens help you connect one (see [The welcome pages](#the-welcome-pages)) |

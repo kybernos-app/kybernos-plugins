@@ -125,7 +125,8 @@
         "core": { "type": "boolean" },
         "default": { "enum": ["on", "off"] },
         "order": { "type": "integer", "minimum": 0, "maximum": 999 },
-        "replaces": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,63}$" }
+        "replaces": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,63}$" },
+        "stage": { "enum": ["alpha", "beta"] }
       }
     }
   },

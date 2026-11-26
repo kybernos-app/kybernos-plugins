@@ -6,9 +6,9 @@
 
 - **Settings › Kaby.** The same page opens from the portrait that heads the strip above Kaby's chat.
 
-## Four tabs, so the page is never long
+## Five tabs, so the page is never long
 
-The six blocks below are grouped in four tabs under the title and the lead (`TAB_IDS` in `client.js`): **Identity & voice** (blocks 1 and 2), **Video calls** (block 3),
+The six blocks below are grouped in five tabs under the title and the lead (`TAB_IDS` in `client.js`): **Identity** (block 1), **Voice** (block 2, split from Identity on 2026-11-24, item 16 of the mobile list), **Video calls** (block 3),
 **Work** (blocks 4 and 6: where Kaby works, wake-ups) and **Permissions** (block 5). The first tab opens by default, arrow keys, Home and End move between tabs (tab role,
 `aria-selected`, `aria-controls`). Every card stays mounted and only the open panel is shown (`hidden`), so a draft in Permissions or a half-typed name is still there when the
 person comes back. Nothing is stored about the open tab. The live check (`scripts/check-kaby-customisation-live.mjs`) opens the tab each section works in.
@@ -17,10 +17,14 @@ person comes back. Nothing is stored about the open tab. The live check (`script
 
 1. **Identity.** The name (an alias: the product stays Kaby elsewhere; 24 characters, letters, digits, spaces and apostrophes, no reserved word such
    as Kybernos or Claude), the words that describe the look, and a portrait: **Generate** (the image model of the person's Models, through the core's
-   `POST /kybernos/image/generate`, about $0.04) or **Import** (PNG, JPEG or WebP, 4.5 MB, with a « I have the right to use this image » tick).
-2. **Voice.** Pills of the voices the app's engines offer (`GET /kybernos/tts/voices`), the person's language first, **Preview**
-   (`POST /kybernos/tts/speak`), and **Custom voice · record or upload**: a consent (only its time is kept) and a 10 to 60 s sample, kept on this
-   computer. No installed engine speaks a cloned voice yet, so a custom voice is stored and says « not spoken yet ». Not chosen: the voice of Settings › Voice.
+   `POST /kybernos/image/generate`, about $0.04) or **Import** (PNG, JPEG or WebP, 4.5 MB, with a « I have the right to use this image » tick). **Use the K** goes back to the monogram (the default; « K in use » when it already is): three avatars, one explicit choice each.
+2. **Voice** (two cards, item 17 of the mobile list). **Kybernos voices**: the app voice, then a short list of the voices the app's engines offer
+   (`GET /kybernos/tts/voices`): the person's language first, five at most (`PILLS_SHOWN`), the Mac's novelty voices (Bells, Bubbles… `NOVELTY_VOICES`) left out
+   unless nothing else speaks the language, each row with the language said in words and its own **Listen** (`POST /kybernos/tts/speak`). Every other voice sits
+   under **More voices** (folded; a voice picked there joins the list above; an engine's name shows only when two voices share a name). **Your voice**: **Record or
+   upload my voice**: a consent (only its time is kept) and a 10 to 60 s sample, kept on this computer. No installed engine speaks a cloned voice yet, so a custom
+   voice is stored and says « not spoken yet ». Not chosen: the voice of Settings › Voice. What is NOT done: a hand-made list of Kybernos voices per language
+   (today the list is the engines' own, ranked and filtered): that needs a decision on which engine and which voices count as « included ».
 3. **Face on video calls.** Its own provider list, in the manner of Settings › Calls › Face, and its own keys: the two can use different accounts.
    Every provider but « No face » is listed as **soon** (`providers.mjs`): a provider becomes available in the same change that teaches the call worker
    to draw its face, and its key field appears then. Today a video call with Kaby is a voice call.

@@ -291,6 +291,8 @@ const Q = {
   slider: (re, scope = 'document') => `(() => { const b = Array.from(${scope}.querySelectorAll('.kbth-sl')).find((x) => ${re}.test((x.querySelector('.kbth-sl-lb') || { textContent: '' }).textContent)); return b ? b.querySelector('input') : null })()`,
   hexInput: `document.querySelector('.kbth-hex input')`,
   footBtn: (i) => `document.querySelectorAll('.kbth-foot button')[${i}]`,
+  // Reset all left the foot on 2026-11-08 (it did what Reset does): the one Reset is the studio's.
+  resetBtn: `document.querySelector('[data-kb="theme-st-reset"]')`,
 }
 // The tabs of the page, in the order of the page (« Conversation » and « Terminal » are gone: nothing to apply in the web GUI). A tab is found by its
 // NAME (French or English), never by its position: a tab inserted in the middle (« Icons » was) moves every index after it, and a check that counts
@@ -1167,7 +1169,7 @@ try {
     await sleep(300)
     const dirty = await store()
     check('before the reset the state is really dirty (accent, wallpaper, font, contrast, an Advanced control)', dirty.acc !== null && dirty.wp !== 'none' && dirty.fontText === 'georgia' && dirty.contrastMode === 'plus' && dirty.radius === 'soft', dirty)
-    await clickEl(Q.footBtn(0))
+    await clickEl(Q.resetBtn)
     await sleep(500)
     const st = await store()
     const bad = Object.keys(DEFAULTS).filter((k) => JSON.stringify(st[k]) !== JSON.stringify(DEFAULTS[k]))
@@ -1929,7 +1931,7 @@ try {
     const withEffects = await pluginStyles()
     check('with these effects on, the plugin posts more style (' + withEffects.len + ' vs ' + base.len + ' characters in its style tags) — so the next check can tell they went away', withEffects.len > base.len + 200, { base, withEffects })
     if (!modeSafe) { console.log('SKIPPED: « Reset all » forces Dark and the mode found is ' + startMode); return }
-    await clickEl(Q.footBtn(0)); await sleep(700)
+    await clickEl(Q.resetBtn); await sleep(700)
     const st2 = await store()
     const left = Object.keys(DEFAULTS).filter((k) => JSON.stringify(st2[k]) !== JSON.stringify(DEFAULTS[k]))
     const after = await pluginStyles()
@@ -2179,7 +2181,7 @@ try {
     if (modeSafe) {
       const rawBefore = await val(`localStorage.getItem(${JSON.stringify(LD_KEY)})`)
       const cacheBefore = await val(`localStorage.getItem(${JSON.stringify(LD_CACHE)})`)
-      await clickEl(Q.footBtn(0)); await sleep(500)
+      await clickEl(Q.resetBtn); await sleep(500)
       const rawAfter = await val(`localStorage.getItem(${JSON.stringify(LD_KEY)})`)
       const cacheAfter = await val(`localStorage.getItem(${JSON.stringify(LD_CACHE)})`)
       const themeAfter = await store()

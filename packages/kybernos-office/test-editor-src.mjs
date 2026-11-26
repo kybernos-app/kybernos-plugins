@@ -46,7 +46,7 @@ ok('only esbuild declares an install script (it only checks its binary), and the
 })
 ok('the frame sources import only the pinned editors, React and each other; no network address, no eval', () => {
   const allowed = new Set([...Object.keys(pkg.dependencies)])
-  for (const f of ['sheet.jsx', 'doc.jsx', 'md.js', 'pdf.js', 'envelope.js', ...DECK_SOURCES]) {
+  for (const f of ['sheet.jsx', 'doc.jsx', 'md.js', 'text.js', 'text-core.js', 'pdf.js', 'envelope.js', ...DECK_SOURCES]) {
     const src = read('editor-src/' + f)
     for (const m of src.matchAll(/(?:from|import)\s+'([^']+)'/g)) {
       const spec = m[1]
@@ -88,6 +88,14 @@ ok('each editor exports the bytes in its own format and says dirty only for a ch
   must(/edit: !READONLY/.test(deckFrame) && /if \(!READONLY\) state\.api\.setEditing\(true\)/.test(deckFrame), 'read-only is honoured by the deck frame')
   must(/editable: !READONLY/.test(read('editor-src/md.js')) && /READONLY \? \[\.\.\.NEVER, \.\.\.VIEW_ONLY\]/.test(read('editor-src/pdf.js')), 'read-only is honoured by the Markdown and PDF frames')
 })
+ok('the text editor frame is built, needs no pinned package, and says dirty only for a change', () => {
+  must(/entryPoints: \['src\/text\.js'\], outdir: join\(out, 'text'\)/.test(read('editor-src/build.mjs')), 'the build makes the text frame')
+  must(!/from '[^./]/.test(read('editor-src/text.js') + read('editor-src/text-core.js')), 'it imports nothing but its own files')
+  const f = read('editor-src/text.js')
+  must(/from '\.\/envelope\.js'/.test(f) && /listen\(\{/.test(f) && /fetchFile\(\)/.test(f) && /loaded\(f\.hash, READONLY\)/.test(f), 'it speaks the same envelope')
+  must(/exportBytes: async \(\) =>/.test(f) && /encode\(seen, text\)/.test(f) && /tell\(textEl\.value !== disk\)/.test(f), 'it exports the text with the file\'s own byte-order mark and line ends, and says dirty only for a change')
+  must(/readOnly = READONLY/.test(f) && /readonly: READONLY/.test(f), 'read-only is honoured in the text box and the table')
+})
 ok('the PDF viewer is copied as it is (its scripts and its wasm, not its demo files), and its glue imports it from the page', () => {
   const build = read('editor-src/build.mjs')
   must(/external: \['\.\/embedpdf\.js'\]/.test(build) && /n === 'pdfium\.wasm'/.test(build), 'the viewer stays an import of the page and the wasm is copied')
@@ -99,7 +107,7 @@ ok('the PDF viewer is copied as it is (its scripts and its wasm, not its demo fi
 ok('a deck frame is built twice from one runtime: the frame (an ES module) and the standalone page (one IIFE), in the same folder', () => {
   const build = read('editor-src/build.mjs')
   must(/entryPoints: \['src\/deck\/index\.js'\]/.test(build) && /format: 'iife', entryNames: 'standalone', entryPoints: \['src\/deck\/standalone\.js'\]/.test(build), 'both entries are built')
-  must(EDITORS.join() === 'sheet,doc,md,pdf,deck', 'the deck is an editor of the build: ' + EDITORS.join())
+  must(EDITORS.join() === 'sheet,doc,md,text,pdf,deck', 'the deck is an editor of the build: ' + EDITORS.join())
   must(/start\(\{/.test(read('editor-src/deck/index.js')) && /start\(\{/.test(read('editor-src/deck/standalone.js')), 'both start the same runtime')
   must(!/from '@tiptap/.test(read('editor-src/deck/runtime.js')), 'the runtime reaches Tiptap only through the module it is handed')
 })
@@ -127,19 +135,19 @@ ok('a deck goes back as the same file with only its slides replaced', () => {
 
 await okAsync('the manifest the build writes lists every served file, the shared fonts included, with hashes the host then checks', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'kb-office-build-'))
-  for (const [p, c] of [['sheet/app.js', 'js'], ['sheet/app.css', 'css'], ['sheet/wasm_bg.wasm', 'wasm'], ['doc/app.js', 'js2'], ['doc/harfbuzz.wasm', 'hb'], ['md/app.js', 'js3'], ['md/app.css', 'css3'], ['pdf/app.js', 'js4'], ['pdf/embedpdf.js', 'js5'], ['pdf/pdfium.wasm', 'wasm5'], ['deck/app.js', 'js6'], ['deck/app.css', 'css6'], ['deck/standalone.js', 'js7'], ['deck/standalone.css', 'css7'], ['assets/Caladea-Bold.ttf', 'ttf'], ['licenses/OFL.txt', 'not served']]) {
+  for (const [p, c] of [['sheet/app.js', 'js'], ['sheet/app.css', 'css'], ['sheet/wasm_bg.wasm', 'wasm'], ['doc/app.js', 'js2'], ['doc/harfbuzz.wasm', 'hb'], ['md/app.js', 'js3'], ['md/app.css', 'css3'], ['text/app.js', 'js5'], ['text/app.css', 'css5'], ['pdf/app.js', 'js4'], ['pdf/embedpdf.js', 'js5'], ['pdf/pdfium.wasm', 'wasm5'], ['deck/app.js', 'js6'], ['deck/app.css', 'css6'], ['deck/standalone.js', 'js7'], ['deck/standalone.css', 'css7'], ['assets/Caladea-Bold.ttf', 'ttf'], ['licenses/OFL.txt', 'not served']]) {
     mkdirSync(join(dir, p, '..'), { recursive: true }); writeFileSync(join(dir, p), c)
   }
   const m = manifestOf(dir, EDITORS, 'v1')
-  must(SHARED.includes('assets') && m.version === 'v1' && m.editors.join() === 'sheet,doc,md,pdf,deck', 'shape')
-  must(Object.keys(m.files).sort().join() === 'assets/Caladea-Bold.ttf,deck/app.css,deck/app.js,deck/standalone.css,deck/standalone.js,doc/app.js,doc/harfbuzz.wasm,md/app.css,md/app.js,pdf/app.js,pdf/embedpdf.js,pdf/pdfium.wasm,sheet/app.css,sheet/app.js,sheet/wasm_bg.wasm', 'files: ' + Object.keys(m.files).join())
+  must(SHARED.includes('assets') && m.version === 'v1' && m.editors.join() === 'sheet,doc,md,text,pdf,deck', 'shape')
+  must(Object.keys(m.files).sort().join() === 'assets/Caladea-Bold.ttf,deck/app.css,deck/app.js,deck/standalone.css,deck/standalone.js,doc/app.js,doc/harfbuzz.wasm,md/app.css,md/app.js,pdf/app.js,pdf/embedpdf.js,pdf/pdfium.wasm,sheet/app.css,sheet/app.js,sheet/wasm_bg.wasm,text/app.css,text/app.js', 'files: ' + Object.keys(m.files).join())
   must(m.files['sheet/app.js'].sha256 === createHash('sha256').update('js').digest('hex'), 'hash')
   writeFileSync(join(dir, 'manifest.json'), JSON.stringify(m))
   const host = createHost({ fs: fsp, home: join(dir, 'home'), editorsDir: dir, now: () => 1e12 })
   const open = (await import('node:fs')).writeFileSync
   void open
   const s = await host.status()
-  must(s.installed.sheet === true && s.installed.doc === true && s.installed.md === true && s.installed.pdf === true && s.installed.deck === true, 'all five installed')
+  must(s.installed.sheet === true && s.installed.doc === true && s.installed.md === true && s.installed.text === true && s.installed.pdf === true && s.installed.deck === true, 'all six installed')
   const t = await (async () => { const { docx } = await import('./lib-test-files.mjs'); const p = join(dir, 'a.docx'); writeFileSync(p, docx()); return host.open(p) })()
   must(t.ok === true, 'open: ' + JSON.stringify(t))
   must((await host.serve(t.token, 'assets/Caladea-Bold.ttf')).ok === true, 'a font is served at <token>/assets/…, where the document editor asks for it')

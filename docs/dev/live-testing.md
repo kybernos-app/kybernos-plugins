@@ -261,6 +261,8 @@ Not pressed on purpose: a file chooser's label, a label around a checkbox, a rad
 
 ## The Theme page, simple view: `scripts/check-theme-studio-live.mjs`
 
+> **Out of date (2026-11-22).** The Theme page was rebuilt (one Presets section, the Advanced editor in real tabs, the Menu panel). This script and its description below were written for the former two-layer page (Simple / Advanced, « My themes », nine tabs): it needs rewriting before it is run again. The hooks of the new page are listed in `packages/kybernos-theme/README.md`.
+
 ```bash
 source scripts/sandbox/env.sh && node scripts/check-theme-studio-live.mjs --shots /tmp/shots
 ```
@@ -631,6 +633,8 @@ written (`--user-copy <id>` only reads `<id>.json`, once, into that folder); not
 pseudo-translating stub; this one switches it with `localStorage.__kb_pseudo_ok` instead, since the guard is what it tests.
 
 ## The Theme page, end to end: `scripts/check-theme-live.mjs`
+
+> **Out of date (2026-11-22).** The Theme page was rebuilt (one Presets section, the Advanced editor in real tabs, the Menu panel). This script and its description below were written for the former two-layer page (Simple / Advanced, « My themes », nine tabs): it needs rewriting before it is run again. The hooks of the new page are listed in `packages/kybernos-theme/README.md`.
 
 ```bash
 node scripts/check-theme-live.mjs --shots /tmp/shots      # screenshots of the main steps
@@ -1196,7 +1200,7 @@ to be certain that nothing leaves (a `sandbox-exec` profile denying outbound con
 answer of 96 MB, a redirect (307, 302), a poll that is not a verdict (429, 5xx, HTML), a captive-portal page in place of the workspace
 list, a body cut short, a Team list with entries that are not lessons. The same mistakes are covered, one file each, for the feedback
 send (`kybernos-plugin/test-feedback.mjs`, 13), the skills relay (`kybernos-skills/test-index.mjs`, 8), the models.dev read
-(`kybernos-models/test-no-engine-fetch.mjs`) and the TTL sweeper (`kybernos-computers/test-computers-host.mjs`).
+(`kybernos-models/test-no-engine-fetch.mjs`). The TTL sweeper of the E2B plugin was tested here too until the plugin was removed (2026-11-23).
 **Rules these tests pin:** a bundle's network read is bounded in size and time; a redirect is not followed; the engine's
 `ctx.web.fetch` is not used for a request of ours (its HTTP provider kills the whole process when a connect fails at once: no route, a
 firewall answering EPERM); a promise started with `void` carries a `.catch`, because an unhandled rejection ends DSH.

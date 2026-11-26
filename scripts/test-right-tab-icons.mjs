@@ -60,14 +60,14 @@ console.log('Kaby and Agent Teams have their own glyph in the sidebar')
   const text = readFileSync(join(ROOT, 'kybernos-plugin', 'client.js'), 'utf8')
   const lucide = text.slice(text.indexOf('const LUCIDE = {'), text.indexOf('const Icon = (name, size)'))
   const glyph = (name) => { const m = new RegExp('\\n  ' + name + ': (\\[[^\\n]*\\]),').exec(lucide); return m === null ? null : m[1] }
-  const classic = /const KB_MENU_CLASSIC = \{([^}]*)\}/.exec(text)[1]
-  const def = /const KB_DEFAULT_ICON = '(\w+)'/.exec(text)[1]
-  const entry = (k) => { const m = new RegExp('\\b' + k + ': (\'?\\w+\'?)').exec(classic); return m === null ? null : m[1].replace(/'/g, '').replace('KB_DEFAULT_ICON', def) }
+  const entries = text.slice(text.indexOf('// <kb-menu-entries>'), text.indexOf('// </kb-menu-entries>'))
+  const fixed = new Function('KB_DEFAULT_ICON', entries + '\nreturn KB_MENU_FIXED')('waypoints')
+  const entry = (k) => { const d = fixed.find((x) => x.icon === k); return d === undefined ? null : d.classic }
   check('the row of Kaby and the row of Agent Teams use different line icons', entry('kyber') !== null && entry('teams') !== null && entry('kyber') !== entry('teams'), [entry('kyber'), entry('teams')])
   check('both are drawn (not a name the icon table does not know)', glyph(entry('kyber')) !== null && glyph(entry('teams')) !== null && glyph(entry('kyber')) !== glyph(entry('teams')))
-  check('the Kaby row draws its classic icon', /row\('kyber', Icon\('bot', 15\)/.test(text))
+  check('the Kaby row draws its classic icon', entry('kyber') === 'bot')
   // the nine rows of the sidebar are distinct among themselves in the classic set too
-  const values = [...classic.matchAll(/(\w+): ('?\w+'?)/g)].map((m) => m[2].replace(/'/g, '').replace('KB_DEFAULT_ICON', def))
+  const values = fixed.map((d) => d.classic)
   check('the nine classic menu icons are all different', values.length === 9 && new Set(values).size === 9, values)
 }
 

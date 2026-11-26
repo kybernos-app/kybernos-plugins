@@ -159,6 +159,20 @@ console.log('the host answers with a code; the chip says it in the language of t
   })())
   setLang('en')
 }
+console.log('turn rewind host codes')
+{
+  const { REWIND_TEXTS } = await import('../kybernos-sessions/turn-rewind.mjs')
+  const rwCodes = Object.keys(REWIND_TEXTS)
+  const rwRows = Object.keys(T.S).filter((k) => k.startsWith('rw:')).map((k) => k.slice(3))
+  const rwTwins = rwRows.filter((c) => /1$/.test(c) && rwRows.includes(c.slice(0, -1)))
+  const rwClient = rwRows.filter((c) => !rwTwins.includes(c))
+  check('every REWIND_TEXTS code has a bilingual rw: sentence here and none is unknown', rwCodes.every((c) => rwClient.includes(c)) && rwClient.every((c) => rwCodes.includes(c)), { missing: rwCodes.filter((c) => !rwClient.includes(c)), unknown: rwClient.filter((c) => !rwCodes.includes(c)) })
+  setLang('en')
+  check('rewindSays formats singular and plural in English', T.rewindSays({ code: 'rewound', count: 1 }).startsWith('1 file restored') && T.rewindSays({ code: 'rewound', count: 3 }).startsWith('3 files restored'))
+  setLang('kybernos')
+  check('rewindSays formats singular and plural in French', T.rewindSays({ code: 'rewound', count: 1 }).startsWith('1 fichier restauré') && T.rewindSays({ code: 'rewound', count: 3 }).startsWith('3 fichiers restaurés'))
+  setLang('en')
+}
 console.log('one is not « 1 updates »')
 {
   const both = (key, one, many, n) => { setLang('en'); const en = [T.Lp(key, 1), T.Lp(key, n)]; setLang('kybernos'); const fr = [T.Lp(key, 1), T.Lp(key, n)]; return { en, fr, ok: en[0].includes(one) && en[1].includes(many) } }
@@ -241,6 +255,8 @@ console.log('the chip says it cannot say anything')
   check('before the first read has answered: nothing yet (no flash of « unavailable »)', r.tree === null && r.first === null)
   r = await mount('s1', { version: 1, read: async () => ({ git: false }) })
   check('a folder that is not a git project: nothing to say, still nothing', r.tree === null)
+  r = await mount('s1', { version: 1, read: async () => ({ git: false, rewind: { url: '/kybernos-sessions/rewind', session: 's1', turns: [{ id: 't1', index: 1, kind: 'turn', prompt: 'Fix note', fileCount: 1, restorable: true }] } }) })
+  check('a non-git folder WITH rewind checkpoints shows the restore-points chip', r.tree !== null && r.tree.props['data-state'] === 'rewindOnly' && chipOf(r).type === 'button' && /1 restore point/.test(textOf(chipOf(r))), r.tree && r.tree.props)
   r = await mount('s1', { version: 1, read: async () => normal })
   check('facts that mean something: the real chip, a button, announced to the pills — never the « unavailable » one', r.tree !== null && r.tree.props['data-state'] === 'ok' && chipOf(r).type === 'button' && w2.__KB_CHANGES_ACTIVE__ === true, r.tree && r.tree.props)
 

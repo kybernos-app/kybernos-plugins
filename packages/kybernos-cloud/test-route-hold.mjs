@@ -26,7 +26,8 @@ const PLANLESS = { id: '66666666-6666-4666-8666-666666666666', name: 'No Plan Ye
 const api = { calls: [], planDelayMs: 0, listDelayMs: 0, modelsDelayMs: 0 }
 const apiServer = http.createServer((req, res) => {
   const path = new URL(req.url, 'http://x').pathname
-  api.calls.push(req.method + ' ' + path)
+  // The connections endpoint is the bridge's own channel (the host reads its tool list in the background as soon as the account connects); this test counts what is asked about spaces, models and the plan.
+  if (!(req.method === 'POST' && path === '/v1/mcp/connections')) api.calls.push(req.method + ' ' + path)
   // The server does not answer (the connection is cut), for the scenario of a switch made while it is down.
   if (api.down === true) { req.socket.destroy(); return }
   const reply = (status, body) => { res.writeHead(status, { 'content-type': 'application/json' }); res.end(JSON.stringify(body)) }

@@ -440,9 +440,10 @@ try {
     await shot('6-connected-row')
     await openProfileMenu()
     const list = await entries('.kbfp-menu')
+    // `teams-sep` is the rule under the teams block (a hook since step 6 part 3, so that the phone's preset can hide it with the teams): not an entry of the skeleton.
     // Two spaces here, so the list is the top of the menu itself (its rows are `space-row`, not entries); from four spaces the top row is the `switch` entry (« Teams menu » below).
     check('the menu keeps its skeleton: the spaces, plan, Team settings, Account, Referral, Appearance, Phone and channels, Settings, Website, Help, Feedback, Log out',
-      JSON.stringify(list.filter((k) => k !== 'update')) === JSON.stringify(['plan-card', 'plan-cta', 'space-settings', 'account', 'referral', 'appearance', 'phone', 'settings', 'website', 'help', 'feedback', 'logout']) && (await val(`document.querySelectorAll('.kbfp-menu [data-kb="space-row"]').length`)) === 2, list)
+      JSON.stringify(list.filter((k) => k !== 'update' && k !== 'teams-sep')) === JSON.stringify(['plan-card', 'plan-cta', 'space-settings', 'account', 'referral', 'appearance', 'phone', 'settings', 'website', 'help', 'feedback', 'logout']) && (await val(`document.querySelectorAll('.kbfp-menu [data-kb="space-row"]').length`)) === 2, list)
     check('the plan row shows « Free » and Upgrade', /Free/.test((await text('.kbfp-mplan')) || '') && (await exists('[data-kb="menu-plan-cta"]')))
     await sleep(300)
     await shot('7-connected-menu')

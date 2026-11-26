@@ -36,7 +36,7 @@ const docPath = put('report.docx', docx({ text: 'Original' }))
 {
   check('a relative path is refused', (await host.open('Documents/budget.xlsx')).code === 'not-absolute')
   check('an empty, non-string or NUL path is refused', (await host.open('')).code === 'bad-path' && (await host.open(null)).code === 'bad-path' && (await host.open('/x\0.xlsx')).code === 'bad-path')
-  check('a name the light editors do not open is refused', (await host.open(put('deck.pptx', docx()))).code === 'unsupported-format' && (await host.open(put('notes.txt', 'x'))).code === 'unsupported-format')
+  check('a name the light editors do not open is refused', (await host.open(put('deck.pptx', docx()))).code === 'unsupported-format' && (await host.open(put('notes.rtf', 'x'))).code === 'unsupported-format' && (await host.open(put('page.html', '<p>x</p>'))).code === 'unsupported-format')
   check('a file that is not there is refused', (await host.open(join(work, 'nope.xlsx'))).code === 'not-found')
   mkdirSync(join(work, 'folder.xlsx'))
   check('a folder named like a workbook is not a file', (await host.open(join(work, 'folder.xlsx'))).code === 'not-a-file')
@@ -206,7 +206,26 @@ const docPath = put('report.docx', docx({ text: 'Original' }))
   tick += 10000
 }
 
-// ── time stays out of the file ─────────────────────────────────────────────────
+// ── plain text, JSON and CSV ────────────────────────────────────────────────────
+{
+  const csv = 'name,qty\r\n"Smith, J",3\r\n'
+  const p = put('orders.csv', Buffer.from('\uFEFF' + csv))
+  const o = await host.open(p)
+  check('a CSV opens in the text editor: format csv, editor text, nothing to lose, nothing to ask', o.ok === true && o.format === 'csv' && o.editor === 'text' && o.block === false && o.losses.length === 0)
+  check('every text kind is one editor: .txt .rst .yaml .yml .toml are « text », .csv .tsv are « csv », .json is « json »', (await Promise.all(['a.txt', 'a.rst', 'a.yaml', 'a.yml', 'a.toml', 'a.tsv', 'a.json', 'a.TXT'].map((n) => host.open(put(n, 'x\n'))))).map((r) => r.format).join() === 'text,text,text,text,text,csv,json,text')
+  const edited = Buffer.from('\uFEFFname,qty\r\n"Smith, J",4\r\n')
+  const saved = await host.save(o.token, edited, { base: o.hash })
+  check('the edited CSV is written over the file with its byte-order mark and line ends, and its undo', saved.ok === true && readFileSync(p).equals(edited) && saved.undo === true)
+  check('a text file may be emptied on purpose (the byte count is not the editor\'s business), a workbook may not', (await host.save(o.token, Buffer.alloc(0), { base: saved.hash })).ok === true && readFileSync(p).length === 0 && (await host.save((await host.open(sheetPath)).token, Buffer.alloc(0), { base: sha(plainSheet) })).code === 'bad-size')
+  check('a file that is not text is refused with the reason', (await host.open(put('bin.json', Buffer.from([123, 0, 125])))).code === 'not-text' && (await host.open(put('latin.txt', Buffer.from([0x63, 0x61, 0x66, 0xe9])))).code === 'not-text')
+  check('more than 5 MB of text is refused with its own reason', (await host.open(put('huge.txt', Buffer.alloc(5 * 1024 * 1024 + 1, 97)))).code === 'text-too-big')
+  const cp = await host.save((await host.open(p)).token, Buffer.from('a,b\n'), { mode: 'copy' })
+  check('a copy of a text file is named like the others', cp.ok === true && cp.name === 'orders (edited).csv')
+  check('a save that is not text is refused and nothing is written', (await host.save((await host.open(p)).token, Buffer.from([1, 0, 2]), { base: sha(readFileSync(p)) })).code === 'invalid-output')
+  check('the text editor is « not installed » until the build made it (the status says so apart from the others)', (await host.status()).installed.text === false)
+}
+
+// ── time stays out of the file ─────
 {
   const p = put('mtime.xlsx', plainSheet)
   utimesSync(p, new Date('2020-01-01'), new Date('2020-01-01'))

@@ -22,12 +22,13 @@ background.
 - *Check* runs five controls: connection mounted in the profile, package installed, program found on DSH's `PATH`,
   sign-in (reported by the CLI, or an API key found in DSH's environment), and a write test in a throw-away git worktree.
   *Check all* does every mounted one. No model is called, so nothing is spent on the agent's subscription.
-- **No restart for a connection or a policy.** DSH reloads `cordis.patch.yml` by itself: measured on DSH 0.2.0-rc.2
+- **No restart for a connection, a policy or a saved API key.** DSH reloads `cordis.patch.yml` by itself: measured on DSH 0.2.0-rc.2
   (2026-10-08, sandbox instance) a connection turned on is `active` in the plugin inventory 2 s after the write and the
-  `subagent_<worker>` tool appears 3–4 s after a policy is saved; the page says "DSH applies it in a few seconds". A banner
-  asks for a restart only for the two things DSH reads once at launch: a stored API key and a program installed in a
-  folder that is not on DSH's `PATH`. The status *Restart DSH* means something else: the connection is in the profile but
-  its package is not (a package that is missing from the profile cannot load until it is linked).
+  `subagent_<worker>` tool appears 3–4 s after a policy is saved; the page says "DSH applies it in a few seconds". Stored
+  API keys are resolved from DSH's credentials store on every run and every check (`cleDuRun` takes precedence over the
+  launch environment). A banner asks for a restart only when a program was installed in a folder that is not yet on DSH's
+  `PATH`. The status *Restart DSH* means something else: the connection is in the profile but its package is not (a package
+  that is missing from the profile cannot load until it is linked).
 - **"? How it works"** is the shared help card of the Suite, with a *Try the demo* button that opens the guide of this
   page: what a worker is, a clickable simulation of the whole path (turn on → check → install → sign in → check again →
   allow → delegate), and the usual questions (cost, files, what to do when it will not turn green, where the Terminal is).
@@ -47,12 +48,23 @@ can never be confirmed here), Restart DSH, Cannot write, Server not found.
 | `POST /kybernos-workers/activate` `{worker, profile?}` | mounts the connection of a home-made worker (Gemini, OpenCode, Qwen, Hermes): `{ok, already, restart, backup}`; 409 `package-missing` when the profile does not hold the package |
 | `POST /kybernos-workers/install` `{worker, command}` | 202 `{ok, started}`; the job runs off the request |
 | `GET /kybernos-workers/install?worker=` | `{ok, job: {phase: running\|done\|error, journal[], code, surLePath, raison}}` |
+| `GET /kybernos-workers/harness` | `{ok, builtinWorker, harness, capabilities, defaults}` (`Kybernos (Built-in)` plus configured external instances, models, role engines, policies and favorites) |
+| `POST /kybernos-workers/harness/instance` | upserts or removes an external worker instance in `$DSH_HOME/kybernos-workers/harness.json` (mode `0600`, atomic write, `expectedRevision` optimistic concurrency `409 revision-conflict`, zero secrets, optional safe `cordis.patch.yml` sync for active Codex `CODEX_HOME` or supported default model) |
+| `POST /kybernos-workers/harness/models` | `action: 'sync'` runs automatic model discovery (`hermes model --list`, `agy models`, `opencode models`, Gemini/Qwen metadata endpoints, or curated catalog) preserving user display order, visibility, favorites and default; `action: 'update'` saves model order, visibility, default and manual IDs |
+| `POST /kybernos-workers/harness/policy` | persists `Team members` role worker assignment (`kind: 'role'`, `workerId: 'kybernos'` or an external instance ID, plus optional `delegateWorkers`), proven runtime scope policy (`kind: 'scope'`: `default`, `preset:<id>`, `automation`), or composer favorite toggles (`kind: 'favorite'`) |
+| `GET /kybernos-workers/runtime?session=` | `{ok, quotas[], runs[], activeRuns[], summary}`: per-worker rolling quota windows (`native` / `headers` / `local-estimate` / `auth-required`), active run counts, cooldown state, and bounded metadata-only `RunBinding` records from `$DSH_HOME/kybernos-workers/runs.json` (mode `0600`, max 200) |
+| `POST /kybernos-workers/runtime/route` | guarded runtime actions: `select` (deterministic cache-affinity + least-loaded + headroom router; pinned workers never silently switch), `probe` (zero-cost local auth/billing/quota collection), `headers` (parses OpenAI/Anthropic/DashScope rate-limit headers into rolling windows), `quota`, `rate-limit` (reactive 429 cooldown), `start`, and `finish` |
 
 POSTs need `application/json`, an `Origin`/`Referer` on `127.0.0.1`, `localhost` or `[::1]` with the server's own port, **and DSH's signed session cookie** (401 without it,
 403 `refused_on_phone` through the phone link; `session-guard.mjs`, `test-write-guard.mjs`); a GET without either header is accepted. Policy refusals: `ligne-existante`, `ligne-modifiee-a-la-main`, `connexion-absente`,
 `auto-controle`, `non-supporte`, `patch-missing`, `write-failed`. Install refusals: `command-changed` (the command shown is
 not the one the host would run), `busy`, `already-installed`, `missing-tool` (`npm`, `curl` or `bash` is not on the `PATH`),
 `unsupported-platform` (only macOS and Linux for now), `not-installable` (ZCode), `install-unavailable`.
+
+Antigravity is mounted through the **official ACP backend** (`@deepseek-ai/dsh-subagent-acp`): the row writes the recipe
+`command: agy`, `args: ['acp']`, `providerName: antigravity`, `permission: allow` (with the ACP default, `reject`, every tool the agent asks for is answered *cancelled* and a task that explores a repo ends with an empty  measured on `agy` 1.5.16), and the Antigravity CLI speaks ACP natively, so there is no
+adapter to maintain and no API  the person signs in once with `agy` and a Google account (`agy acp` reuses that
+sign-in). Its "installed" check is `agy --version`, its "signed in" check is `agy models` (local, spends nothing).
 
 Claude Code, Codex and ZCode are mounted through the main plugin's host route `/kybernos/tools/apply` (same patch, same backup); the four home-made
 connections are turned on here, through `/kybernos-workers/activate`, because that route does not know them. Settings › Tools no longer draws the three
@@ -128,9 +140,8 @@ nothing runs before the confirmation, that the key never appears on the page, an
   until the page gets its entries (`LOGO_OF`, `IDENTITY`, the sign-in sentences) and the logo symbol of its own.
 - The four home-made connections ship as one Suite module, **Workers connectors** (`packages/dsh-subagent-maison/`). When that
   module is switched off in the Suite (or an install is broken), *Turn on* says so and writes nothing.
-- A saved API key only reaches the provider at the next DSH start (DSH reads its environment at launch); the page says so.
-- The patch is read line by line, not with a YAML parser; unknown forms are ignored, and a tool line this module did not
-  write (or that was edited by hand) is never rewritten.
-- Model, permissions and run duration are not settable: DSH's connection packages expose no key for them.
-- One lock for the whole host, across profiles. POSTs from a non-loopback host name (LAN address, proxy) get 403.
+- A saved API key is read by the provider and by the page's check straight from DSH's credentials store, on every run and every check: no restart. (The launch environment stays the fallback for a hand-made profile with no store.)
+- The patch is read line by line, not with a YAML parser; nested `config.env` maps and `config.model` scalars are parsed, unknown forms are ignored, secret-looking env keys are refused, and a tool line this module did not write (or that was edited by hand) is never rewritten.
+- Official Claude Code and Codex connectors accept optional `model` and non-secret `env` in `cordis.patch.yml` (pinned by Phase 0 tests); official ACP (`antigravity`) exposes no `model` key.
+- Checks lock per `(profile, worker)` and patch writes serialize per `profile`, so a slow check on one worker never blocks unrelated workers. POSTs from a non-loopback host name (LAN address, proxy) get 403.
 - Strings are French by default; English for every other language until the Language page translates them.

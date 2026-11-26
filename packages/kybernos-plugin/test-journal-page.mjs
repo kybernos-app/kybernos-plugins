@@ -62,6 +62,11 @@ try {
   assert.deepEqual([noAp.approvers, noAp.names, noAp.computers], [false, false, false])
   ok('the defaults keep the words, the names, the computers and the chat number back; checking the seals brings in what they cover; no decisions, no names')
 
+  // ── a crew shows what each member really used ───────────────────────────────────────
+  const member = make({}).crews[0].members[0]
+  assert.deepEqual([member.label, member.model, member.tokens, member.costEur], ['researcher', 'glm-5.3', 5000, 0.2])
+  ok('a crew member reaches the page with its model, its tokens and its cost (the sub-agents of a chat are a crew)')
+
   // ── what is kept back by default stays back ──────────────────────────────────────────
   const plain = make({})
   const plainText = text(plain)
@@ -307,6 +312,44 @@ try {
   const pagedFr = await run(bigFr)
   assert.ok(flat(byClass(pagedFr.root, 'kj-pager')[0]).includes('1–25 sur 60') && flat(byClass(pagedFr.root, 'kj-pager')[0]).includes('Par page'), 'French')
   ok('the story is read a page at a time: 25 to begin with, previous and next with the ends disabled, the day header on each page, a size of 10, 25, 50 or 100 that starts again at page 1, nothing for 10 moments or fewer, French')
+
+  // ── the flow: the same steps as a chain of cards ─────────────────────────────────────
+  const mk = (i, extra) => Object.assign({ id: 'f' + i, at: T0 + i * MIN, durMs: 1000 }, extra)
+  const flowDoc = make({})
+  flowDoc.moments = [
+    mk(0, { kind: 'message', text: 'Send the offer', automation: false }),
+    mk(1, { kind: 'connector', connectorId: 'gmail', action: 'send email', status: 'error', recovered: true }),
+    mk(2, { kind: 'connector', connectorId: 'gmail', action: 'send email', status: 'ok' }),
+    mk(3, { kind: 'connector', connectorId: 'gmail', action: 'send email', status: 'ok' }),
+    mk(4, { kind: 'work', total: 3, counts: { command: 3, edit: 0, read: 0, web: 0, crew: 0, other: 0 }, failed: 0 }),
+    mk(5, { kind: 'handover', source: 'question', outcome: 'waiting', text: '', options: [], approvers: [] }),
+    mk(6, { kind: 'crew', crewId: flowDoc.crews[0].id, status: 'running' }),
+  ]
+  const flowed = await run(flowDoc)
+  const viewButton = (name) => byClass(flowed.root, 'kj-seg')[0].kids.find((b) => flat(b) === name)
+  assert.ok(byClass(flowed.root, 'kj-row').length > 0 && byClass(flowed.root, 'kj-flow').length === 0, 'the story is what opens')
+  assert.equal(viewButton('Story').getAttribute('aria-pressed'), 'true')
+  viewButton('Flow').on.click()
+  assert.equal(byClass(flowed.root, 'kj-row').length, 0, 'the flow replaces the story')
+  assert.equal(viewButton('Flow').getAttribute('aria-pressed'), 'true')
+  const cards = byClass(flowed.root, 'kj-fn')
+  assert.equal(cards.length, 4, 'the start, the three calls of one app folded into one card, the handover, the crew: the plain work is not a step')
+  assert.ok(flat(cards[1]).includes('× 3'), flat(cards[1]))
+  assert.ok(flat(cards[2]).includes('Waiting for a person') && (cards[2].className || '').includes('wait'), flat(cards[2]))
+  assert.ok(flat(cards[3]).includes('Running') && (cards[3].className || '').includes('wait'), flat(cards[3]))
+  assert.ok(flat(byClass(flowed.root, 'kj-card').find((c) => flat(c).includes('Flow of this chat'))).includes('4 steps'))
+  viewButton('Story').on.click()
+  assert.ok(byClass(flowed.root, 'kj-row').length > 0 && byClass(flowed.root, 'kj-flow').length === 0, 'and the story comes back')
+  const flowedFr = await run(Object.assign({}, flowDoc, { lang: 'fr', labels: make({}, { lang: 'fr' }).labels }))
+  byClass(flowedFr.root, 'kj-seg')[0].kids.find((b) => flat(b) === 'Flow').on.click()
+  assert.ok(flat(flowedFr.root).includes('Flow de ce chat') && flat(flowedFr.root).includes('4 étapes'), 'French')
+  // the sub-agents crew is worded in the page's language (its name in the data is English)
+  const subDoc = make({}, { lang: 'fr' })
+  subDoc.crews = [Object.assign({}, subDoc.crews[0], { id: 'subagents', name: 'Sub-agents' })]
+  subDoc.moments = [mk(0, { kind: 'crew', crewId: 'subagents', status: 'done' })]
+  const subFr = await run(subDoc)
+  assert.ok(flat(subFr.root).includes('Sous-agents') && flat(subFr.root).includes('Sub-agents') === false, 'French name of the sub-agents crew')
+  ok('the page opens on the story and switches to a flow of cards: the same steps, consecutive calls of one app folded into one card, a waiting step and a running crew marked, the plain work left out, and back; French')
 } finally {
   rmSync(dir, { recursive: true, force: true })
 }

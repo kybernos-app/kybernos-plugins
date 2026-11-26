@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, wri
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { hasEntry } from './lib-i18n-test.mjs'
 import { BEGIN, END, MAX_CHARS, cleanText, createWorkspaceInstructions, renderBlock, withSection, workspaceOfSession } from './workspace-instructions.mjs'
 
 let pass = 0
@@ -112,7 +113,7 @@ rmSync(home, { recursive: true, force: true })
   assert.ok(/if \(tab === kbt\('kbui\.instructions'\)\) return h\(KbWsInstructions, \{ ws: ws \}\)/.test(client), 'and shows the editor')
   assert.ok(/'\/workspace-instructions'/.test(client) && /workspaceId: ws\.workspaceId, text: st\.text, alsoAgents: st\.also/.test(client), 'the page sends the workspace id, never a path')
   for (const k of ['kbui.instructions', 'kbwi.head', 'kbwi.lead', 'kbwi.order', 'kbwi.also', 'kbwi.also.sub', 'kbwi.save', 'kbwi.err.too-long', 'kbwi.err.folder-missing', 'kbwi.err.agents-write-failed', 'kbwi.err.generic']) {
-    assert.ok(new RegExp("'" + k.replace(/\./g, '\\.') + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(client) || new RegExp("'" + k.replace(/\./g, '\\.') + "': \\{ kybernos: '[^\\n]+', en: '[^\\n]+' \\}").test(client), k + ' has both languages')
+    assert.ok(hasEntry(k), k + ' has both languages')
   }
   assert.ok(/path: '\/kybernos\/workspace-instructions'/.test(index) && /sameOriginStrict\(req\) === false\) return sendJson\(res, 403[^\n]*\n\s*return sendJson\(res, 200, wsInstructions\.get/.test(index), 'the route is guarded on GET too (the text may be private)')
   assert.ok(/name: 'kybernos:workspace-instructions',\s*order: 150,\s*interpolate: false,/.test(index), 'the block rides the system prompt, after memory (130), literal')

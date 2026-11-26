@@ -26,7 +26,8 @@ It has no host half of its own (`index.js` is an empty `apply()`).
   `pull request`, `worktree`…), the exact commands of the plan before « Confirm and run », and the branch, the gap
   (`↑ to send ↓ to fetch`), the folder, the isolated copy, the remote and the last check.
 - English and French. English is the base, French (« tu ») the twin of every sentence; a translated language is looked up by the French text and falls back to English. What the git routes answer is a code the page words itself (`code` in the reply, `GIT_TEXTS` in `kybernos-sessions`).
-- A folder that is not a git project shows nothing.
+- **Turn rewind** (git and non-git folders): when `@local/kybernos-sessions` has recorded pre-mutation checkpoints for this chat, the card offers an « Undo a turn » section (or a restore-points chip in non-git folders). Picking a turn runs a dry-run preview (`exec: false`) first, then restores on confirm (`exec: true`) after saving an automatic rescue point.
+- A folder that is not a git project and has no rewind checkpoints shows nothing.
 
 ## Where the facts and the actions come from
 

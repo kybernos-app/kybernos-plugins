@@ -6,6 +6,7 @@ import { basename } from 'node:path'
 import { SubprocessRuntime, SubprocessExecutableNotFoundError } from '@deepseek-ai/dsh-subprocess'
 import { runRg } from './rg.mjs'
 import { runShell as miniShell } from './mini-shell.mjs'
+import { epermError, unavailableProgramMessage } from './phone-errors.mjs'
 
 // just-bash (a bash written in JavaScript) when it can be loaded, the small stand-in shell otherwise (KYBERNOS_INPROC_SHELL=mini forces it).
 const pickShell = async () => {
@@ -15,7 +16,10 @@ const pickShell = async () => {
 const [SHELL_NAME, SHELL] = await pickShell()
 try { console.log('[kybernos-no-process] shell: ' + SHELL_NAME) } catch { /* no console */ }
 
-const eperm = (what) => Object.assign(new Error(`spawn ${what} EPERM: this device cannot create processes (kybernos-no-process)`), { code: 'EPERM', errno: -1, syscall: 'spawn' })
+const eperm = (what) => {
+  try { console.warn('[kybernos-no-process] spawn refused (EPERM): ' + String(what ?? '')) } catch { /* no console */ }
+  return epermError(what)
+}
 const VIRTUAL = '/__inproc__/'
 const SHELLS = new Set(['bash', 'sh', 'zsh'])
 
@@ -41,7 +45,8 @@ export default class InProcessSubprocess extends SubprocessRuntime {
   async resolveExecutable(command) {
     const name = basename(command)
     if (SHELLS.has(name) || name === 'rg') return VIRTUAL + name
-    throw new SubprocessExecutableNotFoundError(`kybernos-no-process: ${JSON.stringify(command)} is not available in this process`)
+    try { console.warn('[kybernos-no-process] executable unavailable: ' + String(command ?? '')) } catch { /* no console */ }
+    throw new SubprocessExecutableNotFoundError(unavailableProgramMessage(command))
   }
 
   async terminalEnvironment() { return { platform: 'posix', defaultShell: VIRTUAL + 'bash' } }

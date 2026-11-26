@@ -22,6 +22,10 @@ agent teams. The native search of the Workspaces list (a title filter) is not to
 `asks(sinceMs)` returns `[{ id, at, text, cwd }]`: the first message the person typed in each chat since that moment, cut at 1,000 characters, nothing else of the chat. `refresh()`
 reads again the journals that changed. kybernos-skills compares those first messages to notice a task the person asks for again (`docs/dev/learned-skills.md`); nothing leaves the computer.
 
+## Commands: a palette in the same box
+
+The ⌘K box also finds **commands** other bundles register: `window.__KB_COMMANDS__` is a plain array of `{ id, label(), keywords?, hint?(), run() }` (a bundle pushes its commands while it lives and takes them out when it goes; nothing is stored). When every word of the query is in a command's label or keywords, the box shows a **Commands** group first (at most six), whatever the scope chips say; Enter or a click closes the dialog, then runs the command, so a command that opens a sheet of its own keeps the focus. The display mode registers « Display… » and one command per choice (Auto, Simple, Complete).
+
 ## What it reads, and where it keeps it
 
 | Source | Read from | Notes |

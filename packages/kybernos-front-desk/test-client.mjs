@@ -96,6 +96,7 @@ ok('a tab that is not one is not remembered', (store.set('kybernos.front-desk.ta
   const ctx = { slots: { inject: (slot, cb) => { cb(); return () => cleanups.push('inject:' + slot) }, register: (spec, Page) => { regs.push({ spec, Page }); return () => cleanups.push('register') } }, effect: (fn, label) => { const c = fn(); cleanups.push({ label, c }); return c } }
   plugin.apply(ctx)
   ok('the menu row is declared once: the business group, a French and an English word, an icon, an order', menuCalls.length === 1 && menuCalls[0].id === 'front-desk' && menuCalls[0].group === 'business' && menuCalls[0].label.fr === 'Accueil client' && menuCalls[0].label.en === 'Front desk' && typeof menuCalls[0].icon === 'string' && Number.isInteger(menuCalls[0].order))
+  ok('the row is out of the DEFAULT menu (defaultShown: false), while the page stays mounted', menuCalls[0].defaultShown === false && regs.length === 1)
   ok('the page is on the keyed slot of the business group, under the same id as the row', regs.length === 1 && regs[0].spec.name === 'main.kybernos-business' && regs[0].spec.key === 'front-desk' && typeof regs[0].Page === 'function')
   ok('every effect is labelled with the bundle', cleanups.filter((c) => typeof c === 'object').every((c) => /^kybernos-front-desk: /.test(c.label)))
   for (const c of cleanups.filter((x) => typeof x === 'object')) if (typeof c.c === 'function') c.c()

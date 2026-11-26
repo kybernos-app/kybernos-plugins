@@ -1,20 +1,31 @@
 {
   "note": "Written by scripts/test-consistency-guards.mjs --update. A value may leave this file at any time; it may only enter it in a reviewed diff.",
   "cssPrefixes": {
+    "kas": [
+      "kybernos-mobile",
+      "kybernos-plugin"
+    ],
     "kb": [
       "kybernos-composio",
+      "kybernos-mobile",
       "kybernos-plugin",
       "kybernos-sessions",
       "kybernos-skills",
       "kybernos-theme"
     ],
+    "kb4": [
+      "kybernos-mobile",
+      "kybernos-plugin"
+    ],
     "kb6": [
       "kybernos-composio",
       "kybernos-db",
+      "kybernos-mobile",
       "kybernos-plugin"
     ],
     "kb7": [
       "kybernos-composio",
+      "kybernos-mobile",
       "kybernos-plugin"
     ],
     "kb8": [
@@ -24,9 +35,29 @@
       "kybernos-plugin",
       "kybernos-skills"
     ],
+    "kb9": [
+      "kybernos-mobile",
+      "kybernos-plugin"
+    ],
+    "kba": [
+      "kybernos-mobile",
+      "kybernos-plugin"
+    ],
+    "kbat": [
+      "kybernos-atlas",
+      "kybernos-mobile"
+    ],
     "kbc": [
       "kybernos-cloud",
       "kybernos-plugin"
+    ],
+    "kbcl": [
+      "kybernos-call",
+      "kybernos-mobile"
+    ],
+    "kbcp": [
+      "kybernos-composio",
+      "kybernos-mobile"
     ],
     "kbf": [
       "kybernos-cloud",
@@ -38,14 +69,20 @@
     ],
     "kbhp": [
       "kybernos-hub",
+      "kybernos-mobile",
       "kybernos-plugin"
     ],
     "kbl": [
       "kybernos-cloud",
       "kybernos-skills"
     ],
+    "kblg": [
+      "kybernos-log",
+      "kybernos-mobile"
+    ],
     "kbln": [
       "kybernos-language",
+      "kybernos-mobile",
       "kybernos-plugin"
     ],
     "kbm": [
@@ -62,6 +99,10 @@
       "kybernos-models",
       "kybernos-plugin"
     ],
+    "kbnm": [
+      "kybernos-mobile",
+      "kybernos-plugin"
+    ],
     "kbq": [
       "kybernos-mobile",
       "kybernos-plugin"
@@ -70,6 +111,10 @@
       "kybernos-mobile",
       "kybernos-plugin",
       "kybernos-sessions",
+      "kybernos-skills"
+    ],
+    "kbsf": [
+      "kybernos-mobile",
       "kybernos-skills"
     ],
     "kbsl": [
@@ -84,6 +129,10 @@
     "kbth": [
       "kybernos-plugin",
       "kybernos-theme"
+    ],
+    "kbv": [
+      "kybernos-mobile",
+      "kybernos-plugin"
     ],
     "kml": [
       "kybernos-modeles-locaux",
@@ -199,9 +248,6 @@
       "#e1502a",
       "#e2cdae",
       "#e4d9bd",
-      "#e5b567",
-      "#e8b85c",
-      "#e9a197",
       "#f0bd70",
       "#f59e0b",
       "#fb923c",
@@ -277,8 +323,12 @@
     "calc(var(--dsh-content-font-size,13px)*.95)",
     "calc(var(--kb-u)*.92)",
     "calc(var(--kb-u)*.95)",
+    "calc(var(--kbmob-fs-title) * 1.5)",
+    "clamp(12px, calc(var(--dsh-content-font-size) - 3.5px), 14px)",
+    "clamp(13px, calc(var(--dsh-content-font-size) - 3px), 15px)",
     "clamp(26px,3.2vw,34px)",
     "inherit",
+    "var(--dsh-content-font-size)",
     "var(--dsh-content-font-size,13px)",
     "var(--dsh-content-font-size-secondary, 13px)",
     "var(--dsh-content-font-size-secondary,13.5px)",
@@ -287,6 +337,10 @@
     "var(--kb-fs-12,12px)",
     "var(--kb-fs-13,13px)",
     "var(--kb-fs-14,14px)",
-    "var(--kb-u)"
+    "var(--kb-u)",
+    "var(--kbmob-fs-body)",
+    "var(--kbmob-fs-cap)",
+    "var(--kbmob-fs-row)",
+    "var(--kbmob-fs-title,20px)"
   ]
 }

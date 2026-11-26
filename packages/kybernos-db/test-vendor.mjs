@@ -6,6 +6,11 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { VENDOR_ROUTES, vendorHandler } from './routes.mjs'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET } from './lib-session-test.mjs'
+
+// The guard reads DSH's machine secret from the person's home: a test pins its own, so it never reads a real secret and runs the same on a machine with no DSH (CI).
+sessionSource.secret = () => SESSION_SECRET
 
 const dir = join(dirname(fileURLToPath(import.meta.url)), 'vendor')
 let failed = 0

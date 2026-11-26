@@ -31,7 +31,8 @@
     "ui.slot:conversation.composer.dock",
     "ui.slot:settings.section",
     "host.routes:/kybernos-usage:write",
-    "fs.write:dsh-home"
+    "fs.write:dsh-home",
+    "sessions.read"
   ],
   "claims": {
     "routePrefixes": [

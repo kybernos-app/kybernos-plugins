@@ -26,7 +26,7 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
   language). **General** is a row of its own; eight **folds** follow, one open at a time (an accordion): **Models & routing** (AI provider and models,
   Auto Routing, Free LLMs, Ollama local models, Usage), **Agents** (Agent presets, Workers, Automations, Commands), **Skills & tools** (Skills, Tools,
   Connectors, Web Search), **Memory & context** (Memory & Lessons, Kybernos, Atlas), **Voice & calls**, **Interface** (Theme, Language),
-  **Devices & cloud** (Servers, Code sandbox (E2B), Phone and channels), **System** (Kybernos Suite, Built-in plugins, About, which closes the list). A group
+  **Devices & cloud** (Servers, Phone and channels), **System** (Kybernos Suite, Built-in plugins, About, which closes the list). A group
   opens by itself when the person lands on a page inside it (a deep link, a help pointer, a search result, a click on a row of the Suite) and the open
   one is remembered (`kybernos.settings.open-group` in the browser). To move a page, move its title inside `mots`; a page not listed falls to the tail,
   before About. One icon table (`ICONES`, keyed by the page's title) draws every entry and every group header, and `test-settings-icons.mjs` checks that
@@ -75,6 +75,16 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 | Widget, gateway | `widget.js` `widget/api/{config,conversations,message,account,history-delete,reply}` `gateway/{status,approvals,approvals/decision}` |
 | Feedback box | `feedback` (POST: one line appended to `kybernos/feedback.jsonl`), `feedback/export` (GET: the file's content), `feedback/send` (POST: the same form posted to the linked server's relay with the device token). Strict write guard on all three (same-origin AND DSH's signed session, `session-guard.mjs`); Save and Copy send nothing, see "The feedback box" below |
 | Language, static | `i18n-{translate,models,store,job,quality,packs}` `languages-pubkey.json` `icons` `icon` `onboarding` `vendor/leaflet.*` `kb-places.js` |
+| Page texts | `i18n` (GET/HEAD, `?lang=fr,en`: the two files of `i18n/` as `{ ok, langs: { fr, en }, missing }`, ETag, no guard: public static strings; `i18n-files.mjs`) |
+
+## The texts of the pages (`i18n/fr.json`, `i18n/en.json`)
+
+Every text of the core's pages is a key of `kbt('some.key')` and lives in two flat JSON files, one per language: `i18n/fr.json` (the French of Kybernos, which the code calls `kybernos`) and `i18n/en.json`. They are not in `client.js` any more (they were 2,330 lines of it).
+
+- **Add or change a text**: edit the SAME key in both files (one entry per line, `"tasks.x.title": "…"`; `{name}` placeholders must match in both). `node packages/kybernos-plugin/test-i18n-files.mjs` fails on a key that is in one file only, an empty text, a placeholder that differs, a key twice, and a `kbt('literal')` of `client.js` that has no text.
+- **How the page gets them**: the first thing the client's factory does is ONE synchronous `GET /kybernos/i18n?lang=fr,en` (`kbDictLoad`) and build `KB_T = { key: { kybernos, en } }`, the shape the table always had (`window.__KB_T__`, read by the language plugin, is the same object). It is synchronous on purpose: `kbt` is called while the factory is still being evaluated (menus, side tabs, view registration), and a plugin client is a single script the engine runs in one go, so a later answer would leave those first texts as bare keys.
+- **When a file cannot be read** (no route yet because the host half was not restarted, a corrupt file, no network): the route leaves that language out of its answer and the client keeps what it got. `kbt` then falls back to the other language (English first, then French) and only then to the bare key; DSH starts in every case. After a change of `index.js` or `i18n-files.mjs`, restart DSH once: the route lives in the host half.
+- **Tests that need a text** read it through `lib-i18n-test.mjs` (`entry(key)`, `hasEntry(key)`, `table()`), never by matching lines of `client.js`.
 
 ## The Automations board
 
@@ -149,7 +159,7 @@ choice; an export does not (an id means nothing on another machine).
 
 ## Discover: templates
 
-The **Discover** tab of the Automations page (next to **Yours**) lists ready-made starting points: twelve templates in four families
+The **Discover** tab of the Automations page (next to **Yours**) lists ready-made starting points: thirteen templates in four families
 (Social media, Prospecting, Customer service, Skills), as compact cards (icon, title, two lines, cadence, a tag and « +N », the apps involved,
 « Import » on hover). A card opens the page of its template: a cover, what it does (the steps, model step or action), the questions the
 chat will ask, what you will need, and the rules written into the steps. The data and the text of the chat are the pure `KB-AUTOTPL`
@@ -178,6 +188,35 @@ block of `client.js` (every text is an English / French pair; the other language
 - **No image file is shipped.** The repository holds no media (`garde-depot.mjs`), so the cover of a template page is drawn in code (two inks on
   paper, halftone dots, a misregistered glyph), the compact cards carry no cover at all, and the logos come from the catalogue at run time.
 
+## Core automations: « Tidy memory & lessons »
+
+A few automations exist by themselves: Kybernos makes them, so housekeeping happens without anyone setting it up. Today there is one,
+**Tidy memory & lessons** (`core: 'memory-tidy'`, French « Ranger mémoire et leçons »). The pure part is `automation-core.mjs`;
+the host applies it in `index.js`.
+
+- **What it does.** Every day at 03:30, local time (cron `30 3 * * *` in the machine's zone, like any automation made without one), on this
+  computer, it calls the `memory_tidy` host tool once (registered by `packages/kybernos-memory`) and answers in two plain lines what changed,
+  or that nothing needed tidying. Its prompt forbids every other tool and any deletion by hand; when the tool is not there (the memory
+  plugin off or too old), the run says so in one line. Its runs go to one chat (`sessionMode: 'home'`), not a new chat every night.
+- **Approvals `auto`.** It only touches the lessons and the memory of this computer, and everything the tool changes can be undone; its
+  template says so in its rules. It has no certification-gate record, like the other automations Kybernos makes (« Learn my business »).
+- **Made once.** When the host starts and `tasks.json` is readable, a missing core automation is made, switched on, unless the ledger next
+  to `tasks.json` (`core-automations.json`, mode 0600) says it was made before (`seededAt`) or deleted (`deletedAt`). The check and the
+  write run inside a `tasks.json` mutation (same lock, same queue), and the ledger is written only once `tasks.json` holds the task: two
+  starts never make two, and a crash in between makes it again rather than losing a deletion. A damaged ledger or store makes nothing.
+- **The person decides.** It can be paused (kept across restarts), edited (the stored `core` stays: `kbSanitizeTaskInput` never copies a
+  `core` from a body, so the page cannot set or change it) and deleted. The **Delete** action writes `deletedAt` before the task goes, and
+  refuses when it cannot; a core automation removed in any other way (the `automation-creator` skill, by hand) is not made again either,
+  because the ledger already says it was made. The **Discover** template `memory-tidy` (family Skills) makes it again from the page.
+- **On the page.** The List shows a small **Core** tag (« Socle », the shared `kbm-tag` style) after the name, and the name in the page's
+  language while it is still the stored one. Its delete confirmation adds that it will not come back by itself.
+- **Tool profiles.** A restricted session keeps the tools of `NAMED_TOOLS` (`memory_tidy`, `skill_scout`) when its first human message names
+  them (`tool-profiles.mjs`): a run must not lose the one tool it exists for. A session restricted at creation (a code workspace) is
+  widened once, before its first request.
+- **Tests.** `scripts/test-core-automation.mjs` (end to end on the real host, temporary homes), `test-automation-templates.mjs` (the
+  template, the name, the mark), `test-tool-profiles.mjs` (named tools). The route tests that count tasks start with a ledger that says the
+  person deleted it.
+
 ## Team: automations a team shares (the « Team » segment)
 
 A third segment, **Team**, next to **Yours** and **Discover** (the team's initial and, for an owner or admin, the count of proposals waiting). A Team keeps a private
@@ -205,7 +244,7 @@ contract with the server is `docs/dev/team-automations-contract.md`; this page i
   sheet says it is available right away.
 - **Review**: the proposal and, for an update, the approved version it replaces are downloaded (the only prompts the tab fetches); « Changes since vN » is a line diff
   plus what changed in the name, the time and the apps. Refusing needs a reason (2 000 characters at most).
-- **Install**: where it runs (this computer, or the cloud computer **only** when the tab « Where it runs » would allow it, `kbwBlock`, otherwise off with that reason),
+- **Install**: where it runs (this computer, or the cloud computer **only** when the « Where it runs » card of the automation's Overview would allow it, `kbwBlock`, otherwise off with that reason),
   how it asks (**Ask me first** by default), and the switch « Turn it on after installing ». **The page, not the host, knows which apps are connected** (the Connectors
   state the project pages read): while an app the automation needs is missing, or cannot be told, the switch is off and the host is sent `turnOn: false`. A copy for the cloud is
   installed paused here, linked to the computer (`cloud-link`) and sent with the person's zone; if the computer refuses, the link is undone and the copy stays here.
@@ -819,6 +858,7 @@ node packages/kybernos-plugin/test-default-model.mjs   # which model is chosen a
 node packages/kybernos-models/test-key-check.mjs       # the key check: where a key may go, the one-word answer, the route's guards
 node packages/kybernos-modeles-locaux/test-seam.mjs    # the recommendation and the route profile the wizard shares with the panel
 source scripts/sandbox/env.sh && node scripts/check-onboarding-live.mjs   # the wizard on the sandbox: account, key saved, model connected, hand-over (refuses :3080)
+node packages/kybernos-plugin/test-i18n-files.mjs      # 19: the page texts: same keys in fr.json and en.json, placeholders, every kbt key has a text, the route, the loader's order and failures, kbt's fallbacks
 node packages/kybernos-plugin/test-i18n-store.mjs      # 60 checks: disk translation store and its route, temp dir
 node packages/kybernos-plugin/test-i18n-translate.mjs  # 57: translate batches against a fake llm.stream, the checks, the correction hints, a stopped run ends the call
 node packages/kybernos-plugin/test-i18n-quality.mjs    # 44: what a translated text must still be (variables, tags, addresses, numbers, script, length, model chatter)
@@ -845,7 +885,8 @@ node packages/kybernos-plugin/test-automation-settings.mjs  # the three switches
 node packages/kybernos-plugin/test-automation-skills.mjs  # the stable-run rule, the skill parts, the route and the tick suggesting a skill by itself (real apply() on a throw-away DSH home, a stand-in for the Skills seam)
 node packages/kybernos-plugin/test-learned-dot.mjs         # the dot on the Skills row of the menu
 node packages/kybernos-plugin/test-automation-workspace.mjs  # where a run lands: the rule, the real host with a fake registry (chosen, none, deleted, no create), the route, the form and the detail line
-node packages/kybernos-plugin/test-automation-templates.mjs  # Discover: the twelve templates in both languages, what they never promise, the filter, the chat text
+node packages/kybernos-plugin/test-automation-templates.mjs  # Discover: the thirteen templates in both languages, what they never promise, the filter, the chat text
+node scripts/test-core-automation.mjs  # the core automation « Tidy memory & lessons »: made once, paused/edited/deleted by the person, never made again
 node packages/kybernos-plugin/test-newchat.mjs         # the shelf, the examples, the dialog, the cards, the Cloud Computer state, the hidden native entry, the starters pinned
 node packages/kybernos-plugin/test-templates-shelf.mjs # the shelf's host half: validation of the catalogue, the disk copy, the picture names and limits, the load cycle (run with KYBERNOS_NO_TEMPLATES_LOAD=1)
 node packages/kybernos-plugin/test-share-roles.mjs     # « Share this project »: the role selectors say Member / Administrator, the administrator role is confirmed in the dialog, the project's local Team access is left alone (the dialog rendered on a small React)
@@ -890,3 +931,8 @@ derivation, widget bridge, gateway watcher, voice and TTS, tools catalog, preset
   `docs/handoff/*` cited in
   comments is absent. `client.js` is 2.4 MB (repo guard: no personal-path scan above 2 MB, fails at 4 MB). The scheduler runs only
   while DSH runs; catch-up after downtime is not verified.
+
+## The model seat on the signed-out phone, and the account-menu entries (step 6 part 3, 2026-11-23)
+
+- **Account-menu entries.** `KB_SECONDARY_ENTRIES` now knows `signup` and `plans` (the signed-out account menu's « Create an account » and « See plans » rows, by hook `menu-signup` / `menu-plans`): seventeen entries, was fifteen. A preset or a person can hide them; the sign-in row (`menu-connect`) is never hidable. A third hook on `spaces` hides the separator the teams block leaves (`menu-teams-sep`).
+- **Picker line.** When the model seat's band says « sign in » (no Kybernos model in the catalogue, nobody connected) **and** the user agent is the Kybernos app's and lists `signin` in `KybernosCaps/…` (`kbSelShellSignin`, pure), the band is one line « Sign in for more models » / « Connecte-toi pour plus de modèles » with a *Sign in* button that asks the shell for `kybernos://signin` (`data-door="shell"`). Without `signin` the band is the web's own (« Kybernos Cloud models, with your membership », the button opens the Models page). Contract: docs/dev/kaby-mode-shell-contract.md §1c. Tests: `test-model-seat.mjs`, `test-menu-prefs.mjs`.

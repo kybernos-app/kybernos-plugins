@@ -108,10 +108,45 @@ export function testerCompatibilite ({ cible, compat, force = false }) {
 }
 
 /**
- * Pure. Is the Node that runs the engine recent enough for this engine version? `compat.dsh.node` is `{ min, from }`: an engine at or
+ * Pure. The Node range that DSH declares for this engine, when `compat.dsh.node.ranges` has one, else null. From 0.2.3-alpha.1 DSH
+ * writes a range, not a floor (`engines.node` is "^24.22.3 || >=26.13.1": the 26 line needs 26.13.1). One floor cannot say that: with
+ * `min` 24.22.3 a Node 26.7.0 would pass the gate and the engine would then refuse to start. The newest entry whose `from` the target
+ * has reached wins, whatever the order of the list.
+ */
+export function plageDeNoeud (exigence, cible) {
+  const liste = Array.isArray(exigence?.ranges) ? exigence.ranges : []
+  let retenue = null
+  for (const r of liste) {
+    if (typeof r?.from !== 'string' || typeof r?.node !== 'string' || comparerVersions(cible, r.from) < 0) continue
+    if (retenue === null || comparerVersions(r.from, retenue.from) > 0) retenue = r
+  }
+  return retenue === null ? null : retenue.node
+}
+
+/**
+ * Pure. Does this Node satisfy an `engines.node` string? Only `^x.y.z` and `>=x.y.z` joined by `||` are read (that is all DSH writes).
+ * true or false, or null when a part has any other form: what cannot be read never blocks.
+ */
+export function noeudRepond (noeud, plage) {
+  const lu = String(noeud ?? '').trim().replace(/^v/, '').split('.').concat(['0', '0']).slice(0, 3).join('.')
+  const majeur = Number(lu.split('.')[0])
+  let illisible = false
+  for (const brut of String(plage ?? '').split('||')) {
+    const m = /^\s*(\^|>=)\s*(\d+)\.(\d+)\.(\d+)\s*$/.exec(brut)
+    if (m === null) { illisible = true; continue }
+    if (comparerVersions(lu, m[2] + '.' + m[3] + '.' + m[4]) < 0) continue
+    if (m[1] === '^' && Number(m[2]) !== majeur) continue
+    return true
+  }
+  return illisible ? null : false
+}
+
+/**
+ * Pure. Is the Node that runs the engine recent enough for this engine version? `compat.dsh.node` is `{ min, from, ranges? }`: an engine at or
  * above `from` needs Node `min` or later (DSH declares it in its own `engines`; the older lines declare none, so nothing is asked of
- * them). `noeud` is `process.versions.node` or the output of `node --version` ("22.23.4" or "v22.23.4"). A fact that cannot be read
- * never blocks: the robot only refuses on what it measured.
+ * them), unless a `ranges` entry applies to it (see `plageDeNoeud`): then the range is the requirement. `noeud` is `process.versions.node`
+ * or the output of `node --version` ("22.23.4" or "v22.23.4"). A fact that cannot be read never blocks: the robot only refuses on what it
+ * measured.
  */
 export function testerNoeud ({ cible, compat, noeud, force = false }) {
   const exigence = compat?.dsh?.node
@@ -123,14 +158,22 @@ export function testerNoeud ({ cible, compat, noeud, force = false }) {
   }
   const lu = String(noeud ?? '').trim().replace(/^v/, '')
   if (!/^\d+\.\d+/.test(lu)) return { verdict: 'inconnu', bloquant: false, raison: 'the Node version could not be read: not checked' }
-  if (comparerVersions(lu, min) >= 0) return { verdict: 'ok', bloquant: false, raison: `Node ${lu} fits DSH ${cible} (needs ${min} or later)` }
-  const phrase = `Node ${lu} is too old for DSH ${cible}, which needs Node ${min} or later.`
+  const plage = plageDeNoeud(exigence, cible)
+  const accepte = plage === null ? comparerVersions(lu, min) >= 0 : noeudRepond(lu, plage)
+  if (accepte === null) return { verdict: 'inconnu', bloquant: false, raison: `the Node requirement of DSH ${cible} (${plage}) could not be read: not checked` }
+  if (accepte === true) return { verdict: 'ok', bloquant: false, raison: `Node ${lu} fits DSH ${cible} (needs ${plage === null ? min + ' or later' : plage})` }
+  const phrase = plage === null
+    ? `Node ${lu} is too old for DSH ${cible}, which needs Node ${min} or later.`
+    : `Node ${lu} does not fit DSH ${cible}, which needs Node ${plage}.`
   if (force) {
     return { verdict: 'force', bloquant: false, avertissement: true, raison: phrase + ' Going on because of --force: it may start, but it is not supported.' }
   }
+  const conseil = plage === null
+    ? 'Install Node 24 (https://nodejs.org/en/download, `brew install node@24` or `nvm install 24`)'
+    : 'Update Node (https://nodejs.org/en/download, `brew upgrade node` or `nvm install 24`)'
   return {
     verdict: 'refuse', bloquant: true,
-    raison: phrase + ' Install Node 24 (https://nodejs.org/en/download, `brew install node@24` or `nvm install 24`), open a new terminal and run this again. ' +
+    raison: phrase + ' ' + conseil + ', open a new terminal and run this again. ' +
       'Nothing was changed. To try anyway, run again with --force.'
   }
 }
@@ -358,26 +401,63 @@ export function alignerPins ({ fs, profilDir, cible, disponibles = {} }) {
 // 0.2.2-alpha.2). On 0.2.1 the row is harmless, so it is dropped only for a target at or above the first measured version. The photo
 // taken before the upgrade holds the file, so a rollback puts the row back. A `tools` row that carries anything else is left alone.
 const PREMIERE_SANS_MODE = '0.2.2-alpha.2'
+// Second case, measured 2026-11-18 on 0.2.2-rc.5: the `agent-team` row raised the member cap (`maxMembers: 16`, a hand edit of
+// 2026-09-18). From 0.2.2-rc.2 the team service (`@deepseek-ai/dsh-agent-team`) accepts only `maxTasks` and `defaultEnabled`: a row
+// that still carries `maxMembers`, `maxMessageBytes`, `disposalTimeoutMs` or `maxPendingMessagesPerMember` does not activate and dsh
+// stops with « agent-team: maxMembers is no longer supported; teammates are subagents ». The member cap is now the `subagent` row's
+// `maxActiveSubagents`, which is a different row: this migration never writes it, it only drops the keys the engine refuses.
+const PREMIERE_EQUIPE_SOUS_AGENTS = '0.2.2-rc.2'
+const CLES_EQUIPE_REFUSEES = ['maxMembers', 'maxMessageBytes', 'disposalTimeoutMs', 'maxPendingMessagesPerMember']
+
+// The row that starts at `lignes[i]`: this line and every following line indented under it.
+function finDeRangee (lignes, i) {
+  let fin = i + 1
+  while (fin < lignes.length && /^( {2,}|\t)\S/.test(lignes[fin])) fin += 1
+  return fin
+}
+
 export function migrerProfil ({ fs, profilDir, cible }) {
-  const rapport = { retires: [], gardes: [] }
+  const rapport = { retires: [], gardes: [], nettoyes: [] }
   if (typeof cible !== 'string' || cible === '' || comparerVersions(cible, PREMIERE_SANS_MODE) < 0) return rapport
   const chemin = join(profilDir, 'cordis.patch.yml')
   if (!fs.existe(chemin)) return rapport
+  const equipe = comparerVersions(cible, PREMIERE_EQUIPE_SOUS_AGENTS) >= 0
   const lignes = fs.lire(chemin).split('\n')
   const sortie = []
   for (let i = 0; i < lignes.length; i += 1) {
-    if (!/^- id: tools\s*$/.test(lignes[i])) { sortie.push(lignes[i]); continue }
-    // the row = this line and every following line indented under it
-    let fin = i + 1
-    while (fin < lignes.length && /^( {2,}|\t)\S/.test(lignes[fin])) fin += 1
-    const corps = lignes.slice(i + 1, fin).filter((l) => l.trim() !== '')
-    const soloMode = corps.length === 2 && /^ {2}config:\s*$/.test(corps[0]) && /^ {4}mode:/.test(corps[1])
-    if (!soloMode) { rapport.gardes.push('tools'); sortie.push(...lignes.slice(i, fin)); i = fin - 1; continue }
-    sortie.push('# (removed by dsh-lifecycle: `tools` takes no `mode` since DSH 0.2.2)')
-    rapport.retires.push('tools')
-    i = fin - 1
+    if (/^- id: tools\s*$/.test(lignes[i])) {
+      const fin = finDeRangee(lignes, i)
+      const corps = lignes.slice(i + 1, fin).filter((l) => l.trim() !== '')
+      const soloMode = corps.length === 2 && /^ {2}config:\s*$/.test(corps[0]) && /^ {4}mode:/.test(corps[1])
+      if (!soloMode) { rapport.gardes.push('tools'); sortie.push(...lignes.slice(i, fin)); i = fin - 1; continue }
+      sortie.push('# (removed by dsh-lifecycle: `tools` takes no `mode` since DSH 0.2.2)')
+      rapport.retires.push('tools')
+      i = fin - 1
+      continue
+    }
+    if (equipe && /^- id: agent-team\s*$/.test(lignes[i])) {
+      const fin = finDeRangee(lignes, i)
+      const corps = lignes.slice(i + 1, fin)
+      // Only the plain layout is edited (`  config:` then `    key: scalar` lines); anything else is left as it is and named.
+      const plat = corps.filter((l) => l.trim() !== '').every((l, k) => (k === 0 ? /^ {2}config:\s*$/.test(l) : /^ {4}[A-Za-z]\w*:\s*\S/.test(l)))
+      const cle = (l) => { const m = /^ {4}([A-Za-z]\w*):/.exec(l); return m === null ? null : m[1] }
+      const refusees = corps.filter((l) => CLES_EQUIPE_REFUSEES.includes(cle(l)))
+      if (refusees.length === 0) { sortie.push(...lignes.slice(i, fin)); i = fin - 1; continue }
+      if (!plat) { rapport.gardes.push('agent-team'); sortie.push(...lignes.slice(i, fin)); i = fin - 1; continue }
+      const reste = corps.filter((l) => cle(l) !== null && !CLES_EQUIPE_REFUSEES.includes(cle(l)))
+      const noms = refusees.map((l) => cle(l))
+      if (reste.length === 0) {
+        sortie.push('# (removed by dsh-lifecycle: `agent-team` takes no ' + noms.join(', ') + ' since DSH ' + PREMIERE_EQUIPE_SOUS_AGENTS + '; the member cap is `maxActiveSubagents` on the `subagent` row)')
+      } else {
+        sortie.push(lignes[i], '  config:', ...reste)
+      }
+      rapport.nettoyes.push({ rangee: 'agent-team', cles: noms, supprimee: reste.length === 0 })
+      i = fin - 1
+      continue
+    }
+    sortie.push(lignes[i])
   }
-  if (rapport.retires.length > 0) fs.ecrire(chemin, sortie.join('\n'))
+  if (rapport.retires.length > 0 || rapport.nettoyes.length > 0) fs.ecrire(chemin, sortie.join('\n'))
   return rapport
 }
 
@@ -402,7 +482,34 @@ export function lienReprenable ({ fs, actuel, dir }) {
   try { return JSON.parse(fs.lire(join(racine, 'manifest.json'))).nom === 'kybernos-dsh' } catch (e) { return false }
 }
 
-export function alignerLiens ({ fs, profilDir, repoDir, packages, actives = null, anciensDepots = [], reprendre = false, rapporter = null }) {
+// A bundle that is gone from the repository (its folder deleted) must also go from the profiles that still carry it: a `link:` to a missing
+// folder makes the install stop, and its row in cordis.patch.yml names an entry that no longer exists. `retires` is the list kept in
+// lifecycle-packages.json: `{ dir, nom, patchId? }`. Only a row that holds nothing but `disabled:` is removed from cordis.patch.yml; any other
+// row is left and named (returned in `gardees`), like the other profile migrations above.
+export function retirerRangeesPatch ({ fs, profilDir, ids }) {
+  const rapport = { retirees: [], gardees: [] }
+  const liste = (Array.isArray(ids) ? ids : []).filter((x) => typeof x === 'string' && x !== '')
+  if (liste.length === 0) return rapport
+  const chemin = join(profilDir, 'cordis.patch.yml')
+  if (!fs.existe(chemin)) return rapport
+  const lignes = fs.lire(chemin).split('\n')
+  const sortie = []
+  for (let i = 0; i < lignes.length; i += 1) {
+    const m = /^- id: (\S+)\s*$/.exec(lignes[i])
+    if (m === null || !liste.includes(m[1])) { sortie.push(lignes[i]); continue }
+    const fin = finDeRangee(lignes, i)
+    const corps = lignes.slice(i + 1, fin).filter((l) => l.trim() !== '')
+    if (!corps.every((l) => /^ {2}disabled:\s*(true|false)\s*$/.test(l))) { rapport.gardees.push(m[1]); sortie.push(...lignes.slice(i, fin)); i = fin - 1; continue }
+    rapport.retirees.push(m[1])
+    i = fin - 1
+    // the blank line that separated this row from the next goes with it
+    if (lignes[i + 1] !== undefined && lignes[i + 1].trim() === '' && sortie.length > 0 && sortie[sortie.length - 1].trim() === '') i += 1
+  }
+  if (rapport.retirees.length > 0) fs.ecrire(chemin, sortie.join('\n'))
+  return rapport
+}
+
+export function alignerLiens ({ fs, profilDir, repoDir, packages, actives = null, anciensDepots = [], reprendre = false, rapporter = null, retires = [] }) {
   const pkg = JSON.parse(fs.lire(join(profilDir, 'package.json')))
   pkg.dependencies = pkg.dependencies || {}
   pkg.dsh = pkg.dsh || {}
@@ -449,7 +556,13 @@ export function alignerLiens ({ fs, profilDir, repoDir, packages, actives = null
       if (!actifsSet.has(nom) && pkg.dependencies[nom] !== undefined) delete pkg.dependencies[nom]
     }
   }
+  const partis = new Set((Array.isArray(retires) ? retires : []).map((r) => r?.nom).filter((n) => typeof n === 'string' && n !== ''))
+  if (partis.size > 0) {
+    pkg.dsh.profile.bundles = pkg.dsh.profile.bundles.filter((n) => !partis.has(n))
+    for (const nom of partis) if (typeof pkg.dependencies[nom] === 'string' && pkg.dependencies[nom].startsWith('link:')) delete pkg.dependencies[nom]
+  }
   fs.ecrire(join(profilDir, 'package.json'), JSON.stringify(pkg, null, 2) + '\n')
+  if (partis.size > 0) retirerRangeesPatch({ fs, profilDir, ids: retires.map((r) => r?.patchId) })
   return pkg
 }
 

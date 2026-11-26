@@ -1,7 +1,7 @@
 {
   "what": {
-    "fr": "Une page Dashboards avant Agent Teams : le chat construit tes tableaux de bord (Agent Teams, automatisations, usage, créations) avec des graphiques animés, un calendrier, un kanban et des notes.",
-    "en": "A Dashboards page before Agent Teams: the chat builds your dashboards (Agent Teams, automations, usage, creations) with animated charts, a calendar, a kanban and notes."
+    "fr": "Une page Dashboards avant les équipes d’agents IA : le chat construit tes tableaux de bord (équipes, automatisations, usage, créations) avec graphiques animés, calendrier, kanban et notes.",
+    "en": "A Dashboards page before AI Agent Teams: the chat builds your dashboards (AI Agent Teams, automations, usage, creations) with animated charts, a calendar, a kanban and notes."
   },
   "steps": [
     {
@@ -22,8 +22,8 @@
     }
   ],
   "where": {
-    "fr": "Barre latérale › Dashboards (avant Agent Teams), barre latérale droite › Dashboard",
-    "en": "Sidebar › Dashboards (before Agent Teams), right sidebar › Dashboard",
+    "fr": "Barre latérale › Dashboards (avant les équipes d’agents IA), barre latérale droite › Dashboard",
+    "en": "Sidebar › Dashboards (before AI Agent Teams), right sidebar › Dashboard",
     "page": true
   },
   "good": {

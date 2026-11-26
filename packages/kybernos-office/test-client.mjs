@@ -297,8 +297,12 @@ await okAsync('notices for what is kept or unverified show above the editor with
 // ── Markdown and PDF ─────────────────────────────────────────────────────────────────
 ok('the editors also take .pdf and Markdown; the viewer of Creations draws all of them but Markdown, which keeps its own preview', () => {
   must(T.canEdit('a.pdf') && T.canEdit('B.PDF') && T.canEdit('notes.md') && T.canEdit('README.markdown') && T.canEdit('x.MD'), 'good names')
-  must(!T.canEdit('a.mdx') && !T.canEdit('a.pdfx') && !T.canEdit('md') && !T.canEdit('a.txt') && !T.canEdit('~$a.pdf'), 'bad names')
-  must(T.viewerDraws('a.pdf') === true && T.viewerDraws('a.docx') === true && T.viewerDraws('notes.md') === false && T.viewerDraws('R.MARKDOWN') === false && T.viewerDraws('a.txt') === false, 'the viewer keeps its own Markdown preview')
+  must(!T.canEdit('a.mdx') && !T.canEdit('a.pdfx') && !T.canEdit('md') && !T.canEdit('a.rtf') && !T.canEdit('~$a.pdf'), 'bad names')
+  must(T.viewerDraws('a.pdf') === true && T.viewerDraws('a.docx') === true && T.viewerDraws('notes.md') === false && T.viewerDraws('R.MARKDOWN') === false && T.viewerDraws('a.rtf') === false, 'the viewer keeps its own Markdown preview')
+})
+ok('the editors also take plain text, JSON and CSV; the viewer keeps its own preview of them (fields, rows, text) and the pencil opens the editor', () => {
+  for (const n of ['a.txt', 'A.TXT', 'a.rst', 'a.yaml', 'a.yml', 'a.toml', 'a.csv', 'a.tsv', 'data.json', 'x.quiz.json']) must(T.canEdit(n) === true && T.isPlainText(n) === true && T.viewerDraws(n) === false, n)
+  must(!T.canEdit('a.jsonl') && !T.canEdit('a.csvx') && !T.canEdit('json') && !T.canEdit('~$a.json') && T.isPlainText('a.md') === false && T.isPlainText('a.docx') === false, 'bad names')
 })
 ok('Markdown and PDF losses are named in both languages, and the Editor view of Markdown says what it does to the file', () => {
   const md = [{ code: 'html', level: 'loss', count: 2 }, { code: 'footnote', level: 'loss', count: 1 }, { code: 'wiki-link', level: 'untested', count: 3 }]
@@ -480,7 +484,7 @@ await okAsync('embedded in the viewer: it opens read-only with nothing to decide
   T.embedFile(box3, '/home/x/gone.xlsx', 'gone.xlsx'); await tick(); await tick()
   must(visible('office-error') && find(box3, 'kyo-btn').filter((b) => b.getAttribute('data-kb') === 'office-close').length === 0 && one('office-error').kids.find((k) => k.className === 'kyo-row').kids.length === 0, 'an error card has no close button in a box')
   find(body, 'office-embed').forEach((n) => n.remove()); box3.remove()
-  must(T.embedFile(new Node('div'), '/home/x/a.txt', 'a.txt') === null, 'a name no editor takes opens nothing')
+  must(T.embedFile(new Node('div'), '/home/x/a.rtf', 'a.rtf') === null, 'a name no editor takes opens nothing')
 })
 
 await okAsync('the right-hand tab: a tab type for the installed suffixes only, kept mounted, taken back with the plugin; its body opens the file the tab reports, read-only', async () => {

@@ -9,6 +9,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { catalogueDuDepot, validerAide } from './build-catalog.mjs'
 import { helpSource, describeHelpSource } from './lib-help-source.mjs'
+import { entry } from '../packages/kybernos-plugin/lib-i18n-test.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 let pass = 0
@@ -62,7 +63,7 @@ if (catalogue !== null) {
   check('the catalogue carries the help of every module', catalogue.modules.length === lifecycle.length && catalogue.modules.every((m) => m.aide !== undefined && m.aide.steps.length >= 2))
   // V-06: every card links to its article. These have none because the help site has no article that is theirs yet (the Suite panel, the core's several
   // pages, the restart helper, the search, the Servers page, the plugin registry, the notification widget, the phone-only runtime, the front desk, the mockup editor, the Word and Excel editor): writing one on the site is the way to remove a name from this list, never an address that does not exist.
-  const NO_ARTICLE_YET = ['kybernos-db', 'kybernos-front-desk', 'kybernos-hub', 'kybernos-kaby-customisation', 'kybernos-log', 'kybernos-maquettes', 'kybernos-no-process', 'kybernos-office', 'kybernos-plugin', 'kybernos-pulse', 'kybernos-registry', 'kybernos-relance', 'kybernos-search', 'kybernos-servers', 'kybernos-session-msg', 'kybernos-webapp-creator']
+  const NO_ARTICLE_YET = ['kybernos-db', 'kybernos-door', 'kybernos-front-desk', 'kybernos-guard', 'kybernos-hub', 'kybernos-kaby-customisation', 'kybernos-knowledge', 'kybernos-log', 'kybernos-maquettes', 'kybernos-no-process', 'kybernos-office', 'kybernos-phone-model', 'kybernos-plugin', 'kybernos-pulse', 'kybernos-registry', 'kybernos-relance', 'kybernos-search', 'kybernos-servers', 'kybernos-session-msg', 'kybernos-webapp-creator']
   const without = catalogue.modules.filter((m) => m.aide.url === undefined).map((m) => m.id).sort()
   check('every module links to an article of the help site, but the ones that have none yet (their card in the product carries the words)', JSON.stringify(without) === JSON.stringify(NO_ARTICLE_YET), without)
   // Where the site's own build is at hand (KB_HELP_SITE=<kybernos-help>/dist-site), each link is an article that exists there, in English.
@@ -147,14 +148,14 @@ console.log('the « ? How it works » buttons')
     check('and the Atlas page’s, which used to be a plain « Help » button', same(ref, decls(read('kybernos-atlas'), '.kbat-help')), { ref })
     check('and the « ? » disc is the same on all of them', [['kybernos-plugin', '.kb6-helpq'], ['kybernos-call', '.kbcl-hq'], ['kybernos-language', '.kbln-help-q'], ['kybernos-atlas', '.kbat-helpq']].every(([d, sel]) => same(disc, decls(read(d), sel))), { disc })
     const label = (src, re) => re.test(src)
-    check('the label is the same words everywhere: « How it works » / « Comment ça marche »', label(hub, /kt\('Comment ça marche', 'How it works'\)/) && label(read('kybernos-plugin'), /'kbui\.howitworks': \{ kybernos: 'Comment ça marche', en: 'How it works' \}/) && label(read('kybernos-call'), /kt\('Comment ça marche', 'How it works'\)/) && label(read('kybernos-language'), /helpBtn: \['Comment ça marche', 'How it works'\]/) && label(read('kybernos-atlas'), /'How it works'\)/))
+    check('the label is the same words everywhere: « How it works » / « Comment ça marche »', label(hub, /kt\('Comment ça marche', 'How it works'\)/) && (entry('kbui.howitworks') !== null && entry('kbui.howitworks').kybernos === 'Comment ça marche' && entry('kbui.howitworks').en === 'How it works') && label(read('kybernos-call'), /kt\('Comment ça marche', 'How it works'\)/) && label(read('kybernos-language'), /helpBtn: \['Comment ça marche', 'How it works'\]/) && label(read('kybernos-atlas'), /'How it works'\)/))
   }
   const css = hub.match(/\.kbhp-[a-z]+/g) || []
   const clash = []
   for (const d of dirs) {
     if (d === 'kybernos-hub') continue
     const f = join(REPO, 'packages', d, 'client.js')
-    if (existsSync(f) && /\.kbh[pi]-(?!title\b)/.test(readFileSync(f, 'utf8'))) clash.push(d)
+    if (existsSync(f) && /\.kbh[pi]-(?!title\b)/.test(readFileSync(f, 'utf8').replace(/\/\/ kb-pres:begin[\s\S]*?\/\/ kb-pres:end/g, ''))) clash.push(d) // the Theme's presentation block (kb-pres:begin … kb-pres:end) names the « ? » from outside, to draw it bare on a phone
   }
   check('the kbhp- and kbhi- class prefixes are the hub’s alone (the title class .kbhp-title is the one shared name: the Settings frame styles it, the pages\' bare headings wear it)', css.length > 5 && clash.length === 0, clash)
 }

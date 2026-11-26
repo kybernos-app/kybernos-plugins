@@ -1,6 +1,6 @@
-// Builds the five editor frames with esbuild. Run by packages/kybernos-office/build-editors.mjs from the work folder (where the pinned editors are
+// Builds the six editor frames with esbuild. Run by packages/kybernos-office/build-editors.mjs from the work folder (where the pinned editors are
 // installed): `node src/build.mjs <outdir>`. Writes <outdir>/sheet/{app.js,app.css,wasm_bg.wasm}, <outdir>/doc/{app.js,app.css,harfbuzz.wasm},
-// <outdir>/md/{app.js,app.css}, <outdir>/pdf/{app.js,app.css} plus the PDF viewer's own distribution beside it, <outdir>/deck/{app.js,app.css} (the deck editor frame)
+// <outdir>/md/{app.js,app.css}, <outdir>/text/{app.js,app.css} (plain text, JSON, CSV: no dependency), <outdir>/pdf/{app.js,app.css} plus the PDF viewer's own distribution beside it, <outdir>/deck/{app.js,app.css} (the deck editor frame)
 // and <outdir>/deck/{standalone.js,standalone.css} (the runtime a generated deck file carries), and the fonts the document editor asks for as `../assets/<name>`
 // from its own address in <outdir>/assets/.
 import { build } from 'esbuild'
@@ -39,6 +39,9 @@ if (existsSync('node_modules/@docx-editor.dev/fonts/licenses')) cpSync('node_mod
 
 mkdirSync(join(out, 'md'), { recursive: true })
 await build({ ...common, entryPoints: ['src/md.js'], outdir: join(out, 'md') })
+
+mkdirSync(join(out, 'text'), { recursive: true })
+await build({ ...common, entryPoints: ['src/text.js'], outdir: join(out, 'text') })
 
 // The PDF viewer loads its engine, its worker and its wasm from its own folder: its distribution is copied as it is (the scripts and the wasm, not the demo
 // files and the typings next to them) and only the glue of the frame is bundled, with `./embedpdf.js` left as an import of the page.

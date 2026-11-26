@@ -95,9 +95,16 @@ export const nowSentence = (d = new Date()) => {
   } catch (e) { return '' }
 }
 
+/** True when the host runs inside the phone app (iOS or Android). */
+export const isPhonePlatform = (platform = process.platform) => platform === 'ios' || platform === 'android'
+
 /** The block of the system prompt, for Kaby's own chat: the identity text shared with the cloud computer's turns (kyby-identity.mjs). `lines` is what was said lately on the person's shared thread (Telegram's), given as data. */
-export const kybyPrompt = (lines, now = new Date(), assistantName, mandate, list) =>
-  [KYBY_HEAD, identityBlock({ channel: 'chat', body: 'computer', nowText: nowSentence(now), thread: lines, assistantName, mandate }), ...(typeof list === 'string' && list !== '' ? [list] : []), KYBY_TAIL].join('\n')
+export const kybyPrompt = (lines, now = new Date(), assistantName, mandate, list, opts = {}) => {
+  const phone = opts !== null && typeof opts === 'object' && opts.phone === true
+  const channel = phone ? 'phone' : 'chat'
+  const body = phone ? 'phone' : 'computer'
+  return [KYBY_HEAD, identityBlock({ channel, body, nowText: nowSentence(now), thread: lines, assistantName, mandate }), ...(typeof list === 'string' && list !== '' ? [list] : []), KYBY_TAIL].join('\n')
+}
 
 // ── the pointer file: which session is Kaby's ───────────────────────────────────────────────────────
 
@@ -123,11 +130,13 @@ export function writePointer (file, sessionId) {
 
 /**
  * @param deps { pointerFile (a path, or a function giving it at each use), readState, isConnected, apiCall, now?, assistantName?, mandate? (a function giving the mandate block or ''),
- *   list? (a function of the session id giving the block about Kaby's list, kyby-unattended.mjs `LIST_TEXT`, or ''), isUnattended? (a function of the session id: is a turn an automation started running in it) } the helpers index.js already has.
+ *   list? (a function of the session id giving the block about Kaby's list, kyby-unattended.mjs `LIST_TEXT`, or ''), isUnattended? (a function of the session id: is a turn an automation started running in it),
+ *   isOutside? (a function of the session id: is it a turn an outside assistant relayed, whose words are not the person's own) } the helpers index.js already has.
  * Every method is safe to call from a hook: none throws.
  */
 export function createKybyNative (deps) {
   const now = typeof deps.now === 'function' ? deps.now : () => Date.now()
+  const phone = typeof deps.phone === 'boolean' ? deps.phone : isPhonePlatform(deps.platform)
   let pointer = { at: 0, value: null }
   let identity = { at: 0, token: '', value: null }
   let unsupportedUntil = 0
@@ -140,6 +149,7 @@ export function createKybyNative (deps) {
   /** The block about Kaby's list (kyby-unattended.mjs `LIST_TEXT`), or '': two lines in any turn of its own chat. It never throws. */
   const list = (sid) => { try { const t = typeof deps.list === 'function' ? deps.list(sid) : ''; return typeof t === 'string' ? t : '' } catch (e) { return '' } }
   const isUnattended = (sid) => { try { return typeof deps.isUnattended === 'function' && deps.isUnattended(sid) === true } catch (e) { return false } }
+  const isOutside = (sid) => { try { return typeof deps.isOutside === 'function' && deps.isOutside(sid) === true } catch (e) { return false } }
   const mirrored = new Set()
 
   const sessionId = () => {
@@ -188,7 +198,7 @@ export function createKybyNative (deps) {
     promptFor (sid) {
       if (!this.isKyby(sid)) return ''
       const alias = assistantName()
-      return kybyPrompt(contextLines(context.rows, mirrored, alias), undefined, alias, mandate(), list(sid))
+      return kybyPrompt(contextLines(context.rows, mirrored, alias), undefined, alias, mandate(), list(sid), { phone })
     },
     /** A message of the person was taken in Kaby's session: the shared thread is read again, for the next request. */
     noteClaim (sid) {
@@ -203,6 +213,8 @@ export function createKybyNative (deps) {
         if (!this.isKyby(sid)) return 'not_kyby'
         // A turn an automation started is not a conversation: its trigger is not the person's, and its note is for the chat only, never the shared thread (Telegram's).
         if (isUnattended(sid)) return 'unattended'
+        // What an outside assistant relayed (the platform's MCP door) is not a conversation of the person's: its words never go on their shared thread (Telegram's) as if they had typed them.
+        if (isOutside(sid)) return 'outside'
         if (signal !== undefined && signal !== null && signal.aborted === true) return 'aborted'
         const t = token()
         if (t === null) return 'signed_out'

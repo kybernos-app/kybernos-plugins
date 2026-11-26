@@ -12,6 +12,12 @@
 // overlap at 100 %: a negation (« do not commit » vs « commit » — « not » is a stop word) and a number (« port 3000 »
 // vs « port 3080 »). A pair that differs on either is NOT the same fact; it is handed to `unclearPairs`, which is what a
 // model (or the user) is for. Only groups from `findDuplicateGroups` with a score >= AUTO_MIN_SCORE may be merged without asking.
+//
+// A number only ONE of the two texts has is a detail, not another value ("dead tile (delta 0)" vs "dead tile"): it is not a clash,
+// but such a pair is grouped only around the keeper that holds the number, so a merge never drops one (measured 2026-11-08: two
+// lessons of one team, 0.97 alike, stayed apart because one added "delta 0" and wrote "+" where the other wrote "plus").
+// Before anything is compared the text is put in one canonical spelling (`canon`): typographic quotes and dashes become plain
+// ones, a free-standing "+" reads "plus" and "&" reads "and" ("plus", "and" and "et" are stop words for the overlap anyway).
 import { tokens } from './relevance.mjs'
 
 export const DEDUPE_TUNING = { jaccard: 0.8, containment: 0.95, containmentJaccard: 0.6, containmentMinWords: 4, minWords: 3 }
@@ -19,14 +25,39 @@ export const DEDUPE_TUNING = { jaccard: 0.8, containment: 0.95, containmentJacca
 /** A group at or above this score (the lowest Jaccard of its members with the keeper, in %) is merged without asking, when the user allows it. */
 export const AUTO_MIN_SCORE = 80
 
-const fold = (text) => String(text === undefined || text === null ? '' : text).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+/** One canonical spelling: plain quotes and dashes, a free-standing "+" or "&" as a word, one space between words. */
+export const canon = (text) => String(text === undefined || text === null ? '' : text)
+  .replace(/[\u2018\u2019\u201a\u201b\u2032`\u00b4]/g, "'")
+  .replace(/[\u201c\u201d\u201e\u201f\u00ab\u00bb\u2033]/g, '"')
+  .replace(/[\u2010-\u2015\u2212]/g, '-')
+  .replace(/(^|\s)\+(?=\s|$)/g, '$1plus')
+  .replace(/(^|\s)&(?=\s|$)/g, '$1and')
+  .replace(/\s+/g, ' ')
+  .trim()
+const fold = (text) => canon(text).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 const NEGATION = /\b(?:not|no|never|none|nor|neither|cannot|without|nothing|nobody|jamais|pas|non|sans|aucun|aucune|nul|nulle|rien|ni)\b|n['’]t\b/
 /** Does the text say « not »? (the stop-word list hides it from the overlap) */
 export const negates = (text) => NEGATION.test(fold(text))
+const NEGATIONS = new RegExp(NEGATION.source, 'g')
+/** How many times the text says "not" (a rewrite that says it fewer times has lost one). */
+export const negationCount = (text) => (fold(text).match(NEGATIONS) || []).length
 /** The numbers of a text, as a canonical string: « 3000 », « 2/3 » → « 2,3 ». Two texts with different numbers state different values. */
 export const numbersOf = (text) => (fold(text).match(/\d+(?:[.,]\d+)*/g) || []).sort().join(',')
-/** Why two otherwise alike texts must not be merged on the word count alone: 'negation' | 'number' | null. */
-export const clash = (a, b) => (negates(a) !== negates(b) ? 'negation' : (numbersOf(a) !== numbersOf(b) ? 'number' : null))
+/** The numbers of a text, as a set. */
+export const numberSet = (text) => new Set(numbersOf(text).split(',').filter((n) => n !== ''))
+const subset = (a, b) => { for (const x of a) if (!b.has(x)) return false; return true }
+/** Does `holder` have every number of `text`? (a merge that keeps `holder` then loses none) */
+export const keepsNumbers = (holder, text) => subset(numberSet(text), numberSet(holder))
+/**
+ * Why two otherwise alike texts must not be merged on the word count alone: 'negation' | 'number' | null. A number is a clash when
+ * EACH text has one the other lacks ("port 3000" vs "port 3080": another value); a number only one of them has is a detail.
+ */
+export const clash = (a, b) => {
+  if (negates(a) !== negates(b)) return 'negation'
+  const na = numberSet(a)
+  const nb = numberSet(b)
+  return !subset(na, nb) && !subset(nb, na) ? 'number' : null
+}
 
 const overlap = (a, b) => {
   let both = 0
@@ -66,7 +97,7 @@ export const findDuplicateGroups = (items, options = {}) => {
   const prepared = []
   for (const it of Array.isArray(items) ? items : []) {
     if (it === null || typeof it !== 'object' || it.id === undefined || it.id === null) continue
-    const set = new Set(tokens(it.content))
+    const set = new Set(tokens(canon(it.content)))
     if (set.size < t.minWords) continue
     prepared.push({ it, set, text: String(it.content), bucket: String(it.bucket === undefined ? '' : it.bucket) })
   }
@@ -84,7 +115,8 @@ export const findDuplicateGroups = (items, options = {}) => {
         if (other === keeper || taken.has(other)) continue
         // two pinned items are both deliberate: never grouped
         if (keeper.it.pinned === true && other.it.pinned === true) continue
-        if (sameFact(keeper.set, other.set, t) && clash(keeper.text, other.text) === null) members.push(other)
+        // every number of a member must be in the keeper: the merge keeps the keeper's words, so a number it lacks would be lost
+        if (sameFact(keeper.set, other.set, t) && clash(keeper.text, other.text) === null && keepsNumbers(keeper.text, other.text)) members.push(other)
       }
       if (members.length === 0) continue
       taken.add(keeper)
@@ -121,7 +153,7 @@ export const unclearPairs = (items, options = {}) => {
   const prepared = []
   for (const it of Array.isArray(items) ? items : []) {
     if (it === null || typeof it !== 'object' || it.id === undefined || it.id === null || taken.has(it.id)) continue
-    const set = new Set(tokens(it.content))
+    const set = new Set(tokens(canon(it.content)))
     if (set.size < t.minWords) continue
     prepared.push({ it, set, text: String(it.content), bucket: String(it.bucket === undefined ? '' : it.bucket) })
   }

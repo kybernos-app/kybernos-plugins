@@ -44,8 +44,7 @@ With no registry and no environment override, DSH talks to the built-in server a
 (`services.llm` null = same host), the connected apps' MCP endpoint is `<api>/v1/mcp/connections`, there is no gateway.
 
 To point the plugins at another server, change `BUILTIN_API` and run `node scripts/test-no-legacy-hosts.mjs`. It checks the literals that cannot import it
-(the page's fallback in `packages/kybernos-plugin/client.js`, `KB_FEEDBACK_API_DEFAULT` in `packages/kybernos-plugin/index.js`, the E2B
-template's base URL) and tells you which one to edit; it also fails on any old-stack hostname in shipped code (the allowlist is in the test, with a reason
+(the page's fallback in `packages/kybernos-plugin/client.js`, `KB_FEEDBACK_API_DEFAULT` in `packages/kybernos-plugin/index.js`) and tells you which one to edit; it also fails on any old-stack hostname in shipped code (the allowlist is in the test, with a reason
 per entry). If a separate web app exists by then, give the built-in profile a `web` there (the discovery document of the server
 publishes it when it is configured).
 

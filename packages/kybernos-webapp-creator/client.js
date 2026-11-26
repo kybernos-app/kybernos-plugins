@@ -10,7 +10,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 window.__ModuleLoader__.load({
-  id: '@local/kybernos-webapp-creator/client',
+  id: '@local/kybernos-webapp-creator',
   factory (require) {
     const React = require('react')
     const h = React.createElement

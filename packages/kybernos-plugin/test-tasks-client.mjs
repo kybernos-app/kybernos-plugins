@@ -5,21 +5,17 @@
 // Usage: node packages/kybernos-plugin/test-tasks-client.mjs   (exit 0 = everything passes)
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { table as kbTable, I18N_DIR } from './lib-i18n-test.mjs'
 
 const src = readFileSync(fileURLToPath(new URL('./client.js', import.meta.url)), 'utf8')
 const m = src.match(/\/\/ KB-TASKS-CLIENT-BEGIN([\s\S]*?)\/\/ KB-TASKS-CLIENT-END/)
 if (m === null) { console.error('KB-TASKS-CLIENT block not found in client.js'); process.exit(1) }
-const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbTasksNeeds, kbSuggestedList, kbTasksLastSessions, kbTasksRunningIds, kbSuggestionMeta, kbSuggestionSummary, KB_ROUTES_WITH_LOCAL_FALLBACK, kbRemoteOutcome, kbMachineTz, kbCronHuman, kbCronTime, kbCronAt, kbCronOnDays, kbCronMinuteHour, kbCronWindow, kbCronWindowOf, kbOnceLabel, kbZoneLabel, kbEditChatText, kbTaskWho, kbFmtWhen, kbTasksList, kbExportTask, kbCloneDefinition, kbTaskError, kbTaskTriggerCode, kbTriggerParts, kbListState, KB_TASK_ERRORS }'))
-
+const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbSugSeenRead, kbSugSeenWrite, kbSugUnseen, kbSugSeenAfterLook, kbJournalOrder, KB_SUG_SEEN_KEY, kbTasksNeeds, kbTasksNeedsKind, kbSuggestedList, kbTasksLastSessions, kbTasksRunningIds, kbSuggestionMeta, kbSuggestionSummary, KB_ROUTES_WITH_LOCAL_FALLBACK, kbRemoteOutcome, kbMachineTz, kbCronHuman, kbCronTime, kbCronAt, kbCronOnDays, kbCronMinuteHour, kbCronWindow, kbCronWindowOf, kbOnceLabel, kbZoneLabel, kbEditChatText, kbTaskWho, kbFmtWhen, kbTasksList, kbExportTask, kbCloneDefinition, kbTaskError, kbTaskTriggerCode, kbTriggerParts, kbListState, KB_TASK_ERRORS }'))
 let fails = 0
 const eq = (label, got, want) => { const ok = got === want; if (!ok) { fails++; console.log('FAIL', label, '| got', got, '| want', want) } else console.log('ok  ', label) }
 
-// The real translation table: the `tasks.*` entries of KB_T, one object literal per line.
-const table = {}
-for (const line of src.split('\n')) {
-  const t = /^\s*'(tasks\.[A-Za-z0-9_.]+)':\s*(\{.*\}),?\s*$/.exec(line)
-  if (t !== null) { try { table[t[1]] = (0, eval)('(' + t[2] + ')') } catch (e) { /* not a plain entry */ } }
-}
+// The real translation table: KB_T as the page builds it (i18n/fr.json + i18n/en.json, through lib-i18n-test.mjs).
+const table = kbTable()
 const tr = (lang) => (key) => (table[key] !== undefined ? table[key][lang] : '?' + key)
 const en = tr('en'); const fr = tr('kybernos')
 
@@ -126,12 +122,37 @@ eq('a null entry in the list is dropped (it crashed the whole page)', mod.kbTask
 eq('not an array: empty', mod.kbTasksList(undefined).length + mod.kbTasksList({}).length, 0)
 eq('a suggestion is not an automation of the list', mod.kbTasksList([{ id: 'a' }, { id: 's', suggested: true }, { id: 'b', suggested: false }]).map((t) => t.id).join(','), 'a,b')
 eq('...and is the only thing in the suggested list', mod.kbSuggestedList([{ id: 'a' }, { id: 's', suggested: true }]).map((t) => t.id).join(','), 's')
+/* ── Suggestions tab (list items 04 and 07): the dot lights for what is new, the tab counts what waits, the Journal is newest first ── */
+{
+  const store = (init) => { let v = init === undefined ? null : init; return { getItem: () => v, setItem: (k, x) => { v = x }, peek: () => v } }
+  const sug = [{ id: 'a', suggested: true }, { id: 'b', suggested: true }]
+  eq('nothing was looked at: every waiting suggestion is new (the dot lights)', mod.kbSugUnseen(sug, []), 2)
+  eq('...after a look at the tab none is new (the dot goes off)', mod.kbSugUnseen(sug, mod.kbSugSeenAfterLook(sug)), 0)
+  eq('...a suggestion that comes after the look lights the dot again, for it alone', mod.kbSugUnseen(sug.concat([{ id: 'c', suggested: true }]), mod.kbSugSeenAfterLook(sug)), 1)
+  eq('what was looked at keeps only the ids that still wait (one that was accepted or ignored drops out)', mod.kbSugSeenAfterLook([{ id: 'b', suggested: true }]).join(','), 'b')
+  eq('not a list, or entries without an id: nothing to count, nothing to keep', mod.kbSugUnseen(null, null) + mod.kbSugUnseen([null, 'x'], []) + mod.kbSugSeenAfterLook(undefined).length + mod.kbSugSeenAfterLook([{ name: 'n' }, null]).length, 0)
+  const st = store()
+  mod.kbSugSeenWrite(['a', 'b'], st)
+  eq('the looked-at ids are kept in the browser under their own key, and read back', JSON.stringify([st.peek() !== null, mod.kbSugSeenRead(st).join(','), mod.KB_SUG_SEEN_KEY]), JSON.stringify([true, 'a,b', 'kybernos.tasks.sug-seen']))
+  eq('a damaged or foreign value reads as « nothing looked at » (a list keeps only its strings)', mod.kbSugSeenRead(store('{not json')).length + mod.kbSugSeenRead(store('{"a":1}')).length + mod.kbSugSeenRead(store('[1,"x",null]')).length, 1)
+  eq('no storage at all (a private window): the write does nothing and the read is empty', mod.kbSugSeenRead({ getItem: () => { throw new Error('blocked') } }).length + (mod.kbSugSeenWrite(['a'], { setItem: () => { throw new Error('blocked') } }) === undefined ? 0 : 1), 0)
+  const row = (id, cls, lastRun) => ({ id, lastCls: cls, _t: { lastRun } })
+  eq('the Journal puts what runs now first, then the newest run, then the ones that never ran, the list order among equals', mod.kbJournalOrder([row('never1', '', undefined), row('old', 'ok', '2026-11-01T10:00:00Z'), row('now', 'run', '2026-10-01T10:00:00Z'), row('new', 'ok', '2026-11-20T10:00:00Z'), row('never2', '', null)]).map((r) => r.id).join(','), 'now,new,old,never1,never2')
+  eq('the Journal order takes a bad input for an empty list and keeps every row', JSON.stringify([mod.kbJournalOrder(null).length, mod.kbJournalOrder([row('a', '', undefined)]).length]), '[0,1]')
+  eq('the page draws its tabs with the shared strip: Suggestions (with its count) first while something waits, Yours (named Active on a phone), the Journal, Discover, then the Team segment', /h\(KbTabsBar, \{ dataKb: 'automations-sections', value: section, onChange: setSection, tabs: autoTabs, extra: \[kbtaSegment\(team, section, \(\) => setSection\('team'\)\)\] \}\)/.test(src) && /waitingCount > 0 \? \{ id: 'suggestions', label: kbt\('tasks\.tab\.suggestions'\)\.replace\('\{n\}', String\(waitingCount\)\) \} : null/.test(src) && /kbt\(kbOnPhone\(\) === true \? 'tasks\.tab\.active' : 'tasks\.tab\.yours'\)/.test(src) && /list\.length > 0 \? \{ id: 'journal'/.test(src) && /window\.__KB_TABS__ = \{ Bar: KbTabsBar \}/.test(src), true)
+  eq('the suggested card and the ideas of Kaby are the Suggestions tab\'s, no longer the automations\' (Yours keeps only the automations)', /const sugEl = \(section === 'suggestions' && sug\.length > 0\)/.test(src) && /const initEl = \(section !== 'suggestions' \|\|/.test(src), true)
+  eq('the page opens on Suggestions once when something new waits, having the tab on screen is the look that clears the dot, and the tab goes when the last one is dealt with', /kbSugUnseen\(kbSuggestedList\(tasks\), kbSugSeenRead\(\)\) > 0\) setSection\('suggestions'\)/.test(src) && /kbSugSeenWrite\(kbSugSeenAfterLook\(w\)\); kbPublishTasks\(tasks\)/.test(src) && /section === 'suggestions' && Array\.isArray\(tasks\) === true && waitingCount === 0\) setSection\('yours'\)/.test(src), true)
+  eq('the dot of the menu row (`review`) counts what is new since the last look, and `waiting` every suggestion', /review: kbSugUnseen\(waiting, kbSugSeenRead\(\)\), waiting: waiting\.length/.test(src), true)
+  eq('on a phone the load reading is one small row: ticks, curve and second line stay behind it, except the line of another busy computer', /@media \(max-width:560px\)\{\.kbld-btn\{padding:6px 12px;gap:0;border-radius:12px\}\.kbld-btn \.kbld-ticks,\.kbld-btn \.kbld-l1 \.kbld-mini\{display:none\}/.test(src) && /\.kbld-l2row:not\(:has\(\.kbld-else\)\)\{display:none\}/.test(src), true)
+  for (const k of ['tasks.tab.suggestions', 'tasks.tab.active', 'tasks.tab.journal', 'tasks.sug.tabempty']) eq('the string ' + k + ' exists in English and in French (the count of the tab is {n} in both)', typeof table[k] === 'object' && table[k].en.length > 0 && table[k].kybernos.length > 0 && (k !== 'tasks.tab.suggestions' || (table[k].en.includes('{n}') && table[k].kybernos.includes('{n}'))), true)
+}
 eq('the latest run of each automation names its session', JSON.stringify(mod.kbTasksLastSessions([{ id: 'a', history: [{ sessionId: 's1' }, { sessionId: 's2' }] }, { id: 'b', history: [] }, { id: 'c', history: [{ status: 'error', sessionId: null }] }, { id: 'd', suggested: true, history: [{ sessionId: 's9' }] }])), '[{"id":"a","sid":"s2"}]')
 eq('an automation is working when its latest session is running', mod.kbTasksRunningIds([{ id: 'a', sid: 's1' }, { id: 'b', sid: 's2' }, { id: 'c', sid: 'gone' }], { s1: { running: true }, s2: { running: false } }).join(','), 'a')
 eq('no sessions list: nothing is said to run', mod.kbTasksRunningIds([{ id: 'a', sid: 's1' }], null).length, 0)
 eq('a suggestion shows its proof: count, period, place', mod.kbSuggestionMeta({ origin: { proof: { n: 14, span: '60 days', where: 'Gmail', note: 'same request' } } }).line, '14\u00d7 \u00b7 60 days \u00b7 Gmail')
 eq('...and its note as the tooltip', mod.kbSuggestionMeta({ origin: { proof: { n: 14, note: 'same request' } } }).note, 'same request')
 eq('the apps asked for come from the suggestions and the automations that are on, with who asks', JSON.stringify(mod.kbTasksNeeds([{ name: 'A', suggested: true, needs: ['gmail', 'googlecalendar'] }, { name: 'B', active: true, needs: ['gmail'] }, { name: 'C', active: false, needs: ['slack'] }, { name: 'D', active: true }, null])), '{"gmail":["A","B"],"googlecalendar":["A"]}')
+eq('why an app is asked: run when an automation that is on needs it, set when only suggestions do', JSON.stringify(mod.kbTasksNeedsKind([{ name: 'A', suggested: true, needs: ['gmail', 'googlecalendar'] }, { name: 'B', active: true, needs: ['gmail'] }, { name: 'C', active: false, needs: ['slack'] }, { name: 'D', active: true }, null])), '{"gmail":"run","googlecalendar":"set"}')
 eq('a suggestion with no proof shows nothing', JSON.stringify(mod.kbSuggestionMeta({ name: 'x' })), '{"line":"","note":""}')
 {
   // The plain summary of a suggestion: job = first line of the prompt, steps = the other lines without their numbers, why = the note of the proof.
@@ -233,8 +254,11 @@ eq('a paused webhook test is explained', mod.kbTaskError('automation paused', en
   eq('every translation key of the new code exists in both languages', missing.join(',') || 'none', 'none')
   const unreferenced = Object.keys(table).filter((k) => /^tasks\.(filter\.fromchat|origin\.(chat|template)|waiting|newautomation|desc|new|approvals|pausednodate|none|fire\.now|monday8|friday16|status\.(awaiting|ok|failed|paused)|runs\.(title|count|logs|model|steps)|journal\.(who|approvals\.none))$/.test(k))
   eq('keys proved dead are gone', unreferenced.join(',') || 'none', 'none')
-  const dups = {}; for (const line of src.split('\n')) { const t = /^\s*'(tasks\.[A-Za-z0-9_.]+)':\s*\{/.exec(line); if (t !== null) dups[t[1]] = (dups[t[1]] || 0) + 1 }
+  // The files are flat, one `"key": "text",` per line: JSON.parse keeps the last of two equal keys without a word, so the raw lines are counted.
+  const dups = {}
+  for (const lang of ['fr', 'en']) for (const line of readFileSync(I18N_DIR + '/' + lang + '.json', 'utf8').split('\n')) { const t = /^\s+"(tasks\.[A-Za-z0-9_.]+)":/.exec(line); if (t !== null) dups[lang + ': ' + t[1]] = (dups[lang + ': ' + t[1]] || 0) + 1 }
   eq('no tasks.* key is defined twice (the second silently won)', Object.keys(dups).filter((k) => dups[k] > 1).join(',') || 'none', 'none')
+  eq('...and the raw files were read (a key counted once, in each language)', Object.keys(dups).length >= 100 && Object.values(dups).every((n) => n >= 1), true)
 }
 
 /* ── The page itself uses the helpers (static checks on the source) ──────── */

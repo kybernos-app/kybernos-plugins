@@ -1,7 +1,7 @@
 {
   "what": {
-    "fr": "Ajoute un bouton « App » aux panneaux Briques, Modeleur et Slides : il en fait une petite app macOS flottante, qui reste ouverte même quand DSH est fermé.",
-    "en": "Adds an “App” button to the Bricks, 3D modeller and Slides panels: it turns the panel into a small floating macOS app that stays open even when DSH is closed."
+    "fr": "Ajoute un bouton « App » aux panneaux Briques, Modeleur et Slides : il en fait une petite app macOS flottante, qui reste ouverte même quand Kybernos est fermé.",
+    "en": "Adds an “App” button to the Bricks, 3D modeller and Slides panels: it turns the panel into a small floating macOS app that stays open even when Kybernos is closed."
   },
   "steps": [
     {

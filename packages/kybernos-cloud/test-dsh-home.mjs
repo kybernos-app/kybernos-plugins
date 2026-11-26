@@ -169,6 +169,14 @@ const hit = async (path, method, body) => {
   }), res)
   return res
 }
+// The same, from a page of `origin`, keeping the headers the route set (the chat detail's CORS).
+const hitFrom = async (path, origin) => {
+  const handler = routes.get(path.split('?')[0])
+  const headers = {}
+  const res = { status: 0, body: null, setHeader(k, v) { headers[k.toLowerCase()] = v }, writeHead(s) { this.status = s }, end(p) { this.body = p === undefined || p === '' ? null : JSON.parse(p) } }
+  await handler(asBrowser(path, { method: 'GET', url: path, headers: { host: '127.0.0.1:3080', origin }, async *[Symbol.asyncIterator]() {} }), res)
+  return { status: res.status, body: res.body, headers }
+}
 
 try {
   console.log('Kybernos Cloud — DSH_HOME')
@@ -222,6 +230,19 @@ try {
   const missing = await hit('/kybernos-cloud/chats/detail?dsh_id=' + DECOY_SESSION, 'GET')
   assert.equal(missing.body.ok, false, 'a session that only exists in the decoy must not be found')
   ok('a chat is read from $DSH_HOME/sessions only')
+
+  // The whole chat goes to the dev webapp's origins only: a page of another site, or an opaque one (a sandboxed frame sends the origin null), is refused,
+  // and no answer ever says Access-Control-Allow-Origin null (a browser lets an opaque page read that).
+  for (const origin of ['null', 'https://evil.example']) {
+    const r = await hitFrom('/kybernos-cloud/chats/detail?dsh_id=' + SESSION, origin)
+    assert.equal(r.status, 403, origin + ' is refused')
+    assert.equal(JSON.stringify(r.body).includes('hello from real'), false, origin + ' reads nothing')
+    assert.notEqual(r.headers['access-control-allow-origin'], 'null', origin + ': never ACAO null')
+  }
+  const dev = await hitFrom('/kybernos-cloud/chats/detail?dsh_id=' + SESSION, 'http://localhost:8081')
+  assert.equal(dev.body.ok, true, 'the dev webapp still reads it')
+  assert.equal(dev.headers['access-control-allow-origin'], 'http://localhost:8081')
+  ok('the chat detail answers the dev webapp, never a foreign or opaque page')
 
   const install = await hit('/kybernos-cloud/marketplace/install', 'POST', { slug: 'support-concierge' })
   assert.equal(install.body.ok, true, JSON.stringify(install.body))

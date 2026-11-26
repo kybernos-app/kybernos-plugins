@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { hashPassword, parseVerifier } from './password.mjs'
+import { pageKey } from './page-link.mjs'
 
 export class ConfigError extends Error {}
 
@@ -87,6 +88,8 @@ export async function loadConfig (env = process.env, { warn = () => {}, hashPara
     user,
     verifier,
     ticket,
+    // The key of the Journal pages a cloud computer hands out for a few minutes (page-link.mjs): only where the computer's token is known, so only on a cloud computer.
+    pageKey: ticket === null ? null : pageKey(ticket.token),
     trustProxy: flag(env.KYBERNOS_GATE_TRUST_PROXY),
     sessionDays: integer('KYBERNOS_GATE_SESSION_DAYS', env.KYBERNOS_GATE_SESSION_DAYS, 30, 1, 365),
     dshHome,

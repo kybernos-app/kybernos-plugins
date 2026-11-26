@@ -18,6 +18,7 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   without calling any model. Only when the words say nothing is the **Study model** asked (see below); its answer is kept only if
   it is one of the eight categories (`motif: 'choisi'`), otherwise the row keeps its neutral speech bubble. A row whose title
   changes after an automatic classification is judged again (« Greeting » becomes the real subject).
+  The title text is found wherever the engine puts it (from 0.2.3-alpha.2 it sits one level down, in a wrapper): the placeholder bubble and the category icon go before that wrapper (2026-11-24; before this no row got its icon on that engine, and the automatic classification, which starts from the placeholder, never ran).
 - **Settings ▸ General ▸ Kybernos Settings** (slot `settings.general.item`, order -30): replay onboarding (its last page is the starter kit: no row of its own), *Name each chat when it ends*,
   *Study model*. The bundle also reorders the native Settings navigation into a
   "Kybernos" and a "DSH" group and hides the native Appearance and Font-size rows and the version footer, by position.
@@ -52,6 +53,8 @@ Under `/kybernos-sessions/`. Every action route is a **dry run unless the body h
 | `POST commit` | add only this chat's files, commit, merge if in a worktree; **sends to GitHub only with `push:true`** (a bare POST stays local; the page's « Save my work » and « Add to project » say it, after the dry run shows the `git push`) |
 | `POST close-check` · `close` | can the worktree be closed; merge then remove it |
 | `POST push` · `fetch` · `sync` · `pr` | `git push` / `fetch` / both; `gh pr create`, or `{action:'merge'}` |
+| `GET rewind/turns?session=<id>` | list recorded pre-mutation checkpoints (turns and rescue points) for a chat, newest first |
+| `POST rewind` | dry-run plan (`exec: false`) or restore files to a checkpoint (`exec: true`, automatic rescue point saved first), git and non-git |
 | `GET\|POST settings` · `GET\|POST categories` | the two JSON files below |
 | `POST decision` · `GET\|POST brain/health` | the closed questions (`{categorie}` or `{kybers, demande}`) · probe every configured model |
 
@@ -95,7 +98,7 @@ The settings route refuses with `invalid-brain`, `invalid-voice-input`, `invalid
 - CLI tools, not loaded by DSH: `garde.mjs` (agent hook: `--isoler`, `--claim|--release <hot file>`, `--check`,
   `--veille [--install|--uninstall|--etat]`; state in `kybernos/{hot-claims.json,last-good/,veille-bundle.log}`; the permanent
   `--veille` writes a macOS LaunchAgent and puts back the last parsable copy of a hot client file, so never run it while someone
-  edits one) and `proof-sync.mjs` (mirrors agent team lessons into `<project>/.kybers/`).
+  edits one), `proof-sync.mjs` (mirrors agent team lessons into `<project>/.kybers/`), and `skills/chat-import/scripts/import-chats.mjs` (tested CLI + `SKILL.md` importing ChatGPT, Claude, Cursor, and Codex histories into local DSH sessions with `--dry-run` and deduplication).
 
 ## DSH seams, network
 

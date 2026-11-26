@@ -4,12 +4,13 @@
 // Usage: node packages/kybernos-plugin/test-automation-templates.mjs   (exit 0 = everything passes)
 import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { entriesMatching, execEntry } from './lib-i18n-test.mjs'
 
 const src = readFileSync(fileURLToPath(new URL('./client.js', import.meta.url)), 'utf8')
 const parts = src.split('// KB-AUTOTPL-BEGIN')
 if (parts.length !== 2) { console.error('exactly one KB-AUTOTPL block expected in client.js'); process.exit(1) }
 const block = parts[1].split('// KB-AUTOTPL-END')[0]
-const m = await import('data:text/javascript,' + encodeURIComponent(block + '\nexport { KB_TPL_CATS, KB_TPLS, kbTplText, kbTplFilter, kbTplStepKind, kbTplChatText, kbTplSlug, kbTplSvgOk, kbTplLogos, kbTplLangName }'))
+const m = await import('data:text/javascript,' + encodeURIComponent(block + '\nexport { KB_TPL_CATS, KB_TPLS, kbTplText, kbTplFilter, kbTplStepKind, kbTplChatText, kbTplSlug, kbTplSvgOk, kbTplLogos, kbTplLangName, KB_CORE_AUTOS, kbCoreOf, kbCoreName }'))
 
 let fails = 0
 const eq = (label, got, want) => {
@@ -21,13 +22,13 @@ const fr = (p) => p[1]
 
 // The fixed words of the chat text, read from the page's own pairs.
 const pairs = {}
-for (const x of src.matchAll(/'(tasks\.tpl\.[\w.]+|tasks\.tab\.(?:yours|discover))': \{ kybernos: '((?:[^'\\]|\\.)*)', en: '((?:[^'\\]|\\.)*)' \}/g)) pairs[x[1]] = { fr: x[2], en: x[3] }
+for (const [k, frText, enText] of entriesMatching(/^(?:tasks\.tpl\.[\w.]+|tasks\.tab\.(?:yours|discover))$/)) pairs[k] = { fr: frText, en: enText }
 const trEn = (k) => (pairs[k] !== undefined ? pairs[k].en : 'MISSING:' + k)
 const trFr = (k) => (pairs[k] !== undefined ? pairs[k].fr : 'MISSING:' + k)
 
 /* ── The catalogue ───────────────────────────────────────────────────────── */
 eq('four categories, each with a title in both languages and a colour of the theme (no literal hex)', m.KB_TPL_CATS.map((c) => [c.id, c.title.length, /^var\(--dsw-alias-state-(warn|business|success)-primary\)$/.test(c.color)]), [['social', 2, true], ['prospecting', 2, true], ['support', 2, true], ['skills', 2, true]])
-eq('twelve templates, none twice', [m.KB_TPLS.length, new Set(m.KB_TPLS.map((t) => t.id)).size], [12, 12])
+eq('thirteen templates, none twice', [m.KB_TPLS.length, new Set(m.KB_TPLS.map((t) => t.id)).size], [13, 13])
 eq('every template belongs to a category', m.KB_TPLS.every((t) => m.KB_TPL_CATS.some((c) => c.id === t.cat)), true)
 {
   const pairOk = (p) => Array.isArray(p) === true && p.length === 2 && typeof p[0] === 'string' && typeof p[1] === 'string' && p[0].trim().length > 0 && p[1].trim().length > 0
@@ -41,7 +42,8 @@ eq('every template belongs to a category', m.KB_TPLS.every((t) => m.KB_TPL_CATS.
 }
 eq('a step is a model step or a tool step, one to six per template', m.KB_TPLS.every((t) => t.steps.length >= 2 && t.steps.length <= 6 && t.steps.every((s) => s[0] === 'ai' || s[0] === 'act')), true)
 eq('each template asks two to four questions, each with at least two options', m.KB_TPLS.every((t) => t.ask.length >= 2 && t.ask.length <= 4 && t.ask.every((q) => q.o.length >= 2)), true)
-eq('each template says what it needs, what it is bound by, and has tags and apps', m.KB_TPLS.every((t) => t.needs.length > 0 && t.guard.length > 0 && t.tags.length > 0 && t.apps.length > 0), true)
+eq('each template says what it needs, what it is bound by, and has tags and apps', m.KB_TPLS.every((t) => t.needs.length > 0 && t.guard.length > 0 && t.tags.length > 0 && (t.apps.length > 0 || en(t.tags[0]) === 'On this computer')), true)
+eq('...only a template that runs on this computer alone has no app, and says so in its first tag', m.KB_TPLS.filter((t) => t.apps.length === 0).map((t) => [t.id, en(t.tags[0]), fr(t.tags[0])]), [['memory-tidy', 'On this computer', 'Sur cet ordinateur']])
 eq('a schedule is a five-field cron, or null for a template a webhook starts', m.KB_TPLS.every((t) => t.cron === null || /^\S+ \S+ \S+ \S+ \S+$/.test(t.cron)), true)
 eq('a template that no schedule starts says a webhook does', m.KB_TPLS.filter((t) => t.cron === null).every((t) => /webhook/i.test(en(t.cadence)) && /webhook/i.test(fr(t.cadence))), true)
 eq('the first memory check of a heavy template is a step of its own, written PREFLIGHT', m.KB_TPLS.filter((t) => t.tags.some((x) => en(x) === 'Memory check')).every((t) => /^PREFLIGHT/.test(en(t.steps[0][1]))), true)
@@ -64,6 +66,30 @@ eq('the icons are ones the page draws', m.KB_TPLS.map((t) => t.icon).filter((i) 
 }
 
 {
+  // The core automation "Tidy memory & lessons" (automation-core.mjs): the host makes it by itself; this card makes it again after a deletion.
+  const core = await import('./automation-core.mjs')
+  const t = m.KB_TPLS.find((x) => x.id === 'memory-tidy')
+  eq('the memory tidy template exists, daily at 03:30, in the skills category', [t !== undefined, t.cat, t.cron], [true, 'skills', '30 3 * * *'])
+  eq('its schedule is the host\u2019s own', t.cron, core.MEMORY_TIDY_CRON)
+  eq('its title is the core pair, the same names as the host\u2019s', [en(t.title), fr(t.title)], [core.MEMORY_TIDY_NAMES.en, core.MEMORY_TIDY_NAMES.fr])
+  eq('the French name is the one asked for', fr(t.title), 'Ranger m\u00e9moire et le\u00e7ons')
+  eq('it calls memory_tidy once and nothing else', [/memory_tidy tool once/.test(en(t.steps[0][1])), /no other tool/.test(en(t.steps[0][1])), /memory_tidy une seule fois/.test(fr(t.steps[0][1]))], [true, true, true])
+  eq('its guard says approvals are automatic because everything is local and undoable, in both languages', t.guard.some((g) => /automatic/.test(en(g)) && /can be undone/.test(en(g)) && /automatiques/.test(fr(g)) && /peut \u00eatre annul\u00e9/.test(fr(g))), true)
+  eq('its chat text names the tool', /memory_tidy/.test(m.kbTplChatText(t, trEn, en)), true)
+  eq('the integrations section is not drawn for a template with no app', /\(tpl\.apps\.length > 0 \? h\('section', \{ className: 'kba-card kbtd-sec kbtd-integ'/.test(src), true)
+
+  // The name a core automation shows, and its mark.
+  eq('a core id is read from `core` only, and only a known one', [m.kbCoreOf({ core: 'memory-tidy' }), m.kbCoreOf({ core: 'other' }), m.kbCoreOf({ core: 'toString' }), m.kbCoreOf({}), m.kbCoreOf(null)], ['memory-tidy', null, null, null, null])
+  eq('a core automation with its own name is shown in the page\u2019s language', [m.kbCoreName({ core: 'memory-tidy', name: 'Tidy memory & lessons' }, fr), m.kbCoreName({ core: 'memory-tidy', name: 'Ranger m\u00e9moire et le\u00e7ons' }, en), m.kbCoreName({ core: 'memory-tidy', name: 'Tidy memory & lessons' })], ['Ranger m\u00e9moire et le\u00e7ons', 'Tidy memory & lessons', 'Tidy memory & lessons'])
+  eq('a renamed core automation, or any other task, keeps its name', [m.kbCoreName({ core: 'memory-tidy', name: 'My tidy' }, fr), m.kbCoreName({ name: 'Tidy memory & lessons' }, fr), m.kbCoreName(null, fr)], ['My tidy', 'Tidy memory & lessons', ''])
+  const pair = (k) => { const x = execEntry(k); return x === null ? null : [x[2], x[1]] } // [en, fr]
+  eq('the mark says Core in both languages', pair('tasks.core.mark'), ['Core', 'Socle'])
+  eq('the delete confirmation of a core automation says it will not come back by itself', [/will not come back by itself/.test(pair('tasks.delete.core')[0]), /ne reviendra pas d\u2019elle-m\u00eame/.test(pair('tasks.delete.core')[1])], [true, true])
+  eq('the row draws the mark with the shared tag style (no new layout) only for a core automation', /a\.core === true \? h\('span', \{ className: 'kbm-tag kba-coremark', 'data-tone': 'info', 'data-kb': 'row-core'/.test(src), true)
+  eq('both delete buttons pass the core flag, and the confirmation adds the sentence', [/askDelete\(a\.id, a\.name, a\.core === true\)/.test(src), /askDelete\(t\.id, kbCoreName\(t, kbTplPick\) \|\| t\.id, kbCoreOf\(t\) !== null\)/.test(src), /body: kbt\('tasks\.delete\.body'\) \+ \(core === true \? ' ' \+ kbt\('tasks\.delete\.core'\) : ''\)/.test(src)], [true, true, true])
+}
+
+{
   // The daily TikTok video: the person validates each step, and the models are the account's own (nothing to enter).
   const t = m.KB_TPLS.find((x) => x.id === 'social-tiktok')
   const at = (re) => t.steps.findIndex((s) => re.test(en(s[1])))
@@ -80,13 +106,13 @@ eq('the icons are ones the page draws', m.KB_TPLS.map((t) => t.icon).filter((i) 
 
 /* ── Words and filters ───────────────────────────────────────────────────── */
 eq('a pair is read in the language `pick` chooses, English by default', [m.kbTplText(['a', 'b'], en), m.kbTplText(['a', 'b'], fr), m.kbTplText(['a', 'b']), m.kbTplText(null, en)], ['a', 'b', 'a', ''])
-eq('all templates when no category and no words', m.kbTplFilter(m.KB_TPLS, 'all', '', en).length, 12)
+eq('all templates when no category and no words', m.kbTplFilter(m.KB_TPLS, 'all', '', en).length, 13)
 eq('a category keeps its own', [m.kbTplFilter(m.KB_TPLS, 'social', '', en).length, m.kbTplFilter(m.KB_TPLS, 'prospecting', '', en).length, m.kbTplFilter(m.KB_TPLS, 'support', '', en).length], [4, 3, 4])
 eq('words are looked for in the title, the text, the tags and the apps', [m.kbTplFilter(m.KB_TPLS, 'all', 'whatsapp', en).map((t) => t.id), m.kbTplFilter(m.KB_TPLS, 'all', 'shopify', en).map((t) => t.id)], [['cs-whatsapp', 'cs-shopify'], ['cs-shopify']])
 eq('every word must match, in any order, whatever the case', m.kbTplFilter(m.KB_TPLS, 'all', 'CALL  outbound', en).map((t) => t.id), ['prosp-calls'])
 eq('the filter reads the page’s language: a French word finds the French text', [m.kbTplFilter(m.KB_TPLS, 'all', 'appels sortants', fr).map((t) => t.id), m.kbTplFilter(m.KB_TPLS, 'all', 'appels sortants', en).length], [['prosp-calls'], 0])
 eq('a category and words together', m.kbTplFilter(m.KB_TPLS, 'support', 'whatsapp', en).map((t) => t.id), ['cs-whatsapp', 'cs-shopify'])
-eq('nothing matches, nothing breaks', [m.kbTplFilter(m.KB_TPLS, 'all', 'zzzz', en), m.kbTplFilter(null, 'all', '', en), m.kbTplFilter(m.KB_TPLS, 'all', undefined, en).length], [[], [], 12])
+eq('nothing matches, nothing breaks', [m.kbTplFilter(m.KB_TPLS, 'all', 'zzzz', en), m.kbTplFilter(null, 'all', '', en), m.kbTplFilter(m.KB_TPLS, 'all', undefined, en).length], [[], [], 13])
 eq('a step kind is ai or act, act when unknown', [m.kbTplStepKind(['ai', ['x', 'y']]), m.kbTplStepKind(['act', ['x', 'y']]), m.kbTplStepKind(null), m.kbTplStepKind(['?'])], ['ai', 'act', 'act', 'act'])
 
 /* ── Logos and the page's language ──────────────────────────────────────── */
@@ -151,7 +177,7 @@ eq('the logos are filtered when the catalogue is read, never later', disc.indexO
 eq('no image is shipped or loaded: no data URI, no <image>, no external address', disc.indexOf('data:') < 0 && disc.indexOf("'image'") < 0 && /https?:\/\//.test(disc) === false, true)
 eq('the cover is drawn only on the page of one template, never on a card', (disc.match(/kbTplCover\(/g) || []).length === 1 && disc.indexOf("h('div', { className: 'kbtd-cover' }, kbTplCover(tpl)") >= 0, true)
 eq('Import and Use open a chat through the same call as Create and Edit in chat, with the page\'s language read at the click', src.indexOf('kbStartChatText(kbTplChatText(tpl, kbt, kbTplPick, kbTplLangName(kbLangResolve())))') >= 0, true)
-eq('the page has Yours and Discover, and Discover replaces the board and the list, not the header', src.indexOf("['yours', 'discover'].map(") >= 0 && src.indexOf("section === 'discover' ? h(KbDiscover, { onUse: useTemplate })") >= 0, true)
+eq('the page has Yours and Discover, and Discover replaces the board and the list, not the header', src.indexOf("{ id: 'yours', label: kbt(kbOnPhone() === true ? 'tasks.tab.active' : 'tasks.tab.yours') }") >= 0 && src.indexOf("{ id: 'discover', label: kbt('tasks.tab.discover') }") >= 0 && src.indexOf("section === 'discover' ? h(KbDiscover, { onUse: useTemplate })") >= 0, true)
 eq('the toolbar of the board belongs to Yours', src.indexOf("(list.length > 0 && section === 'yours'") >= 0, true)
 eq('a card opens the page of its template with Enter and Space as well as a click', /key === 'Enter' \|\| e\.key === ' '\) \{ e\.preventDefault\(\); selPair\[1\]\(t\.id\) \}/.test(disc), true)
 eq('Import does not also open the card behind it', disc.indexOf('e.stopPropagation(); props.onUse(t)') >= 0, true)

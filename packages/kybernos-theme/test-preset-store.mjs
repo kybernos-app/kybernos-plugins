@@ -14,7 +14,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   A11Y_KEYS, FILE_NAME, LIB_VERSION, LIMITS, MAX_BODY_BYTES, SETTINGS_KEYS,
-  applyPreset, createPresetStore, handlePresetStore, sanitizeLibrary, sanitizePreset, servePresetStore,
+  MENU_ID_RE, MENU_LIMITS, MENU_NEVER, MENU_SURFACES, SOURCES, menuHasContent, applyPreset, createPresetStore, handlePresetStore, sanitizeLibrary, sanitizeMenu, sanitizePreset, servePresetStore,
 } from './preset-store.mjs'
 
 let pass = 0
@@ -236,6 +236,102 @@ section('an import through the host entry (applyPreset)')
   const neither = handlePresetStore(store, { method: 'POST', body: { hello: 1 } })
   check('one body, one intention: import + library (or neither) is a 400 « invalid body »', both.status === 400 && both.body.error === 'invalid body' && neither.status === 400 && neither.body.error === 'invalid body', [both, neither])
   check('the whole-document write still replaces the library', handlePresetStore(store, { method: 'POST', body: { library: { presets: [good({ id: 'u-only' })], updatedAt: 3 } } }).status === 200 && store.read().library.presets.length === 1)
+  rmSync(dir, { recursive: true, force: true })
+}
+
+section('the menu arrangement (docs/dev/business-menu.md §4): one shape, the vectors every sanitizer agrees on')
+{
+  // The same vectors are pinned in kybernos-plugin (kbMenuPrefsClean) and in this package's client.js (menuClean).
+  const m1 = sanitizeMenu({ entries: [{ id: 'skills', shown: false, order: 5 }, { id: 'kyber', shown: true, order: 0 }], unlisted: 'hide' })
+  check('entries are sorted by order and renumbered 0..n-1', JSON.stringify(m1) === JSON.stringify({ entries: [{ id: 'kyber', shown: true, order: 0 }, { id: 'skills', shown: false, order: 1 }], unlisted: 'hide', locked: false }), m1)
+  const refused = ['workspaces', 'settings', 'account', 'projects', 'Kyber', 'a', 'x'.repeat(25)]
+  check('the host rows, capitals, one letter and a 25-character id are never stored', refused.every((id) => sanitizeMenu({ entries: [{ id, shown: true }] }).entries.length === 0), refused)
+  check('the never-hide list is exactly the host rows', JSON.stringify(MENU_NEVER) === JSON.stringify(['workspaces', 'projects', 'settings', 'account']))
+  check('a duplicate id keeps the first', JSON.stringify(sanitizeMenu({ entries: [{ id: 'kyber', shown: true }, { id: 'kyber', shown: false }] }).entries) === JSON.stringify([{ id: 'kyber', shown: true, order: 0 }]))
+  const lab = sanitizeMenu({ entries: [{ id: 'skills', shown: true, label: { en: '  Skills  ', fr: '', de: 'x', es: '<b>' } }] })
+  check('labels: tidied, empty / unknown language / angle brackets dropped', JSON.stringify(lab.entries[0].label) === JSON.stringify({ en: 'Skills' }), lab)
+  check('a label of 41 characters loses that language', sanitizeMenu({ entries: [{ id: 'skills', shown: true, label: { en: 'x'.repeat(MENU_LIMITS.label + 1), fr: 'Compétences' } }] }).entries[0].label.fr === 'Compétences'
+    && sanitizeMenu({ entries: [{ id: 'skills', shown: true, label: { en: 'x'.repeat(MENU_LIMITS.label + 1) } }] }).entries[0].label === undefined)
+  const many = Array.from({ length: 25 }, (_, i) => ({ id: 'row-' + i, shown: true }))
+  const cut = sanitizeMenu({ entries: many })
+  check('at most 24 entries, the first 24', cut.entries.length === MENU_LIMITS.entries && cut.entries[23].id === 'row-23', cut.entries.length)
+  const odd = sanitizeMenu({ entries: [{ id: 'kyber', shown: true }], unlisted: 'x', locked: 'yes' })
+  check('unlisted defaults to show and locked to false', odd.unlisted === 'show' && odd.locked === false, odd)
+  check('locked is true only for the boolean true', sanitizeMenu({ entries: [], locked: true }).locked === true)
+  check('entries that is not an array, or a non-object, is no menu', sanitizeMenu({ entries: 'x' }) === null && sanitizeMenu(null) === null && sanitizeMenu([]) === null && sanitizeMenu('x') === null && sanitizeMenu({}) === null)
+  check('an entry without a boolean shown is dropped; a non-integer order falls back to the position', sanitizeMenu({ entries: [{ id: 'kyber' }, { id: 'skills', shown: true, order: 1.5 }, { id: 'tasks', shown: true, order: 100 }] }).entries.map((e) => e.id + ':' + e.order).join() === 'skills:0,tasks:1')
+  check('the vocabulary matches the menu id rule', MENU_ID_RE.test('front-desk') && !MENU_ID_RE.test('front desk'))
+  check('a hostile object cannot pollute anything', (() => { sanitizeMenu(JSON.parse('{"entries":[{"id":"kyber","shown":true,"__proto__":{"x":1}}],"__proto__":{"y":2}}')); return ({}).x === undefined && ({}).y === undefined })())
+}
+
+section('the account menu and the Settings pages (surfaces) of a menu')
+{
+  const E = (id, shown, order) => (order === undefined ? { id, shown } : { id, shown, order })
+  const m = (surfaces, entries = [E('kyber', true)]) => sanitizeMenu({ entries, unlisted: 'show', surfaces })
+  check('the two surfaces are the account menu and the Settings pages, and nothing else', Object.keys(MENU_SURFACES).join() === 'secondary,settings' && Object.isFrozen(MENU_SURFACES) && Object.isFrozen(MENU_SURFACES.secondary.never))
+  check('what can never be hidden: the account, the referral, Settings and the sign-out in the account menu; General in Settings', MENU_SURFACES.secondary.never.join() === 'account,referral,settings,logout' && MENU_SURFACES.settings.never.join() === 'general')
+  check('a menu with no surfaces has no `surfaces` key (a document from before reads exactly as it did)', !('surfaces' in sanitizeMenu({ entries: [E('kyber', true)] })) && JSON.stringify(sanitizeMenu({ entries: [E('kyber', true, 0)] })) === JSON.stringify({ entries: [{ id: 'kyber', shown: true, order: 0 }], unlisted: 'show', locked: false }))
+  const a = m({ secondary: { entries: [E('feedback', false, 1), E('help', true, 0)], unlisted: 'hide' }, settings: { entries: [E('memory', false)], unlisted: 'show' } })
+  check('a surface keeps its entries, sorted and renumbered, and its `unlisted`', JSON.stringify(a.surfaces.secondary) === JSON.stringify({ entries: [{ id: 'help', shown: true, order: 0 }, { id: 'feedback', shown: false, order: 1 }], unlisted: 'hide' }) && a.surfaces.settings.entries[0].id === 'memory', a)
+  check('the key order is the same every time (entries, unlisted, locked, then surfaces: secondary then settings)', Object.keys(a).join() === 'entries,unlisted,locked,surfaces' && Object.keys(a.surfaces).join() === 'secondary,settings')
+  check('a surface carries no label (only the main menu can rename)', m({ secondary: { entries: [{ id: 'help', shown: true, label: { en: 'Aide' } }], unlisted: 'show' } }).surfaces.secondary.entries[0].label === undefined)
+  const never = m({ secondary: { entries: MENU_SURFACES.secondary.never.map((id) => E(id, false)).concat([E('help', false)]), unlisted: 'show' }, settings: { entries: [E('general', false), E('memory', false)], unlisted: 'show' } })
+  check('the never-hideable ids are not stored on their surface, the rest of the surface is', never.surfaces.secondary.entries.map((e) => e.id).join() === 'help' && never.surfaces.settings.entries.map((e) => e.id).join() === 'memory', never)
+  check('the account menu\'s never-list does not bind the Settings pages, nor the reverse', m({ settings: { entries: [E('account', false), E('referral', false)], unlisted: 'show' } }).surfaces.settings.entries.length === 2 && m({ secondary: { entries: [E('general', false)], unlisted: 'show' } }).surfaces.secondary.entries.length === 1)
+  check('a surface that says nothing (no entry, « show ») is left out; with « hide » it stays', m({ secondary: { entries: [], unlisted: 'show' } }).surfaces === undefined && m({ secondary: { entries: [], unlisted: 'hide' } }).surfaces.secondary.unlisted === 'hide' && m({ secondary: { entries: [E('account', false)], unlisted: 'show' } }).surfaces === undefined)
+  check('an unknown surface name is dropped', m({ drawer: { entries: [E('x', true)], unlisted: 'hide' } }).surfaces === undefined && m({ secondary: { entries: [E('help', true)], unlisted: 'show' }, drawer: { entries: [E('x', true)] } }).surfaces.drawer === undefined)
+  check('a surface that is not an object, or has no entries array, is dropped', ['x', 5, null, [], { entries: 'x' }, {}].every((v) => m({ secondary: v }).surfaces === undefined) && m('x').surfaces === undefined && m(null).surfaces === undefined && m([]).surfaces === undefined)
+  check('on a surface too: capitals, a bad id, a duplicate (first wins) and a non-boolean shown are dropped; a bad order falls back to the position', JSON.stringify(m({ settings: { entries: [E('Memory', false), E('a b', false), E('memory', false), E('memory', true), { id: 'skills' }, E('tasks', true, 1.5), E('hooks', true, 100)], unlisted: 'show' } }).surfaces.settings.entries) === JSON.stringify([{ id: 'memory', shown: false, order: 0 }, { id: 'tasks', shown: true, order: 1 }, { id: 'hooks', shown: true, order: 2 }]))
+  check('a surface holds at most its bound (24 for the account menu, 64 for the Settings pages)', m({ secondary: { entries: Array.from({ length: 40 }, (_, i) => E('item' + i, false)), unlisted: 'show' } }).surfaces.secondary.entries.length === 24 && m({ settings: { entries: Array.from({ length: 90 }, (_, i) => E('page' + i, false)), unlisted: 'show' } }).surfaces.settings.entries.length === 64)
+  check('cleaning twice gives the same document (idempotent)', JSON.stringify(sanitizeMenu(a)) === JSON.stringify(a) && JSON.stringify(sanitizeMenu(JSON.parse(JSON.stringify(a)))) === JSON.stringify(a))
+  check('a hostile surfaces object cannot pollute anything, nor its `__proto__` become a surface', (() => { const r = sanitizeMenu(JSON.parse('{"entries":[{"id":"kyber","shown":true}],"surfaces":{"__proto__":{"entries":[{"id":"x","shown":true}],"unlisted":"hide"},"secondary":{"entries":[{"id":"help","shown":false,"__proto__":{"z":1}}],"unlisted":"show"}}}')); return ({}).z === undefined && Object.keys(r.surfaces).join() === 'secondary' })())
+  check('menuHasContent: a main entry, or a surface, counts; an empty menu and null do not', menuHasContent(sanitizeMenu({ entries: [E('kyber', true)] })) === true && menuHasContent(m({ secondary: { entries: [], unlisted: 'hide' } }, [])) === true && menuHasContent(sanitizeMenu({ entries: [] })) === false && menuHasContent(null) === false && menuHasContent(undefined) === false)
+  const so = sanitizePreset({ id: 'u-surf1', name: 'Calm', source: 'me', at: 5, menu: { entries: [], surfaces: { settings: { entries: [E('memory', false)], unlisted: 'show' } } } })
+  check('a preset whose menu says something only on a surface is a menu-only preset', so.ok === true && so.preset.settings === undefined && so.preset.menu.surfaces.settings.entries[0].id === 'memory', so)
+  check('...but a menu that says nothing anywhere is still refused', sanitizePreset({ id: 'u-surf2', name: 'X', menu: { entries: [], surfaces: { secondary: { entries: [E('account', false)], unlisted: 'show' } } } }).ok === false)
+  const lib = sanitizeLibrary({ presets: [good()], updatedAt: 3, menu: a })
+  check('the library keeps the surfaces of the menu in use, and an older library reads as before', lib.ok === true && JSON.stringify(lib.library.menu) === JSON.stringify(a) && !('surfaces' in sanitizeLibrary({ presets: [good()], menu: { entries: [E('kyber', true)] } }).library.menu))
+  const dir = tmp()
+  const store = createPresetStore({ dir })
+  store.write({ presets: [good()], updatedAt: 10, menu: a })
+  check('written then read back, the surfaces are there', JSON.stringify(store.read().library.menu) === JSON.stringify(a), store.read())
+  rmSync(dir, { recursive: true, force: true })
+}
+
+section('a preset may hold an appearance, a menu, or both')
+{
+  const menu = { entries: [{ id: 'skills', shown: true }, { id: 'kyber', shown: false, label: { en: 'Home', fr: 'Accueil' } }], unlisted: 'show' }
+  const menuOnly = sanitizePreset({ id: 'u-menu1', name: 'Simple', source: 'me', at: 5, menu })
+  check('a menu-only preset is accepted (no settings key)', menuOnly.ok === true && menuOnly.preset.settings === undefined && menuOnly.preset.menu.entries.length === 2, menuOnly)
+  const both = sanitizePreset(good({ source: 'template', menu }))
+  check('a template holds both parts', both.ok === true && both.preset.source === 'template' && both.preset.settings.mode === 'light' && both.preset.menu.entries[1].label.fr === 'Accueil', both)
+  check('a menu with no usable entry and no settings is refused', sanitizePreset({ id: 'u-m2', name: 'X', menu: { entries: [{ id: 'settings', shown: false }] } }).ok === false && sanitizePreset({ id: 'u-m2', name: 'X', menu: { entries: [] } }).ok === false)
+  const bad = sanitizePreset(good({ menu: 'garbage' }))
+  check('a bad menu part is dropped, the appearance stays', bad.ok === true && bad.preset.menu === undefined && bad.preset.settings.mode === 'light', bad)
+  check('settings that is not an object is still refused, even next to a menu', sanitizePreset(good({ settings: 'x', menu })).ok === false)
+  check('every record of an older library (settings only) is unchanged', JSON.stringify(sanitizePreset(good()).preset) === JSON.stringify(sanitizePreset(good({ menu: undefined })).preset))
+  check('"template" is a source, nothing else is new', SOURCES.join() === 'me,file,gallery,template' && sanitizePreset(good({ source: 'hax' })).preset.source === 'file')
+}
+
+section('the menu in use travels with the library')
+{
+  const menu = { entries: [{ id: 'kyber', shown: true }, { id: 'tasks', shown: false }], unlisted: 'hide' }
+  const a = sanitizeLibrary({ presets: [good()], updatedAt: 3, menu })
+  check('the library keeps a valid menu in use', a.ok === true && a.library.menu.unlisted === 'hide' && a.library.menu.entries.length === 2, a)
+  check('no menu, null or garbage: the field is left out (the default menu)', ['', null, 'x', 5, { entries: 'x' }].every((m) => sanitizeLibrary({ presets: [good()], menu: m }).library.menu === undefined))
+  check('a library file from before this change reads exactly as it did', JSON.stringify(sanitizeLibrary({ v: 1, updatedAt: 7, presets: [good()] }).library) === JSON.stringify({ v: LIB_VERSION, updatedAt: 7, presets: [sanitizePreset(good()).preset] }))
+  const dir = tmp()
+  const store = createPresetStore({ dir })
+  const w = store.write({ presets: [good()], updatedAt: 10, menu })
+  const r = store.read()
+  check('written then read back, the menu in use is there', w.ok === true && r.library.menu.entries[1].id === 'tasks' && r.library.menu.entries[1].shown === false, r)
+  const imp = applyPreset(store, { name: 'Boutique', settings: { acc: '#C25E0A' }, menu: { entries: [{ id: 'aiteams', shown: true, label: { en: 'Shop team', fr: 'Équipe boutique' } }] }, source: 'template', gid: 'ecommerce' })
+  check('an import may bring a menu part and the template source', imp.ok === true && imp.preset.source === 'template' && imp.preset.menu.entries[0].label.en === 'Shop team', imp)
+  check('an import never drops the menu in use', store.read().library.menu.unlisted === 'hide', store.read())
+  const mo = applyPreset(store, { name: 'Simple', menu: { entries: [{ id: 'skills', shown: true }] } })
+  check('a menu-only import is accepted', mo.ok === true && mo.preset.settings === undefined, mo)
+  check('an import of nothing is refused', applyPreset(store, { name: 'Nothing' }).ok === false && applyPreset(store, { name: 'Nothing', menu: { entries: [] } }).ok === false)
+  check('an accessibility key in the settings of an import is still refused', applyPreset(store, { name: 'A11y', settings: { reduceMotion: true }, menu: { entries: [{ id: 'kyber', shown: true }] } }).ok === false)
   rmSync(dir, { recursive: true, force: true })
 }
 

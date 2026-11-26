@@ -232,7 +232,7 @@ window.__ModuleLoader__.load({
           const r = await fetch(API, { headers: { accept: 'application/json' } })
           const body = await r.json()
           store.entries = (body !== null && Array.isArray(body.entries) === true) ? body.entries : []
-          store.error = (body !== null && body.ok === false) ? String(body.error || 'indisponible : relance DSH une fois') : null
+          store.error = (body !== null && body.ok === false) ? String(body.error || 'indisponible : relance Kybernos une fois') : null
           // The version comes from the ROUTE: the client does not redefine it, so
           // it cannot drift from the shared model.
           diag.version = (body !== null && body !== undefined && body.version !== undefined) ? body.version : null
@@ -979,10 +979,10 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
 .kbsl-jsonbtn::before{content:"";position:absolute;inset:-5px 0}
 /* A phone (A3-22): the row's name kept about 50 px between the tile and the chip and three icon buttons (« / w… »), and the
    search field, 220 px wide at the end of the tab line, was cut by the page. The chip and the actions go on a line under the name,
-   the tabs wrap, and the search takes its own line. */
+   the tabs wrap, and the search takes its own line (the field's inline flex, 150 px, would otherwise win and cut « Search for a command… » to « Search for a »). */
 @media (max-width:520px){
 .kbsl-tabs{flex-wrap:wrap;row-gap:8px}
-.kbsl-tabs .kbsl-search{flex:1 1 100%;width:auto!important;margin-inline-start:0!important}
+.kbsl-tabs .kbsl-search{flex:1 1 100%!important;min-width:0!important;max-width:none!important;width:auto!important;margin-inline-start:0!important}
 .kbsl-lrow{flex-wrap:wrap;row-gap:4px}
 .kbsl-lrow>.kbsl-lmain{flex:1 1 calc(100% - 40px)}
 .kbsl-lrow>.kbsl-chip{margin-inline-start:40px}
@@ -1296,7 +1296,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         if (String(d.title).trim() === '') return { msg: 'Give it a name to save', go: 'title' }
         if (d.kind === 'slash') {
           if (kbCleanSlug(d.slug) === '') return { msg: 'Choose what you will type after /', go: 'slug' }
-          if (KB_DSH_COMMANDS.indexOf(kbCleanSlug(d.slug)) !== -1) return { msg: '/' + kbCleanSlug(d.slug) + ' is one of DSH’s own commands', go: 'slug' }
+          if (KB_DSH_COMMANDS.indexOf(kbCleanSlug(d.slug)) !== -1) return { msg: '/' + kbCleanSlug(d.slug) + ' is one of Kybernos’s own commands', go: 'slug' }
           if (kbSlugTaken(d)) return { msg: '/' + kbCleanSlug(d.slug) + ' is already used', go: 'slug' }
         }
         if (String(d.template).trim() === '') return { msg: 'Write the prompt', go: 'tpl' }
@@ -2189,7 +2189,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
             caption: L({ fr: 'Un prompt est enregistré comme commande, appelé avec « / » dans la zone de message, ou lancé depuis le bouton sous une réponse.', en: 'A prompt is saved as a command, called with “/” in the message box, or run from the button under a reply.' }),
             steps: [
               { t: L({ fr: 'Enregistre un prompt', en: 'Save a prompt' }), b: L({ fr: 'Écris-le ici avec « Nouvelle commande », ou enregistre ce que tu as tapé avec le bouton signet de la zone de message.', en: 'Write it here with “New command”, or save what you typed with the bookmark button in the message box.' }) },
-              { t: L({ fr: 'Appelle-le avec /', en: 'Call it with /' }), b: L({ fr: 'Tape « / » dans la zone de message : tes commandes s’affichent après celles de DSH. Choisis-en une, remplis son formulaire s’il y en a un.', en: 'Type “/” in the message box: your commands show after DSH’s own. Pick one and fill in its form, if it has one.' }) },
+              { t: L({ fr: 'Appelle-le avec /', en: 'Call it with /' }), b: L({ fr: 'Tape « / » dans la zone de message : tes commandes s’affichent après celles de Kybernos. Choisis-en une, remplis son formulaire s’il y en a un.', en: 'Type “/” in the message box: your commands show after Kybernos’s own. Pick one and fill in its form, if it has one.' }) },
               { t: L({ fr: 'Ou lance-le sur une réponse', en: 'Or run it on a reply' }), b: L({ fr: 'Sous une réponse de l’assistant, un bouton lance une action de message sur ce message ; « + » en ajoute une, le clic droit la modifie.', en: 'Under an assistant reply, a button runs a message action on that message; “+” adds one, right-click edits it.' }) }
             ],
             mock: {

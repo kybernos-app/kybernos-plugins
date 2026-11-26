@@ -6,7 +6,10 @@
 //     lessons-store.mjs — same rules as `<DSH home>/kybers/memory.cjs`);
 //   · it injects the lessons of the kyber a session runs (plus `default`) into the
 //     system prompt, in a small bounded chunk — never the lessons of every kyber;
-//   · it gives the agent three tools, `lesson_write`, `lesson_search` and `lesson_forget` (the last one asks the person first);
+//   · the chunk is an INDEX (id, title, summary per lesson; the ones that match the latest message in full), and the full text
+//     is read on demand with `lesson_read`;
+//   · it gives the agent five tools, `lesson_write`, `lesson_search`, `lesson_read`, `lesson_forget` (asks the person first) and
+//     `memory_tidy` (the lessons tidy-up, now);
 //   · it serves the routes of the "Memory & Lessons learned" page;
 //   · two switches, `lessons` and `context`, persisted in `<DSH home>/kybernos-memory.json`;
 //   · in a TEAM space (team-space.mjs asks kybernos-cloud) nothing here is injected, searched or written by the agent: personal
@@ -23,11 +26,12 @@
 import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
-import { LESSONS_NEAR_COUNT, LESSON_MAX_CHARS, activeKybers, addLesson, deleteLesson, dshHome, isKyberId, listKybers, listLessons, markUsed, readLessons, searchLessons, updateLesson, restoreLessons, retouchLesson, lessonId, parseLessonId } from './lessons-store.mjs'
+import { LESSONS_NEAR_COUNT, LESSON_MAX_CHARS, activeKybers, addLesson, deleteLesson, dshHome, isKyberId, listKybers, listLessons, markUsed, readLessons, searchLessons, updateLesson, restoreLessons, retouchLesson, lessonId, parseLessonId, lessonHeads, clipWords, archiveLessons, LESSON_TITLE_MAX, LESSON_SUMMARY_MAX } from './lessons-store.mjs'
 import { findDuplicateGroups, unclearPairs } from './dedupe.mjs'
 import { rank } from './relevance.mjs'
 import { writeGuard } from './session-guard.mjs'
-import { TIDY_SCHEDULES, normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyChoice, brainGroups, askModel, brainPrompt, parseVerdicts, BRAIN_BATCH, BRAIN_TIMEOUT_MS } from './tidy.mjs'
+import { TIDY_SCHEDULES, normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, AUTO_MAX_BRAIN_MERGES, autoRequest, removalChunks, readStudyChoice, brainGroups, askModel, brainPrompt, parseVerdicts, textHash, BRAIN_BATCH, BRAIN_TIMEOUT_MS } from './tidy.mjs'
+import { COMPACT_BATCH, COMPACT_MAX_CALLS, COMPACT_TEXT_MAX, askCompactions, needsCompaction } from './compact.mjs'
 import { TEAM_SPACE_REFUSAL, inTeamSpace, lessonsCut, touchesPersonalMemory } from './team-space.mjs'
 import { importClaudeMemories, readStaging, writeStaging, setEntryStatus, statusCounts, scanClaudeMemory } from './claude-import.mjs'
 
@@ -71,9 +75,14 @@ const writeSettings = (settings) => {
 const CHUNK_NAME = 'kybernos:lessons'
 const CHUNK_ORDER = 135
 const CHUNK_MAX_CHARS = 2400
-// The frame (head, "more" line, closing instruction) counts inside the cap: the cap
-// bounds the whole injected text, not only the lesson lines.
-const CHUNK_FRAME_CHARS = 460
+// The frame (head, index note, "more" line, closing instruction) counts inside the cap: the cap bounds the whole injected
+// text, not only the lesson lines. Each part is measured, not guessed.
+const INDEX_NOTE = 'The other lessons, one line each (id title : summary). Before you rely on one, read its full text with lesson_read (up to 5 ids per call).'
+// One door (2026-11-20): 148 of his 212 lessons were written by a script outside this bundle, which none of the rules here could see.
+const RECORD_LINE = 'Record a new lesson with lesson_write only when an expectation was contradicted: one falsifiable sentence. lesson_write is the only door: never a file or a script.'
+const moreLine = (n) => '- \u2026 (' + String(n) + ' more not shown: lesson_search to look them up)'
+/** The widths of the "title : summary" part of an index line, widest first (planLessons takes the widest at which every lesson fits). */
+export const INDEX_WIDTHS = [200, 160, 130, 110, 96, 84, 72, 64, 56, 48, 42, 36]
 const CHUNK_HEAD = '[KYBERNOS LESSONS]'
 const ACTIVE_SHARE = 0.7
 
@@ -85,6 +94,25 @@ const sanitize = (text) => String(text)
 const lessonLine = (lesson) => '- [' + lesson.kyber + '] ' + sanitize(lesson.text) + (lesson.tags.length > 0 ? ' ' + lesson.tags.map((t) => '#' + t).join(' ') : '')
 
 const usefulFirst = (a, b) => (b.uses || 0) - (a.uses || 0) || (Date.parse(b.ts) || 0) - (Date.parse(a.ts) || 0)
+
+const headLine = (kybers) => CHUNK_HEAD + ' Lessons learned on this machine' + (kybers.length === 0 ? '' : ' (your agent ' + (kybers.length > 1 ? 'teams' : 'team') + ': ' + kybers.join(', ') + ')') + ':'
+
+/**
+ * One index entry: `- <id> <title> : <summary>` with the "title : summary" part within `width` characters. A summary that starts
+ * with the title (what the fallback of an old line gives) is shown alone; when the width leaves too little for a summary, the title alone.
+ * A lesson with no title of its own and a text no longer than a title is shown whole: reading it again would cost more.
+ */
+export const indexLine = (lesson, width) => {
+  const heads = lessonHeads(lesson)
+  const stem = heads.title.replace(/\u2026$/, '')
+  const whole = clipWords(lesson.text, LESSON_MAX_CHARS + 1)
+  let body
+  if (!heads.own && whole.length <= Math.max(width, LESSON_TITLE_MAX)) body = whole
+  else if (heads.summary.startsWith(stem)) body = clipWords(heads.summary, width)
+  else if (heads.title.length + 3 + 16 <= width) body = heads.title + ' : ' + clipWords(heads.summary, width - heads.title.length - 3)
+  else body = clipWords(heads.title, width)
+  return '- ' + lesson.id + ' ' + sanitize(body)
+}
 
 // ── The lessons that matter to THIS question ───────────────────────────────
 // The base selection (most used, then newest) cannot know what the user is asking: a kyber holds up to 50 lessons and
@@ -166,48 +194,75 @@ export const pickRelevant = (sessionId, candidates) => {
 }
 
 /**
- * Which lessons a session reads. The kybers the session runs share most of the budget (the ones that hold no lesson do not
- * count in the split), `default` (the general lessons) gets the rest. Inside the budget the lessons that match the user's
- * latest message come first (at most their own share), then the most used, then the newest. A lesson too long for what is
- * left is skipped, not a stopper.
+ * Which lessons a session reads, and how. The block is an INDEX, like the skills list: the lessons that clearly match the user's
+ * latest message are written in full (at most their own share of the budget), every other lesson that fits is one line,
+ * `- <id> <title> : <summary>`, and the model reads a full text with lesson_read before it relies on it. The selection is the one
+ * the block always had: the kybers the session runs share 70 % of the budget (the ones that hold no lesson do not count in the
+ * split), `default` (the general lessons) gets the rest, and inside a team the most used come first, then the newest. What a share
+ * leaves unused (default needed less) goes back to the teams.
+ * The index lines are as wide as the budget allows: the widest of INDEX_WIDTHS at which every lesson fits, else the narrowest
+ * and as many as fit. Everything here depends only on the files and the pick, so the text is byte-identical while they stay the same.
  * `sessionId` also decides the relevance pick: the page (no session) shows the base selection, the prompt shows both.
  */
 export const planLessons = (sessionId, options = {}) => {
   const running = activeKybers(sessionId)
   const actives = running.filter((kyber) => kyber !== 'default')
   const kybers = [...actives, 'default']
-  const budget = Math.max(0, CHUNK_MAX_CHARS - CHUNK_FRAME_CHARS)
+  const frame = headLine(running).length + 1 + INDEX_NOTE.length + 1 + moreLine(999).length + 1 + 1 + RECORD_LINE.length
+  const budget = Math.max(0, CHUNK_MAX_CHARS - frame)
   const all = kybers.flatMap((kyber) => readLessons(kyber).map((l) => ({ ...l, kyber, id: lessonId(kyber, l) })))
   const wantRelevant = options.relevant === true && typeof sessionId === 'string'
   const preferred = wantRelevant ? pickRelevant(sessionId, all) : []
-  const chosen = []
-  const picked = []
-  let used = 0
-  let relevantUsed = 0
-  let omitted = 0
   const relevantCap = Math.floor(budget * RELEVANCE_TUNING.share)
   const activeCap = Math.floor(budget * ACTIVE_SHARE / Math.max(1, actives.filter((kyber) => all.some((l) => l.kyber === kyber)).length))
   const groupUsed = kybers.map(() => 0)
-  const take = (lesson, i) => {
-    const cost = lessonLine(lesson).length + 1
-    if (used + cost > budget || (i < actives.length && groupUsed[i] + cost > activeCap)) return false
-    chosen.push(lesson)
-    used += cost
-    groupUsed[i] += cost
-    return true
-  }
-  // what matches the question, right after nothing else and BEFORE the most used, within its own share
+  const full = []
+  let used = 0
+  let relevantUsed = 0
+  // what matches the question, in full, BEFORE anything else and within its own share
   for (const lesson of preferred) {
     const i = kybers.indexOf(lesson.kyber)
     const cost = lessonLine(lesson).length + 1
-    if (relevantUsed + cost > relevantCap) continue
-    if (take(lesson, i)) { relevantUsed += cost; picked.push(lesson) }
+    if (relevantUsed + cost > relevantCap || used + cost > budget || (i < actives.length && groupUsed[i] + cost > activeCap)) continue
+    full.push(lesson)
+    used += cost
+    relevantUsed += cost
+    groupUsed[i] += cost
   }
-  kybers.forEach((kyber, i) => {
-    const lessons = all.filter((l) => l.kyber === kyber && !chosen.includes(l)).sort(usefulFirst)
-    for (const lesson of lessons) { if (!take(lesson, i)) omitted += 1 }
-  })
-  return { kybers: running, chosen, picked: picked.map((l) => l.id), used, omitted, cap: CHUNK_MAX_CHARS }
+  const rest = []
+  kybers.forEach((kyber, i) => { for (const lesson of all.filter((l) => l.kyber === kyber && !full.includes(l)).sort(usefulFirst)) rest.push({ lesson, i, k: rest.length }) })
+  const fill = (width) => {
+    const g = groupUsed.slice()
+    let u = used
+    const shown = []
+    const take = (x, capped) => {
+      const line = indexLine(x.lesson, width)
+      const cost = line.length + 1
+      if (u + cost > budget || (capped && x.i < actives.length && g[x.i] + cost > activeCap)) return false
+      shown.push({ lesson: x.lesson, line, k: x.k })
+      u += cost
+      g[x.i] += cost
+      return true
+    }
+    const skipped = rest.filter((x) => !take(x, true))
+    // what is left goes back to the teams in turn, one lesson each, so that two full teams still get the same share
+    const queues = kybers.map((kyber, i) => skipped.filter((x) => x.i === i))
+    let omitted = 0
+    for (let open = true; open;) {
+      open = false
+      for (const q of queues) {
+        if (q.length === 0) continue
+        if (take(q[0], false)) { q.shift(); open = true } else { omitted += q.length; q.length = 0 }
+      }
+    }
+    return { shown: shown.sort((a, b) => a.k - b.k), omitted, used: u, width }
+  }
+  let index = fill(INDEX_WIDTHS[0])
+  for (let w = 1; w < INDEX_WIDTHS.length && index.omitted > 0; w++) index = fill(INDEX_WIDTHS[w])
+  return {
+    kybers: running, full, index: index.shown.map((x) => ({ id: x.lesson.id, line: x.line })), chosen: [...full, ...index.shown.map((x) => x.lesson)],
+    picked: full.map((l) => l.id), used: index.used, omitted: index.omitted, width: index.width, cap: CHUNK_MAX_CHARS,
+  }
 }
 
 const sessionIdOf = (context) => {
@@ -218,18 +273,21 @@ const sessionIdOf = (context) => {
 export const renderLessonsChunk = (context) => {
   try {
     // A team space: no lesson goes in, and the agent is told why — a global rule or the memory.cjs habit would otherwise go on recording them.
-    if (lessonsCut()) return CHUNK_HEAD + ' This is a team space: the person\'s own lessons are not available here and none can be recorded (no lesson_write, no lesson_search, no memory.cjs lesson). To share a lesson with the team, the person uses "Propose to team".'
+    if (lessonsCut()) return CHUNK_HEAD + ' This is a team space: the person\'s own lessons are not available here and none can be recorded (no lesson_write, no lesson_search, no lesson_read, no memory.cjs lesson). To share a lesson with the team, the person uses "Propose to team".'
     const settings = readSettings()
     // Switched off: say so in one line, so an agent that was told elsewhere to record
     // lessons (a global rule, the memory.cjs habit) knows the user has turned it off.
     if (settings.lessons !== true) return CHUNK_HEAD + ' Lesson recording is turned off by the user: do not record lessons (no lesson_write, no memory.cjs lesson).'
-    if (settings.context !== true) return ''
+    // Recording is on but nothing is injected (context off, or no lesson yet): the one door is still named, in one short line.
+    const door = CHUNK_HEAD + ' ' + RECORD_LINE
+    if (settings.context !== true) return door
     const plan = planLessons(sessionIdOf(context), { relevant: settings.relevant === true })
-    if (plan.chosen.length === 0) return ''
-    const lines = [CHUNK_HEAD + ' Lessons learned on this machine' + (plan.kybers.length === 0 ? '' : ' (your agent ' + (plan.kybers.length > 1 ? 'teams' : 'team') + ': ' + plan.kybers.join(', ') + ')') + ':']
-    plan.chosen.forEach((l) => lines.push(lessonLine(l)))
-    if (plan.omitted > 0) lines.push('- … (' + String(plan.omitted) + ' more not shown: lesson_search to look them up)')
-    lines.push('', 'Record a new lesson with lesson_write only when an expectation was contradicted: one falsifiable sentence.')
+    if (plan.chosen.length === 0) return door
+    const lines = [headLine(plan.kybers)]
+    plan.full.forEach((l) => lines.push(lessonLine(l)))
+    if (plan.index.length > 0) lines.push(INDEX_NOTE, ...plan.index.map((x) => x.line))
+    if (plan.omitted > 0) lines.push(moreLine(plan.omitted))
+    lines.push('', RECORD_LINE)
     return lines.join('\n')
   } catch (e) {
     return ''
@@ -244,14 +302,16 @@ const DEFAULT_KYBER = 'default'
 
 const lessonWriteTool = () => ({
   name: 'lesson_write',
-  description: 'Records a lesson learned in an agent team: ONE falsifiable sentence, only when an expectation was contradicted. Never fabricate one to fill a box.',
+  description: 'Records a lesson learned in an AI agent team: ONE falsifiable sentence, only when an expectation was contradicted. Never fabricate one to fill a box.',
   parameters: {
     type: 'object',
     additionalProperties: false,
     properties: {
       text: { type: 'string', description: 'The lesson, one sentence (cut at ' + String(LESSON_MAX_CHARS) + ' characters).' },
-      kyber: { type: 'string', description: 'The agent team the lesson belongs to. Default: "default".' },
+      kyber: { type: 'string', description: 'The AI agent team the lesson belongs to. Default: "default".' },
       tags: { type: 'array', items: { type: 'string' }, description: 'Up to 5 short lower-case tags.' },
+      title: { type: 'string', description: 'Optional: a few words that name the lesson in the index (cut at ' + String(LESSON_TITLE_MAX) + ' characters).' },
+      summary: { type: 'string', description: 'Optional: what the lesson says, in one line (cut at ' + String(LESSON_SUMMARY_MAX) + ' characters).' },
     },
     required: ['text'],
   },
@@ -267,7 +327,7 @@ const lessonWriteTool = () => ({
   async execute(args) {
     if (lessonsCut()) return { ok: false, error: TEAM_SPACE_REFUSAL }
     if (readSettings().lessons !== true) return { ok: false, error: 'lecons_desactivees' }
-    const made = addLesson(typeof args.kyber === 'string' && args.kyber !== '' ? args.kyber : DEFAULT_KYBER, { text: args.text, tags: args.tags, from: 'lesson_write' })
+    const made = addLesson(typeof args.kyber === 'string' && args.kyber !== '' ? args.kyber : DEFAULT_KYBER, { text: args.text, tags: args.tags, title: args.title, summary: args.summary, from: 'lesson_write' })
     if (made.ok !== true) return { ok: false, error: made.error, ...(made.kybers === undefined ? {} : { kybers: made.kybers.join(', ') }) }
     return { ok: true, id: made.lesson.id, duplicate: made.duplicate === true, evicted: made.evicted.length }
   },
@@ -275,13 +335,13 @@ const lessonWriteTool = () => ({
 
 const lessonSearchTool = () => ({
   name: 'lesson_search',
-  description: 'Looks up lessons learned (every agent team, or one). Lessons it returns count as used, which keeps them from being evicted.',
+  description: 'Looks up lessons learned (every AI agent team, or one). Lessons it returns count as used, which keeps them from being evicted.',
   parameters: {
     type: 'object',
     additionalProperties: false,
     properties: {
       q: { type: 'string', description: 'Words to look for.' },
-      kyber: { type: 'string', description: 'Restrict to one agent team.' },
+      kyber: { type: 'string', description: 'Restrict to one AI agent team.' },
     },
     required: ['q'],
   },
@@ -304,6 +364,56 @@ const lessonSearchTool = () => ({
   },
 })
 
+// The index in the prompt shows a title and a summary per lesson; this tool gives the full text of the ones the model needs, by the
+// ids the index printed (the lesson_forget form). Reading a lesson is a use, like a search hit: it feeds the cap.
+export const LESSON_READ_MAX = 5
+const lessonReadTool = () => ({
+  name: 'lesson_read',
+  description: 'Reads the full text of lessons learned, by the ids the lessons index shows (like "default:3f2a1c10b7d4"). Call it before relying on a lesson of the index. Up to ' + String(LESSON_READ_MAX) + ' ids per call.',
+  parameters: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      ids: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: LESSON_READ_MAX, description: 'The lesson ids, as the index printed them (1 to ' + String(LESSON_READ_MAX) + ').' },
+    },
+    required: ['ids'],
+  },
+  output: {
+    schema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: { ok: { type: 'boolean' }, count: { type: 'integer' }, found: { type: 'string' }, missing: { type: 'string' }, error: { type: 'string' } },
+      required: ['ok'],
+    },
+    render: (args, value) => {
+      if (value.ok !== true) return TEXT('Lessons not read: ' + String(value.error))
+      const parts = []
+      if (typeof value.found === 'string' && value.found !== '') parts.push(value.found)
+      if (typeof value.missing === 'string' && value.missing !== '') parts.push('Unknown ids (no such lesson): ' + value.missing)
+      return TEXT(parts.length === 0 ? 'No lesson.' : parts.join('\n\n'))
+    },
+  },
+  async execute(args) {
+    if (lessonsCut()) return { ok: false, error: TEAM_SPACE_REFUSAL }
+    if (readSettings().lessons !== true) return { ok: false, error: 'lecons_desactivees' }
+    const raw = Array.isArray(args.ids) ? args.ids : (typeof args.ids === 'string' ? [args.ids] : [])
+    const ids = [...new Set(raw.filter((x) => typeof x === 'string').map((x) => x.trim().replace(/^#/, '')).filter((x) => x !== ''))]
+    if (ids.length === 0) return { ok: false, error: 'ids_manquants' }
+    if (ids.length > LESSON_READ_MAX) return { ok: false, error: 'trop_d_ids: ' + String(LESSON_READ_MAX) + ' at most' }
+    const found = []
+    const missing = []
+    for (const id of ids) {
+      const parsed = parseLessonId(id)
+      const lesson = parsed === null ? undefined : readLessons(parsed.kyber).find((l) => lessonId(parsed.kyber, l) === id)
+      if (lesson === undefined) { missing.push(id); continue }
+      try { markUsed(id) } catch (e) { /* a counter is never worth failing the read */ }
+      const heads = lessonHeads(lesson)
+      found.push('#' + id + ' (' + parsed.kyber + ') ' + heads.title + '\n' + lesson.text + (lesson.tags.length > 0 ? '\ntags: ' + lesson.tags.map((t) => '#' + t).join(' ') : ''))
+    }
+    return { ok: true, count: found.length, found: found.join('\n\n'), missing: missing.join(', ') }
+  },
+})
+
 const lessonOfId = (id) => {
   const parsed = parseLessonId(id)
   if (parsed === null) return null
@@ -314,7 +424,7 @@ const lessonOfId = (id) => {
 // The agent can forget a lesson (UJ-177), but never silently: the engine asks the person first (`forgetGate`), and the lesson goes to the archive, like the cap's evictions.
 const lessonForgetTool = () => ({
   name: 'lesson_forget',
-  description: 'Forgets ONE lesson learned, by the id lesson_search gave (the part after "#", like "default:3f2a1c10b7d4"). Use it only when the person asked to forget it. The person is asked before it goes, and it is kept in an archive.',
+  description: 'Forgets ONE lesson learned, by its id as the lessons index or lesson_search shows it (like "default:3f2a1c10b7d4"). Use it only when the person asked to forget it. The person is asked before it goes, and it is kept in an archive.',
   parameters: {
     type: 'object',
     additionalProperties: false,
@@ -462,7 +572,7 @@ const lessonsListRoute = async (req) => {
     ok: true, ...listed,
     filters: { kyber: isKyberId(kyber) ? kyber : null, used: params.get('used') === '1', added: params.get('added') === null ? 'any' : params.get('added'), q: params.get('q') === null ? '' : params.get('q') },
     search: { mode: 'relevance', relevance: true },
-    injection: { scope: 'the agent team of the session, plus default', cap: plan.cap, defaultSent: team ? 0 : plan.chosen.length, defaultOmitted: team ? 0 : plan.omitted, team },
+    injection: { scope: 'the AI agent team of the session, plus default', cap: plan.cap, defaultSent: team ? 0 : plan.chosen.length, defaultOmitted: team ? 0 : plan.omitted, team },
     // the chat this page is open next to (`?session=`): how many lessons were picked for its latest message
     picked: pickedFor(params.get('session')),
     settings: readSettings(),
@@ -479,10 +589,9 @@ const lessonsAddRoute = async (req, body) => {
 
 const lessonsUpdateRoute = async (req, body) => {
   const input = body !== null && typeof body === 'object' ? body : {}
-  return updateLesson(input.id, { ...(input.text === undefined ? {} : { text: input.text }), ...(input.tags === undefined ? {} : { tags: input.tags }) })
+  return updateLesson(input.id, { ...(input.text === undefined ? {} : { text: input.text }), ...(input.tags === undefined ? {} : { tags: input.tags }), ...(input.title === undefined ? {} : { title: input.title }), ...(input.summary === undefined ? {} : { summary: input.summary }) })
 }
 
-const lessonsDeleteRoute = async (req, body) => deleteLesson(body !== null && typeof body === 'object' ? body.id : undefined)
 
 // ── Tidy up: near-duplicate lessons (dedupe.mjs, local, no model) ───────────────────────────────────────────
 // Same contract as the memories' tidy-up (kybernos-cloud): a scan only LOOKS and stores the groups; applying a group keeps
@@ -495,6 +604,9 @@ const TIDY_UNDO_DAYS = 30
 const TIDY_MAX_REMOVALS = 50
 const TIDY_DISMISSED_MAX = 500
 const TIDY_LOG_MAX = 50
+// The lessons' own defaults (the memories keep tidy.mjs's TIDY_DEFAULTS): a daily look, with the Study model, so the index in the
+// prompt gets its titles and summaries without anyone opening a page. A setting the file holds wins (see tidyState).
+export const LESSONS_TIDY_DEFAULTS = Object.freeze({ mode: 'auto', schedule: 'daily', brain: true })
 
 const tidyFile = (suffix) => settingsFile().replace(/\.json$/, '') + '.' + suffix + '.json'
 const readTidyFile = (suffix, fallback) => {
@@ -522,12 +634,16 @@ const tidyState = () => {
     scan: raw.scan !== null && typeof raw.scan === 'object' && Array.isArray(raw.scan.groups) ? raw.scan : null,
     dismissed: Array.isArray(raw.dismissed) ? raw.dismissed.map(String) : [],
     log: Array.isArray(raw.log) ? raw.log : [],
-    settings: normalizeTidySettings(raw.settings),
+    // what the file says wins; what it does not say is the LESSONS default (daily, with the Study model)
+    settings: normalizeTidySettings({ ...LESSONS_TIDY_DEFAULTS, ...(raw.settings !== null && typeof raw.settings === 'object' ? raw.settings : {}) }),
+    settingsSaved: raw.settings !== null && typeof raw.settings === 'object',
     last: raw.last !== null && typeof raw.last === 'object' && typeof raw.last.at === 'string' ? raw.last : null,
     judged: raw.judged !== null && typeof raw.judged === 'object' && !Array.isArray(raw.judged) ? raw.judged : {},
+    compactRefused: raw.compactRefused !== null && typeof raw.compactRefused === 'object' && !Array.isArray(raw.compactRefused) ? raw.compactRefused : {},
   }
 }
-const writeTidy = (t) => writeTidyFile('tidy', { scan: t.scan, dismissed: t.dismissed.slice(-TIDY_DISMISSED_MAX), log: t.log.slice(0, TIDY_LOG_MAX), settings: t.settings, last: t.last, judged: t.judged })
+// The settings are written only once someone set them (the page, `tidySettings`): a default stays a default and can change with a release.
+const writeTidy = (t) => writeTidyFile('tidy', { scan: t.scan, dismissed: t.dismissed.slice(-TIDY_DISMISSED_MAX), log: t.log.slice(0, TIDY_LOG_MAX), settings: t.settingsSaved === true ? t.settings : undefined, last: t.last, judged: t.judged, compactRefused: t.compactRefused })
 
 // The Study model (Kybernos Settings → `brain`: a « route/id », `none`, or empty = Automatic, the model kybernos-sessions
 // publishes) and the `llm` service that can talk to it.
@@ -613,7 +729,8 @@ const tidyView = () => {
 
 /**
  * One run: look (local detection, and — when the user allowed it and a Study model is set — its judgement of the pairs
- * the word count cannot decide), then, in `auto` mode, merge by itself the local groups at or above the line.
+ * the word count cannot decide, the local pairs under the line first), then, in `auto` mode, merge by itself the local groups at
+ * or above the line (the Study model's verdicts are suggestions only), each through applyGroups: archive first, one Undo per merge.
  */
 const tidyRun = async (trigger, now = Date.now()) => {
   if (tidyFlags.running) return { ok: false, error: 'deja_en_cours' }
@@ -622,7 +739,7 @@ const tidyRun = async (trigger, now = Date.now()) => {
     const items = []
     for (const [id, { kyber, lesson }] of liveLessons()) items.push({ id, content: lesson.text, createdAt: lesson.ts, pinned: false, bucket: kyber })
     const t = tidyState()
-    const local = findDuplicateGroups(items)
+    let local = findDuplicateGroups(items)
     const taken = new Set(local.flatMap((g) => g.items.map((i) => i.id)))
     let suggestions = []
     let unclear = 0
@@ -631,8 +748,11 @@ const tidyRun = async (trigger, now = Date.now()) => {
     if (t.settings.brain === true && !lessonsCut()) {
       brain.model = studyModel()
       const llm = tidyLlm()
-      const judged = await brainGroups({ items, taken, judged: t.judged, dismissed: t.dismissed, llm: brain.model === '' ? null : llm, model: brain.model, maxMerged: LESSON_MAX_CHARS, noun: 'lessons' })
+      const judged = await brainGroups({ items, taken, judged: t.judged, dismissed: t.dismissed, llm: brain.model === '' ? null : llm, model: brain.model, maxMerged: LESSON_MAX_CHARS, noun: 'lessons', review: local })
       suggestions = judged.groups
+      // a verdict on a local pair under the line takes the place of that group (same id)
+      const verdicts = new Set(suggestions.map((g) => g.id))
+      local = local.filter((g) => !verdicts.has(g.id))
       unclear = judged.unclear
       brain.asked = judged.asked
       brain.error = brain.model === '' ? 'pas_de_modele_detude' : (llm === undefined ? 'llm_indisponible' : judged.error)
@@ -642,21 +762,33 @@ const tidyRun = async (trigger, now = Date.now()) => {
     } else {
       unclear = unclearPairs(items, { taken }).filter((p) => t.dismissed.indexOf(p.id) < 0).length
     }
-    t.scan = { at: new Date(now).toISOString(), total: items.length, unclear, groups: [...local, ...suggestions] }
-    writeTidy(t)
-    const auto = { groups: 0, removed: 0, runs: [], failed: 0 }
-    const picked = pickAuto(local.filter((g) => t.dismissed.indexOf(g.id) < 0), t.settings)
-    for (const chunk of removalChunks(picked, TIDY_MAX_REMOVALS)) {
-      const done = applyGroups(chunk.map((g) => ({ id: g.id })), 'auto', now)
-      if (done.error !== undefined) { auto.failed += chunk.length; continue }
-      for (const r of done.results) {
-        if (r.ok === true) { auto.groups += 1; auto.removed += r.removed || 0; if (r.run) auto.runs.push(r.run) } else auto.failed += 1
+    // The run may have waited for the Study model: what the person did meanwhile (a setting, « Keep both ») lives in the file, not in
+    // `t`, which is a stale copy. Re-read, put only this run's findings on it, and decide from what the file says NOW.
+    const fresh = tidyState()
+    fresh.scan = { at: new Date(now).toISOString(), total: items.length, unclear, groups: [...local, ...suggestions] }
+    fresh.judged = t.judged
+    writeTidy(fresh)
+    const auto = { groups: 0, removed: 0, runs: [], failed: 0, brain: 0 }
+    const picked = pickAuto([...local, ...suggestions].filter((g) => fresh.dismissed.indexOf(g.id) < 0), fresh.settings)
+    // the local merges are logged 'auto', the Study model's 'brain' (the page says who merged)
+    for (const by of ['auto', 'brain']) {
+      for (const chunk of removalChunks(picked.filter((g) => (g.by === 'brain') === (by === 'brain')), TIDY_MAX_REMOVALS)) {
+        if (tidyState().settings.mode !== 'auto') break   // « ask » was chosen while this run was merging: stop
+        const done = applyGroups(chunk.map(autoRequest), by, now)
+        if (done.error !== undefined) { auto.failed += chunk.length; continue }
+        for (const r of done.results) {
+          if (r.ok === true) { auto.groups += 1; auto.removed += r.removed || 0; if (by === 'brain') auto.brain += 1; if (r.run) auto.runs.push(r.run) } else auto.failed += 1
+        }
       }
     }
+    // the Study model's second job: a title and a summary for the lessons that have none, a shorter text for the long ones
+    const compact = brain.model !== '' && tidyLlm() !== undefined && t.settings.brain === true && !lessonsCut()
+      ? await compactLessons({ llm: tidyLlm(), model: brain.model, mode: 'ask', now })   // titles and summaries only: the model never rewrites a lesson's text (2026-11-20)
+      : { asked: 0, compacted: 0, titled: 0, refused: 0, unanswered: 0, why: {}, error: null, runs: [] }
     const after = tidyState()
-    after.last = { at: new Date(now).toISOString(), trigger, total: items.length - auto.removed, peak: fullestTeam(liveLessons()), found: local.length + suggestions.length, autoGroups: auto.groups, autoRemoved: auto.removed, brainAsked: brain.asked, brainError: brain.error, ok: true }
+    after.last = { at: new Date(now).toISOString(), trigger, total: items.length - auto.removed, peak: fullestTeam(liveLessons()), found: local.length + suggestions.length, autoGroups: auto.groups, autoRemoved: auto.removed, autoBrain: auto.brain, brainAsked: brain.asked, brainError: brain.error, compactAsked: compact.asked, compacted: compact.compacted, titled: compact.titled, compactRefused: compact.refused, compactUnanswered: compact.unanswered, compactWhy: compact.why, compactError: compact.error, ok: true }
     writeTidy(after)
-    return { ...tidyView(), auto, brain }
+    return { ...tidyView(), auto, brain, compact }
   } finally {
     tidyFlags.running = false
   }
@@ -668,6 +800,7 @@ const tidySettings = (body) => {
   const patched = patchTidySettings(t.settings, body)
   if (patched.ok !== true) return patched
   t.settings = patched.settings
+  t.settingsSaved = true
   writeTidy(t)
   return { ok: true, settings: t.settings, view: tidyView() }
 }
@@ -715,7 +848,202 @@ const tidyDismiss = (body) => {
   return tidyView()
 }
 
-const fieldsOf = (lesson) => ({ text: lesson.text, tags: lesson.tags, uses: lesson.uses, lastUsed: lesson.lastUsed })
+const fieldsOf = (lesson) => ({ text: lesson.text, tags: lesson.tags, uses: lesson.uses, lastUsed: lesson.lastUsed, title: typeof lesson.title === 'string' ? lesson.title : null, summary: typeof lesson.summary === 'string' ? lesson.summary : null })
+
+// -- Compaction: titles, summaries and shorter texts from the Study model (compact.mjs) ---------------------------------------
+// Bounded per run (COMPACT_MAX_CALLS questions of COMPACT_BATCH lessons), the lessons without a title first, then the longest: a new
+// lesson is never starved by long ones that already have a title.
+// Each accepted rewrite is applied like a merge: the old fields go to the tidy archive FIRST (Undo puts them back), the lesson is
+// retouched, the original wording is copied into `lessons.archive.jsonl` when the text changed, and the log gets one entry
+// (`by: 'brain'`, `kind: 'compact'` when the text changed, 'title' otherwise). In `ask` mode nothing is rewritten without a click,
+// so only titles and summaries are written there (they add, they change no word of the lesson). A refused rewrite is not asked again
+// for COMPACT_REFUSED_DAYS while the text stays the same.
+const COMPACT_REFUSED_DAYS = 7
+const COMPACT_REFUSED_MAX = 500
+
+/** The order the Study model is asked in: untitled first, then the longest, then by id (the same files give the same order). */
+export const compactOrder = (a, b) => (Number(b.untitled === true) - Number(a.untitled === true)) || b.text.length - a.text.length || (a.id < b.id ? -1 : 1)
+
+const compactLessons = async ({ llm, model, mode, now = Date.now() }) => {
+  const out = { asked: 0, compacted: 0, titled: 0, refused: 0, unanswered: 0, why: {}, error: null, runs: [] }
+  const t = tidyState()
+  // A refusal is remembered COMPACT_REFUSED_DAYS; a lesson the model did not answer ({ at, days: 1 }) only until the next day.
+  const fresh = (hash) => {
+    const v = t.compactRefused[hash]
+    const at = Date.parse(v !== null && typeof v === 'object' ? v.at : v)
+    const days = v !== null && typeof v === 'object' && Number.isFinite(v.days) ? v.days : COMPACT_REFUSED_DAYS
+    return Number.isFinite(at) && now - at < days * 86400000
+  }
+  const textOnly = mode !== 'auto'
+  const candidates = []
+  for (const [id, { kyber, lesson }] of liveLessons()) {
+    const wants = textOnly ? !lessonHeads(lesson).own : needsCompaction(lesson)
+    if (wants && !fresh(textHash(lesson.text))) candidates.push({ id, kyber, text: lesson.text, ts: lesson.ts, untitled: !lessonHeads(lesson).own })
+  }
+  candidates.sort(compactOrder)
+  if (candidates.length === 0) return out
+  const answer = await askCompactions({ llm, model, lessons: candidates.slice(0, COMPACT_BATCH * COMPACT_MAX_CALLS) })
+  out.asked = answer.asked
+  out.error = answer.error
+  if (answer.error !== null) console.error('[kybernos-memory] tidy-up: the Study model could not compact lessons (' + answer.error + (answer.detail === null ? '' : ': ' + answer.detail) + ')')
+  const stamp = new Date(now).toISOString()
+  const log = []
+  const refused = {}
+  for (const { lesson: cand, result } of answer.results) {
+    // A lesson the model did not answer (cut short, a slip) is asked again the next day; a refusal is remembered for a week.
+    if (result.ok !== true && result.why === 'shape') { refused[textHash(cand.text)] = { at: stamp, days: 1 }; out.unanswered += 1; continue }
+    if (result.ok !== true) { refused[textHash(cand.text)] = stamp; out.refused += 1; out.why[result.why] = (out.why[result.why] || 0) + 1; continue }
+    // A sound title and summary over a text that failed its checks: they are taken, the text stays, and the lesson is not asked again for a while.
+    if (typeof result.textRefused === 'string') { refused[textHash(cand.text)] = stamp; out.why['text-' + result.textRefused] = (out.why['text-' + result.textRefused] || 0) + 1 }
+    if (typeof result.summaryRefused === 'string') out.why['summary-' + result.summaryRefused] = (out.why['summary-' + result.summaryRefused] || 0) + 1
+    const live = liveLessons().get(cand.id)
+    if (live === undefined || live.lesson.text !== cand.text) continue   // changed while the model was thinking: asked again next run
+    const lesson = live.lesson
+    const newText = textOnly ? lesson.text : result.text
+    const textChanges = newText !== lesson.text
+    if (!textChanges && lesson.title === result.title && lesson.summary === result.summary) continue
+    const afterId = lessonId(cand.kyber, { ts: lesson.ts, text: newText })
+    const runId = 'c' + Date.now().toString(36) + textHash(cand.id)
+    // 1. the archive FIRST: Undo can always put the old fields back
+    const arch = tidyArchive()
+    arch.runs[runId] = { at: stamp, kyber: cand.kyber, removed: [], edited: [{ id: afterId, before: fieldsOf(lesson) }] }
+    writeTidyArchive(arch)
+    const done = retouchLesson(cand.id, { title: result.title, summary: result.summary, ...(textChanges ? { text: newText } : {}) })
+    if (done.ok !== true) { const a2 = tidyArchive(); delete a2.runs[runId]; writeTidyArchive(a2); continue }
+    if (textChanges) { try { archiveLessons(cand.kyber, [lesson], 'compacted') } catch (e) { /* the tidy archive holds it too */ } }
+    if (textChanges) out.compacted += 1
+    if (!lessonHeads(lesson).own) out.titled += 1
+    out.runs.push(runId)
+    log.push({ id: runId, at: stamp, by: 'brain', kind: textChanges ? 'compact' : 'title', groupId: null, kyber: cand.kyber, kept: afterId, removed: 0, edited: true, partial: false, undone: false })
+  }
+  const after = tidyState()
+  after.log = [...log.reverse(), ...after.log]
+  after.compactRefused = { ...after.compactRefused, ...refused }
+  const keys = Object.keys(after.compactRefused)
+  const atOf = (v) => Date.parse(v !== null && typeof v === 'object' ? v.at : v) || 0
+  if (keys.length > COMPACT_REFUSED_MAX) for (const k of keys.sort((x, y) => atOf(after.compactRefused[x]) - atOf(after.compactRefused[y])).slice(0, keys.length - COMPACT_REFUSED_MAX)) delete after.compactRefused[k]
+  writeTidy(after)
+  return out
+}
+
+/** Why rewrites were refused, in plain words, for the line of memory_tidy. A text kept under a new title (`text-*`) is not a refusal: it is said apart. */
+const REFUSAL_WORDS = { negation: 'a negation lost', number: 'a number lost or changed', title: 'no usable title', summary: 'no usable summary' }
+const refusalWords = (why) => Object.keys(why !== null && typeof why === 'object' ? why : {}).filter((k) => !k.startsWith('text-') && !k.startsWith('summary-')).sort().map((k) => (REFUSAL_WORDS[k] || k) + ' ' + String(why[k])).join(', ')
+
+// -- memory_tidy: the lessons and the account memories tidied now, for the model or an automation ------------------------------------
+// Runs what "Clean up now" runs (trigger 'tool'), waits for it at most MEMORY_TIDY_WAIT_MS and answers in a few plain words.
+// `dryRun` looks only: no write, no Study model. The account memories have their own tidy-up in kybernos-cloud, which holds the
+// account token: that bundle publishes globalThis[Symbol.for('kybernos.memoriesTidy')], a function ({ dryRun }) that runs it now and
+// answers { ok, before, after, merged, suggestions, error } and nothing else. It is started beside the lessons and waited for within the
+// same deadline; without it (the bundle absent, no account) the line says "memories: not connected", which is not an error.
+export const MEMORY_TIDY_WAIT_MS = 300000
+export const MEMORIES_TIDY_SEAM = Symbol.for('kybernos.memoriesTidy')
+const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms) })
+const errorWords = (list) => (list.length === 0 ? 'none' : list.join(', '))
+const MEMORIES_NOT_CONNECTED = 'memories: not connected'
+const MEMORIES_ERRORS = { deja_en_cours: 'another memories tidy-up is running', espace_equipe: 'not tidied in a team space', memoires_desactivees: 'switched off' }
+
+/** Starts the account memories tidy-up through kybernos-cloud's seam: a promise of its answer, or null without the seam. Never throws. */
+const startMemoriesTidy = (dryRun) => {
+  let run = null
+  try { run = globalThis[MEMORIES_TIDY_SEAM] } catch (e) { return null }
+  if (typeof run !== 'function') return null
+  const failed = (e) => ({ ok: false, error: String((e && e.message) || e).slice(0, 160) })
+  try { return Promise.resolve(run({ dryRun: dryRun === true })).then((v) => (v !== null && typeof v === 'object' ? v : failed('no answer')), failed) } catch (e) { return Promise.resolve(failed(e)) }
+}
+
+/** Waits for the memories' answer until `deadline`: the answer, null without the seam, or { pending: true }. */
+const settleMemories = async (memories, deadline) => {
+  if (memories === null) return null
+  let timer = null
+  const late = new Promise((resolve) => { timer = setTimeout(() => resolve({ pending: true }), Math.max(0, deadline - Date.now())) })
+  const res = await Promise.race([memories, late])
+  clearTimeout(timer)
+  return res
+}
+
+const countWord = (n) => (Number.isFinite(n) ? String(n) : '?')
+/** The memories' line of the summary. */
+export const memoriesLine = (res, dryRun = false) => {
+  if (res === null || res === undefined) return MEMORIES_NOT_CONNECTED
+  if (res.pending === true) return 'memories: still running, the Memory page shows the result'
+  if (res.ok !== true) return res.error === 'not_connected' ? MEMORIES_NOT_CONNECTED : 'memories: not tidied (' + (MEMORIES_ERRORS[res.error] || String(res.error || 'unknown error')) + ')'
+  const study = typeof res.error === 'string' && res.error !== '' ? ' (Study model: ' + res.error + ')' : ''
+  if (dryRun === true) return 'Memories: ' + countWord(res.before) + ' now, would merge ' + countWord(res.merged) + ' group(s) (' + countWord(res.after) + ' after), ' + countWord(res.suggestions) + ' left as suggestions'
+  return 'Memories: ' + countWord(res.before) + ' before, ' + countWord(res.after) + ' after, ' + countWord(res.merged) + ' merged, ' + countWord(res.suggestions) + ' left as suggestions' + study
+}
+
+/** The lessons' part of memory_tidy: { ok, summary, error?, dryRun?, pending? } with the summary ending in a full stop. */
+const lessonsTidy = async ({ dryRun, deadline, waitMs, pollMs }) => {
+  if (lessonsCut()) return { ok: false, error: TEAM_SPACE_REFUSAL, summary: 'Lessons: not tidied in a team space.' }
+  if (readSettings().lessons !== true) return { ok: false, error: 'lecons_desactivees', summary: 'Lessons: switched off.' }
+  const before = liveLessons().size
+  const t = tidyState()
+  if (dryRun === true) {
+    const items = janitorLessonItems()
+    const groups = pickAuto(findDuplicateGroups(items).filter((g) => t.dismissed.indexOf(g.id) < 0), t.settings)
+    const removals = groups.reduce((n, g) => n + g.items.length - 1, 0)
+    let need = 0
+    for (const { lesson } of liveLessons().values()) if (t.settings.mode === 'auto' ? needsCompaction(lesson) : !lessonHeads(lesson).own) need += 1
+    const brainOn = t.settings.brain === true && studyModel() !== '' && tidyLlm() !== undefined
+    return {
+      ok: true, dryRun: true,
+      summary: 'Dry run, nothing written. Lessons: ' + String(before) + '. Would merge ' + String(groups.length) + ' group(s) (' + String(removals) + ' lesson(s) fewer). '
+        + String(need) + ' lesson(s) have no title or are over ' + String(COMPACT_TEXT_MAX) + ' characters' + (brainOn ? ' (the Study model would be asked about up to ' + String(COMPACT_BATCH * COMPACT_MAX_CALLS) + ')' : ' (the Study model is off or missing: nothing would be rewritten)') + '.',
+    }
+  }
+  while (tidyFlags.running && Date.now() < deadline) await sleep(pollMs)
+  if (tidyFlags.running) return { ok: false, error: 'deja_en_cours', summary: 'Another lessons tidy-up is still running; try again later.' }
+  let timer = null
+  const late = new Promise((resolve) => { timer = setTimeout(() => resolve(null), Math.max(0, deadline - Date.now())) })
+  const res = await Promise.race([tidyRun('tool'), late])
+  clearTimeout(timer)
+  if (res === null) return { ok: true, pending: true, summary: 'The lessons tidy-up is still running after ' + String(Math.round(waitMs / 60000)) + ' minutes; it finishes by itself and the Memory page shows its result.' }
+  if (res.ok !== true) return { ok: false, error: String(res.error), summary: 'The lessons tidy-up did not run: ' + String(res.error) + '.' }
+  const errors = []
+  if (res.auto.failed > 0) errors.push(String(res.auto.failed) + ' merge(s) failed')
+  if (res.brain.error !== null) errors.push('Study model: ' + String(res.brain.error))
+  if (res.compact.error !== null && res.compact.error !== res.brain.error) errors.push('compaction: ' + String(res.compact.error))
+  if (res.compact.refused > 0) errors.push(String(res.compact.refused) + ' rewrite(s) refused (' + refusalWords(res.compact.why) + ')')
+  if (res.compact.unanswered > 0) errors.push(String(res.compact.unanswered) + ' lesson(s) the Study model did not answer (asked again tomorrow)')
+  const kept = Object.keys(res.compact.why).filter((k) => k.startsWith('text-')).reduce((n, k) => n + res.compact.why[k], 0)
+  return {
+    ok: true,
+    summary: 'Lessons: ' + String(before) + ' before, ' + String(liveLessons().size) + ' after. Merged: ' + String(res.auto.groups) + ' group(s) (' + String(res.auto.removed) + ' lesson(s) removed' + (res.auto.brain > 0 ? ', ' + String(res.auto.brain) + ' by the Study model' : '') + '). '
+      + 'Compacted: ' + String(res.compact.compacted) + '. Titles written: ' + String(res.compact.titled) + (kept > 0 ? ' (' + String(kept) + ' kept their own text: the shorter one lost a fact or was too long)' : '') + '. Errors: ' + errorWords(errors) + '.',
+  }
+}
+
+export const memoryTidy = async ({ dryRun = false, waitMs = MEMORY_TIDY_WAIT_MS, pollMs = 500 } = {}) => {
+  const deadline = Date.now() + Math.max(0, waitMs)
+  // the memories run beside the lessons: neither waits for the other, both within the same deadline
+  const memories = startMemoriesTidy(dryRun === true)
+  const lessons = await lessonsTidy({ dryRun: dryRun === true, deadline, waitMs, pollMs })
+  const mem = await settleMemories(memories, deadline)
+  return { ...lessons, summary: lessons.summary + ' ' + memoriesLine(mem, dryRun === true) + '.' }
+}
+
+const memoryTidyTool = () => ({
+  name: 'memory_tidy',
+  description: 'Tidies the lessons learned and the account memories now: merges near-duplicates and, when the Study model is on, the pairs it judges the same, gives lessons a title and a summary and shortens the long ones (each change can be undone on the Memory page). Waits for the result (5 minutes at most) and returns a short summary. { "dryRun": true } only says what it would do.',
+  parameters: {
+    type: 'object',
+    additionalProperties: false,
+    properties: { dryRun: { type: 'boolean', description: 'Look only: write nothing and ask no model.' } },
+  },
+  output: {
+    schema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: { ok: { type: 'boolean' }, summary: { type: 'string' }, error: { type: 'string' }, dryRun: { type: 'boolean' }, pending: { type: 'boolean' } },
+      required: ['ok'],
+    },
+    render: (args, value) => TEXT(typeof value.summary === 'string' ? value.summary : 'Tidy-up not run: ' + String(value.error)),
+  },
+  async execute(args) {
+    return memoryTidy({ dryRun: args !== null && typeof args === 'object' && args.dryRun === true })
+  },
+})
 
 /**
  * `body = { confirm: true, groups: [{ id, keep?, edit? }] }`. Each group is checked against the files NOW: a lesson that
@@ -732,6 +1060,29 @@ const tidyApply = (body) => {
 }
 
 /** The work of an apply, for the user's click (`by: 'you'`) and for a run that merges by itself (`by: 'auto'`). */
+/** A lesson in a few words, for the « Recently removed » list. */
+const labelOf = (text) => { const t = String(text).replace(/\s+/g, ' ').trim(); return t.length > 60 ? t.slice(0, 57) + '…' : t }
+
+/**
+ * The person deletes a lesson: it goes to the tidy archive and log first (`by: 'you'`, `kind: 'delete'`), so « Recently removed » can
+ * bring it back, exactly as it was, for 30 days with the same Undo as a tidy-up (2026-11-20). The store still archives it in lessons.archive.jsonl.
+ */
+const lessonsDeleteRoute = async (req, body) => {
+  const id = body !== null && typeof body === 'object' ? body.id : undefined
+  const found = typeof id === 'string' ? liveLessons().get(id) : undefined
+  if (found === undefined) return deleteLesson(id)
+  const runId = 'd' + Date.now().toString(36) + textHash(String(id))
+  const archive = tidyArchive()
+  archive.runs[runId] = { at: new Date().toISOString(), kyber: found.kyber, removed: [found.lesson], edited: [] }
+  writeTidyArchive(archive)
+  const del = deleteLesson(id)
+  if (del.ok !== true) { const a2 = tidyArchive(); delete a2.runs[runId]; writeTidyArchive(a2); return del }
+  const t = tidyState()
+  t.log = [{ id: runId, at: new Date().toISOString(), by: 'you', kind: 'delete', groupId: null, kyber: found.kyber, kept: null, removed: 1, edited: false, partial: false, undone: false, label: labelOf(found.lesson.text) }, ...t.log]
+  writeTidy(t)
+  return { ...del, run: runId }
+}
+
 const applyGroups = (asked, by, now = Date.now()) => {
   const t = tidyState()
   if (t.scan === null) return { error: 'aucun_scan', results: [] }
@@ -794,7 +1145,7 @@ const applyGroups = (asked, by, now = Date.now()) => {
     if (!edited) kept.runs[runId].edited = []
     if (gone.length === 0 && !edited) delete kept.runs[runId]
     writeTidyArchive(kept)
-    if (gone.length > 0 || edited) log.push({ id: runId, at: new Date(now).toISOString(), by, groupId: step.group.id, kyber, kept: afterId, removed: gone.length, edited, partial: failure !== null, undone: false })
+    if (gone.length > 0 || edited) log.push({ id: runId, at: new Date(now).toISOString(), by, groupId: step.group.id, kyber, kept: afterId, removed: gone.length, edited, partial: failure !== null, undone: false, label: labelOf(next.text) })
     results.push({ id: step.group.id, ok: failure === null, removed: gone.length, edited, run: gone.length > 0 || edited ? runId : null, error: failure === null ? undefined : failure })
   }
   const after = tidyState()
@@ -980,7 +1331,7 @@ const janitorLessonsScanAndClean = async (options = {}) => {
     }
     // What may be applied: the store's own « merge without asking » rule decides pass 1 (mode « auto »); pass 2
     // only adds the model's « same » verdicts, and the janitor's removals budget caps the whole run.
-    const order = apply === true && t.settings.mode === 'auto' ? [...pickAuto(local, t.settings), ...semantic] : []
+    const order = apply === true && t.settings.mode === 'auto' ? [...pickAuto(local, t.settings), ...semantic.slice(0, AUTO_MAX_BRAIN_MERGES)] : []
     const picked = []
     let removals = 0
     for (const group of order) {
@@ -1248,6 +1599,8 @@ const mountTools = (ctx) => {
     scope.tools.register(lessonWriteTool())
     scope.tools.register(lessonSearchTool())
     scope.tools.register(lessonForgetTool())
+    scope.tools.register(lessonReadTool())
+    scope.tools.register(memoryTidyTool())
   })
 }
 
@@ -1293,4 +1646,4 @@ export function apply(ctx) {
 }
 
 // Exported for the host suite (test-memory-host.mjs): nothing else is promised.
-export { lessonWriteTool, lessonSearchTool, lessonForgetTool, forgetGate, sanitize, CHUNK_NAME, CHUNK_ORDER, CHUNK_MAX_CHARS, tidyRun, tidySettings, studyModel, publishJanitorSeam, JANITOR_LESSONS_SEAM }
+export { refusalWords, lessonWriteTool, lessonSearchTool, lessonForgetTool, lessonReadTool, memoryTidyTool, forgetGate, sanitize, CHUNK_NAME, CHUNK_ORDER, CHUNK_MAX_CHARS, tidyRun, tidySettings, studyModel, publishJanitorSeam, JANITOR_LESSONS_SEAM }

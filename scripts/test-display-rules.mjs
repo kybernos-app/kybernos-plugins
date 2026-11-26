@@ -471,8 +471,8 @@ const PAGE_ROOTS = [
   ['kybernos-hub/client.js', ':is(.kbsu,.kbhp-pop,.kbhi)'],
   ['kybernos-language/client.js', '.kbln-page'],
   ['kybernos-free-llms/client.js', '.kfl-root'],
+  ['kybernos-door/client.js', '.kdm-root'],
   ['kybernos-modeles-locaux/client.js', '.kml-root'],
-  ['kybernos-computers/client.js', ':is(.kcc-root,.kbenv-root,.kbenv-menu)'],
   ['kybernos-cloud/client.js', ':is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-poptitle,.kbl-page,.kbro-root,.kbro-menu)'],
   ['kybernos-models/client.js', '.kbm-root.kbmp'],
   ['kybernos-plugin/client.js', ':is(.kbt2-sec,.kba-onboard,.kbv-pop,.kb4-pick)'],
@@ -520,7 +520,6 @@ ok('placeholders are not the label-dimmed token (1.3:1) or the browser default (
   none('kybernos-modeles-locaux/client.js', '.kml-root .kbm-in-input::placeholder')
   for (const [file, sel, lightSel] of [
     ['kybernos-composio/client.js', '.kbcp-input::placeholder', 'body:not([data-ds-dark-theme]) .kbcp-input::placeholder'],
-    ['kybernos-computers/client.js', '.kcc-input::placeholder', null],
     ['kybernos-multi-device/client.js', '.kbmd-input::placeholder', 'body:not([data-ds-dark-theme]) .kbmd-input::placeholder'],
     ['kybernos-cloud/client.js', '.kbl-area::placeholder', null],
     ['kybernos-modeles-locaux/client.js', '.kml-root .kbm-in-input::placeholder', null],
@@ -701,8 +700,8 @@ ok('Connectors: no literal indigo is left; the primary button, the Kybernos mete
 })
 
 // ── L1-21 (recette 2026-10-25): what is drawn on the toast fill reads 4.5:1 in both schemes ──────────────────────────────────────────────────────
-// DSH's toast fill is dark in BOTH schemes (bluish-800 in the light one) and its label token, white, is the ink made for it. Memory drew its toast, its filter menu, its chosen row, its current
-// page number and its map tooltip on that fill with the page ink (near-black in the light scheme): 1.56:1, and the accent of « Undo » 2.9:1. Commands drew its toast and its tooltips with
+// DSH's toast fill is dark in BOTH schemes (bluish-800 in the light one) and its label token, white, is the ink made for it. Memory drew its toast (and, on the old page, its filter menu, its chosen row, its current
+// page number and its map tooltip) on that fill with the page ink (near-black in the light scheme): 1.56:1, and the accent of « Undo » 2.9:1. Commands drew its toast and its tooltips with
 // the page label for ink. The test takes EVERY rule of Memory that paints the toast fill, so a new one cannot be forgotten.
 ok('Memory: every surface painted with the toast fill takes the toast\'s ink, 4.5:1 for the four inks and for « Undo », in both schemes (L1-21)', () => {
   const file = 'kybernos-memory/client.js'
@@ -717,7 +716,7 @@ ok('Memory: every surface painted with the toast fill takes the toast\'s ink, 4.
   const page = Object.assign({}, root, customs(text.slice(from + '\n.kbmem-page{'.length, text.indexOf('}', from))))
   const painted = all.filter((r) => /^var\(--m-toast\)$/.test(lastDecl(r.body, 'background(?:-color)?') || ''))
   const selectors = [...new Set(painted.flatMap((r) => r.sels))]
-  assert.ok(selectors.length >= 6, 'the rules that paint the toast fill are found: ' + selectors.join(' | '))
+  assert.ok(selectors.length >= 1 && selectors.includes('.kbmem-toast'), 'the rules that paint the toast fill are found: ' + selectors.join(' | '))
   for (const sel of selectors) {
     const own = all.filter((r) => r.sels.includes(sel))
     const scope = Object.assign({}, page, ...own.map((r) => customs(r.body)))

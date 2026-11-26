@@ -207,8 +207,8 @@ try {
     ok('searching "slides" keeps only kybernos-slides', (await cartes(p)).map((c) => c.id).join() === 'kybernos-slides')
     await p.fill('.kbsu-search input', 'zzzz')
     ok('a search with no hit says so', (await p.textContent('.kbsu')).includes('No module matches.'))
-    await p.fill('.kbsu-search input', 'ordinateurs')
-    ok('search also reads the French promise', (await cartes(p)).map((c) => c.id).join() === 'kybernos-computers')
+    await p.fill('.kbsu-search input', 'centaines')
+    ok('search also reads the French promise', (await cartes(p)).map((c) => c.id).join() === 'kybernos-composio')
     await p.close()
   }
 

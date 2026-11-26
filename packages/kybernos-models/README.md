@@ -158,8 +158,8 @@ The provider's card counts the models declared in its profile; its Models view s
 ## The screen
 
 The panel carries the mock-up as it was validated: two tabs (`Providers` by default,
-`Model list`), the dense list with search, four DSH `Menu`s, eight capability chips, a counter
-and `Sync N from models.dev`, the table of models and the editor in a **dialog** that the arrow
+`Model list`), the dense list with search, six DSH `Menu`s with an icon each (Provider, Type, Capability, Status, Score, Sort), a counter
+and the models.dev status (read in the background, see `docs/dev/models-page.md`), the table of models and the editor in a **dialog** that the arrow
 opens. The row's `data-kbm` hooks do not depend on the tab: the proofs remain valid.
 
 ### Redesign of 21/09/2026

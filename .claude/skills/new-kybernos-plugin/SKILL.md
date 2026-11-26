@@ -42,7 +42,7 @@ plugin are repeated below.
 | A row in Settings › General | `settings.general.item` | `kybernos-sessions` (`ReglagesKybernos`) |
 | Pills / a bar under the composer | `conversation.composer.dock` (component receives `{ sessionId }`) | `kybernos-sessions` (`Pills`) |
 | A tab in the right pane | `sidebar.right.pane.tab` | `kybernos-bricks`, `kybernos-slides` |
-| A card in DSH's Plugins panel | `plugins.item` | `kybernos-computers` |
+| A card in DSH's Plugins panel | `plugins.item` | none today (`kybernos-computers` used it until 2026-11-23: tag `archive/kybernos-computers-avant-suppression`) |
 | Changes to messages in the chat | DOM observer, no slot | `kybernos-refs` |
 | Host only (routes, a tool) | `ctx.get('webServer')` / `ctx.inject(['webServer'], …)` | `kybernos-hub` |
 

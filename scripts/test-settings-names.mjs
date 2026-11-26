@@ -29,8 +29,10 @@ const NAV = {
   plugins: 'Built-in plugins', 'kybernos-atlas': 'Atlas', 'kybernos-models': 'AI provider and models', 'agent-presets': 'Agent presets', voice: 'Voice',
   'kybernos-slash': 'Commands', 'kybernos-ollama': 'Ollama local models', 'kybernos-suite': 'Kybernos Suite', 'kybernos-tools': 'Tools',
   'kybernos-workers': 'Workers', 'kybernos-call': 'Calls', 'kybernos-kaby-customisation': 'Kaby', 'kybernos-usage': 'Usage', 'kybernos-pulse': 'Widget', 'kybernos-log': 'Activity log', 'kybernos-automations': 'Automations', 'kybernos-skills': 'Skills', 'kybernos-skills-learned': 'Learned skills',
-  'kybernos-composio': 'Connectors', 'kybernos-free-llms': 'Free LLMs', 'kybernos-mobile': 'Phone and channels', 'kybernos-computers': 'Code sandbox (E2B)',
+  'kybernos-composio': 'Connectors', 'kybernos-free-llms': 'Free LLMs', 'kybernos-door': 'Kaby MCP', 'kybernos-knowledge': 'Knowledge Base', 'kybernos-mobile': 'Phone and channels',
   'kybernos-local': 'Kybernos',
+  // DSH's own page (0.2.3-alpha.2): QR sign-in for another browser.
+  'remote-connection': 'Remote connection',
   // The themes listing's Settings section (A7-theme-marketplace): its label is « Modèles » / « Templates », the menu's title is 'templates'.
   'kybernos-themes-market': 'Templates',
 }
@@ -88,11 +90,11 @@ if (card['kybernos-models'] !== NAV['kybernos-models']) odd.push('kybernos-model
 check('every module that is one Settings page carries the name of that page on its card', seen >= 14 && odd.length === 0, odd)
 
 console.log('the one place that sets the mode')
-// The mode (Light / Dark / System) is set on the Theme page, on three cards. It used to be drawn by an Appearance page beside Theme (audit A1-09, then V1-24 made Appearance the
+// The mode (Light / Dark / System) is set on the Theme page, in a three-way control. It used to be drawn by an Appearance page beside Theme (audit A1-09, then V1-24 made Appearance the
 // only place and Theme linked to it); the owner folded the page into Theme (2026-10-22): no Appearance page, no « set on the Appearance page » sentence.
 const theme = read('packages', 'kybernos-theme', 'client.js')
 check('Theme no longer claims to be the only place of the mode through a block it replaces, and no longer points to another page', !/replaces the “Appearance” block of the General page/.test(theme) && !/one place only/.test(theme) && !/set on the Appearance page/.test(theme) && !/page Apparence/.test(theme) && !/change it in either place/.test(theme))
-check('Theme draws the three mode cards itself, and the Appearance page is gone from the menu and from the core plugin', /data-kb': 'theme-mode-card'/.test(theme) && !/'kbac-appearance'/.test(CORE) && !/KbacAppearance/.test(CORE) && !/'kbac\.appearance/.test(CORE))
+check('Theme draws the three-way mode control itself (in the window and in the editor), and the Appearance page is gone from the menu and from the core plugin', /kb: 'theme-st-mood'/.test(theme) && /kb: 'theme-mode'/.test(theme) && !/'kbac-appearance'/.test(CORE) && !/KbacAppearance/.test(CORE) && !/'kbac\.appearance/.test(CORE))
 
 console.log(`\n${pass} ✓  ${fail} ✗`)
 process.exit(fail === 0 ? 0 : 1)

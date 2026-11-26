@@ -62,7 +62,8 @@ console.log('SRV-14 the help card')
 const candidates = [process.env.KB_REACT_DIR, '/opt/homebrew/lib/node_modules/@openhands/agent-canvas/node_modules', join(here, 'node_modules')].filter(Boolean)
 const reactDir = candidates.find((d) => existsSync(join(d, 'react', 'package.json')) && existsSync(join(d, 'react-dom', 'package.json')))
 if (reactDir === undefined) {
-  console.log('\n  ○ SKIPPED, the render half: React not found (set KB_REACT_DIR to a node_modules that holds react and react-dom). The source checks above ran.')
+  // The line starts with SKIPPED: so the runner and CI count it (an indented one was missed by both, 2026-11-08).
+  console.log('\nSKIPPED: the render half of the kybernos-servers client test: React not found (set KB_REACT_DIR to a node_modules that holds react and react-dom). The source checks above ran.')
   console.log(failed === 0 ? '\nall good (render half SKIPPED)' : '\n' + failed + ' failed')
   process.exit(failed === 0 ? 0 : 1)
 }
@@ -189,9 +190,9 @@ console.log('the sign-in, switch and remove dialogs')
 
 // L5-05: removing the ACTIVE server switches back to Kybernos Cloud, so the account and the models change: the message says so and asks for the reload,
 // as « Switch to this server » does. Removing a server that is not active changes nothing else and says only that it was removed.
-check('removing the active server says it was removed, that you are back on Kybernos Cloud, and to reload DSH', doneMessage('remove', Object.assign({}, ACME, { active: true })) === 'Acme Corp was removed. You are back on Kybernos Cloud. Reload DSH to refresh the model list.', doneMessage('remove', Object.assign({}, ACME, { active: true })))
+check('removing the active server says it was removed, that you are back on Kybernos Cloud, and to reload Kybernos', doneMessage('remove', Object.assign({}, ACME, { active: true })) === 'Acme Corp was removed. You are back on Kybernos Cloud. Reload Kybernos to refresh the model list.', doneMessage('remove', Object.assign({}, ACME, { active: true })))
 check('removing a server that is not active says only that it was removed', doneMessage('remove', Object.assign({}, ACME, { active: false })) === 'Acme Corp was removed.', doneMessage('remove', ACME))
-check('switching still asks for the reload', doneMessage('switch', ACME) === 'You are on Acme Corp. Reload DSH to refresh the model list.', doneMessage('switch', ACME))
+check('switching still asks for the reload', doneMessage('switch', ACME) === 'You are on Acme Corp. Reload Kybernos to refresh the model list.', doneMessage('switch', ACME))
 
 // Light theme: the engine's success green is 2.1:1 on its own tint and the Enterprise blue 4.2:1 on white (measured, scripts/audit-contrast-live.mjs); both texts get a darker ink in the
 // light theme only (6.3:1 and 5.2:1; a token with the ink as its fallback, so a theme may set it), and the dark theme keeps the engine's colours.

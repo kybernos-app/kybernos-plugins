@@ -576,7 +576,59 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   const some = needView(by, new Set(['gmail']), [])
   ok('a connected app is not to connect any more', some.need === 1 && some.slugs.join() === 'googlecalendar')
   const quiet = needView(by, new Set(), ['googlecalendar'])
-  ok('« Not now » silences the pulse and the number but the app stays listed', quiet.need === 1 && quiet.slugs.join() === 'gmail,googlecalendar')
+  ok('a refused app leaves the card and the pulse (list item 03), and is told apart in `refused`', quiet.need === 1 && quiet.slugs.join() === 'gmail' && quiet.refused.join() === 'googlecalendar')
+  const { needOffMap, needWho, needLossKey, needDismiss, needOff } = plugin.composio
+  const DAY = 24 * 3600 * 1000
+  const now = 1_800_000_000_000
+  ok('the old list of slugs becomes a 7-day refusal from now', JSON.stringify(needOffMap(['gmail', '', 7, 'slack'], now)) === JSON.stringify({ gmail: now + 7 * DAY, slack: now + 7 * DAY }))
+  ok('a refusal lasts until its time; « never » never ends; junk is dropped', JSON.stringify(needOffMap({ a: now + 1, b: now - 1, c: 'never', d: 'x', e: null }, now)) === JSON.stringify({ a: now + 1, c: 'never' }) && Object.keys(needOffMap(null, now)).length === 0 && Object.keys(needOffMap('x', now)).length === 0)
+  const t = (k) => ({ 'kb.cp.needMore': '{who} and {n} more' })[k]
+  ok('who asks: up to two names as they are, then « and n more »', needWho(['A', 'B'], t) === 'A, B' && needWho(['A', 'B', 'C', 'D'], t) === 'A, B and 2 more' && needWho(undefined, t) === '' && needWho([], t) === '' && needWho(['A', 3, ''], t) === 'A')
+  ok('what a refusal costs: on = stays stopped, suggestion = cannot be set up; one or many; unknown reads as a suggestion', needLossKey('run', 1) === 'kb.cp.needLoss.run.1' && needLossKey('run', 3) === 'kb.cp.needLoss.run.n' && needLossKey('set', 2) === 'kb.cp.needLoss.set.n' && needLossKey(undefined, 1) === 'kb.cp.needLoss.set.1')
+  localStorage.removeItem('kybernos.composio.needDismissed')
+  const before = Date.now()
+  needDismiss('gmail', 'later'); needDismiss('slack', 'never')
+  const kept = needOff()
+  ok('« Not now » keeps the app out for 7 days, « Don\u2019t suggest again » for good, on this device', kept.gmail >= before + 7 * DAY && kept.gmail <= Date.now() + 7 * DAY && kept.slack === 'never')
+  localStorage.setItem('kybernos.composio.needDismissed', JSON.stringify(['notion']))
+  ok('an old list in the storage is read as a refusal and rewritten in the new shape', Object.keys(needOff()).join() === 'notion' && !Array.isArray(JSON.parse(localStorage.getItem('kybernos.composio.needDismissed'))))
+  localStorage.removeItem('kybernos.composio.needDismissed')
+  const cardSrc = (await import('node:fs')).readFileSync(new URL('./client.js', import.meta.url), 'utf8')
+  ok('the card has the app, who asks, what a refusal costs, and Connect / Not now / Don\u2019t suggest again', ['need-by', 'need-loss', 'need-connect', 'need-later', 'need-never'].every((k) => cardSrc.indexOf("'data-kb': '" + k + "'") > 0))
+  const dict = [...cardSrc.matchAll(/'(kb\.cp\.need(?:Later|Never|Connect|More|Loss\.\w+\.\w))': \{ fr: '([^']|\\')+', en: '([^']|\\')+' \}/g)].map((m) => m[1])
+  ok('every new sentence has a French and an English text', dict.length === 8, dict.join())
+}
+
+// ── The last list of « Yours », kept in this browser: drawn at once, refreshed behind ──────────────────────────────────
+{
+  const { yoursClean, yoursSnap, yoursApps } = plugin.composio
+  ok('the kept-list helpers are reachable', typeof yoursClean === 'function' && typeof yoursSnap === 'function' && typeof yoursApps === 'function')
+  const conns = { gmail: { status: 'active', accounts: [{ id: 'a1', label: 'me@example.test', status: 'ACTIVE' }] }, slack: { status: 'initiated', accounts: [] } }
+  const kc = { offered: true, connected: true, connections: [{ id: 'c1', toolkit: 'notion', status: 'active' }], limit: 5, entitled: true, web: null, count: 1, stale: true, error: 'network', details: { x: 1 } }
+  const apps = [{ s: 'gmail', n: 'Gmail', c: ['mail'], d: 'Mail', l: '<svg/>' }, { s: 'notion', n: 'Notion', c: [], d: '' }, { s: 'slack', n: 'Slack', c: [], d: '' }]
+  const snap = yoursSnap(apps, conns, true, kc)
+  ok('only the apps that have a connection are kept as rows, without their inline logo', snap.rows.map((r) => r.s).sort().join() === 'gmail,notion' && snap.rows.every((r) => r.l === undefined))
+  const back = yoursClean(JSON.parse(JSON.stringify(snap)))
+  ok('a kept list comes back as it was (connections, key flag, Kybernos view, rows)', back !== null && back.conns.gmail.accounts[0].id === 'a1' && back.hostCfg === true && back.kc.offered === true && back.kc.connections.length === 1 && back.rows.length === 2)
+  ok('what was an error or a stale mark when it was kept is not drawn as one next time', back.kc.stale === false && back.kc.error === null && JSON.stringify(back.kc.details) === '{}')
+  ok('a Kybernos view that said « not offered » is kept as that', yoursClean({ v: 1, conns: {}, kc: { offered: false } }).kc.offered === false)
+  ok('nothing usable (wrong version, not an object, junk) is no list at all', yoursClean(null) === null && yoursClean('x') === null && yoursClean({ v: 2, conns: {} }) === null && yoursClean([]) === null)
+  const junk = yoursClean({ v: 1, conns: { a: 5, b: { accounts: 'no' }, c: { status: 7, accounts: [null, { id: 3 }] } }, hostCfg: 'yes', kc: { offered: true, connections: [{ id: 9 }, null] }, rows: [null, { s: '' }, { s: 'ok', n: 4, c: 'x' }] })
+  ok('junk inside a kept list is dropped, never drawn', Object.keys(junk.conns).join() === 'c' && junk.conns.c.accounts.length === 1 && junk.hostCfg === null && junk.kc.connections.length === 0 && junk.rows.length === 1 && junk.rows[0].c.length === 0)
+  const list = [{ s: 'gmail', n: 'Gmail' }]
+  ok('the kept rows only fill what the catalogue does not hold yet', yoursApps(list, { rows: [{ s: 'gmail', n: 'x' }, { s: 'notion', n: 'Notion' }] }).map((a) => a.s).join() === 'gmail,notion' && yoursApps(list, null) === list && yoursApps(list, { rows: [] }) === list)
+  const { readFileSync } = await import('node:fs')
+  const src = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
+  ok('the page starts from the kept list and a first visit shows skeleton cards, never « nothing connected » before the answers', /kbCpYoursRead\(\)/.test(src) && /const \[connsLoaded, setConnsLoaded\] = React\.useState\(kept !== null\)/.test(src) && /ready === true && yoursReady === true \? h\('div', \{ className: 'kb7-emptybox' \}/.test(src))
+  ok('a read that failed and brought nothing keeps the list on screen', /setConns\(\(prev\) => \(failure !== null && Object\.keys\(acc\)\.length === 0 \? prev : acc\)\)/.test(src) && !/setErr\(kbt\('kb\.cp\.err\.catalog'\)[^\n]*\n[^\n]*\n\s*setConns\(\{\}\)/.test(src))
+  ok('the list is kept only once something real is on screen (a read, or a kept list) and the cloud half has answered', /if \(connsLoaded !== true \|\| kc === null\) return\n\s*kbCpYoursWrite\(/.test(src))
+  // List item 26: Discover first, Yours opens by default only when it holds something.
+  const { yoursHas, firstTab } = plugin.composio
+  ok('yoursHas: an own account, or a Kybernos connection, is something; an empty list or an app without an account is not', yoursHas({ gmail: { accounts: [{ id: 'a' }] } }, null) === true && yoursHas({}, { offered: true, count: 2, connections: [] }) === true && yoursHas({}, null) === false && yoursHas({ gmail: { accounts: [] } }, { offered: false, count: 5 }) === false && yoursHas(null, undefined) === false)
+  ok('firstTab: Discover when Yours is empty, Yours when it holds something', firstTab(false) === 'discover' && firstTab(true) === 'yours' && firstTab(undefined) === 'discover')
+  const order = [...src.matchAll(/'data-kb': 'subtab-(\w+)'/g)].map((m) => m[1])
+  ok('the tabs are Discover, Yours, then the MCP servers', order.join() === 'discover,yours,mcp', order.join())
+  ok('the page opens on the tab firstTab names for the kept list, and moves to Yours once, unless a tab was picked', /React\.useState\(kbCpFirstTab\(kept !== null && kbCpYoursHas\(kept\.conns, kept\.kc\)\)\)/.test(src) && /if \(tabPicked\.current !== true && yoursReady === true && yoursHas === true\) setVtabRaw/.test(src) && /const setVtab = \(t\) => \{ tabPicked\.current = true; setVtabRaw\(t\) \}/.test(src))
 }
 
 // ── AGENTS.md rule 2: apply() cannot stop DSH from starting ─────────────────

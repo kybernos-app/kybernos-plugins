@@ -8,8 +8,8 @@
     "fr": "Mémoire et leçons"
   },
   "description": {
-    "en": "The Memory & Lessons page: account memory and lessons per agent team, filters, on/off switches.",
-    "fr": "La page Memory & Lessons : mémoire du compte et leçons par Agent Team, filtres, interrupteurs."
+    "en": "The Memory & Lessons page: account memory and lessons per AI agent team, filters, on/off switches.",
+    "fr": "La page Memory & Lessons : mémoire du compte et leçons par équipe d’agents IA, filtres, interrupteurs."
   },
   "icon": "brain",
   "family": "cloud",
@@ -29,6 +29,7 @@
   },
   "permissions": [
     "ui.slot:settings.section",
+    "ui.slot:conversation.chat.turnTail",
     "host.routes:/kybernos-memory:write",
     "fs.write:dsh-home",
     "agent.prompt",

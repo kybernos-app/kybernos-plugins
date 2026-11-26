@@ -7,6 +7,7 @@ Translations are saved on the user's disk (`~/.dsh/kybernos/i18n/<lang>.json`), 
 ## What the user sees
 
 - Two tabs: **Languages** and **Settings**. The toolbar holds the tabs and *Add a language*.
+  A **search field** heads the list (owner's list, item 27): it finds a language by its id, its native name or its English name among the ones you have, and, under them, the ones you could add (a tap adds one); empty, the page is what it was; while the *Add a language* panel is open that panel's own field is the only one drawn.
 - A list of languages, one line each, with a flag when one country can stand for the language (built from a table of
   regions; Arabic has an emblem of its own, drawn; a system whose fonts draw no flag, or a language with no country,
   shows the two-letter code): French (the Kybernos source) and English are built in; the picker offers the other 182 of the
@@ -64,6 +65,10 @@ tried after a missing or invalid credential, a missing adapter or a quota error.
   `window.__KB_I18N_HOST_STORE__ = false` turns the disk copy off (live test scripts use it). No env var is read here.
 - Switching the bundle off keeps already translated languages working: registration in DSH and the disk reconciliation live
   in the core plugin's always-on `window.__KB_LANG_RUNTIME__`. Only translating, pausing, removing and the live layer go.
+- On the phone (Kaby mode, `kb-kaby` on `<html>`) the same runtime also puts DSH on its OWN French (`fr`, shipped by the engine since 0.2.2-rc.5) when Kybernos is French, once per start and only after DSH has
+  read its stored language, so the drawer, the menus and the Settings pages are French from top to bottom instead of Kybernos' French over DSH's English. The choice of French on this page still writes `en` to DSH
+  (the built-ins keep DSH English on a desktop); on the phone it lands on `fr` at the next start. A choice of English stays English: after the first move, an English in DSH over a French Kybernos is a choice and
+  Kybernos follows it. DSH's `fr` is read as Kybernos' French (`kybernos`), never copied as the id `fr` (Kybernos has no table for it). An engine with no `fr` is left as it was.
 
 ## DSH seams and network
 

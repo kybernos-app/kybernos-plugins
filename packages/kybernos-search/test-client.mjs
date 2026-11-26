@@ -16,9 +16,10 @@ ok('nothing is ever written to the page as HTML from a result', !/\.innerHTML\s*
 ok('the only innerHTML is the static icon constants of this file', /s\.innerHTML = inner \/\/ static constants/.test(SRC))
 ok('every network call is to this plugin, or to two routes the page already uses', [...SRC.matchAll(/(?:post|getJson)\('([^']+)'/g)].map((m) => m[1]).every((u) => /^\/kybernos-search\/|^\/kybernos-cloud\/memory$|^\/kybernos\/load$/.test(u)))
 ok('no engine patch, no eval, no remote script', !/\beval\(|new Function|importScripts|XMLHttpRequest|WebSocket/.test(SRC))
-ok('the hooks of the live checks', ['search-dialog', 'search-input', 'search-header'].every((h) => SRC.includes("'" + h + "'")) && /data-act', 'scope'/.test(SRC) && /'data-act', 'result'/.test(SRC))
-ok('the three ways in: the global opener, the shortcut, the header icon', SRC.includes('window.__KB_SEARCH__ = { open: openDialog') && /String\(e\.key\)\.toLowerCase\(\) === 'k'/.test(SRC) && /\[class\*="searchButton"\]/.test(SRC))
-ok('the native search is not touched: our icon goes in the actions group, never inside its slot', /header\.insertBefore\(b, actions\)/.test(SRC) && !/native\.remove|native\.style|native\.addEventListener/.test(SRC))
+ok('the hooks of the live checks', ['search-dialog', 'search-input', 'search-top'].every((h) => SRC.includes("'" + h + "'")) && /data-act', 'scope'/.test(SRC) && /'data-act', 'result'/.test(SRC))
+ok('the three ways in: the global opener, the shortcut, the icon at the top of the sidebar', SRC.includes('window.__KB_SEARCH__ = { open: openDialog') && /String\(e\.key\)\.toLowerCase\(\) === 'k'/.test(SRC) && SRC.includes("'search-top'"))
+ok('a ✕ closes the dialog where there is no Esc key (a phone): drawn but hidden by default (`display:none`, shown by the Theme\'s touch rules), a button with an accessible name through kt, and it closes through the same function as the key', /\.kbsr-x\{display:none\}/.test(SRC) && /el\('button', 'kbsr-x'\)/.test(SRC) && /'data-kb', 'search-close'/.test(SRC) && /closeBtn\.setAttribute\('aria-label', kt\('Fermer', 'Close'\)\)/.test(SRC) && /closeBtn\.addEventListener\('click', closeDialog\)|closeBtn\.addEventListener\('click', \(\) => closeDialog\(\)\)/.test(SRC))
+ok('no icon of ours in the Workspaces header any more (the top one is the way in), and the native search is not touched from here', !/sweepHeader|search-header|sectionHeader|searchButton/.test(SRC.replace(/\/\/.*$/gm, '')) && !/native\.remove|native\.style|native\.addEventListener/.test(SRC))
 ok('tool outputs and archived chats are not offered (they are not built)', !/archiv|tool output|sorties d/i.test(SRC.replace(/\/\/.*$/gm, '')))
 ok('every visible string goes through kt (fr, en)', !/\.textContent = '[A-Z][a-z]+ [a-z]/.test(SRC) && !/createTextNode\('[A-Za-z]{4,}/.test(SRC))
 
@@ -28,7 +29,7 @@ const b = SRC.indexOf('// KB-SEARCH-PURE-END')
 const scopesSrc = SRC.slice(SRC.indexOf('const SCOPES = ['), SRC.indexOf('const KEY_SCOPES'))
 const api = vm.runInNewContext(
   "const kt = (fr, en) => en\n" + scopesSrc + SRC.slice(a, b) +
-  '\n;({ fold, queryTerms, marksOf, maskSecrets, localMatch, hostScopes, normalizeScopes, SCOPES, DEFAULT_SCOPES })', { String, Array, Set, Object, Math })
+  '\n;({ fold, queryTerms, marksOf, maskSecrets, localMatch, hostScopes, normalizeScopes, commandMatches, COMMAND_SCOPE, SCOPES, DEFAULT_SCOPES })', { String, Array, Set, Object, Math })
 {
   ok('fold: accents and case, one character for one', api.fold('Thème ÉTÉ') === 'theme ete' && api.fold('İstanbul').length === 'İstanbul'.length)
   ok('terms: distinct, folded, at most 6', JSON.stringify(api.queryTerms(' Thème thème Docker ')) === '["theme","docker"]' && api.queryTerms('a b c d e f g h').length === 6)
@@ -44,6 +45,33 @@ const api = vm.runInNewContext(
   ok('only the scopes the host knows are sent to it', JSON.stringify(api.hostScopes(['chat', 'memory', 'creation', 'team'])) === '["chat","team"]')
   ok('stored scopes are sanitised, an empty or broken value is the defaults', JSON.stringify(api.normalizeScopes(['chat', 'evil'])) === '["chat"]' && api.normalizeScopes([]).length === 5 && api.normalizeScopes(null).length === 5 && api.normalizeScopes('x').length === 5)
   ok('seven scopes, all with a colour', api.SCOPES.length === 7 && api.SCOPES.every((s) => /^#[0-9a-f]{6}$/i.test(s.hue)))
+}
+
+console.log('commands (the box also finds what other bundles register)')
+{
+  const run = () => {}
+  const cmds = [
+    { id: 'display-open', label: () => 'Display…', keywords: ['mode', 'affichage', 'view'], run },
+    { id: 'display-simple', label: () => 'Display: Simple', keywords: ['mode', 'affichage'], hint: () => 'Short menu', run },
+    { id: 'display-complete', label: () => 'Affichage : Complet', keywords: ['mode', 'display', 'complete'], run },
+    { id: 'no-run', label: () => 'Display nothing', run: null },
+    { id: 'no-label', run },
+    { id: 'empty', label: () => '', run },
+    { id: 'throws', label: () => { throw new Error('x') }, run },
+    null, 'text', 7
+  ]
+  const hit = (q) => api.commandMatches(cmds, q).map((r) => r.id)
+  ok('a word of the label finds it, folded: accents and case do not matter', JSON.stringify(hit('AFFICHAGE')) === '["display-complete","display-open","display-simple"]' || (hit('AFFICHAGE').length === 3 && hit('AFFICHAGE').every((x) => ['display-open', 'display-simple', 'display-complete'].includes(x))), hit('AFFICHAGE'))
+  ok('every word has to be there (in the label or the keywords)', JSON.stringify(hit('display simple')) === '["display-simple"]' && hit('mode complete').join() === 'display-complete' && hit('zzz').length === 0, [hit('display simple'), hit('mode complete')])
+  ok('an entry that is not a command is left out, and one that throws costs nothing', !hit('display').includes('no-run') && !hit('display').includes('no-label') && !hit('display').includes('empty') && !hit('display').includes('throws') && hit('display').length === 3)
+  ok('nothing without a query, and nothing when the list is not a list', api.commandMatches(cmds, '').length === 0 && api.commandMatches(cmds, '   ').length === 0 && api.commandMatches(undefined, 'display').length === 0 && api.commandMatches({}, 'display').length === 0)
+  const r = api.commandMatches(cmds, 'simple')[0]
+  ok('a result is a row of the scope « command »: the title marked, the hint as where, an open that runs, no hit', r.scope === 'command' && r.title === 'Display: Simple' && r.titleMarks.length === 1 && r.meta.where === 'Short menu' && r.open.kind === 'command' && r.open.run === run && r.hits.length === 0, r)
+  const many = Array.from({ length: 10 }, (_, i) => ({ id: 'c' + i, label: () => 'Display ' + i, run }))
+  ok('at most six', api.commandMatches(many, 'display').length === 6)
+  ok('the scope is a group of its own, not a chip: it is not one of the scopes the person turns on', api.COMMAND_SCOPE.id === 'command' && !api.SCOPES.some((x) => x.id === 'command') && !api.DEFAULT_SCOPES.includes('command') && api.normalizeScopes(['command']).join() === api.DEFAULT_SCOPES.join())
+  ok('the dialog reads the registry at each query, shows the group first, and runs a command after the dialog closed (so a sheet it opens keeps the focus)', /window\.__KB_COMMANDS__/.test(SRC) && /cmds\.concat\(all\.filter/.test(SRC) && /\[COMMAND_SCOPE\]\.concat\(SCOPES\)/.test(SRC) && /r\.open\.kind === 'command'[^\n]*setTimeout/.test(SRC))
+  ok('the button says « Run » for a command (kt)', /kt\('Lancer', 'Run'\)/.test(SRC))
 }
 
 console.log('the dialog')
@@ -81,8 +109,7 @@ if (JSDOM === null) {
   plugin.apply({ get: (n) => (n === 'uiWorkspace' ? { openSession: (id) => opened.push(id) } : null), effect: (fn) => effects.push(fn()) })
   const doc = w.document
   ok('the plugin registers and exposes its opener', def.id === '@local/kybernos-search' && typeof w.__KB_SEARCH__.open === 'function')
-  const hdr = doc.querySelector('[data-kb="search-header"]')
-  ok('the icon is a child of the header, right before its icon group (NOT in the 28 px search slot, which clips it, NOT in the 60 px group, which would push a button out)', hdr !== null && hdr.parentElement.className === 'x_sectionHeader' && hdr.nextElementSibling.className === 'x_headerActions' && hdr.closest('.x_searchSlot') === null && doc.querySelector('.x_headerActions').children.length === 2 && /x_iconButton/.test(hdr.className) && !/wide/.test(hdr.className))
+  ok('the Workspaces header gets no search icon of ours: its native buttons and its icon group are as they were', doc.querySelector('[data-kb="search-header"]') === null && doc.querySelector('.x_headerActions').children.length === 2 && doc.querySelector('.x_searchSlot').children.length === 1)
   const top = doc.querySelector('[data-kb="search-top"]')
   ok('an icon sits at the very top of the sidebar, right before the collapse button, with its look (the « wide » modifier left out)', top !== null && top.nextElementSibling === doc.querySelector('[aria-label="Collapse sidebar"]') && /x_collapseBtn/.test(top.className) && !/x_wide/.test(top.className) && /Search everywhere|Rechercher partout/.test(top.getAttribute('aria-label')), top && [top.className, top.getAttribute('aria-label'), top.nextElementSibling && top.nextElementSibling.className])
   ok('and only one of it, however many times the page moves', doc.querySelectorAll('[data-kb="search-top"]').length === 1)
@@ -104,8 +131,8 @@ if (JSDOM === null) {
   ok('the top icon opens the dialog too', doc.querySelector('[data-kb="search-dialog"]') !== null)
   w.__KB_SEARCH__.close()
   ok('the native search button and its slot are untouched', doc.querySelector('.x_searchButton').className === 'x_searchButton' && doc.querySelector('.x_searchSlot').children.length === 1)
-  hdr.dispatchEvent(new w.MouseEvent('click', { bubbles: true }))
-  ok('the icon opens the dialog', doc.querySelector('[data-kb="search-dialog"]') !== null && doc.activeElement === doc.querySelector('[data-kb="search-input"]'))
+  again.dispatchEvent(new w.MouseEvent('click', { bubbles: true }))
+  ok('the top icon opens the dialog and focuses the input', doc.querySelector('[data-kb="search-dialog"]') !== null && doc.activeElement === doc.querySelector('[data-kb="search-input"]'))
   await sleep(50)
   ok('the first open starts the index (it is built on the first click)', calls.some((c) => c[0] === '/kybernos-search/start'))
   const input = doc.querySelector('[data-kb="search-input"]')
@@ -167,7 +194,7 @@ if (JSDOM === null) {
   ok('an unreachable host is said, not thrown', /did not answer|n’a pas répondu/.test(doc.querySelector('.kbsr-empty').textContent))
   w.__KB_SEARCH__.close()
   effects.forEach((c) => { try { c() } catch (e) { /* */ } })
-  ok('cleanup removes the icon, the style and the opener', doc.querySelector('[data-kb="search-header"]') === null && doc.querySelector('[data-kb="search-top"]') === null && doc.querySelector('style[data-plugin="@local/kybernos-search"]') === null && w.__KB_SEARCH__ === undefined)
+  ok('cleanup removes the icon, the style and the opener', doc.querySelector('[data-kb="search-top"]') === null && doc.querySelector('style[data-plugin="@local/kybernos-search"]') === null && w.__KB_SEARCH__ === undefined)
   w.close()
 }
 

@@ -1,34 +1,34 @@
 {
   "what": {
-    "fr": "Le cœur de Kybernos : des Agent Teams (des équipes d’agents sur une mission) que tu lances depuis un chat, leurs créations, des automatisations, la voix et le choix des outils.",
-    "en": "The heart of Kybernos: Agent Teams (teams of agents on a mission) you start from a chat, what they create, automations, voice and tool choices."
+    "fr": "Le cœur de Kybernos : des équipes d’agents IA (des agents qui travaillent ensemble sur une mission) que tu lances depuis un chat, leurs créations, des automatisations, la voix et le choix des outils.",
+    "en": "The heart of Kybernos: AI Agent Teams (teams of agents on a mission) you start from a chat, what they create, automations, voice and tool choices."
   },
   "steps": [
     {
-      "fr": "« New chat » ouvre une conversation (la flèche choisit l’Agent Team) ; « Agent Teams » et « Workspaces » gardent équipes et projets.",
-      "en": "“New chat” opens a conversation (the arrow picks the Agent Team); “Agent Teams” and “Workspaces” hold your teams and projects."
+      "fr": "« New chat » ouvre une conversation (la flèche choisit l’équipe) ; « Équipes d’agents IA » et « Workspaces » gardent équipes et projets.",
+      "en": "“New chat” opens a conversation (the arrow picks the AI Agent Team); “AI Agent Teams” and “Workspaces” hold your teams and projects."
     },
     {
-      "fr": "« Créations » garde les fichiers produits ; « Automatisations » lance une Agent Team seule, à l’heure choisie ou quand un message arrive.",
-      "en": "“Creations” keeps the files produced; “Automations” starts an Agent Team on its own, at a chosen time or when a message arrives."
+      "fr": "« Créations » garde les fichiers produits ; « Automatisations » lance une équipe seule, à l’heure choisie ou quand un message arrive.",
+      "en": "“Creations” keeps the files produced; “Automations” starts an AI Agent Team on its own, at a chosen time or when a message arrives."
     },
     {
       "fr": "Dans Automatisations, « Équipe » liste ce que ton équipe a approuvé : installe une copie, ou envoie la tienne avec « Proposer à l’équipe… ».",
       "en": "In Automations, “Team” lists what your team approved: install a copy, or send yours with “Propose to team…”."
     },
     {
-      "fr": "Dans un chat, l’onglet « Journal » retrace ce que l’Agent Team a exécuté. Les pages « Outils » et « Voix » sont dans les Réglages.",
-      "en": "In a chat, the “Journal” tab traces what the Agent Team ran. The “Tools” and “Voice” pages are in Settings."
+      "fr": "Dans un chat, l’onglet « Journal » retrace ce que l’équipe d’agents IA a exécuté. Les pages « Outils » et « Voix » sont dans les Réglages.",
+      "en": "In a chat, the “Journal” tab traces what the AI Agent Team ran. The “Tools” and “Voice” pages are in Settings."
     }
   ],
   "where": {
-    "fr": "Barre latérale › Agent Teams",
-    "en": "Sidebar › Agent Teams",
+    "fr": "Barre latérale › Équipes d’agents IA",
+    "en": "Sidebar › AI Agent Teams",
     "page": true
   },
   "good": {
-    "fr": "Une automatisation ne part que si DSH est lancé, sur cet ordinateur. Réglée sur « Me demander d’abord » (le choix par défaut), elle attend ton accord avant une action qui modifie quelque chose.",
-    "en": "An automation only starts while DSH is running, on this computer. Set to “Ask me first” (the default), it waits for your approval before an action that changes something."
+    "fr": "Une automatisation ne part que si Kybernos est lancé, sur cet ordinateur. Réglée sur « Me demander d’abord » (le choix par défaut), elle attend ton accord avant une action qui modifie quelque chose.",
+    "en": "An automation only starts while Kybernos is running, on this computer. Set to “Ask me first” (the default), it waits for your approval before an action that changes something."
   },
   "pages": {
     "voice": {
@@ -99,8 +99,8 @@
         "en": "Creations"
       },
       "what": {
-        "fr": "Tout ce que tes Agent Teams ont produit — pages, documents, présentations, images — au même endroit, pour l’ouvrir, le chercher et le filtrer.",
-        "en": "Everything your Agent Teams made — pages, documents, decks, images — in one place, to open, search and filter."
+        "fr": "Tout ce que tes équipes d’agents IA ont produit — pages, documents, présentations, images — au même endroit, pour l’ouvrir, le chercher et le filtrer.",
+        "en": "Everything your AI Agent Teams made — pages, documents, decks, images — in one place, to open, search and filter."
       },
       "steps": [
         {
@@ -128,8 +128,8 @@
         "en": "Workspaces"
       },
       "what": {
-        "fr": "Un workspace est un dossier de projet avec ses propres chats, documents, objectifs et créations. Ouvre-en un pour voir ce que les Agent Teams y ont produit.",
-        "en": "A workspace is a project folder with its own chats, documents, goals and creations. Open one to see what the Agent Teams produced there."
+        "fr": "Un workspace est un dossier de projet avec ses propres chats, documents, objectifs et créations. Ouvre-en un pour voir ce que les équipes d’agents IA y ont produit.",
+        "en": "A workspace is a project folder with its own chats, documents, goals and creations. Open one to see what the AI Agent Teams produced there."
       },
       "steps": [
         {
@@ -157,8 +157,8 @@
         "en": "Tools"
       },
       "what": {
-        "fr": "Les outils ajoutent des capacités à un profil DSH : des fonctions expérimentales et des liens vers des outils extérieurs, écrits dans le fichier de config du profil.",
-        "en": "Tools add abilities to a DSH profile: experimental features and links to outside tools, written to the profile’s config file."
+        "fr": "Les outils ajoutent des capacités à un profil Kybernos : des fonctions expérimentales et des liens vers des outils extérieurs, écrits dans le fichier de config du profil.",
+        "en": "Tools add abilities to a Kybernos profile: experimental features and links to outside tools, written to the profile’s config file."
       },
       "steps": [
         {
@@ -174,8 +174,8 @@
           "en": "Install and configure: a dated backup is made first, and Remove restores it."
         },
         {
-          "fr": "DSH applique le changement tout seul, quelques secondes après l’écriture : pas de redémarrage.",
-          "en": "DSH applies the change by itself a few seconds after it is written: no restart."
+          "fr": "Kybernos applique le changement tout seul, quelques secondes après l’écriture : pas de redémarrage.",
+          "en": "Kybernos applies the change by itself a few seconds after it is written: no restart."
         }
       ],
       "where": {
@@ -194,21 +194,21 @@
         "en": "Automation settings"
       },
       "what": {
-        "fr": "Où vivent tes automatisations, et leurs réglages : tout mettre en pause, réafficher la liste de tâches de DSH, ou écrire en skill les automatisations qui tournent sans échec.",
-        "en": "Where your automations live, and their settings: pause everything, show DSH’s own task list again, or write down as skills the automations that run without failing."
+        "fr": "Où vivent tes automatisations, et leurs réglages : tout mettre en pause, réafficher la liste de tâches de Kybernos, ou écrire en skill les automatisations qui tournent sans échec.",
+        "en": "Where your automations live, and their settings: pause everything, show Kybernos’s own task list again, or write down as skills the automations that run without failing."
       },
       "steps": [
         {
-          "fr": "Elles tournent sur cet ordinateur, tant que DSH est ouvert. S’il est chargé, elles attendent leur tour et lancent moins de subagents.",
-          "en": "They run on this computer, while DSH is open. When it is busy, they wait their turn and start fewer sub-agents."
+          "fr": "Elles tournent sur cet ordinateur, tant que Kybernos est ouvert. S’il est chargé, elles attendent leur tour et lancent moins de subagents.",
+          "en": "They run on this computer, while Kybernos is open. When it is busy, they wait their turn and start fewer sub-agents."
         },
         {
           "fr": "Active la pause pour que rien ne se déclenche ; ce qui est arrivé à échéance se déclenche une fois à la reprise.",
           "en": "Turn the pause on so nothing fires; what came due fires once after you resume."
         },
         {
-          "fr": "Réaffiche la liste « Automation tasks » de DSH si tu la veux de nouveau dans le menu.",
-          "en": "Show DSH’s “Automation tasks” list if you want it back in the menu."
+          "fr": "Réaffiche la liste « Automation tasks » de Kybernos si tu la veux de nouveau dans le menu.",
+          "en": "Show Kybernos’s “Automation tasks” list if you want it back in the menu."
         },
         {
           "fr": "« Suggérer des skills depuis les automatisations stables » propose un skill après 3, 5, 10 ou 20 runs sans échec. Sinon : bouton Sessions.",
@@ -227,8 +227,8 @@
         "en": "Models"
       },
       "what": {
-        "fr": "Le modèle par défaut de DSH et les modèles proposés : chaque fournisseur, son état, et ce que les nouvelles tâches utilisent.",
-        "en": "DSH’s default model and the models on offer: each provider, its state, and what new tasks use."
+        "fr": "Le modèle par défaut de Kybernos et les modèles proposés : chaque fournisseur, son état, et ce que les nouvelles tâches utilisent.",
+        "en": "Kybernos’s default model and the models on offer: each provider, its state, and what new tasks use."
       },
       "steps": [
         {
@@ -260,8 +260,8 @@
         "en": "Built-in plugins"
       },
       "what": {
-        "fr": "Les modules installés sur ce poste : ce qui est activé, la version, et ce que DSH charge au démarrage. Kybernos en ajoute quelques-uns.",
-        "en": "The modules installed on this machine: what is on, the version, and what DSH loads at start-up. Kybernos adds a few."
+        "fr": "Les modules installés sur ce poste : ce qui est activé, la version, et ce que Kybernos charge au démarrage. Kybernos en ajoute quelques-uns.",
+        "en": "The modules installed on this machine: what is on, the version, and what Kybernos loads at start-up. Kybernos adds a few."
       },
       "steps": [
         {
@@ -318,6 +318,35 @@
       "good": {
         "fr": "Ajouter un modèle ne change rien tant que tu ne l’as pas choisi.",
         "en": "Adding a template changes nothing until you choose it."
+      }
+    },
+    "automations": {
+      "title": {
+        "fr": "Automatisations",
+        "en": "Automations"
+      },
+      "what": {
+        "fr": "Des équipes d’agents IA qui démarrent seules — sur un planning, à une date ou quand un webhook est appelé.",
+        "en": "AI Agent Teams that start by themselves — on a schedule, on a date or when a webhook is called."
+      },
+      "steps": [
+        {
+          "fr": "Appuie sur « Créer » : un chat te pose les questions, une à une.",
+          "en": "Tap “Create”: a chat asks you the questions, one by one."
+        },
+        {
+          "fr": "Dis quand elle doit agir : sur un planning, à un événement précis, ou décris-le avec tes mots.",
+          "en": "Say when it should act: on a schedule, on a specific event, or describe it in words."
+        },
+        {
+          "fr": "L’entretien rédige le texte du workflow puis enregistre la vraie tâche : elle arrive dans la liste, avec son interrupteur.",
+          "en": "The interview drafts the workflow text, then saves the real task: it lands in the list, with its switch."
+        }
+      ],
+      "where": {
+        "fr": "Barre latérale › Automatisations",
+        "en": "Sidebar › Automations",
+        "page": true
       }
     }
   }

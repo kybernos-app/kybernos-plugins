@@ -1,0 +1,22 @@
+{
+  "id": "flint:40b",
+  "famille": "f",
+  "initiale": "Fl",
+  "tailleGo": 23,
+  "ramMin": 32,
+  "score": "Ollama library · 23 GB · 256K ctx",
+  "input": [
+    "text"
+  ],
+  "badges": [
+    "Tools",
+    "Thinking",
+    "Code"
+  ],
+  "desc": {
+    "fr": "Flint (Recursive) : 40B dont 2,5B actifs, conçu pour les agents de code, contexte 256K. Pour 32 Go, de justesse.",
+    "en": "Flint (Recursive): 40B, 2.5B active, built for coding agents, 256K context. For 32 GB, just."
+  },
+  "ajoute": "2026-11-23",
+  "ordre": 73
+}

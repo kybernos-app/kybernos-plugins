@@ -74,7 +74,7 @@ const readBody = async (req, max = 4096) => {
 }
 const isJson = (req) => String((req.headers && req.headers['content-type']) || '').toLowerCase().startsWith('application/json')
 
-export function mountRoutes (webServer, store) {
+export function mountRoutes (webServer, store, opts = {}) {
   const post = (path, run) => webServer.register({ kind: 'exact', path, handler: async (req, res) => {
     if (hostOk(req) === false) return send(res, 403, { ok: false, error: 'origin-refused' })
     if (req.method !== 'POST') return send(res, 405, { ok: false, error: 'method-not-allowed' })
@@ -94,5 +94,17 @@ export function mountRoutes (webServer, store) {
     let days = 30
     try { days = Number(new URL('http://x' + (req.url || '/')).searchParams.get('days')) || 30 } catch (e) { days = 30 }
     return send(res, 200, { ok: true, ...store.summary(days) })
+  } })
+  const reader = opts && opts.contextReader && typeof opts.contextReader.read === 'function' ? opts.contextReader : null
+  webServer.register({ kind: 'exact', path: '/kybernos-usage/context', handler: (req, res) => {
+    if (hostOk(req) === false) return send(res, 403, { ok: false, error: 'origin-refused' })
+    if (req.method !== 'GET') return send(res, 405, { ok: false, error: 'method-not-allowed' })
+    if (originOk(req, false) === false) return send(res, 403, { ok: false, error: 'origin-refused' })
+    if (reader === null) return send(res, 404, { ok: false, error: 'unavailable' })
+    let session = ''
+    try { session = new URL('http://x' + (req.url || '/')).searchParams.get('session') || '' } catch (e) { session = '' }
+    const out = reader.read(session)
+    if (out.ok !== true) return send(res, out.error === 'missing-session' ? 400 : 404, out)
+    return send(res, 200, out)
   } })
 }

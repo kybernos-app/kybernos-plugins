@@ -18,7 +18,7 @@ export const FICHIER_CATALOGUE = join(REPO, 'packages', 'kybernos-hub', 'catalog
 export const FAMILLES = [
   { id: 'base', fr: 'Fondations', en: 'Foundations', couleur: '#5b6fd6' },
   { id: 'models', fr: 'Modèles', en: 'Models', couleur: '#8a5bd6' },
-  { id: 'teams', fr: 'Agent Teams', en: 'Agent Teams', couleur: '#1a9a8a' },
+  { id: 'teams', fr: 'Équipes d’agents IA', en: 'AI Agent Teams', couleur: '#1a9a8a' },
   { id: 'create', fr: 'Créer dans le chat', en: 'Create in the chat', couleur: '#e8630a' },
   { id: 'data', fr: 'Données', en: 'Data', couleur: '#0f8fb5' },
   { id: 'connect', fr: 'Connexions', en: 'Connections', couleur: '#d6458a' },
@@ -59,52 +59,27 @@ const VEDETTES = {
   'kybernos-memory': {
     accroche: { fr: 'Ce que les agents ont retenu', en: 'What the agents remember' },
     description: {
-      fr: 'La page Memory & Lessons : les souvenirs du compte et les leçons de chaque Agent Team, avec recherche, filtres et interrupteurs. La recherche classe par pertinence, en local.',
-      en: 'The Memory & Lessons page: the account memories and the lessons of every agent team, with search, filters and switches. Search ranks by relevance, locally.'
+      fr: 'La page Memory & Lessons : les souvenirs du compte et les leçons de chaque équipe d’agents IA, avec recherche, filtres et interrupteurs. La recherche classe par pertinence, en local.',
+      en: 'The Memory & Lessons page: the account memories and the lessons of every AI agent team, with search, filters and switches. Search ranks by relevance, locally.'
     },
     points: [
       { fr: 'Souvenirs du compte : liste, recherche, filtres (épinglés, source, date), ajout, modification, oubli avec annulation', en: 'Account memories: list, search, filters (pinned, source, date), add, edit, forget with Undo' },
-      { fr: 'Leçons de chaque Agent Team : filtres, modification, suppression (archivée, pas perdue)', en: 'Lessons of every agent team: filters, edit, delete (archived, not lost)' },
+      { fr: 'Leçons de chaque équipe d’agents IA : filtres, modification, suppression (archivée, pas perdue)', en: 'Lessons of every AI agent team: filters, edit, delete (archived, not lost)' },
       { fr: 'Recherche classée par pertinence, en local : accents, pluriels et mots rares pris en compte', en: 'Search ranked by relevance, locally: accents, plurals and rare words handled' },
       { fr: 'Options : ce qui est envoyé au modèle, capture automatique, recherche par sens', en: 'Options: what is sent to the model, automatic capture, search by meaning' }
     ]
   },
   'dsh-db-viewer': {
-    accroche: { fr: 'Lire la base d’une Agent Team dans le chat', en: 'Read an agent team’s database in the chat' },
+    accroche: { fr: 'Lire la base d’une équipe d’agents IA dans le chat', en: 'Read an AI agent team’s database in the chat' },
     description: {
-      fr: 'Une visionneuse SQLite en lecture seule dans la barre latérale : la petite base que garde une Agent Team, en diagramme, en graphiques, en tableaux et avec une zone SELECT. Rien ne peut être écrit depuis la page.',
-      en: 'A read-only SQLite viewer in the right sidebar: the small database an agent team keeps, as a diagram, charts, tables and a SELECT box. Nothing can be written from the page.'
+      fr: 'Une visionneuse SQLite en lecture seule dans la barre latérale : la petite base que garde une équipe d’agents IA, en diagramme, en graphiques, en tableaux et avec une zone SELECT. Rien ne peut être écrit depuis la page.',
+      en: 'A read-only SQLite viewer in the right sidebar: the small database an AI agent team keeps, as a diagram, charts, tables and a SELECT box. Nothing can be written from the page.'
     },
     points: [
       { fr: 'Diagramme : une carte par table, avec les liens tirés des clés étrangères', en: 'Diagram: a card per table, with the links drawn from the foreign keys' },
       { fr: 'Graphiques : compteurs et courbes choisies d’après les types de colonnes', en: 'Charts: counters and charts picked from the column types' },
       { fr: 'Données : une table à la fois, en liste', en: 'Data: one table at a time, as a list' },
       { fr: 'SQL : une requête SELECT, WITH, PRAGMA ou EXPLAIN', en: 'SQL: one SELECT, WITH, PRAGMA or EXPLAIN statement' }
-    ]
-  },
-  'kybernos-slides': {
-    accroche: { fr: 'Un deck écrit sous tes yeux', en: 'A deck written before your eyes' },
-    description: {
-      fr: 'L’agent écrit un deck de slides en temps réel dans la barre latérale, caractère par caractère. Tu retouches à la main (texte, pinceau), l’agent relit tes retouches et corrige, et chaque passage corrigé est souligné à l’écran.',
-      en: 'The agent writes a slide deck in real time in the right sidebar, character by character. You touch it up by hand (text, brush), the agent reads your edits back and corrects, and every corrected passage is highlighted on screen.'
-    },
-    points: [
-      { fr: 'Six mises en page : titre, statement, puces, chiffre, citation, fin', en: 'Six layouts: title, statement, bullets, figure, quote, end' },
-      { fr: 'Quatre thèmes : sombre, clair, corail, papier', en: 'Four themes: dark, light, coral, paper' },
-      { fr: 'Tes retouches (texte et pinceau) sont relues par l’agent', en: 'Your edits (text and brush) are read back by the agent' },
-      { fr: 'Les passages corrigés par l’agent reçoivent un halo vert', en: 'Passages corrected by the agent get a green halo' }
-    ]
-  },
-  'kybernos-modeleur': {
-    accroche: { fr: '2D et 3D, dessinés par l’agent', en: '2D and 3D, drawn by the agent' },
-    description: {
-      fr: 'L’agent dessine un modèle 2D ou 3D ; il s’anime dans la barre latérale, objet par objet, puis se relit. Les solides 3D s’orbitent.',
-      en: 'The agent draws a 2D or 3D model; it animates in the right sidebar, object by object, then plays back. 3D solids can be orbited.'
-    },
-    points: [
-      { fr: 'Un moteur 2D à l’échelle et un moteur 3D de solides orbitables', en: 'A to-scale 2D engine and an orbitable 3D solids engine' },
-      { fr: 'Pose objet par objet, calée sur l’horloge de l’hôte : un onglet en retard rattrape son retard', en: 'Objects appear one by one on the host’s clock: a late tab catches up' },
-      { fr: 'Lecture, vitesses, curseur et relecture', en: 'Play, speeds, cursor and replay' }
     ]
   }
 }
@@ -200,6 +175,8 @@ export function construireCatalogue ({ lifecycle, satellites, manifests, aides }
       defaut: s.defaut === 'actif' ? 'actif' : null,
       poids_ko: typeof s.poids_ko === 'number' ? s.poids_ko : null,
       promesse: { fr: mf.description.fr, en: mf.description.en },
+      // `maturite` is the module's `suite.stage` ('alpha' | 'beta'); a stable module carries no field at all, so adding the tag moves no other byte of the file.
+      ...(mf.suite?.stage === 'alpha' || mf.suite?.stage === 'beta' ? { maturite: mf.suite.stage } : {}),
       ...(aides === undefined ? {} : { aide: validerAide(p.dir, aides[p.dir]) }),
       ...(v === undefined ? {} : { vedette: Object.keys(VEDETTES).indexOf(p.dir) + 1, accroche: v.accroche, description: v.description, points: v.points })
     }

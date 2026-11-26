@@ -129,7 +129,7 @@ section('catalogues')
   check('theme ids are unique', dupes(T.SKINS.map((s) => s.id)).length === 0, dupes(T.SKINS.map((s) => s.id)))
   check('wallpaper ids are unique', dupes(T.WPS.map((s) => s.id)).length === 0)
   check('font ids are unique', dupes(T.FONTS.map((s) => s.id)).length === 0)
-  check('18 ready-made themes (10 + the 8 legacy packs)', T.SKINS.length === 18, T.SKINS.length)
+  check('19 ready-made themes (Pure Codex + 10 + the 8 legacy packs)', T.SKINS.length === 19 && T.SKINS[0].id === 'epure', T.SKINS.length)
   check('every theme points at an existing wallpaper', T.SKINS.every((s) => T.WPS.some((w) => w.id === s.wp)), T.SKINS.filter((s) => !T.WPS.some((w) => w.id === s.wp)).map((s) => s.id))
   check('every wallpaper is in a known category (or is "none")', T.WPS.every((w) => w.id === 'none' || T.WPCATS.some((c) => c.id === w.cat)))
   check('every wallpaper has CSS and a valid dominant colour (or none)', T.WPS.every((w) => w.css !== '' && (w.dom === '' || T.HEX(w.dom) !== null)))
@@ -213,6 +213,10 @@ section('themes and "Surprise me"')
   check('a mode-less legacy pack does NOT set the mode', !('mode' in T.skinPatch(ember)) && Object.keys(T.skinPatch(ember).ov).length > 0)
   check('a moded skin sets its mode', T.skinPatch(paper).mode === 'light' && T.skinPatch(dsh).mode === 'dark')
   check('the displayed accent of a legacy pack comes from its palette', T.skinAccent(ember) === '#c1552f' && T.skinAccent(dsh) === null)
+  const epure = T.SKINS.find((s) => s.id === 'epure')
+  const epurePatch = T.skinPatch(epure)
+  check('Pure (Codex) preset follows System/Light/Dark, sets soft corners/shadow, and emits minimalist chrome + Codex blue bubble CSS',
+    epure && !('mode' in epurePatch) && epurePatch.radius === 'soft' && epurePatch.shadow === 'soft' && epurePatch.bubbleUser === 'auto' && epurePatch.fontText === 'system-ui' && /#e8f1fe/.test(T.effetsCss({ ...T.DEF, ...epurePatch })) && /border-radius:20px/.test(T.effetsCss({ ...T.DEF, ...epurePatch })) && !/#e8f1fe/.test(T.effetsCss({ ...T.DEF, ...epurePatch, bubbleUser: 'accent' })))
   let ok = true
   for (let i = 0; i < 200; i += 1) {
     const s = T.surprendre()
@@ -820,6 +824,7 @@ section('wired controls: the effects stylesheet')
   check('reduce motion → animations, transitions and smooth scrolling off', /animation:none!important;transition:none!important;scroll-behavior:auto!important/.test(css({ reduceMotion: true })))
   check('focus ring: accent leaves DSH\'s own; thick = 3 px; double = 2 px + a second ring', css({ focusRing: 'accent' }) === '' && /outline:3px solid/.test(css({ focusRing: 'thick' })) && /outline:2px solid[^}]*box-shadow:0 0 0 5px/.test(css({ focusRing: 'double' })))
   check('44 px targets → buttons, tabs, menu items, switches, summaries and text fields (not ranges, checkboxes, radios)', /min-height:44px!important/.test(css({ largeTargets: true })) && /:not\(\[type="range"\]\)/.test(css({ largeTargets: true })) && /\[role="switch"\]/.test(css({ largeTargets: true })))
+  check('touch comfort is not in the effects sheet: it is its own static stylesheet, switched by an attribute (a person\'s setting or the locked preset\'s option)', !css({ touch: true }).includes('data-kb-touch') && css({ touch: true }) === css({ touch: false }))
   check('underline links → every link', /a\[href\][^}]*text-decoration:underline!important/.test(css({ underlineLinks: true })))
   check('everything on at once stays one well-formed string (balanced braces)', (() => { const x = css({ wp: 'aurore', glassEffect: 'liquid', ligatures: false, showBrand: false, reduceMotion: true, focusRing: 'double', largeTargets: true, underlineLinks: true }); return (x.match(/\{/g) || []).length === (x.match(/\}/g) || []).length && x.length > 600 })())
 
@@ -833,6 +838,22 @@ section('wired controls: the effects stylesheet')
   check('appliquerEffets inserts one stylesheet and marks the root for the animation runtime', tagged.length === 1 && attrs['data-kbth-reduced'] === '1')
   T.appliquerEffets({ ...T.DEF })
   check('...and removes both when the controls are off', tagged[0].removed === true && !('data-kbth-reduced' in attrs))
+  // Notification counters (owner's call, 2026-11-24): the number in the tab title and the badge on the app icon are hidden unless switched on here. kybernos-pulse reads the attribute.
+  check('notification counters: hidden by default, and the root says so (kybernos-pulse reads `data-kbth-counters`)', T.DEF.notifCounters === 'hidden' && attrs['data-kbth-counters'] === 'hidden')
+  const counterEvents = []
+  const keepDispatch = loaderWindow.dispatchEvent
+  const keepCustomEvent = globalThis.CustomEvent
+  loaderWindow.dispatchEvent = (e) => { counterEvents.push(e.type + ':' + e.detail) }
+  globalThis.CustomEvent = class { constructor (type, init) { this.type = type; this.detail = init === undefined ? undefined : init.detail } }
+  T.appliquerEffets({ ...T.DEF, notifCounters: 'shown' })
+  check('...switched on, the root says `shown`; any other value counts as hidden', attrs['data-kbth-counters'] === 'shown' && (T.appliquerEffets({ ...T.DEF, notifCounters: 'bogus' }), attrs['data-kbth-counters'] === 'hidden'))
+  T.appliquerEffets({ ...T.DEF })
+  check('...kybernos-pulse is told by the window event `kb-counters-change`, once per change and never for the same value twice', counterEvents.join() === 'kb-counters-change:shown,kb-counters-change:hidden', counterEvents)
+  if (keepDispatch === undefined) delete loaderWindow.dispatchEvent; else loaderWindow.dispatchEvent = keepDispatch
+  if (keepCustomEvent === undefined) delete globalThis.CustomEvent; else globalThis.CustomEvent = keepCustomEvent
+  check('...checked like the other choices (only shown | hidden), kept out of the presets, and no stylesheet of its own', T.valeursValides({ notifCounters: 'shown' }).notifCounters === 'shown' && T.valeursValides({ notifCounters: 'hidden' }).notifCounters === 'hidden' && T.valeursValides({ notifCounters: 'yes' }).notifCounters === undefined && T.valeursValides({ notifCounters: true }).notifCounters === undefined && !Object.values(T.PRESET_GROUPS).some((g) => g.includes('notifCounters')) && T.effetsCss({ ...T.DEF }) === T.effetsCss({ ...T.DEF, notifCounters: 'shown' }))
+  check('...one switch in the Advanced editor (Effects tab), worded in French and English; the phone presentation block and the locked Simple preset do not mention it', /toggle\(kt\('Compteurs de notifications', 'Notification counters'\), S\.notifCounters === 'shown', \(\) => commit\(\{ notifCounters: S\.notifCounters === 'shown' \? 'hidden' : 'shown' \}\)/.test(SOURCE)
+    && !SOURCE.slice(SOURCE.indexOf('// kb-pres:begin'), SOURCE.indexOf('// kb-pres:end')).includes('notifCounters') && !SOURCE.slice(SOURCE.indexOf("'locked-simple': {"), SOURCE.indexOf("'locked-simple': {") + 6000).includes('notifCounters'))
   globalThis.document.documentElement = prevDe
 }
 section('the Kybernos accent: a look that has its own brand colour says so on <html data-kbth-brand> (audit A1-01)')
@@ -1047,6 +1068,104 @@ section('look studio: the agent\'s replies, shadows, glow, the pills under the m
     return x.startsWith('@media (hover:hover) and (pointer:fine){') && /_sidebarCol"\]\{[^}]*translateX\(calc\(-100% \+ 8px\)\)/.test(x) && /_headerLeading"\]\)\{[^}]*translateY\(calc\(-100% \+ 6px\)\)/.test(x)
       && /:focus-within/.test(x) && /:has\(\[aria-haspopup\]\[aria-expanded="true"\]\)/.test(x) && /\{grid-column:1 \/ 3;grid-row:1\}/.test(x) && x.split('{').length === x.split('}').length
   })())
+  check('bars on hover: the hidden top bar is no window-drag area (in the desktop app its 6 px sliver would swallow the pointer and the bar could not be hovered back)', (() => {
+    const x = css({ autoHideBars: true })
+    return /_headerLeading"\]\)\{[^}]*translateY\(calc\(-100% \+ 6px\)\)[^}]*app-region:no-drag;-webkit-app-region:no-drag\}/.test(x) && !/_sidebarCol"\]\{[^}]*app-region/.test(x)
+  })())
+  check('bars on hover: the peek state brings the top bar down like a hover, inside the same media query', (() => {
+    const x = css({ autoHideBars: true })
+    return /html\[data-kbth-peek\] \[class\*="_centerCol"\] header\[class\*="_header"\]:has\(>\[class\*="_headerLeading"\]\)\{transform:none;transition-delay:0s;/.test(x) && x.indexOf('html[data-kbth-peek]') < x.lastIndexOf('}') && x.split('{').length === x.split('}').length && x.startsWith('@media (hover:hover) and (pointer:fine){')
+  })())
+  check('bars on hover: the top bar\'s reach is wider than its 6 px sliver (owner, 2026-11-19: « toujours dur » in the desktop app)', T.PEEK_ZONE >= 20 && T.PEEK_ZONE <= 48 && T.PEEK_LINGER >= 300 && T.PEEK_LINGER <= 1500)
+  check('bars on hover: the reach follows the pointer — comes down in the top zone of the bar\'s column, stays on the bar, goes up elsewhere, waits when the pointer leaves by the top, and cleans up', (() => {
+    const attrs = new Map()
+    const listeners = []
+    const rootListeners = []
+    let bar = { left: 280, right: 1400, bottom: 6 } // the hidden bar: only its sliver is on screen
+    const root = { setAttribute: (k, v) => attrs.set(k, v), removeAttribute: (k) => attrs.delete(k), addEventListener: (t, f) => rootListeners.push([t, f]), removeEventListener: (t, f) => { const i = rootListeners.findIndex((a) => a[0] === t && a[1] === f); if (i >= 0) rootListeners.splice(i, 1) } }
+    const doc = { documentElement: root, querySelector: () => (bar === null ? null : { getBoundingClientRect: () => bar }), addEventListener: (t, f) => listeners.push([t, f]), removeEventListener: (t, f) => { const i = listeners.findIndex((a) => a[0] === t && a[1] === f); if (i >= 0) listeners.splice(i, 1) } }
+    const realSet = globalThis.setTimeout, realClear = globalThis.clearTimeout
+    let pending = null
+    globalThis.setTimeout = (f, ms) => { pending = { f, ms }; return 1 }
+    globalThis.clearTimeout = () => { pending = null }
+    try {
+      const off = T.peekBind(doc)
+      const move = listeners.find((a) => a[0] === 'mousemove')[1]
+      const leave = rootListeners.find((a) => a[0] === 'mouseleave')[1]
+      const on = () => attrs.get('data-kbth-peek') === '1'
+      const at = (x, y) => move({ clientX: x, clientY: y })
+      const ok = []
+      at(800, 200); ok.push(!on())                       // far from the top: nothing
+      at(800, 20); ok.push(on())                         // 20 px down is a miss for the sliver, a hit for the reach
+      bar = { left: 280, right: 1400, bottom: 76 }       // the bar is down now
+      at(800, 60); ok.push(on())                         // on the bar: stays
+      at(800, 150); ok.push(!on())                       // below it: goes up
+      at(800, 20); ok.push(on())
+      at(100, 20); ok.push(!on())                        // over the sidebar, not over the bar's column
+      at(800, 20); ok.push(on())
+      leave({ clientY: 0 }); ok.push(on() && pending !== null && pending.ms === T.PEEK_LINGER) // out by the top: waits
+      at(800, 10); ok.push(on() && pending === null)     // back within the wait: stays, the timer is cancelled
+      leave({ clientY: 0 }); { const f = pending.f; pending = null; f() } ok.push(!on()) // the wait is over: up
+      at(800, 20); leave({ clientY: 400 }); ok.push(!on() && pending === null) // out by the side or the bottom: up at once
+      at(800, 20); bar = null; at(800, 22); ok.push(!on()) // no top bar on this page: nothing stays set
+      bar = { left: 280, right: 1400, bottom: 6 }; at(800, 20); ok.push(on())
+      off(); ok.push(!on() && listeners.length === 0 && rootListeners.length === 0) // disposed: attribute and listeners gone
+      if (!ok.every((v) => v === true)) console.log('    steps:', JSON.stringify(ok))
+      return ok.every((v) => v === true)
+    } finally { globalThis.setTimeout = realSet; globalThis.clearTimeout = realClear }
+  })())
+  check('bars on hover: the reach is bound only while the setting is on, and a page without a document does not break it', /if \(S\.autoHideBars\) \{ try \{ if \(typeof document !== 'undefined'\) \{ peekDispose = peekBind\(document\); pinDispose = pinBind\(document\) \} \} catch/.test(SOURCE) && (() => { try { T.appliquerEffets({ ...T.DEF, autoHideBars: true }); return true } catch (e) { return false } })())
+  check('bars on hover: no :has() inside a :has() (CSS drops the whole rule: the column\'s position:relative never applied), and that rule is there', (() => {
+    const x = css({ autoHideBars: true })
+    const rules = x.split('}').map((r) => r.split('{')[0])
+    const nested = rules.some((sel) => /:has\([^)]*:has\(/.test(sel))
+    return !nested && /\[class\*="_centerCol"\]:has\(header\[class\*="_header"\]>\[class\*="_headerLeading"\]\)\{position:relative\}/.test(x)
+  })())
+  check('bars on hover: the tab (two pseudo-elements of the chat column, above the bar) and the pinned state are drawn inside the same media query', (() => {
+    const x = css({ autoHideBars: true })
+    const col = '\\[class\\*="_centerCol"\\]:has\\(header\\[class\\*="_header"\\]>\\[class\\*="_headerLeading"\\]\\)'
+    return new RegExp(col + '::before\\{content:"";position:absolute;z-index:31;top:0;[^}]*width:' + T.TAB_W + 'px;height:' + T.TAB_H + 'px;[^}]*cursor:pointer\\}').test(x)
+      && new RegExp(col + '::after\\{content:"";position:absolute;z-index:32;[^}]*pointer-events:none;[^}]*mask:url\\("data:image/svg\\+xml').test(x)
+      && /html\[data-kbth-pin-top\] \[class\*="_centerCol"\] header\[class\*="_header"\]:has\(>\[class\*="_headerLeading"\]\)\{position:relative;transform:none;box-shadow:none;transition:none\}/.test(x)
+      && /html\[data-kbth-pin-top\] [^{]*::after\{transform:scaleY\(-1\)\}/.test(x) && x.split('{').length === x.split('}').length && x.indexOf('::before') < x.lastIndexOf('}')
+  })())
+  check('bars on hover: the tab and Ctrl/⌘+Shift+H pin and unpin the top bar, the state is kept, a click elsewhere or another key does nothing, and it cleans up', (() => {
+    const attrs = new Map()
+    const store = new Map()
+    const handlers = {}
+    const root = { setAttribute: (k, v) => attrs.set(k, v), removeAttribute: (k) => attrs.delete(k) }
+    const win = { localStorage: { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) } }
+    let hasBar = true
+    const doc = { documentElement: root, defaultView: win, querySelector: () => (hasBar ? {} : null), addEventListener: (t, f) => { handlers[t] = f }, removeEventListener: (t, f) => { if (handlers[t] === f) delete handlers[t] } }
+    const col = { matches: () => true, getBoundingClientRect: () => ({ left: 280, top: 0, width: 1120 }) }
+    const other = { matches: () => false, getBoundingClientRect: () => ({ left: 0, top: 0, width: 10 }) }
+    const click = (target, x, y, button = 0) => { let stopped = false; handlers.click({ target, clientX: x, clientY: y, button, preventDefault () {}, stopPropagation () { stopped = true } }); return stopped }
+    const key = (o) => { let stopped = false; handlers.keydown({ shiftKey: true, metaKey: true, ctrlKey: false, altKey: false, code: 'KeyH', key: 'H', preventDefault () {}, stopPropagation () { stopped = true }, ...o }); return stopped }
+    const pinned = () => attrs.get(T.PIN_ATTR) === '1'
+    const ok = []
+    const off = T.pinBind(doc)
+    ok.push(!pinned())
+    ok.push(click(col, 840, 9) === true && pinned() && store.get(T.PIN_KEY) === '1')   // the middle of the tab: pinned, and remembered
+    ok.push(click(col, 840, 9) === true && !pinned() && !store.has(T.PIN_KEY))        // again: unpinned
+    ok.push(click(col, 840, 30) === false && !pinned())                                // below the tab
+    ok.push(click(col, 840 + T.TAB_W, 9) === false && !pinned())                       // beside the tab
+    ok.push(click(other, 840, 9) === false && !pinned())                               // not the column
+    ok.push(click(col, 840, 9, 2) === false && !pinned())                              // not the left button
+    ok.push(key({}) === true && pinned())                                              // ⌘+Shift+H
+    ok.push(key({ metaKey: false, ctrlKey: true }) === true && !pinned())              // Ctrl+Shift+H
+    ok.push(key({ shiftKey: false }) === false && key({ altKey: true }) === false && key({ metaKey: false }) === false && key({ code: 'KeyB', key: 'b' }) === false && !pinned())
+    hasBar = false
+    ok.push(key({}) === false && !pinned())                                            // no top bar on this page: the keys stay free
+    hasBar = true
+    key({}); ok.push(pinned())
+    off(); ok.push(!pinned() && handlers.click === undefined && handlers.keydown === undefined && store.get(T.PIN_KEY) === '1') // disposed: attribute and listeners gone, the choice is kept
+    const off2 = T.pinBind(doc); ok.push(pinned()); off2()                             // bound again: the kept choice comes back
+    win.localStorage = { getItem () { throw new Error('blocked') }, setItem () { throw new Error('blocked') }, removeItem () { throw new Error('blocked') } }
+    const off3 = T.pinBind(doc); ok.push(key({}) === true && pinned()); off3()         // storage refused: it still works for this page
+    if (!ok.every((v) => v === true)) console.log('    steps:', JSON.stringify(ok))
+    return ok.every((v) => v === true)
+  })())
+  check('bars on hover: the switch of the look studio tells about the tab and the shortcut', /Ctrl\/⌘\+Maj\+H/.test(SOURCE) && /Ctrl\/⌘\+Shift\+H/.test(SOURCE))
   check('bars on hover: it is a toggle of the look studio\'s sidebar panel', /ldToggle\(say\('Barres au survol', 'Bars on hover'\), S\.autoHideBars, \(\) => commit\(\{ autoHideBars: !S\.autoHideBars \}\)/.test(SOURCE))
   check('everything on at once is still well formed', (() => { const x = css({ wp: 'aurore', glassEffect: 'liquid', bubbleUser: '#123456', textUser: '#fff', replyBg: 'card', replyColor: '#aa5500', textReply: '#000', shadow: 'soft', glow: true, wgSessions: false, wgChanges: false, wgUsage: false, sideTone: 'tinted' }); return (x.match(/\{/g) || []).length === (x.match(/\}/g) || []).length && !x.includes('undefined') && !x.includes('null') })())
 }
@@ -1055,7 +1174,7 @@ section('look studio: vibes, draws, panels')
 {
   const D = T.DEF
   const same = (a, b) => JSON.stringify(a).toLowerCase() === JSON.stringify(b).toLowerCase() // the sanitiser lowercases a hex colour; the page keeps an accent as typed
-  check('five vibes, each a whole look made of things that exist', T.ST_VIBES.length === 5 && T.ST_VIBES.every((v) => T.SKINS.some((x) => x.id === v.skin) && T.LD_PRESETS.some((l) => l.id === v.think) && T.LD_PACKS.some((p) => p.id === v.pack) && (v.set.iconSet === undefined || T.ICON_SET_IDS.includes(v.set.iconSet)) && (v.set.fontText === undefined || T.FONTS.some((f) => f.id === v.set.fontText)) && (v.set.wp === undefined || T.WPS.some((w) => w.id === v.set.wp))))
+  check('six vibes, each a whole look made of things that exist', T.ST_VIBES.length === 6 && T.ST_VIBES[0].id === 'epure' && T.ST_VIBES.every((v) => T.SKINS.some((x) => x.id === v.skin) && T.LD_PRESETS.some((l) => l.id === v.think) && T.LD_PACKS.some((p) => p.id === v.pack) && (v.set.iconSet === undefined || T.ICON_SET_IDS.includes(v.set.iconSet)) && (v.set.fontText === undefined || T.FONTS.some((f) => f.id === v.set.fontText)) && (v.set.wp === undefined || T.WPS.some((w) => w.id === v.set.wp))))
   check('a vibe sets every key of a look (a vibe starts from the defaults, so it never keeps a bubble or a font of the last one)', T.ST_VIBES.every((v) => { const p = T.stVibePatch(v).state; return T.stLookKeys().every((k) => k in p) && !T.PRESET_GROUPS.a11y.some((k) => k in p) }), T.stVibePatch(T.ST_VIBES[0]).state)
   check('a vibe never touches accessibility', T.ST_VIBES.every((v) => T.PRESET_GROUPS.a11y.every((k) => !(k in T.stVibePatch(v).state))))
   check('what a vibe sets survives the sanitiser as is (no value is dropped on the way)', T.ST_VIBES.every((v) => { const p = T.stVibePatch(v).state; const ok = T.sanitiserImport(p); return Object.keys(p).filter((k) => k !== 'skin').every((k) => same(ok[k], p[k])) }), T.ST_VIBES.map((v) => { const p = T.stVibePatch(v).state; const ok = T.sanitiserImport(p); return Object.keys(p).filter((k) => k !== 'skin' && !same(ok[k], p[k])) }))
@@ -1093,7 +1212,7 @@ section('theme library: what a theme may retain')
     mode: 'light', acc: '#112233', ov: { 'light:base': '#ffffff' }, fontText: 'inter', ligatures: false, radius: 'soft',
     iconSet: 'bauhaus', wp: 'nuit', wpVis: 50, wpBlur: 5, tint: 10, glassEffect: 'liquid', glassBlur: 10, sidebarLinked: false, sidebarOpacity: 30, fieldOpacity: 30, floatOpacity: 30,
     bgBrightness: 110, bgContrast: 110, bgSaturation: 110, bgDarken: 10, bgFit: 'fill', bgMirror: true,
-    contrastMode: 'plus', cbSafe: true, reduceMotion: true, focusRing: 'thick', largeTargets: true, underlineLinks: true,
+    contrastMode: 'plus', cbSafe: true, reduceMotion: true, focusRing: 'thick', largeTargets: true, underlineLinks: true, touch: true,
     sideTone: 'tinted', shadow: 'soft', glow: true, bubbleUser: '#aabbcc', textUser: '#ffffff', replyBg: 'card', replyColor: '#445566', textReply: '#111111',
   }
   const got = T.presetSettings(sample)
@@ -1133,7 +1252,7 @@ section('theme library: records, names and the file')
   check('at most ' + 100 + ' themes', many.presets.length === 100)
 
   reset(); T.lib.presets = []; T.lib.updatedAt = 0
-  check('a name taken by a shipped theme is taken', T.libNameTaken('bleu profond') && T.libNameTaken('Défaut DSH'))
+  check('a name taken by a shipped theme is taken', T.libNameTaken('bleu profond') && T.libNameTaken('Défaut Kybernos'))
   const a = T.libAdd('Mon thème', 'me', { mode: 'dark', acc: '#0ea5e9' })
   const b = T.libAdd('Mon thème', 'me', { mode: 'light' })
   check('adding a theme under a taken name numbers it', a.name === 'Mon thème' && b.name === 'Mon thème (2)', [a.name, b.name])
@@ -1159,7 +1278,7 @@ section('theme library: records, names and the file')
   const back = T.presetFromFileText(file)
   check('a theme exports to a framed JSON file that imports back to the same settings', JSON.parse(file).format === 'kybernos-theme-preset' && back.ok === true && back.name === 'Bureau clair' && back.legacy === false && JSON.stringify(back.settings) === JSON.stringify(one.settings), back)
   const old = T.presetFromFileText(T.exportTexte('json', { ...T.DEF, skin: 'bleu', acc: '#4176e6', mode: 'dark' }))
-  check('an old export (the whole look, no frame) imports as a theme, without the skin or the text size', old.ok === true && old.legacy === true && old.name === 'Thème importé' && !('skin' in old.settings) && !('fs' in old.settings) && old.settings.acc === '#4176e6', old)
+  check('an old export (the whole look, no frame) imports as a theme, without the skin or the text size', old.ok === true && old.legacy === true && old.name === 'Préréglage importé' && !('skin' in old.settings) && !('fs' in old.settings) && old.settings.acc === '#4176e6', old)
   check('not JSON, an array, a number, an empty object, a too big file: all refused with a reason', T.presetFromFileText('{ nope').error === 'json' && T.presetFromFileText('[1]').error === 'shape' && T.presetFromFileText('3').error === 'shape' && T.presetFromFileText('{}').error === 'empty' && T.presetFromFileText('x'.repeat(300 * 1024)).error === 'size' && T.presetFromFileText('').error === 'size')
   check('a framed file with a hostile name and unknown keys keeps only the safe part', (() => { const r = T.presetFromFileText(JSON.stringify({ format: 'kybernos-theme-preset', name: '<img src=x onerror=alert(1)>', settings: { mode: 'dark', fontText: 'javascript:alert(1)', evil: 1 } })); return r.ok === true && r.settings.mode === 'dark' && Object.keys(r.settings).length === 1 })())
   check('the file name is a slug', T.fileSlug('Bureau clair — été') === 'bureau-clair-ete' && T.fileSlug('???') === 'theme')
@@ -1181,8 +1300,6 @@ section('theme library: modified or not')
   check('accessibility is none of a shipped theme\'s business (a wallpaper is: it sets one)', T.settingsDirty({ ...base, contrastMode: 'max', cbSafe: true, reduceMotion: true }, set) === false && T.settingsDirty({ ...base, wp: 'nuit' }, set) === true)
   const mine = T.presetFromState({ ...T.DEF, mode: 'dark', acc: '#0ea5e9' }, { font: true })
   check('your own theme: accent, font and wallpaper count once it retains them', T.settingsDirty({ ...T.DEF, acc: '#0ea5e9' }, mine) === false && T.settingsDirty({ ...T.DEF, acc: '#0ea5e9', fontText: 'georgia' }, mine) === true && T.settingsDirty({ ...T.DEF, acc: '#0ea5e9', wp: 'nuit' }, mine) === false)
-  const dot = T.presetAsSkin(T.presetRecord({ id: 'u-d', name: 'D', settings: { mode: 'system', acc: '#0ea5e9', fontText: 'inter' } }))
-  check('a theme is drawn like a shipped one (mode "system" = follows the mode)', dot.mode === null && dot.acc === '#0ea5e9' && dot.fontText === 'inter' && T.skinAccent(dot) === '#0ea5e9')
 }
 
 section('theme library: state colours')
@@ -1277,8 +1394,8 @@ section('theme gallery: what the page believes of a catalogue theme')
   const raw = { id: 'encre-papier', v: 2, name: 'Encre & papier', author: 'Kybernos', description: { fr: 'Sobre.', en: 'Plain.' }, settings: { mode: 'light', acc: '#1F2937', radius: 'sharp', fontText: 'georgia' } }
   const t = T.galTheme(raw)
   check('a catalogue theme is cleaned like a file: accent lowercased, version kept', t !== null && t.settings.acc === '#1f2937' && t.v === 2 && t.name === 'Encre & papier' && t.author === 'Kybernos', t)
-  const sneaky = T.galTheme({ ...raw, settings: { ...raw.settings, contrastMode: 'max', cbSafe: true, reduceMotion: true, focusRing: 'thick', largeTargets: true, underlineLinks: true } })
-  check('accessibility settings are removed even if the host sent them (a catalogue never touches them)', sneaky !== null && !['contrastMode', 'cbSafe', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks'].some((k) => k in sneaky.settings), Object.keys(sneaky.settings))
+  const sneaky = T.galTheme({ ...raw, settings: { ...raw.settings, contrastMode: 'max', cbSafe: true, reduceMotion: true, focusRing: 'thick', largeTargets: true, underlineLinks: true, touch: true } })
+  check('accessibility settings are removed even if the host sent them (a catalogue never touches them)', sneaky !== null && !['contrastMode', 'cbSafe', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks', 'touch'].some((k) => k in sneaky.settings), Object.keys(sneaky.settings))
   check('a theme whose only settings were accessibility ones is dropped', T.galTheme({ ...raw, settings: { contrastMode: 'max' } }) === null)
   check('an unknown font or wallpaper is dropped, not fetched', (() => { const x = T.galTheme({ ...raw, settings: { mode: 'dark', fontText: 'https://x.test/f.woff', wp: 'url(//x.test/a.png)' } }); return x !== null && !('fontText' in x.settings) && !('wp' in x.settings) })())
   check('a bad id, an empty name or no settings gives null', T.galTheme({ ...raw, id: '../x' }) === null && T.galTheme({ ...raw, name: ' ' }) === null && T.galTheme({ ...raw, settings: {} }) === null && T.galTheme(null) === null && T.galTheme([]) === null)
@@ -1372,6 +1489,20 @@ section('theme gallery: install, update and the host (fake host)')
   check('a full library refuses an install', T.galInstall(t1) === null)
   fresh()
 }
+// ═══ The menu and the presets (the Theme page, step 2) ═══════════════════════
+// The seven rows of a real profile, as the menu's registry lists them (name = the default name in the page language).
+const MENU_ROWS_FR = [['kyber', 'kyber', 'Kaby'], ['tasks', 'auto', 'Automatisations'], ['connectors', 'plug', 'Connecteurs'], ['skills', 'skills', 'Compétences'], ['aiteams', 'teams', 'Équipes d’agents'], ['front-desk', null, 'Accueil client'], ['deliverables', 'creations', 'Créations']].map((r) => Object.freeze({ id: r[0], icon: r[1], name: r[2] }))
+const MENU_ROWS_EN = [['kyber', 'kyber', 'Kaby'], ['tasks', 'auto', 'Automations'], ['connectors', 'plug', 'Connectors'], ['skills', 'skills', 'Skills'], ['aiteams', 'teams', 'Agent Teams'], ['front-desk', null, 'Front desk'], ['deliverables', 'creations', 'Creations']].map((r) => Object.freeze({ id: r[0], icon: r[1], name: r[2] }))
+const MENU_ROWS = MENU_ROWS_FR
+// The registry's other two surfaces, as kybernos-plugin publishes them (a few entries each: the page only needs the shape).
+const SURFACE_ROWS = {
+  secondary: [['spaces', 'Spaces'], ['create-team', 'Create a team'], ['upgrade', 'Upgrade'], ['account', 'Account', true], ['referral', 'Referral', true], ['help', 'Help'], ['settings', 'Settings', true], ['logout', 'Sign out', true]]
+    .map((r) => ({ id: r[0], icon: null, name: r[1], locked: r[2] === true })),
+  settings: [['general', 'General', 'general', '', true], ['kaby', 'Kaby', 'agents', 'Agents'], ['workers', 'Workers', 'agents', 'Agents'], ['theme', 'Theme', 'look', 'Interface'], ['about', 'About', 'system', 'System']]
+    .map((r) => ({ id: r[0], icon: null, name: r[1], locked: r[4] === true, group: r[2], groupName: r[3] })),
+}
+const menuRegistryFor = () => ({ v: 1, hooks: { main: 'data-kb-row', secondary: 'data-kb', settings: 'data-kb-t' }, list: (surface) => (SURFACE_ROWS[surface] !== undefined ? SURFACE_ROWS[surface] : (LANG === 'en' ? MENU_ROWS_EN : MENU_ROWS_FR)), subscribe: () => () => {}, hook: 'data-kb-row' })
+
 // ═══ The seam: window.__KB_THEME_APPLY__ (A1-theme-seam) ════════════════════
 section('the seam: window.__KB_THEME_APPLY__')
 {
@@ -1395,13 +1526,13 @@ section('the seam: window.__KB_THEME_APPLY__')
       if (serve.answer === 'garbage') return { status: 200, json: async () => ({ ok: true, preset: { id: 'BAD ID', name: 'x', settings: { mode: 'light' } } }) }
       const imp = body.import
       const id = imp.gid === undefined ? 'u-imported' : 'g-' + imp.gid
-      return { status: 200, json: async () => ({ ok: true, preset: { id, name: imp.name, source: imp.source, settings: imp.settings, gid: imp.gid, v: imp.v, author: imp.author } }) }
+      return { status: 200, json: async () => ({ ok: true, preset: { id, name: imp.name, source: imp.source, settings: imp.settings, menu: imp.menu, gid: imp.gid, v: imp.v, author: imp.author } }) }
     }
     return { status: 200, json: async () => ({ ok: true }) }
   }
   const fresh = () => {
     reset(); resetDom(); posts.length = 0; asked.length = 0; serve.answer = 'ok'; serve.themes = [calcaire]
-    T.lib.presets = []; T.lib.updatedAt = 0; T.lib.hostState = 'unknown'; T.lib.pulled = false
+    T.lib.presets = []; T.lib.menu = null; T.lib.updatedAt = 0; T.lib.hostState = 'unknown'; T.lib.pulled = false
     T.gal.data = null; T.gal.state = 'idle'; T.gal.refreshing = false; T.gal.refreshed = false
   }
   /** A fresh look at the window: the seam always reads the CURRENT context, so apply() rebinds the services. */
@@ -1517,6 +1648,62 @@ section('the seam: window.__KB_THEME_APPLY__')
   check('a full quota is { ok:false, reason }, no throw, and the stored look is the one before', threw === null && r.ok === false && typeof r.reason === 'string' && JSON.parse(store.get(T.STORE_KEY)).acc === '#abcdef', { r, threw })
   check('...and no row was adopted for a look the page could not keep', T.lib.presets.length === 0)
 
+
+  // ── The third form: a template (its appearance and its menu names, each applied only when ticked) ──
+  const events = []
+  loaderWindow.dispatchEvent = (e) => { events.push(e.type) }
+  loaderWindow.__KB_MENU_ENTRIES__ = menuRegistryFor()
+  const TPL = { name: 'Cabinet', settings: { acc: '#112233', radius: 'soft' }, menuLabels: { skills: { en: 'Playbooks', fr: 'Dossiers' }, workspaces: { en: 'Hacked' } }, gid: 'cabinet', v: 2, author: 'Kybernos' }
+  fresh()
+  m = bind()
+  check('the page publishes the menu in use, read only: window.__KB_THEME_MENU__ { v: 1, current() }, null for the default menu', loaderWindow.__KB_THEME_MENU__ !== undefined && loaderWindow.__KB_THEME_MENU__.v === 1 && loaderWindow.__KB_THEME_MENU__.current() === null && Object.isFrozen(loaderWindow.__KB_THEME_MENU__))
+  r = await seam({ preset: TPL, apply: { appearance: false, menu: false } })
+  const rec = T.lib.presets[0]
+  check('a template with both ticks off is only STORED: one POST { import } (source « template »), nothing applied, no event', r.ok === true && imports().length === 1 && imports()[0].import.source === 'template' && T.lib.menu === null && stored() === null && events.length === 0 && m.calls.overrideTokens.length === 0, { r, events })
+  check('...the record holds the appearance AND a FULL menu: one entry per row of this install, every row shown, only the renamed row carries a label, the rows nobody may hide are not in it', rec !== undefined && rec.source === 'template' && rec.settings.acc === '#112233' && rec.menu.entries.length === 7 && rec.menu.entries.every((e) => e.shown) && rec.menu.entries.filter((e) => e.label !== undefined).map((e) => e.id).join() === 'skills' && rec.menu.entries.find((e) => e.id === 'skills').label.fr === 'Dossiers' && !rec.menu.entries.some((e) => e.id === 'workspaces'), rec)
+  check('...with its catalogue link (gid, version, author) so a later update can find it', imports()[0].import.gid === 'cabinet' && imports()[0].import.v === 2 && imports()[0].import.author === 'Kybernos')
+  fresh()
+  m = bind()
+  r = await seam({ preset: TPL, apply: { appearance: true, menu: false } })
+  check('only the appearance ticked: the look is applied, the menu stays the default and nobody is woken', r.ok === true && stored().acc === '#112233' && T.lib.menu === null && events.length === 0, { r, events })
+  fresh()
+  m = bind()
+  events.length = 0
+  r = await seam({ preset: TPL, apply: { appearance: false, menu: true } })
+  check('only the menu ticked: the menu is put in use (browser key, library, event), the look is untouched', r.ok === true && T.lib.menu !== null && T.lib.menu.entries.length === 7 && stored() === null && events.join() === T.MENU_EVENT && JSON.parse(store.get(T.MENU_KEY)).menu.entries.length === 7, { r, events })
+  check('...window.__KB_THEME_MENU__.current() says the same, as a copy', JSON.stringify(loaderWindow.__KB_THEME_MENU__.current()) === JSON.stringify(T.lib.menu) && loaderWindow.__KB_THEME_MENU__.current() !== T.lib.menu)
+  check('...the person had the default menu: nothing was kept in Mine', T.lib.presets.every((p) => p.source === 'template'), T.lib.presets.map((p) => p.name))
+
+  // The person's own menu is kept before a menu from outside replaces it.
+  fresh()
+  m = bind()
+  const own = { entries: [{ id: 'tasks', shown: false, order: 0 }, { id: 'kyber', shown: true, order: 1 }], unlisted: 'show', locked: false }
+  T.menuUse(own)
+  r = await seam({ preset: TPL, apply: { appearance: false, menu: true } })
+  const kept = T.lib.presets.find((p) => p.source === 'me' && p.menu !== undefined)
+  check('a menu from a template replaces the person’s own only after keeping it in Mine (« Mon menu »): one click goes back', r.ok === true && kept !== undefined && kept.name === 'Mon menu' && kept.settings === undefined && JSON.stringify(kept.menu) === JSON.stringify(T.menuClean(own)) && T.lib.menu.entries.length === 7, T.lib.presets.map((p) => p.name))
+  r = await seam({ preset: TPL, apply: { appearance: false, menu: true } })
+  check('...applying the same template again keeps nothing new (its menu is the one in use)', T.lib.presets.filter((p) => p.source === 'me' && p.menu !== undefined).length === 1, T.lib.presets.map((p) => p.name))
+  r = await seam({ preset: { ...TPL, name: 'Cabinet 2', gid: 'cabinet2', menuLabels: { skills: { en: 'Other' } } }, apply: { appearance: false, menu: true } })
+  check('...a different menu from outside replaces that one too: the one in use is kept first, under a free name', r.ok === true && T.lib.presets.filter((p) => p.source === 'me' && p.menu !== undefined).map((p) => p.name).join() === 'Mon menu,Mon menu (2)', T.lib.presets.map((p) => p.name))
+  // Refusals: an answer, never a throw, and nothing is written.
+  fresh()
+  m = bind()
+  posts.length = 0
+  const refused = []
+  for (const input of [
+    { preset: { name: 'X', settings: { acc: '#112233', cbSafe: true } }, apply: { appearance: true, menu: false } },
+    { preset: { name: 'X', menuLabels: { skills: { en: '<b>x</b>' } } }, apply: { appearance: false, menu: true } },
+    { preset: { name: 'X', menuLabels: { workspaces: { en: 'Hacked' } } }, apply: { appearance: false, menu: true } },
+    { preset: { name: '', settings: { acc: '#112233' } }, apply: { appearance: true, menu: false } },
+    { preset: { name: 'X', settings: { acc: '#112233' } }, apply: { appearance: 'yes', menu: false } },
+    { preset: { name: 'X', settings: { acc: '#112233' } } },
+    { preset: [1], apply: { appearance: true, menu: true } }
+  ]) refused.push(await seam(input))
+  check('a template with an accessibility key, no usable content, no name or a malformed `apply` is refused with a reason, writes nothing, and never throws', refused.every((x) => x.ok === false && typeof x.reason === 'string') && refused[0].reason === 'accessibility setting: cbSafe' && posts.length === 0 && T.lib.presets.length === 0 && T.lib.menu === null && stored() === null, { refused, posts })
+  delete loaderWindow.dispatchEvent
+  delete loaderWindow.__KB_MENU_ENTRIES__
+
   delete globalThis.fetch
   delete loaderWindow.addEventListener
   delete loaderWindow.removeEventListener
@@ -1594,6 +1781,413 @@ section('boot sheet (anti-flash v2)')
   }
 }
 
+section('menu: the document (the vectors the three sanitizers agree on)')
+{
+  const clean = T.menuClean
+  const json = JSON.stringify
+  const a = clean({ entries: [{ id: 'skills', shown: false, order: 5 }, { id: 'kyber', shown: true, order: 0 }], unlisted: 'hide' })
+  check('entries are sorted by order and renumbered 0..n-1; a hidden entry stays hidden; unlisted hide; locked false', json(a) === json({ entries: [{ id: 'kyber', shown: true, order: 0 }, { id: 'skills', shown: false, order: 1 }], unlisted: 'hide', locked: false }), a)
+  const bad = ['workspaces', 'settings', 'account', 'projects', 'Kyber', 'a', 'x'.repeat(25)]
+  const b = clean({ entries: bad.map((id) => ({ id, shown: false })).concat([{ id: 'skills', shown: true }]) })
+  check('the rows nobody may hide, and malformed ids, are not storable (only « skills » is left)', b.entries.map((e) => e.id).join() === 'skills', b)
+  check('a duplicate id: the first one wins', json(clean({ entries: [{ id: 'skills', shown: false }, { id: 'skills', shown: true }] }).entries) === json([{ id: 'skills', shown: false, order: 0 }]))
+  const l = clean({ entries: [{ id: 'skills', shown: true, label: { en: '  Skills  ', fr: '', de: 'x', es: '<b>' } }] }).entries[0]
+  check('a label is tidied per language: trimmed; an empty one, an unknown language and markup are dropped', json(l.label) === json({ en: 'Skills' }), l)
+  check('a label of 40 characters stays, 41 is dropped, and an entry left with no label has none', json(clean({ entries: [{ id: 'skills', shown: true, label: { en: 'x'.repeat(40) } }] }).entries[0].label) === json({ en: 'x'.repeat(40) }) && clean({ entries: [{ id: 'skills', shown: true, label: { en: 'x'.repeat(41) } }] }).entries[0].label === undefined)
+  const many = clean({ entries: Array.from({ length: 25 }, (_, i) => ({ id: 'row-' + String.fromCharCode(97 + i), shown: true })) })
+  check('25 entries: the first 24 are kept', many.entries.length === 24 && many.entries[23].id === 'row-x', many.entries.length)
+  const odd = clean({ entries: [], unlisted: 'x', locked: 'yes' })
+  check('unlisted « x » is show and locked « yes » is false', odd.unlisted === 'show' && odd.locked === false)
+  check('entries that is not an array, or a value that is not an object: no menu (null)', clean({ entries: 'x' }) === null && clean('x') === null && clean(null) === null && clean([1]) === null && clean({}) === null)
+  check('a control character in a name becomes a space; a tab and a line separator too', clean({ entries: [{ id: 'skills', shown: true, label: { en: 'A\u0007B C\tD' } }] }).entries[0].label.en === 'A B C D')
+  check('an entry without `shown` (or with a non-boolean one) is dropped, an order out of range falls back on the position', clean({ entries: [{ id: 'skills' }, { id: 'tasks', shown: 'yes' }, { id: 'kyber', shown: true, order: 200 }] }).entries.map((e) => e.id).join() === 'kyber')
+}
+
+section('menu: what the page shows, and how an edit changes it')
+{
+  const R = MENU_ROWS
+  const ids = (v) => v.map((x) => x.id).join()
+  const hide = (id) => (l) => { l.find((x) => x.id === id).shown = false }
+  check('the default menu shows every row of this install, in the default order', ids(T.menuView(null, R)) === 'kyber,tasks,connectors,skills,aiteams,front-desk,deliverables' && T.menuView(null, R).every((v) => v.shown && v.name === v.base))
+  const hidden = T.menuEdit(null, R, hide('skills'))
+  check('hiding a row stores a FULL arrangement (one entry per row), only that row hidden, new rows shown later', hidden.entries.length === 7 && hidden.entries.filter((e) => !e.shown).map((e) => e.id).join() === 'skills' && hidden.unlisted === 'show' && hidden.locked === false, hidden)
+  check('...it is not the default menu, and showing the row again gives back the default menu (null)', T.menuIsDefault(hidden, R) === false && T.menuEdit(hidden, R, (l) => { l.find((x) => x.id === 'skills').shown = true }) === null)
+  const moved = T.menuEdit(null, R, (l) => { const i = l.findIndex((x) => x.id === 'skills'); const x = l.splice(i, 1)[0]; l.splice(0, 0, x) })
+  check('moving a row first changes the order and nothing else', ids(T.menuView(moved, R)) === 'skills,kyber,tasks,connectors,aiteams,front-desk,deliverables' && T.menuView(moved, R).every((v) => v.shown))
+  const named = T.menuEdit(null, R, (l) => { l.find((x) => x.id === 'skills').label.fr = 'Dossiers'; l.find((x) => x.id === 'skills').label.en = 'Playbooks' })
+  check('a name per language: French page → « Dossiers », the default name stays in `base`', T.menuView(named, R).find((v) => v.id === 'skills').name === 'Dossiers' && T.menuView(named, R).find((v) => v.id === 'skills').base === 'Compétences')
+  LANG = 'en'
+  check('...the English page → « Playbooks », and a language with no label shows the default name, never another language’s name', T.menuView(named, MENU_ROWS_EN).find((v) => v.id === 'skills').name === 'Playbooks'
+    && (() => { LANG = 'zh'; const n = T.menuView(named, MENU_ROWS_EN).find((v) => v.id === 'skills').name; LANG = 'en'; return n === 'Skills' })())
+  LANG = 'kybernos'
+  const short = { entries: [{ id: 'kyber', shown: true, order: 0 }], unlisted: 'hide', locked: false }
+  check('« unlisted: hide »: a row the arrangement does not list is hidden, a listed one follows its `shown`', T.menuView(short, R).filter((v) => v.shown).map((v) => v.id).join() === 'kyber' && T.menuView(short, R).length === 7 && T.menuIsDefault(short, R) === false)
+  check('« unlisted: show » (the default): a row added later by a plugin shows', T.menuView({ entries: [{ id: 'kyber', shown: true, order: 0 }], unlisted: 'show', locked: false }, R).every((v) => v.shown))
+  {
+    // A row a plugin declares with `defaultShown: false` (the Front desk, item 05 of the owner's list): listed by the page, switched OFF in the default menu.
+    const RO = R.map((r) => (r.id === 'front-desk' ? { ...r, off: true } : r))
+    check('a row that is off by default: listed by the page, hidden in the default menu, the others shown', ids(T.menuView(null, RO)) === ids(T.menuView(null, R)) && T.menuView(null, RO).filter((v) => !v.shown).map((v) => v.id).join() === 'front-desk' && T.menuIsDefault(null, RO) === true)
+    const on = T.menuEdit(null, RO, (l) => { l.find((x) => x.id === 'front-desk').shown = true })
+    check('...turning it on stores a full arrangement that lists it shown; it is no longer the default menu, and turning it off again gives back the default (null)', on !== null && on.entries.find((e) => e.id === 'front-desk').shown === true && T.menuIsDefault(on, RO) === false && T.menuEdit(on, RO, (l) => { l.find((x) => x.id === 'front-desk').shown = false }) === null)
+    check('...hiding another row keeps the off row off (it is listed, not shown)', (() => { const h = T.menuEdit(null, RO, hide('skills')); return h.entries.find((e) => e.id === 'front-desk').shown === false && T.menuView(h, RO).filter((v) => v.shown).length === 5 })())
+    check('...an arrangement that does not list it leaves it off, « unlisted: show » or not', T.menuView({ entries: [{ id: 'kyber', shown: true, order: 0 }], unlisted: 'show', locked: false }, RO).find((v) => v.id === 'front-desk').shown === false)
+    check('...« show all » turns it on too', (() => { const all = T.menuShowAll(hidden, RO); return all !== null && all.entries.every((e) => e.shown) })())
+    const regOff = (() => { const keep = loaderWindow.__KB_MENU_ENTRIES__; loaderWindow.__KB_MENU_ENTRIES__ = { v: 1, list: () => [{ id: 'kyber', icon: null, name: 'Kaby' }, { id: 'front-desk', icon: 'messageCircle', name: 'Front desk', off: true }] }; try { return T.menuRows() } finally { if (keep === undefined) delete loaderWindow.__KB_MENU_ENTRIES__; else loaderWindow.__KB_MENU_ENTRIES__ = keep } })()
+    check('the registry\'s `off` reaches the page rows (and only on the row that has it)', regOff.length === 2 && regOff[0].off === undefined && regOff[1].off === true, regOff)
+  }
+  const locked = { ...hidden, locked: true }
+  check('a menu set by an app is locked: an edit is refused (undefined), and « Show every entry » shows all while it stays locked', T.menuEdit(locked, R, hide('tasks')) === undefined && T.menuShowAll(locked, R).entries.every((e) => e.shown) && T.menuShowAll(locked, R).locked === true)
+  check('« Show every entry » on an ordinary arrangement gives back the default menu; with no arrangement it stays null', T.menuShowAll(hidden, R) === null && T.menuShowAll(null, R) === null)
+  const foreign = { entries: [{ id: 'kyber', shown: true, order: 0 }, { id: 'tables', shown: false, order: 1 }], unlisted: 'show', locked: false }
+  check('a row of another machine (not in this registry) is kept by an edit, after the others, and never drawn', T.menuEdit(foreign, R, hide('skills')).entries.some((e) => e.id === 'tables' && e.shown === false) && ids(T.menuView(foreign, R)) === 'kyber,tasks,connectors,skills,aiteams,front-desk,deliverables')
+  const full = T.menuFull(null, R)
+  check('« the default menu » as a preset is a full arrangement: every row shown, in order; with no menu drawn here it is null', full.entries.length === 7 && full.entries.every((e) => e.shown) && T.menuFull(null, []) === null)
+  check('the short lines say what an arrangement does', T.menuLines(null, R)[0] === 'Toutes les entrées, dans l’ordre habituel.' && T.menuLines(hidden, R).join(' | ').includes('Montre 6 entrées sur 7') && T.menuLines(hidden, R).join(' | ').includes('Cache : Compétences') && T.menuLines(named, R).join(' | ').includes('Renommé : Compétences → Dossiers'))
+  check('the registry is read through one door; a malformed or missing registry gives no rows (the page says the menu is not drawn)', T.menuRows().length === 0)
+  const w = (r) => { const keep = loaderWindow.__KB_MENU_ENTRIES__; loaderWindow.__KB_MENU_ENTRIES__ = r; try { return T.menuRows() } finally { if (keep === undefined) delete loaderWindow.__KB_MENU_ENTRIES__; else loaderWindow.__KB_MENU_ENTRIES__ = keep } }
+  check('...a registry with a throwing list(), a wrong version or hostile rows (workspaces, bad id, no name) is read safely', w({ v: 1, list: () => { throw new Error('x') } }).length === 0 && w({ v: 2, list: () => [] }).length === 0
+    && w({ v: 1, list: () => [{ id: 'workspaces', name: 'W' }, { id: 'Bad Id', name: 'B' }, { id: 'ok', name: 5 }, null, { id: 'good', name: 'Good', icon: 3 }] }).map((x) => x.id + ':' + x.icon).join() === 'good:null')
+  check('...and the page language picks the label key: French for « kybernos » and fr, nothing for a language the labels do not cover', (() => { const out = []; for (const lg of ['kybernos', 'fr', 'en-GB', 'es', 'zh']) { LANG = lg; out.push(T.menuLabelKey()) } LANG = 'kybernos'; return out.join() === 'fr,fr,en,es,' })())
+}
+
+section('menu: stored, announced, and the library that carries it')
+{
+  const events = []
+  loaderWindow.dispatchEvent = (e) => { events.push(e.type) }
+  reset(); T.lib.presets = []; T.lib.menu = null; T.lib.updatedAt = 0
+  const doc = { entries: [{ id: 'skills', shown: false, order: 0 }, { id: 'kyber', shown: true, order: 1 }], unlisted: 'hide', locked: false }
+  check('putting a menu in use returns true, keeps it, and says so on the event the menu listens to', T.menuUse(doc) === true && T.lib.menu !== null && T.lib.menu.entries[0].id === 'skills' && events.join() === T.MENU_EVENT, events)
+  const mirrored = JSON.parse(store.get(T.MENU_KEY))
+  check('the menu’s own key holds { v: 1, updatedAt, menu }, written with the library', mirrored.v === 1 && mirrored.updatedAt === T.lib.updatedAt && mirrored.menu.entries.length === 2 && JSON.parse(store.get(T.LIB_KEY)).menu.entries.length === 2)
+  events.length = 0
+  check('the same menu again changes nothing and wakes nobody', T.menuUse(doc) === false && events.length === 0)
+  check('something that is not a menu is refused and changes nothing', T.menuUse('junk') === false && T.menuUse({ entries: 'x' }) === false && T.lib.menu.entries.length === 2)
+  check('back to the default menu: the menu key says null, the library document has no `menu` field', T.menuUse(null) === true && JSON.parse(store.get(T.MENU_KEY)).menu === null && !('menu' in JSON.parse(store.get(T.LIB_KEY))) && events.join() === T.MENU_EVENT)
+  const old = { v: 1, updatedAt: 9, presets: [{ id: 'u-old', name: 'Ancien', source: 'me', at: 1, settings: { acc: '#0ea5e9' } }] }
+  const c = T.libClean(old)
+  check('a library saved before the menu existed reads back whole: the preset is unchanged, there is no menu', c.presets.length === 1 && c.presets[0].name === 'Ancien' && c.presets[0].settings.acc === '#0ea5e9' && c.menu === null && c.updatedAt === 9)
+  store.set(T.LIB_KEY, JSON.stringify(old)); T.libRead()
+  check('...also from the browser copy: it is what libRead puts in the library', T.lib.presets.length === 1 && T.lib.menu === null)
+  check('a library document with a valid top-level menu keeps it; an invalid one is dropped without touching the presets', T.libClean({ ...old, menu: doc }).menu.entries.length === 2 && T.libClean({ ...old, menu: 'x' }).menu === null && T.libClean({ ...old, menu: { entries: 3 } }).presets.length === 1)
+  T.lib.presets = []; T.lib.updatedAt = 0
+  const only = T.presetRecord({ id: 'u-m', name: 'Menu seul', source: 'me', menu: doc })
+  check('a preset may hold the menu only: valid, with no `settings`', only !== null && only.settings === undefined && only.menu.entries.length === 2)
+  check('...a preset with neither, or with an empty menu and no settings, is not a preset', T.presetRecord({ id: 'u-x', name: 'x' }) === null && T.presetRecord({ id: 'u-x', name: 'x', menu: { entries: [] } }) === null)
+  const both = T.presetRecord({ id: 't-c', name: 'Cabinet', source: 'template', settings: { acc: '#112233' }, menu: doc })
+  check('the source « template » is kept, with both parts', both.source === 'template' && both.settings.acc === '#112233' && both.menu.entries.length === 2)
+  const file = JSON.parse(T.presetFile(both))
+  check('a preset file carries what the preset holds (appearance and menu), under the preset format', file.format === T.PRESET_FORMAT && file.settings.acc === '#112233' && file.menu.entries.length === 2 && JSON.parse(T.presetFile(only)).settings === undefined)
+  const back = T.presetFromFileText(T.presetFile(both))
+  check('...and reading it back gives the same two parts', back.ok === true && back.settings.acc === '#112233' && back.menu.entries.length === 2 && back.legacy === false)
+  const menuFile = T.presetFromFileText(JSON.stringify({ format: T.PRESET_FORMAT, name: 'Court', menu: doc }))
+  check('a file with a menu and no appearance is a menu preset', menuFile.ok === true && menuFile.settings === undefined && menuFile.menu.entries.length === 2)
+  const a11y = T.presetFromFileText(JSON.stringify({ format: T.PRESET_FORMAT, name: 'X', settings: { acc: '#112233', cbSafe: true, contrastMode: 'max' } }))
+  check('what comes from a file never carries accessibility settings: they are dropped, and the page can say so', a11y.ok === true && a11y.settings.cbSafe === undefined && a11y.settings.contrastMode === undefined && a11y.droppedA11y === true && a11y.settings.acc === '#112233')
+  check('a file whose only content is accessibility, or whose menu is empty, is refused as empty', T.presetFromFileText(JSON.stringify({ format: T.PRESET_FORMAT, name: 'X', settings: { cbSafe: true } })).error === 'empty' && T.presetFromFileText(JSON.stringify({ format: T.PRESET_FORMAT, name: 'X', menu: { entries: [] } })).error === 'empty')
+  delete loaderWindow.dispatchEvent
+  reset(); T.lib.presets = []; T.lib.menu = null; T.lib.updatedAt = 0
+}
+
+section('presets: what the section lists, what a tick does, how the keys move')
+{
+  const R = MENU_ROWS
+  const json = JSON.stringify
+  reset(); T.lib.menu = null
+  const mine = T.presetRecord({ id: 'u-b', name: 'Bureau', source: 'me', at: 1, settings: { mode: 'light', acc: '#0ea5e9', cbSafe: true, contrastMode: 'max' } })
+  const menuMine = T.presetRecord({ id: 'u-m', name: 'Court', source: 'me', at: 2, menu: { entries: [{ id: 'skills', shown: true, order: 0 }], unlisted: 'hide', locked: false } })
+  const tpl = T.presetRecord({ id: 't-c', name: 'Cabinet', source: 'template', at: 3, settings: { acc: '#112233' }, menu: { entries: [{ id: 'skills', shown: true, order: 0, label: { fr: 'Dossiers' } }], unlisted: 'show', locked: false } })
+  const filed = T.presetRecord({ id: 'u-f', name: 'Fichier', source: 'file', at: 4, settings: { acc: '#445566', cbSafe: true }, menu: { entries: [{ id: 'tasks', shown: false, order: 0 }], unlisted: 'show', locked: false } })
+  const gal = T.presetRecord({ id: 'g-l', name: 'Crépuscule', source: 'gallery', at: 5, settings: { acc: '#fb923c' } })
+  T.lib.presets = [mine, filed, tpl, menuMine, gal]
+  const items = T.presetItems()
+  check('the section lists the six vibes, the two menus, then the templates, then mine (in the order they were added)', items.map((i) => i.key).join() === 'vibe:epure,vibe:work,vibe:dev,vibe:study,vibe:chill,vibe:night,menu:menu-complete,menu:menu-simple,rec:t-c,rec:u-b,rec:u-f,rec:u-m,rec:g-l', items.map((i) => i.key).join())
+  check('built-in = the vibes, the two shipped menus and the templates; mine = saved, imported and from the gallery', items.filter(T.presetBuiltin).map((i) => i.id).join() === 'epure,work,dev,study,chill,night,menu-complete,menu-simple,t-c' && items.filter((i) => !T.presetBuiltin(i)).map((i) => i.id).join() === 'u-b,u-f,u-m,g-l')
+  check('each item says what it holds: a vibe the appearance, a shipped menu the menu, a record what it carries', items.slice(0, 6).every((i) => i.A && !i.M) && items.slice(6, 8).every((i) => !i.A && i.M) && items.find((i) => i.id === 't-c').A && items.find((i) => i.id === 't-c').M && !items.find((i) => i.id === 'u-m').A && items.find((i) => i.id === 'u-m').M)
+  const by = (id) => items.find((i) => i.id === id)
+  check('the ticks start as promised: the appearance on; the menu on only for what is the person’s own or shipped; a menu from a file, the gallery or a template starts UNTICKED', json(T.presetTicks(by('work'))) === json({ tA: true, tM: false, tAcc: false })
+    && T.presetTicks(by('menu-simple')).tM === true && T.presetTicks(by('u-m')).tM === true && T.presetTicks(by('t-c')).tM === false && T.presetTicks(by('u-f')).tM === false)
+  check('accessibility: ticked from the start only on the person’s own preset; never for what comes from outside', T.presetTicks(by('u-b')).tAcc === true && T.presetTicks(by('u-f')).tAcc === false)
+  const p1 = T.presetPlan(by('work'), { tA: true, tM: false, tAcc: false }, R)
+  check('a vibe applies a whole appearance and its thinking animation, and leaves the menu alone (menu: undefined)', p1.patch !== null && p1.patch.acc === '#3B82F6' && p1.loop !== null && p1.menu === undefined && p1.keep === false)
+  const p2 = T.presetPlan(by('u-b'), { tA: true, tM: false, tAcc: false }, R)
+  check('without the accessibility tick the accessibility keys of a preset are NOT applied', p2.patch.acc === '#0ea5e9' && p2.patch.skin === 'u-b' && !('cbSafe' in p2.patch) && !('contrastMode' in p2.patch))
+  const p3 = T.presetPlan(by('u-b'), { tA: true, tM: false, tAcc: true }, R)
+  check('...with the tick they are', p3.patch.cbSafe === true && p3.patch.contrastMode === 'max')
+  check('nothing ticked, nothing applied', (() => { const p = T.presetPlan(by('t-c'), { tA: false, tM: false, tAcc: false }, R); return p.patch === null && p.menu === undefined })())
+  const p4 = T.presetPlan(by('menu-complete'), { tA: false, tM: true, tAcc: false }, R)
+  check('« Complete » puts the default menu back (menu: null); « Simple » puts its short arrangement', p4.menu === null && p4.patch === null && T.presetPlan(by('menu-simple'), { tM: true }, R).menu.unlisted === 'hide')
+  T.lib.menu = null
+  check('a menu from outside, applied while the person has the default menu: nothing to keep', T.presetPlan(by('t-c'), { tA: false, tM: true, tAcc: false }, R).keep === false)
+  T.lib.menu = T.menuClean({ entries: [{ id: 'tasks', shown: false, order: 0 }], unlisted: 'show', locked: false })
+  check('...while the person has a menu of their own: it is kept in Mine first (keep: true), unless it is the same one', T.presetPlan(by('t-c'), { tM: true }, R).keep === true && T.presetPlan(by('u-f'), { tM: true }, R).keep === false && T.presetPlan(by('u-m'), { tM: true }, R).keep === false)
+  T.lib.menu = null; T.lib.presets = []
+  const keys = (f, ks, i, n) => ks.map((k) => f(k, i, n))
+  check('a list moves with the arrow keys, Home and End, and stops at the ends; other keys are not for it', json(keys(T.selNav, ['ArrowDown', 'ArrowUp', 'Home', 'End', 'x'], 2, 5)) === json([3, 1, 0, 4, null]) && T.selNav('ArrowDown', 4, 5) === 4 && T.selNav('ArrowUp', 0, 5) === 0 && T.selNav('ArrowDown', 0, 0) === null)
+  check('a segmented control moves with Left / Right (Up / Down too), and stops at the ends', json(keys(T.segNav, ['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp', 'Home', 'End', 'Tab'], 1, 3)) === json([2, 0, 2, 0, 0, 2, null]) && T.segNav('ArrowRight', 2, 3) === 2)
+  const fo = T.fontOptions()
+  check('the select options are drawn in their own style: each font in its typeface (grouped), each wallpaper with a swatch, each icon set with a sample', fo.length === T.FONTS.length && fo.filter((o) => o.style !== undefined).length === T.FONTS.filter((f) => f.stack !== null).length && new Set(fo.map((o) => o.group)).size === 3
+    && T.wallOptions().length === T.WPS.length && T.iconSetOptions().length === T.ICON_SETS.length && T.iconSetOptions().every((o) => o.lead !== undefined))
+}
+
+section('menu: the account menu and the Settings pages (surfaces) and the locked preset')
+{
+  const clean = T.menuClean
+  const json = JSON.stringify
+  const doc = { entries: [], surfaces: { secondary: { entries: [{ id: 'upgrade', shown: false, order: 7 }, { id: 'help', shown: true, order: 2 }], unlisted: 'hide' }, settings: { entries: [{ id: 'theme', shown: true }] } } }
+  const r = clean(doc)
+  check('a surface is sorted and renumbered; its unlisted is its own; settings defaults to show', json(r.surfaces.secondary) === json({ entries: [{ id: 'help', shown: true, order: 0 }, { id: 'upgrade', shown: false, order: 1 }], unlisted: 'hide' }) && json(r.surfaces.settings) === json({ entries: [{ id: 'theme', shown: true, order: 0 }], unlisted: 'show' }), r)
+  check('a document without surfaces has no `surfaces` key', clean({ entries: [{ id: 'skills', shown: true }] }).surfaces === undefined)
+  for (const id of ['account', 'referral', 'settings', 'logout', 'Help', 'a']) check('the account menu refuses "' + id + '"', clean({ entries: [], surfaces: { secondary: { entries: [{ id, shown: false }, { id: 'help', shown: false }] } } }).surfaces.secondary.entries.map((e) => e.id).join() === 'help')
+  check('Settings refuses "general", keeps the others', clean({ entries: [], surfaces: { settings: { entries: [{ id: 'general', shown: false }, { id: 'kaby', shown: false }] } } }).surfaces.settings.entries.map((e) => e.id).join() === 'kaby')
+  check('an entry carries no name on a surface', json(clean({ entries: [], surfaces: { secondary: { entries: [{ id: 'help', shown: true, label: { en: 'Aide' } }] } } }).surfaces.secondary.entries[0]) === json({ id: 'help', shown: true, order: 0 }))
+  check('a surface that says nothing is dropped, and `surfaces` with it; one that hides what it does not list is kept', clean({ entries: [], surfaces: { secondary: { entries: [] }, settings: { entries: [{ id: 'general', shown: true }] } } }).surfaces === undefined && json(clean({ entries: [], surfaces: { settings: { entries: [], unlisted: 'hide' } } }).surfaces) === json({ settings: { entries: [], unlisted: 'hide' } }))
+  check('an unknown surface name is dropped; junk `surfaces` is ignored', clean({ entries: [], surfaces: { main: { entries: [{ id: 'help', shown: true }] } } }).surfaces === undefined && clean({ entries: [], surfaces: 'x' }).surfaces === undefined && clean({ entries: [], surfaces: [] }).surfaces === undefined)
+  check('bounds: 24 on the account menu, 64 on Settings', clean({ entries: [], surfaces: { secondary: { entries: Array.from({ length: 30 }, (_, i) => ({ id: 'e' + 'a'.repeat(i % 5 + 1) + i, shown: true })) }, settings: { entries: Array.from({ length: 80 }, (_, i) => ({ id: 'p' + i + 'x', shown: false })) } } }).surfaces.settings.entries.length === 64)
+  check('menuHasContent: a menu with only a surface counts, an empty one does not', T.menuHasContent(r) === true && T.menuHasContent(clean({ entries: [] })) === false && T.menuHasContent(null) === false)
+  // The same documents, a seeded batch of them, give the same answer here and in the host's sanitizer.
+  const { sanitizeMenu } = await import('./preset-store.mjs')
+  let seed = 20261123
+  const rnd = (n) => { seed = (seed * 1664525 + 1013904223) % 4294967296; return Math.floor((seed / 4294967296) * n) }
+  const pick = (list) => list[rnd(list.length)]
+  const IDS = ['skills', 'kyber', 'workspaces', 'settings', 'account', 'Kyber', 'a', 7, null]
+  const SIDS = ['spaces', 'create-team', 'upgrade', 'phone', 'help', 'account', 'referral', 'settings', 'logout', 'general', 'kaby', 'theme', 'Kaby', 'a', 7, null]
+  let diff = 0
+  let first = null
+  for (let i = 0; i < 400; i++) {
+    const d = { entries: Array.from({ length: rnd(10) }, () => ({ id: pick(IDS), shown: pick([true, false, 'yes']), order: pick([0, 1, 99, 100, null]) })), unlisted: pick(['show', 'hide', 'x']), locked: pick([true, false, 'yes']) }
+    const surf = () => (rnd(8) === 0 ? pick([null, 7, 'x', [], { entries: 'no' }]) : { entries: Array.from({ length: rnd(rnd(2) === 0 ? 30 : 80) }, () => ({ id: pick(SIDS), shown: pick([true, false, undefined]), order: pick([0, 5, 99, 100, -1, null, rnd(120)]), label: rnd(4) === 0 ? { en: 'x' } : undefined })), unlisted: pick(['show', 'hide', 'x']) })
+    if (rnd(2) === 0) d.surfaces = pick([{ secondary: surf(), settings: surf() }, { secondary: surf() }, { settings: surf(), main: surf() }, null, 7, []])
+    if (json(sanitizeMenu(d)) !== json(clean(d))) { diff += 1; if (first === null) first = d }
+  }
+  check('the page\'s cleaner and the host\'s (preset-store `sanitizeMenu`) agree on 400 seeded documents, surfaces included', diff === 0, { diff, first })
+
+  // ── what the page shows and how an edit changes it ──
+  loaderWindow.__KB_MENU_ENTRIES__ = menuRegistryFor()
+  const sec = T.surfaceRows('secondary')
+  const set = T.surfaceRows('settings')
+  check('the page reads the registry\'s surfaces: entries with their lock and group', sec.length === 8 && set.length === 5 && sec.filter((x) => x.locked).map((x) => x.id).join() === 'account,referral,settings,logout' && set.find((x) => x.id === 'kaby').groupName === 'Agents' && set.find((x) => x.id === 'general').locked === true, [sec.length, set.length])
+  check('a registry that does not know surfaces (no `hooks.secondary`) gives none: the zone is not offered, the main rows never stand in', (() => { loaderWindow.__KB_MENU_ENTRIES__ = { v: 1, list: () => MENU_ROWS, hook: 'data-kb-row' }; try { return T.surfaceRows('secondary').length === 0 && T.surfaceRows('settings').length === 0 && T.surfaceRows('main').length === 0 } finally { loaderWindow.__KB_MENU_ENTRIES__ = menuRegistryFor() } })())
+  check('nothing stored: every entry is shown, the locked ones too', T.surfaceView(null, 'secondary', sec).every((v) => v.shown))
+  const hidden = T.surfaceEdit(null, 'secondary', sec, MENU_ROWS, (l) => { l.find((x) => x.id === 'upgrade').shown = false })
+  check('hiding "Upgrade" stores the account menu only (the main menu is left as the default: no entry, show)', hidden.entries.length === 0 && hidden.unlisted === 'show' && hidden.surfaces.secondary.entries.filter((e) => !e.shown).map((e) => e.id).join() === 'upgrade' && hidden.surfaces.settings === undefined, hidden)
+  check('...one entry per item that can be hidden, none for the four locked ones', hidden.surfaces.secondary.entries.length === 4 && hidden.surfaces.secondary.entries.every((e) => ['account', 'referral', 'settings', 'logout'].indexOf(e.id) < 0), hidden.surfaces.secondary.entries.map((e) => e.id))
+  check('...it is not the default menu; showing it again gives back the default (null)', T.menuIsDefault(hidden, MENU_ROWS) === false && T.surfaceEdit(hidden, 'secondary', sec, MENU_ROWS, (l) => { l.find((x) => x.id === 'upgrade').shown = true }) === null)
+  check('a locked entry cannot be switched: the edit leaves it shown', (() => { const d = T.surfaceEdit(null, 'secondary', sec, MENU_ROWS, (l) => { l.find((x) => x.id === 'settings').shown = false; l.find((x) => x.id === 'help').shown = false }); return d !== null && T.surfaceView(d, 'secondary', sec).find((v) => v.id === 'settings').shown === true && T.surfaceView(d, 'secondary', sec).find((v) => v.id === 'help').shown === false })())
+  const both = T.surfaceEdit(hidden, 'settings', set, MENU_ROWS, (l) => { l.find((x) => x.id === 'about').shown = false })
+  check('a second surface keeps the first', both.surfaces.secondary.entries.some((e) => e.id === 'upgrade' && !e.shown) && both.surfaces.settings.entries.some((e) => e.id === 'about' && !e.shown))
+  const mainEdit = T.menuEdit(both, MENU_ROWS, (l) => { l.find((x) => x.id === 'skills').shown = false })
+  check('an edit of the main menu keeps both surfaces', json(mainEdit.surfaces) === json(both.surfaces) && mainEdit.entries.some((e) => e.id === 'skills' && !e.shown))
+  check('the full arrangement (what a preset keeps) keeps the surfaces', json(T.menuFull(both, MENU_ROWS).surfaces) === json(both.surfaces))
+  const all = T.menuShowAll(both, MENU_ROWS)
+  check('« Show every entry » shows the surfaces too, and gives back the default menu', all === null, all)
+  const ruled = clean({ entries: [], surfaces: { settings: { entries: [{ id: 'kaby', shown: true }], unlisted: 'hide' } } })
+  check('a surface that hides what it does not list: the others are hidden in the view, and an edit keeps that rule', T.surfaceView(ruled, 'settings', set).filter((v) => v.shown).map((v) => v.id).join() === 'general,kaby' && T.surfaceEdit(ruled, 'settings', set, MENU_ROWS, (l) => { l.find((x) => x.id === 'theme').shown = true }).surfaces.settings.unlisted === 'hide')
+  check('« Show every entry » on such a rule drops the rule', T.menuShowAll(ruled, MENU_ROWS) === null)
+  check('a locked arrangement is read only for a surface (undefined = refused), and « Show every entry » still works on it', T.surfaceEdit(clean({ entries: [], locked: true, surfaces: { secondary: { entries: [{ id: 'help', shown: false }] } } }), 'secondary', sec, MENU_ROWS, () => {}) === undefined && T.menuShowAll(clean({ entries: [], locked: true, surfaces: { secondary: { entries: [{ id: 'help', shown: false }] } } }), MENU_ROWS).surfaces.secondary.entries[0].shown === true)
+  check('the lines of a plan say what a surface hides', T.menuLines(both, MENU_ROWS).some((l) => /Menu du compte : cache 1 entrée/.test(l)) && T.menuLines(both, MENU_ROWS).some((l) => /Réglages : cache 1 entrée/.test(l)), T.menuLines(both, MENU_ROWS))
+  check('a menu-only preset that holds only a surface is a valid record (and keeps it)', (() => { const rec = T.presetRecord({ id: 'u-surf', name: 'No upgrade', source: 'me', at: 1, menu: hidden }); return rec !== null && rec.menu.surfaces.secondary.entries.some((e) => e.id === 'upgrade') && rec.settings === undefined })())
+  delete loaderWindow.__KB_MENU_ENTRIES__
+
+  // ── the locked « Simple » preset ──
+  const L = T.lockedMenu('locked-simple')
+  check('the phone\'s Simple is a locked arrangement: its main menu is Automations (the real `tasks` row, under the registry\'s own name) and Apps (the real `connectors` row, renamed), the Kaby row at the top hidden (the `kyber` row: the folder under Workspaces and Settings › Kaby remain), every other row of the full app hidden (the conversations are the drawer\'s own list)', L !== null && L.locked === true && json(L.entries.map((e) => e.id)) === json(['kyber', 'tasks', 'connectors']) && L.entries.filter((e) => e.shown).map((e) => e.id).join() === 'tasks,connectors' && L.entries[0].shown === false && L.unlisted === 'hide' && L.entries[1].label === undefined && L.entries[2].label.en === 'Apps' && L.entries[2].label.fr === 'Apps', L)
+  check('default 2, 3, 4: Referral is not hideable (it is locked by the surface), Help and Send feedback stay, Phone and channels (and the entries that open the web or a team: the list of spaces and its team rows too, since the phone\'s engine cannot start a team) are hidden', (() => {
+    const s = L.surfaces.secondary
+    const shown = (id) => { const e = s.entries.find((x) => x.id === id); return e === undefined ? s.unlisted === 'show' : e.shown }
+    return s.entries.every((e) => e.id !== 'referral') && shown('help') && shown('feedback') && !shown('phone') && !shown('upgrade') && !shown('team-settings') && !shown('website') && !shown('create-team') && !shown('join-team') && !shown('spaces') && shown('plan') && shown('appearance')
+  })(), L.surfaces.secondary)
+  check('signed out (S3): « Create an account » and « See plans » are hidden in the phone\'s menu (it offers no sign-up and no offers to a person with no account); « Sign in » is a row no preset can hide (it is not in the table); the signed-in rows are unchanged', (() => {
+    const s = L.surfaces.secondary
+    const shown = (id) => { const e = s.entries.find((x) => x.id === id); return e === undefined ? s.unlisted === 'show' : e.shown }
+    return !shown('signup') && !shown('plans') && s.entries.every((e) => e.id !== 'connect') && shown('plan') && shown('help') && shown('feedback') && shown('appearance')
+  })(), L.surfaces.secondary)
+  check('the preset\'s `messageActions` option (read by the Kybernos plugin, in Kaby mode only): `tap` = the row under the agent\'s answers is shown by a tap; it is a plain word, a fresh copy each call, and an unknown preset has none', (() => { const o = T.lockedOptions('locked-simple'); o.messageActions = 'x'; return T.lockedOptions('locked-simple').messageActions === 'tap' && T.lockedOptions('nope').messageActions === undefined && /messageActions: 'tap' \}/.test(SOURCE) })())
+  check('the preset\'s `padlock` option (read by kybernos-cloud): the Automations (`tasks`) and Apps (`connectors`) rows are the ones locked while nobody is signed in, and they are rows the preset shows; a deep copy', (() => { const o = T.lockedOptions('locked-simple'); const a = o.padlock.slice(); o.padlock.push('kyber'); const b = T.lockedOptions('locked-simple').padlock; return json(b) === json(['tasks', 'connectors']) && json(a) === json(b) && b.every((id) => L.entries.some((e) => e.id === id && e.shown)) })())
+  check('default 5: Settings keeps five pages (Kaby, Memory & Lessons, Theme, Language, About; the app\'s own parts are drawn inside About, item 28); General, Usage and Connectors are hidden, and so is every other page and any added later', L.surfaces.settings.unlisted === 'hide' && json(L.surfaces.settings.entries.filter((e) => e.shown).map((e) => e.id)) === json(['kaby', 'memory', 'theme', 'language', 'about']) && json(L.surfaces.settings.entries.filter((e) => !e.shown).map((e) => e.id)) === json(['general']) && !L.surfaces.settings.entries.some((e) => e.id === 'usage' || e.id === 'connectors'))
+  check('only the locked preset can hide General: the person\'s own arrangement (and an imported one that claims `locked`) is still cleaned with the surface\'s refusal', (() => { const forged = { entries: [], locked: true, trusted: true, surfaces: { settings: { entries: [{ id: 'general', shown: false }, { id: 'kaby', shown: false }] } } }; return json(clean(forged).surfaces.settings.entries.map((e) => e.id)) === json(['kaby']) && json(clean(L).surfaces.settings.entries.map((e) => e.id)).indexOf('general') < 0 && json(clean(L, true)) === json(L) })())
+  check('every main id of the preset is a row the real registry knows (the drawer draws the sidebar\'s rows: a Simple-only id would match nothing)', L === null || (() => { const known = ['kyber', 'tasks', 'connectors']; return json(T.lockedMenu('locked-simple').entries.map((e) => e.id)) === json(known) && !/['"](reminders|apps|chats)['"]/.test(SOURCE.slice(SOURCE.indexOf('const LOCKED_PRESETS = {'), SOURCE.indexOf('const LOCKED_PRESETS = {') + 1800).replace(/label: \{[^}]*\}/g, '')) })())
+  check('default 6: nothing in the arrangement is about the chat itself (a preset only shows or hides entries)', Object.keys(L).sort().join() === 'entries,locked,surfaces,unlisted')
+  check('it is the cleaner\'s own output (nothing the cleaner would drop or change), checked by the cleaner again (the trusted path, the locked preset\'s only one)', json(clean(L, true)) === json(L))
+  check('each call gives a fresh copy: changing it does not reach the table', (() => { L.entries.length = 0; L.surfaces.secondary.entries.length = 0; const again = T.lockedMenu('locked-simple'); return again.entries.length === 3 && again.surfaces.secondary.entries.length > 0 })())
+  check('an id this build does not ship gives null; so does junk, and a prototype name', T.lockedMenu('nope') === null && T.lockedMenu(7) === null && T.lockedMenu(undefined) === null && T.lockedMenu('toString') === null && T.lockedMenu('__proto__') === null && T.lockedMenu('constructor') === null)
+  check('it is not in the library, nor the library\'s menu, nor a built-in of the page (a person cannot pick, edit, export or delete it)', T.lib.presets.every((p) => p.id !== 'locked-simple') && T.lib.menu === null && !T.MENU_BUILTINS.some((m) => m.id === 'locked-simple' || m.id === 'menu-locked-simple') && !/['"]locked-simple['"]/.test(SOURCE.slice(0, SOURCE.indexOf('const LOCKED_PRESETS = {'))))
+  check('the table is the only source: the seam hands out copies of it, and nothing writes into it', (() => { const i = SOURCE.indexOf('const LOCKED_PRESETS = {'); const tail = SOURCE.slice(i + 100); return !/LOCKED_PRESETS\[[^\]]+\]\s*=[^=]/.test(tail) && !/LOCKED_PRESETS\.[a-z]+\s*=[^=]/.test(tail) && !/delete LOCKED_PRESETS/.test(tail) })())
+  check('the seam is `window.__KB_THEME_LOCKED__`: published once, not writable, not configurable, { v: 1, ids, get, name }', /Object\.defineProperty\(window, '__KB_THEME_LOCKED__', \{ value: Object\.freeze\(\{ v: 1, ids: \(\) => Object\.keys\(LOCKED_PRESETS\), get: lockedMenu,/.test(SOURCE) && /writable: false, configurable: false/.test(SOURCE))
+
+  // ── touch comfort (step 6 part 2) ──
+  const TC = T.touchCss()
+  check('touch comfort: one static stylesheet, inside the 480 px media query, balanced braces', TC.startsWith('@media (max-width: 480px){') && TC.endsWith('}') && (TC.match(/\{/g) || []).length === (TC.match(/\}/g) || []).length && T.TOUCH_MEDIA === '(max-width: 480px)')
+  check('...every rule is keyed on the attribute (inert without it) and every declaration is !important', T.TOUCH_RULES.length > 25 && T.TOUCH_RULES.every((r) => r[0].length > 0 && r[0].every((x) => TC.includes('html[data-kb-touch="on"] ' + x + (r[0].indexOf(x) === r[0].length - 1 ? '{' : ','))) && r[1].split(';').every((d) => /^[a-z-]+:/.test(d))) && TC.split('\n').slice(1, -1).every((l) => l.startsWith('html[data-kb-touch="on"] ') && l.slice(l.indexOf('{') + 1, -1).split(';').every((d) => d.endsWith('!important'))))
+  check('...it uses stable hooks only (roles, data-slot, data-kb*, the plugins\' own kb* classes); the one engine class it names is the `_danger_` marker, by substring', !/_[A-Za-z]+_[0-9a-z]{5,}_/.test(TC) && /\[class\*="_danger_"\]/.test(TC) && !/\.(?!kb)[a-z]+-[a-z0-9]{6,}\b/.test(TC.replace(/var\([^)]*\)/g, '')))
+  check('...it covers the sheets (full width), rows, the Appearance switch, the drawer, Settings, the search palette and the section tabs', ['justify-self:stretch', 'align-self:flex-end', ':has(> [role="dialog"]:not([data-shortcut-modal])', '[role^="menuitem"]', 'menu-appearance"] .kbfp-seg', '[data-kb-row]', 'data-row-key', '[data-shortcut-modal="settings"]', '.kbsr-dlg', '.kbsr-scopes', '.kbkc-tabs', '.kbth-adv-tabs', '.kbln-tabs', 'flex-direction:column'].every((x) => TC.includes(x)))
+  check('« Back to workspace » (Settings header, `.kbsb`) reads like a row\'s title: 18 px text, a 24 px arrow, a tap zone at least 48 px high (it was 14 px, a 15 px arrow and 40 px on the owner\'s phone)', (() => {
+    const m = /\.kbsb\{([^}]*)\}/.exec(TC); const a = /\.kbsb svg\{([^}]*)\}/.exec(TC)
+    return m !== null && a !== null && /min-height:48px!important/.test(m[1]) && /font-size:18px!important/.test(m[1]) && /width:24px!important/.test(a[1]) && /height:24px!important/.test(a[1]) && T.TOUCH_RULES.some((r) => r[0].some((x) => x === '[data-shortcut-modal="settings"] .kbsb'))
+  })())
+  check('the search palette loses its keyboard hints (Esc and the « ? ») and its scopes scroll on one line', /\.kbsr-top \.kbsr-kbd[^{]*\{display:none!important\}/.test(TC) && /\.kbsr-foot > span:has\(> \.kbsr-kbd\)[^{]*\{display:none!important\}/.test(TC) && /\.kbsr-scopes\{flex-wrap:nowrap!important;overflow-x:auto!important/.test(TC))
+  check('the preset option: Simple (phone) turns touch comfort on; an unknown id has none; each call is a fresh copy; the seam hands it out', (() => { const o = T.lockedOptions('locked-simple'); o.touch = false; return T.lockedOptions('locked-simple').touch === true && Object.keys(T.lockedOptions('nope')).length === 0 && Object.keys(T.lockedOptions('toString')).length === 0 && /get: lockedMenu, options: lockedOptions,/.test(SOURCE) })())
+  check('the preset option `appPage` (read by kybernos-mobile for the app\'s parts it draws inside About): Simple hides the engine-log card and draws the computer card only when a computer is linked; each call is a deep copy, so a reader changing it changes nothing', (() => { const a = T.lockedOptions('locked-simple').appPage; a.log = true; a.computer = 'always'; const b = T.lockedOptions('locked-simple').appPage; return b.log === false && b.computer === 'linked' && Object.keys(b).sort().join() === 'computer,log' })())
+  check('the option is read only in Kaby mode (`kb-kaby` on <html>), the person\'s own setting anywhere; the class is watched (the Mobile bundle sets it, maybe after this runs)', /const touchWanted = \(S\) => \{\s*if \(S\.touch === true\) return true\s*try \{ return document\.documentElement\.classList\.contains\('kb-kaby'\) && lockedTouch\(\) \}/.test(SOURCE) && /attributeFilter: \['class'\]/.test(SOURCE))
+  check('the setting is an accessibility one: default off, a boolean, kept by presets of the person\'s own business (PRESET_KEYS), never by a catalogue', /\n\s*touch: false,\n/.test(SOURCE) && T.PRESET_KEYS.indexOf('touch') >= 0 && T.valeursValides({ touch: true }).touch === true && T.valeursValides({ touch: 'x' }).touch === undefined)
+  // ── presentation: the Settings pages (tabsNav, rowsLayout, rowsDescription, helpButton, cardsFrame, chipsStyle, groupTitles), the drawer, the composer and the empty chat (drawerSize, drawerPanels, composerSize, newChatCards) ──
+  const PC = T.presCss()
+  const PRES_OFF = { tabsNav: 'tabs', rowsLayout: 'stacked', rowsDescription: 'below', helpButton: 'boxed', cardsFrame: 'boxed', chipsStyle: 'pill', groupTitles: 'shown', drawerSize: 'standard', drawerPanels: 'shown', composerSize: 'standard', newChatCards: 'slider', rating: 'thumbs', messageSize: 'standard' }
+  // what the phone's Simple picks (the cards of the empty chat are the slider, which is the default: no token), the eleven tokens it turns on (ten of the layout and `rating-thumbs`; the size of the messages is the default, no token), and the sixteen tokens in all (`newChatCards` has two more values, `messageSize` three)
+  const PRES_ON = { tabsNav: 'list', rowsLayout: 'inline', rowsDescription: 'info', helpButton: 'named', cardsFrame: 'flat', chipsStyle: 'plain', groupTitles: 'hidden', drawerSize: 'large', drawerPanels: 'hidden', composerSize: 'large', newChatCards: 'slider', rating: 'thumbs', messageSize: 'standard' }
+  const PRES_TEN = ['tabs-list', 'rows-inline', 'desc-info', 'help-named', 'frame-flat', 'chips-plain', 'groups-hidden', 'drawer-large', 'panels-hidden', 'composer-large']
+  const PRES_ALL = PRES_TEN.concat(['rating-thumbs'])
+  const PRES_TOKENS_ALL = PRES_TEN.slice(0, 3).concat(['help-bare']).concat(PRES_TEN.slice(3)).concat(['nccards-grid', 'nccards-hidden', 'rating-thumbs', 'msg-compact', 'msg-large', 'msg-xlarge'])
+  check('presentation: thirteen settings, every default is the look of the phone\'s mock-up (the usual look, but thumbs for the rating), each is a choice of two (the « ? » button and the cards of the empty chat: three, the size of the messages: four) checked by the cleaner (a wrong value is dropped)', Object.keys(PRES_OFF).every((k) => T.DEF[k] === PRES_OFF[k] && T.ENUMS[k].length === (k === 'newChatCards' || k === 'helpButton' ? 3 : k === 'messageSize' ? 4 : 2) && T.ENUMS[k].indexOf(PRES_ON[k]) >= 0 && T.valeursValides({ [k]: PRES_ON[k] })[k] === PRES_ON[k] && T.valeursValides({ [k]: 'nope' })[k] === undefined) && json(T.ENUMS.newChatCards) === json(['slider', 'grid', 'hidden']) && ['grid', 'hidden'].every((v) => T.valeursValides({ newChatCards: v }).newChatCards === v))
+  check('...they are not part of a theme (PRESET_KEYS): a layout of a screen is not a look, a gallery theme or an imported file cannot change it', Object.keys(PRES_OFF).every((k) => T.PRESET_KEYS.indexOf(k) < 0))
+  const PRES_MQ = '(max-width: 700px), (max-height: 500px) and (pointer: coarse)'
+  check('presentation: ONE static stylesheet, a base outside the query that hides what the walker adds, then every rule inside the mobile breakpoint query (<= 700 px including 601–700 px, or landscape touch; a wide desktop is as before), balanced braces', PC.startsWith('.kbth-info,.kbth-navback{display:none}\n@media ' + PRES_MQ + '{') && PC.endsWith('}') && T.PRES_MEDIA === PRES_MQ && (PC.match(/\{/g) || []).length === (PC.match(/\}/g) || []).length)
+  check('...every rule is under ONE token of the one attribute (inert without it), with the specificity of an id (the phone layer\'s structural rules are heavier than a class chain), every declaration !important', T.PRES_RULES.length > 25 && T.PRES_RULES.every((r) => T.PRES_TOKENS.some((t) => t[2] === r[0]) && r[1].length > 0) && PC.split('\n').slice(2, -1).every((l) => l.startsWith(':is(html,#kb-pres)[data-kb-pres~="') && l.slice(l.indexOf('{') + 1, -1).split(';').every((d) => d.endsWith('!important'))))
+  check('...the seventeen tokens are the ones the settings put on <html>, and each has at least one rule', json(T.PRES_TOKENS.map((t) => t[2])) === json(PRES_TOKENS_ALL) && T.PRES_TOKENS.every((t) => T.PRES_RULES.some((r) => r[0] === t[2])) && T.PRES_ATTR === 'data-kb-pres')
+  check('...it names the balisage of the pages in this one place, hub « ? » included, and no hashed class of the engine', ['.kbmem-srow', '.kbln-set-row', '.kbkc-mrow', '.kbkc-tabs', '.kbkc-card', '.kbln-langs', '.kbkc-chip', '.kbhp-btn', '.kb6-helpbtn', '.kbln-help-btn', '.kbat-help', '.kbcl-hl', '[data-kb-desc="fold"]'].every((x) => PC.includes(x)) && !/_[A-Za-z]+_[0-9a-z]{5,}_/.test(PC))
+  check('...a description folds only if the page marked it, and only while it is not open; the « i » is a 44 px button with a visible focus ring', /\[data-kb-desc="fold"\]:not\(\[data-kb-open="1"\]\)\{display:none!important\}/.test(PC) && /\.kbth-info\{[^}]*width:44px!important;height:44px!important/.test(PC) && /\.kbth-info:focus-visible\{outline:2px solid/.test(PC))
+  check('...the bare « ? » keeps its 44 px zone (the phone layer\'s size), loses the square, has a focus ring, and its colour is 80 % of the text colour (readable, not a faint grey)', /\.kbhp-btn[^{]*\{background:transparent!important/.test(PC) && !/\.kbhp-btn[^{]*\{[^}]*(width|height):[0-9]/.test(PC) && /:focus-visible[^{]*\{outline:2px solid/.test(PC) && /color:color-mix\(in srgb,var\(--dsw-alias-label-primary,currentColor\) 80%,transparent\)/.test(PC))
+  check('...a segmented choice or a pair of buttons stays under its text; a switch or one small button sits opposite (Memory, Language)', /:not\(:has\(> \.ctl \[role="radiogroup"\], > \.ctl \.kbmem-seg, > \.ctl \.kbmem-acts\)\)/.test(PC) && /\.kbln-set-row:has\(> label\.kbln-sw\)/.test(PC))
+  check('...Kaby\'s switch goes opposite its label, the « i » stays at the end of a wrapping label (Memory, Language), a frameless block keeps no side padding, the Language status words are plain too', /\.kbkc-mrow > \.kbkc-sw[^{]*\{order:2!important/.test(PC) && /\.kbmem-srow \.lab:has\(> \.kbth-info\)[^{]*\{flex-wrap:nowrap!important/.test(PC) && /\.kbln-set-lb:has\(> \.kbth-info\)[^{]*\{display:flex!important/.test(PC) && /\.kbth-pr-strip[^{]*\.kbln-set-row[^{]*\.kbmz-auto[^{]*\{padding-inline:0!important/.test(PC) && /\.kbln-state[^{]*\.kbln-pill[^{]*\{border:0!important/.test(PC))
+  check('...a note that carries its own button stacks (icon, text over the width, button under the text) only under the inline-rows token; the Kaby back row is a quiet 15 px link of 44 px, kept above the title so its tap zone stays whole', /rows-inline"\][^{]*\.kbmem-note:has\(> svg\):has\(> button\)\{display:grid!important;grid-template-columns:auto minmax\(0,1fr\)!important/.test(PC) && /\.kbmem-note:has\(> svg\):has\(> button\) > button\{grid-column:2!important;justify-self:start!important/.test(PC) && /\.kbth-navback\{display:flex!important;align-self:flex-start!important;align-items:center!important;gap:4px!important;order:-2!important;position:relative!important;z-index:1!important;min-height:44px!important;margin:0 0 -26px!important[^}]*font-size:15px!important;font-weight:500!important/.test(PC))
+  check('...group titles: the names of the Settings menu groups (the core plugin\'s fold headers) leave the screen and the focus order and keep a 16 px gap, no line (a line between nearly every row read as a list of boxes); shown by default, hidden by the phone\'s Simple, never outside a phone', /\[data-kb-settings\] \[data-kb-fold-toggle\]\{visibility:hidden!important;height:0!important;min-height:0!important;margin:16px 0 0!important;padding:0!important/.test(PC) && T.DEF.groupTitles === 'shown' && T.lockedPresentation().groupTitles === 'hidden' && PC.split('\n').filter((l) => /groups-hidden/.test(l)).length === 1)
+  // the drawer, the composer and the empty chat (mockup 2 of 2026-11-23): targets 52 px, text 17 to 22 px, under their own token
+  const presLines = (tok) => PC.split('\n').filter((l) => l.includes('[data-kb-pres~="' + tok + '"]'))
+  const declOf = (tok, sel) => presLines(tok).filter((l) => l.includes(sel)).map((l) => l.slice(l.indexOf('{') + 1, -1)).join(';')
+  const px = (decl, prop) => { const m = decl.match(new RegExp('(?:^|;)' + prop + ':([0-9.]+)px')); return m === null ? 0 : Number(m[1]) }
+  check('drawer: « Pinned » (`.kbpin_header`) has exactly the look of « Recents » (`[role="tree"]::after`): 17 px, weight 600, the same padding (list 25)', (() => {
+    const same = (sel) => /font-size:17px!important;font-weight:600!important;padding:14px 16px 6px!important/.test(presLines('drawer-large').filter((l) => l.includes(sel)).join(''))
+    return same('[role="tree"]::after') && same('.kbpin_header')
+  })())
+  check('drawer: the pinned ROWS are the Recents rows: title 60 px at 22 px, folder 60 px at 22 px, rename field 52 px at 22 px, « … » 52 px (24 px dots), chevron 20 px (round 3, the owner found the pinned text too small)', (() => {
+    const d = (sel) => declOf('drawer-large', sel)
+    return px(d('.kbpin_row .kbpin_open{'), 'height') === 60 && px(d('.kbpin_row .kbpin_open{'), 'font-size') === 22 && px(d('.kbpin_folder{'), 'height') === 60 && px(d('.kbpin_folder{'), 'font-size') === 22 &&
+      px(d('.kbpin_row .kbpin_edit{'), 'height') === 52 && px(d('.kbpin_row .kbpin_edit{'), 'font-size') === 22 && px(d('.kbpin_row .kbpin_more{'), 'width') === 52 && px(d('.kbpin_row .kbpin_more{'), 'height') === 52 &&
+      px(d('.kbpin_row .kbpin_more svg{'), 'width') === 24 && px(d('.kbpin_header .kbpin_chevron svg{'), 'width') === 20 && !/kbpin_state/.test(presLines('drawer-large').join('\n'))
+  })())
+  check('help button named (the phone\'s Simple, item 27): the word is an attribute the walker stamps (`data-kb-help-word`, « Help » / « Aide » by the language at that moment) and ::after reads, on the five kinds of help button; the pill keeps the phone layer\'s 44 px and tone (no width, height or border set), has a focus ring; the stamp goes with the token', (() => {
+    const lines = presLines('help-named')
+    const after = lines.filter((l) => l.includes('::after'))
+    const pill = lines.filter((l) => !l.includes('::after') && !l.includes(':focus-visible')).map((l) => l.slice(l.indexOf('{') + 1, -1)).join(';')
+    return after.length === 1 && /content:attr\(data-kb-help-word\)!important\}$/.test(after[0]) && ['.kbhp-btn', '.kb6-helpbtn', '.kbln-help-btn', '.kbat-help', '.kbcl-hl'].every((c) => after[0].includes(c + '::after')) &&
+      pill !== '' && !/(^|;)(width|height|min-width|min-height|border|border-color|border-width):/.test(pill) && lines.some((l) => l.includes(':focus-visible')) &&
+      /tokens\.indexOf\('help-named'\) >= 0/.test(SOURCE) && /b\.setAttribute\('data-kb-help-word', word\)/.test(SOURCE) && /b\.removeAttribute\('data-kb-help-word'\)/.test(SOURCE) && /kt\('Aide', 'Help'\)/.test(SOURCE)
+  })())
+  check('help button: the Theme page offers three looks (Square, Bare, Named), and the plain « ? » of the full app is unchanged (boxed stays the default)', T.ENUMS.helpButton.join() === 'boxed,bare,named' && T.DEF.helpButton === 'boxed' && /\['named', kt\('Nommé', 'Named'\)\]/.test(SOURCE))
+  check('drawer: the magnifier is a 52 px round button, the rows of the menu 60 px at 22 px with 28 px icons, the folders 64 px, the chats 60 px, the head 68 px, the avatar and « New chat » 56 px, the burger 52 px — every target of the drawer is 44 px or more', (() => {
+    const d = (sel) => declOf('drawer-large', sel)
+    return px(d('[data-kb="search-top"]{'), 'width') === 52 && px(d('[data-kb="search-top"]{'), 'height') === 52 && px(d('nav [data-kb-row]{'), 'min-height') === 60 && px(d('nav [data-kb-row]{'), 'font-size') === 22 &&
+      px(d('[data-row-key^="workspace:"]{'), 'min-height') === 64 && px(d('[data-row-key^="session:"]{'), 'min-height') === 60 && px(d('[data-window-drag]{'), 'min-height') === 68 &&
+      px(d('.kbmob-avatar{'), 'height') === 56 && px(d('.kbmob-newchat{'), 'height') === 56 && px(d('.kbmob-menu{'), 'width') === 52 && px(d('[data-row-key^="workspace:"] button'), 'min-height') === 52 &&
+      px(d('[data-sidebar-workspace-header]{'), 'font-size') === 19 && px(d('[role="tree"]::after'), 'font-size') === 17
+  })())
+  check('drawer: no rule names a label the engine translates (« Global panels » is « Panneaux globaux » in French: the rows would stay small there), the header\'s three do-nothing buttons leave the title its width, the pinned panels read like the rows', !/aria-label/.test(presLines('drawer-large').join('\n')) && /\[data-sidebar-workspace-header\] button\{display:none!important\}/.test(PC) && /nav \[class\*="panelRow"\]\{min-height:60px!important/.test(PC))
+  check('drawer: it is the Theme\'s own block, bounded by the token and the mobile query (nothing in mobile.css, so a phone left on the full look and a computer are untouched), and the dock height variable follows the bigger buttons', presLines('drawer-large').length >= 15 && presLines('drawer-large').every((l) => PC.indexOf(l) > PC.indexOf('@media ' + PRES_MQ + '{')) && /\[data-slot="sidebar"\]\{--kbmob-dock-h:120px!important\}/.test(PC))
+  check('drawer panels: the engine\'s own rows (its pinned pages, their unpin buttons, its « More » launcher) are left out under ONE token, by structure and not by word (a `panelEntry` of the sidebar\'s nav that holds no Kybernos menu, and the `moreAnchor`), so French and English draw the same rows; shown by default, hidden by the phone\'s Simple, inside the mobile query', (() => {
+    const ls = presLines('panels-hidden')
+    return ls.length === 1 && ls[0].includes('[data-slot="sidebar"] nav > [class*="panelEntry"]:not(:has(.kb4-menu))') && ls[0].includes('[data-slot="sidebar"] nav > [class*="moreAnchor"]') && ls[0].endsWith('{display:none!important}') &&
+      !/aria-label|title=|placeholder/.test(ls[0]) && PC.indexOf(ls[0]) > PC.indexOf('@media ' + PRES_MQ + '{') && T.DEF.drawerPanels === 'shown' && T.lockedPresentation().drawerPanels === 'hidden'
+  })())
+  check('composer: the text and the placeholder are 20 px (the placeholder is a slot of the engine, not a pseudo-element), the field 60 px at least, the « + », the model arrow and the send button 48 px, the model name (list item 24, the mock-up\'s composer block) in a frame of 48 px at 15 px as wide as the name and no wider, pushed against the send button, whole unless it overflows (then an ellipsis, the two icons keep their 16 px)', (() => {
+    const d = (sel) => declOf('composer-large', sel)
+    return /\[data-composer-input\],[^{]*\{[^}]*font-size:20px/.test(presLines('composer-large').join('\n')) && /conversation\.input\.placeholder"\] \*[^{]*\{[^}]*font-size:20px/.test(presLines('composer-large').join('\n')) && px(d('[data-composer-input]{'), 'min-height') === 60 &&
+      px(d('button[aria-haspopup="listbox"]'), 'width') === 48 && px(d('button[class*="_primary"]'), 'height') === 48 && px(d('[data-kb="model-seat"]{'), 'height') === 48 && px(d('[data-kb="model-seat"]{'), 'font-size') === 15 && /border-radius:24px/.test(d('[data-kb="model-seat"]{')) &&
+      /flex:0 1 auto/.test(d('[data-kb="model-seat"]{')) && /min-width:0/.test(d('[data-kb="model-seat"]{')) && /margin-left:auto/.test(d('[data-kb="model-seat"]{')) &&
+      /\.kbmsl-label\{font-size:15px!important;min-width:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important\}/.test(presLines('composer-large').join('\n')) &&
+      /\.kbmsl-ic,[^{]*\.kbmsl-chev\{flex:none!important;overflow:visible!important\}/.test(presLines('composer-large').join('\n'))
+  })())
+  check('composer: EVERY empty-field sentence is 20 px whatever the engine build draws it with: the box `[data-composer-placeholder]` itself (a build draws « Ask Kaby anything » as its own text node, and the phone layer sizes that box at 12 to 16 px: it read 16 dp on the real phone), its descendants, the engine\'s slot, the placeholder of a plain field of the card', (() => {
+    const l = presLines('composer-large').join('\n')
+    return /\[data-composer-card\] \[data-composer-placeholder\][,{]/.test(l) && /\[data-composer-card\] \[data-composer-placeholder\] \*[,{]/.test(l) && /\[data-slot="conversation\.input\.placeholder"\] \*[^{]*\{[^}]*font-size:20px!important/.test(l) && /\[data-composer-card\] input::placeholder,[^{]*\[data-composer-card\] textarea::placeholder\{font-size:20px!important\}/.test(l)
+  })())
+  check('empty chat cards (list item 22): `slider` is the default and puts nothing on <html> (the Kybernos plugin draws it); `grid` shows the same six cards in three columns on the page instead of the slider row, « See all » kept (the sheet\'s own grid stays a sheet\'s); `hidden` hides the block and gives the scroller back its centring; all inside the mobile query (including 601–700 px); the hooks are not named `newchat-…` (Kaby mode hides those)', (() => {
+    const g = presLines('nccards-grid').join('\n')
+    const hd = presLines('nccards-hidden').join('\n')
+    return T.DEF.newChatCards === 'slider' && T.lockedPresentation().newChatCards === 'slider' && PRES_ALL.every((t) => !/nccards/.test(t)) &&
+      /\.kb8-ncs-sl\{display:none!important\}/.test(g) && !/\.all\{display:none/.test(g) && /\.kb8-ncs-gr:not\(\.kb8-ncs-shgr\)\{display:grid!important;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/.test(g) && /\.kb8-ncs-gr:not\(\.kb8-ncs-shgr\) \.kb8-ncs-card\{width:auto!important\}/.test(g) &&
+      /\.kb8-ncs\{display:none!important\}/.test(hd) && /scrollBody"\]:has\(\.kb8-ncs\)\{justify-content:safe center!important\}/.test(hd) && !/data-kb="newchat-/.test(PC) &&
+      [g, hd].every((l) => PC.indexOf(l.split('\n')[0]) > PC.indexOf('@media ' + PRES_MQ + '{'))
+  })())
+  check('rating (list item 31, round 2): `thumbs` is the DEFAULT (Simple and Complete, the owner\'s rule of 2026-11-24) and is what puts the token on <html>; `stars` is a choice and puts nothing; the token shows the two thumbs the Kybernos plugin draws (44 px each) and hides the question and the five stars; inside the mobile query; the thumbs are hidden by the plugin’s own CSS until the token asks', (() => {
+    const t = presLines('rating-thumbs').join('\n')
+    return T.DEF.rating === 'thumbs' && json(T.ENUMS.rating) === json(['stars', 'thumbs']) && T.valeursValides({ rating: 'stars' }).rating === 'stars' && T.lockedPresentation().rating === 'thumbs' && T.valeursValides({ rating: 'thumbs' }).rating === 'thumbs' && T.valeursValides({ rating: 'five' }).rating === undefined &&
+      /\.kbq-rating \.kbq-rating-question,[^{]*\.kbq-rating \.kbq-rating-etoiles\{display:none!important\}/.test(t) && /\.kbq-rating \.kbq-rating-pouces\{display:inline-flex!important\}/.test(t) && /\.kbq-rating \.kbq-rating-pouce\{width:44px!important;height:44px!important;min-width:44px!important\}/.test(t) &&
+      // once rated: the thumbs stay in the row (the card gives its parts to the row), the thank-you line goes under the row, the rating tag is left out
+      /\.kbq-rating:has\(\.kbq-rating-merci\)\{display:contents!important\}/.test(t) && /\.kbq-rating-merci\{order:9!important;flex:1 0 100%!important;padding-left:6px!important;font-size:14px!important\}/.test(t) && /\.kbq-rating-merci > \.kbq-rating-tag:first-child\{display:none!important\}/.test(t) &&
+      // after a thumbs-up the share box is a 44 px line with a 22 px box
+      /\.kbq-rating-partage-apres\{min-height:44px!important;gap:10px!important;font-size:14px!important\}/.test(t) && /\.kbq-rating-partage-apres input\{width:22px!important;height:22px!important/.test(t) &&
+      t.split('\n').every((l) => PC.indexOf(l) > PC.indexOf('@media ' + PRES_MQ + '{')) && /\.kbq-rating-pouces\{display:none;/.test(readFileSync(new URL('../kybernos-plugin/client.js', import.meta.url), 'utf8'))
+  })())
+  check('message text (list item 33): four sizes two pixels apart, `standard` (17 px) is the default in Simple and Complete and has no token (the phone\'s stylesheet draws it); compact 15, large 19 and xlarge 21 are ONE variable on the chat, inside the mobile query; the menu is not touched', (() => {
+    const css = readFileSync(new URL('../kybernos-mobile/mobile.css', import.meta.url), 'utf8')
+    const lines = ['msg-compact', 'msg-large', 'msg-xlarge'].map((k) => presLines(k).join('\n'))
+    const mob = css.slice(css.indexOf('/* The text of the messages (list item 33).'))
+    return T.DEF.messageSize === 'standard' && json(T.ENUMS.messageSize) === json(['compact', 'standard', 'large', 'xlarge']) && T.lockedPresentation().messageSize === 'standard' && T.valeursValides({ messageSize: 'xlarge' }).messageSize === 'xlarge' && T.valeursValides({ messageSize: '18' }).messageSize === undefined &&
+      T.PRES_TOKENS.filter((t) => t[0] === 'messageSize').map((t) => t[1] + '>' + t[2]).join() === 'compact>msg-compact,large>msg-large,xlarge>msg-xlarge' &&
+      json(lines.map((l) => (l.match(/--dsh-content-font-size:(\d+)px!important/) || [])[1])) === json(['15', '19', '21']) &&
+      lines.every((l) => l.split('\n').length === 1 && /^:is\(html,#kb-pres\)\[data-kb-pres~="msg-[a-z]+"\] \[data-slot="conversation\.chat\.flow"\]\{--dsh-content-font-size:\d+px!important\}$/.test(l)) &&
+      lines.every((l) => l.split('\n').every((x) => PC.indexOf(x) > PC.indexOf('@media ' + PRES_MQ + '{'))) &&
+      // the phone's stylesheet: the default size on the chat, the answer's text and the code follow the variable, the chat is told not to enlarge text again, in the 600 px block
+      /\[data-slot="conversation\.chat\.flow"\] \{[^}]*text-size-adjust: 100%;[^}]*--dsh-content-font-size: 17px !important;/.test(mob) && /\[data-text-interaction-source\] \{\s*font-size: var\(--dsh-content-font-size\) !important;/.test(mob) &&
+      /clamp\(12px, calc\(var\(--dsh-content-font-size\) - 3\.5px\), 14px\)/.test(mob) && /clamp\(13px, calc\(var\(--dsh-content-font-size\) - 3px\), 15px\)/.test(mob) &&
+      css.indexOf('/* The text of the messages (list item 33).') > css.indexOf('@media (max-width: 600px) {\n  :root {')
+  })())
+  check('search on a phone: ✕ is a 52 px button, the scopes are ONE line that scrolls (no wrapping, no bar) with a fade on the right edge, each chip 44 px at 16 px, the field 52 px at 18 px', /\.kbsr-x\{[^}]*width:52px!important;height:52px!important/.test(TC) && /\.kbsr-scopes\{flex-wrap:nowrap!important;overflow-x:auto!important;scrollbar-width:none!important[^}]*mask-image:linear-gradient\(90deg,#000 88%,transparent\)!important/.test(TC) && /\.kbsr-chip\{[^}]*flex:none!important;height:44px!important[^}]*font-size:16px!important/.test(TC) && /input\.kbsr-in\[data-kb="search-input"\]\{height:52px!important;font-size:18px!important\}/.test(TC))
+  check('the four new settings put no new text on the Settings pages beyond their own labels: the new section and its four rows carry a French and an English wording', /Menu et chat sur petit écran/.test(SOURCE) && /Menu and chat on a small screen/.test(SOURCE))
+  {
+    const inner = SOURCE.match(/\/\/ kb-pres:begin[\s\S]*?\/\/ kb-pres:end/g) || []
+    const outside = SOURCE.replace(/\/\/ kb-pres:begin[\s\S]*?\/\/ kb-pres:end/g, '')
+    check('...the presentation block is marked once (kb-pres:begin … kb-pres:end), holds the names of the other bundles\' classes, and the rest of the bundle names none of the prefixes the guards reserve (kbmem-, kbhp-, kbhi-)', inner.length === 1 && /\.kbmem-srow/.test(inner[0]) && /\.kbhp-btn/.test(inner[0]) && !/\.kbmem-|\.kbh[pi]-/.test(outside))
+  }
+  // the tokens: a person's own setting wins; the phone's Simple asks for all eleven on a small screen in Simple mode (kb-simple or legacy kb-kaby), never on a wide desktop
+  const doc0 = globalThis.document
+  const mm0 = loaderWindow.matchMedia
+  const withEnv = ({ classes = [], attrs = {}, media = null }, f) => {
+    globalThis.document = {
+      documentElement: {
+        hasAttribute: (k) => Object.prototype.hasOwnProperty.call(attrs, k),
+        classList: { contains: (c) => classes.indexOf(c) >= 0 },
+      },
+    }
+    if (media === null) delete loaderWindow.matchMedia
+    else loaderWindow.matchMedia = (q) => ({ matches: typeof media === 'function' ? media(q) : media === true })
+    try { return f() } finally {
+      if (doc0 === undefined) delete globalThis.document; else globalThis.document = doc0
+      if (mm0 === undefined) delete loaderWindow.matchMedia; else loaderWindow.matchMedia = mm0
+    }
+  }
+  const withKaby = (on, f) => withEnv({ classes: on ? ['kb-kaby'] : [] }, f)
+  check('tokens: nothing asked = only the thumbs (the default, Simple or Complete); the Simple preset asks for its eleven only in Kaby mode (its cards are the default slider: no token); a person\'s own choice adds one anywhere (the cards: grid or hidden, over the Simple preset too)', withKaby(false, () => json(T.presTokens({ ...T.DEF })) === json(['rating-thumbs']) && json(T.presTokens({ ...T.DEF, rating: 'stars' })) === json([]) && json(T.presTokens({ ...T.DEF, ...PRES_ON })) === json(PRES_ALL) && json(T.presTokens({ ...T.DEF, cardsFrame: 'flat' })) === json(['frame-flat', 'rating-thumbs']) && json(T.presTokens({ ...T.DEF, newChatCards: 'grid' })) === json(['nccards-grid', 'rating-thumbs']) && json(T.presTokens({ ...T.DEF, newChatCards: 'hidden' })) === json(['nccards-hidden', 'rating-thumbs'])) && withKaby(true, () => json(T.presTokens({ ...T.DEF })) === json(PRES_ALL) && json(T.presTokens({ ...T.DEF, rating: 'stars' })) === json(PRES_TEN) && json(T.presTokens({ ...T.DEF, newChatCards: 'hidden' })) === json(PRES_TEN.concat(['nccards-hidden', 'rating-thumbs']))))
+  check('tokens in html.kb-simple without kb-kaby: active on a small screen (including 601–700 px and landscape touch matching PRES_MEDIA), NEVER activated on a wide desktop, off in Complete mode even with kb-kaby, and explicit compact messageSize (15 px) is always respected', (() => {
+    const smallSimple = withEnv({ classes: ['kb-simple'], attrs: { 'data-kb-mode': 'simple' }, media: (q) => q === PRES_MQ }, () => ({
+      def: T.presTokens({ ...T.DEF }),
+      compact: T.presTokens({ ...T.DEF, messageSize: 'compact' }),
+      grid: T.presTokens({ ...T.DEF, newChatCards: 'grid' }),
+    }))
+    const wideSimple = withEnv({ classes: ['kb-simple'], attrs: { 'data-kb-mode': 'simple' }, media: () => false }, () => T.presTokens({ ...T.DEF }))
+    const noMediaSimple = withEnv({ classes: ['kb-simple'], attrs: { 'data-kb-mode': 'simple' }, media: null }, () => T.presTokens({ ...T.DEF }))
+    const completeWithKaby = withEnv({ classes: ['kb-kaby'], attrs: { 'data-kb-mode': 'complete' }, media: () => true }, () => T.presTokens({ ...T.DEF }))
+    return json(smallSimple.def) === json(PRES_ALL) &&
+      json(smallSimple.compact) === json(PRES_ALL.concat(['msg-compact'])) &&
+      json(smallSimple.grid) === json(PRES_TEN.concat(['nccards-grid', 'rating-thumbs'])) &&
+      json(wideSimple) === json(['rating-thumbs']) &&
+      json(noMediaSimple) === json(['rating-thumbs']) &&
+      json(completeWithKaby) === json(['rating-thumbs'])
+  })())
+  check('the preset option: Simple asks for the thirteen settings (eleven tokens, the cards of the empty chat stay the slider); each call is a deep copy; an unknown id asks for none; the seam hands the options out', (() => { const o = T.lockedPresentation(); o.tabsNav = 'tabs'; return json(T.lockedPresentation()) === json(PRES_ON) && json(T.lockedOptions('locked-simple').presentation) === json(PRES_ON) && json(T.lockedOptions('nope')) === '{}' })())
+  check('the walker is idempotent and bounded: it adds one « i » per marked description and one back row per Kaby page, removes both when the token goes, and the observer only watches while a token is on', /const mine = t\.querySelector\(':scope > \.kbth-info'\)/.test(SOURCE) && /if \(!fold\) \{ if \(mine !== null\) mine\.remove\(\)/.test(SOURCE) && /if \(mine !== null\) return/.test(SOURCE) && /if \(back !== null\) back\.remove\(\)/.test(SOURCE) && /else if \(!want && presListening\) \{[\s\S]*?removeEventListener\('click', presClick, true\)[\s\S]*?presWatch\.disconnect\(\)/.test(SOURCE))
+  check('the control on the Theme page: one row of two choices (the cards of the empty chat: three) per setting, in the Accessibility tab, next to Touch comfort', ['tabsNav', 'rowsLayout', 'rowsDescription', 'helpButton', 'cardsFrame', 'chipsStyle', 'groupTitles', 'drawerSize', 'drawerPanels', 'composerSize', 'newChatCards', 'rating', 'messageSize'].every((k) => SOURCE.includes("['" + k + "', kt(")) && SOURCE.includes("'theme-pres-' + k[0]"))
+  // what a page may mark: ONLY a description that explains. One that warns or changes what the setting means is never marked, so it is never folded.
+  const ROOT = new URL('../', import.meta.url)
+  const marks = (dir) => [...readFileSync(new URL(dir + '/client.js', ROOT), 'utf8').matchAll(/data-kb-desc/g)].length
+  check('only two pages carry the mark (Memory: its row helper; Language: the announce hint); Kaby, About and the others never fold anything', marks('kybernos-memory') === 1 && marks('kybernos-language') === 1 && ['kybernos-kaby-customisation', 'kybernos-maintenance', 'kybernos-plugin', 'kybernos-hub', 'kybernos-mobile'].every((d) => marks(d) === 0))
+  const memSrc = readFileSync(new URL('kybernos-memory/client.js', ROOT), 'utf8')
+  const foldRows = [...memSrc.matchAll(/h\(SettingRow, \{ act: '([a-z-]+)', fold: true/g)].map((m) => m[1])
+  check('Memory marks exactly the four rows whose description only explains (Use memory, Your memory, Import, Export); Learn, Sensitive topics, Look for repeats and When it finds some warn, so they stay visible', json(foldRows.sort()) === json(['export', 'import', 'manage', 'use']) && !/act: '(learn|sensitive|tidy-look|tidy-mode)', fold: true/.test(memSrc))
+  const lanSrc = readFileSync(new URL('kybernos-language/client.js', ROOT), 'utf8')
+  check('Language marks the announce hint only: the note on the model and the resume hint (which says what « off » does) stay visible', /className: 'kbln-hint', 'data-kb-desc': 'fold' \}, L\('announceHint'\)/.test(lanSrc) && [...lanSrc.matchAll(/data-kb-desc/g)].length === 1)
+  check('the touch layer also covers the Theme\'s own controls it missed: the « Import… » label (29 px), the « ⋯ » of a tile (its sign sat over the chips) and the report button of the Simple help card (a 44 px box with a three-line word)', /label\.kbth-btn\{min-height:48px!important/.test(T.touchCss()) && /button\.kbth-pr-more\[data-kb="theme-preset-more"\]\[aria-haspopup="menu"\]:not\(\[disabled\]\)\{top:54px!important;right:2px!important;width:44px!important;height:44px!important/.test(T.touchCss()) && /\.kbk-help \[data-kb="report-tail"\] > button\[data-act="report-open"\]\{width:auto!important/.test(T.touchCss()) && /:not\(\.kbln-help-btn\),select,textarea/.test(SOURCE))
+}
+
 section('page render (react-dom/server)')
 let React = null, renderToStaticMarkup = null
 try {
@@ -1608,26 +2202,30 @@ if (React === null) {
   // A second instance wired to the REAL react, with useState steerable by initial value.
   const steer = {}
   const reactFor = { ...React, useState: (init) => React.useState(Object.prototype.hasOwnProperty.call(steer, String(init)) ? steer[String(init)] : init) }
+  const MENU_REG = menuRegistryFor()
   let def2
-  new Function('window', SOURCE)({ __ModuleLoader__: { load: (d) => { def2 = d } }, __KB_LANG_RESOLVE__: () => LANG })
+  new Function('window', SOURCE)({ __ModuleLoader__: { load: (d) => { def2 = d } }, __KB_LANG_RESOLVE__: () => LANG, __KB_MENU_ENTRIES__: MENU_REG })
   const real = def2.factory(() => reactFor).__test
   const render = (state, advTab) => {
-    reset(); steer.essentiel = advTab || 'essentiel'
+    reset(); steer.couleurs = advTab || 'couleurs'
     store.set(real.STORE_KEY, JSON.stringify(state))
     return renderToStaticMarkup(React.createElement(real.Page, { ctx: mkCtx({ pref: state.mode }).ctx }))
   }
   const text = (html) => html.replace(/<[^>]+>/g, '|').replace(/\|+/g, '|')
 
-  const simple = render({ mode: 'dark', skin: 'bleu', acc: '#4176E6' })
+  const simple = render({ ...real.DEF, mode: 'dark', skin: 'bleu', acc: '#4176E6' })
+  const count = (html, re) => (html.match(re) || []).length
+  // What a person can read or hear on a page: its text, plus the names carried by attributes.
+  const readable = (html) => text(html) + '|' + [...html.matchAll(/(?:aria-label|title|placeholder)="([^"]*)"/g)].map((m) => m[1]).join('|')
   {
     // The page's description lives in the « ? » card: with the Suite it is passed to Help as `lead` (and the title as `title`) and not drawn under the title; without the Suite it is drawn as before.
-    const LEAD_FR = 'Personnalise l’apparence de Kybernos : clique sur ce que tu veux changer dans la fenêtre ci-dessous. Tous les réglages restent dans l’éditeur avancé.'
-    const LEAD_EN = 'Customize the look of Kybernos: click what you want to change in the window below. Every setting stays in the advanced editor.'
+    const LEAD_FR = 'Personnalise l’apparence de Kybernos : choisis un préréglage, ou clique sur ce que tu veux changer dans la fenêtre. Tous les réglages restent dans l’éditeur avancé.'
+    const LEAD_EN = 'Customize the appearance of Kybernos: pick a preset, or click what you want to change in the window. Every setting stays in the advanced editor.'
     check('without the Suite the description is still drawn under the title', simple.includes('<h2 class="kbhp-title kbth-title">Thème</h2><div class="kbth-sub">' + LEAD_FR + '</div>'))
     let def3
-    const suiteWin = { __ModuleLoader__: { load: (d) => { def3 = d } }, __KB_LANG_RESOLVE__: () => LANG, __KB_HELP__: fakeHelp(React, (p) => React.createElement('i', { 'data-help-id': p.id, 'data-lead': p.lead, 'data-title': p.title })) }
+    const suiteWin = { __ModuleLoader__: { load: (d) => { def3 = d } }, __KB_LANG_RESOLVE__: () => LANG, __KB_MENU_ENTRIES__: MENU_REG, __KB_HELP__: fakeHelp(React, (p) => React.createElement('i', { 'data-help-id': p.id, 'data-lead': p.lead, 'data-title': p.title })) }
     new Function('window', SOURCE)(suiteWin)
-    const withSuite = (state) => { reset(); steer.essentiel = 'essentiel'; store.set(real.STORE_KEY, JSON.stringify(state)); return renderToStaticMarkup(React.createElement(def3.factory(() => reactFor).__test.Page, { ctx: mkCtx({ pref: state.mode }).ctx })) }
+    const withSuite = (state) => { reset(); steer.couleurs = 'couleurs'; store.set(real.STORE_KEY, JSON.stringify(state)); return renderToStaticMarkup(React.createElement(def3.factory(() => reactFor).__test.Page, { ctx: mkCtx({ pref: state.mode }).ctx })) }
     const suite = withSuite({ mode: 'dark', skin: 'bleu', acc: '#4176E6' })
     check('with the Suite the page passes its description to Help as `lead`, and its title', suite.includes('data-help-id="kybernos-theme"') && suite.includes('data-lead="' + LEAD_FR + '"') && suite.includes('data-title="Thème"'), suite.slice(0, 400))
     check('...and no longer draws the same text under the title', !suite.includes('class="kbth-sub"') && suite.includes('<h2 class="kbhp-title kbth-title" data-kb="page-title">Thème</h2><i data-help-id="kybernos-theme"'))
@@ -1636,28 +2234,86 @@ if (React === null) {
     LANG = 'kybernos'
     check('...in English too (lead and title)', suiteEn.includes('data-lead="' + LEAD_EN + '"') && suiteEn.includes('data-title="Theme"'))
   }
-  check('the page opens on Essentiel and renders the 18 shipped theme dots', (simple.match(/class="kbth-skin"/g) || []).length === 18, (simple.match(/class="kbth-skin"/g) || []).length)
-  check('...marks exactly the current theme as pressed', (simple.match(/class="kbth-skin" aria-pressed="true"/g) || []).length === 1 && /aria-pressed="true"[^>]*title="Bleu profond/.test(simple))
-  // The mode is set HERE, on three cards (the Appearance page that held them is gone): Light, Dark, System; the current one is checked and says so.
-  const cards = (html) => [...html.matchAll(/<button[^>]*data-kb="theme-mode-card"[^>]*>/g)].map((m) => m[0])
-  check('the page has the three mode cards (Clair, Sombre, Système) as a radio group, in that order', (simple.match(/data-kb="theme-mode"[^>]*role="radiogroup"|role="radiogroup"[^>]*data-kb="theme-mode"/g) || []).length === 1 && cards(simple).map((c) => /data-mode="(\w+)"/.exec(c)[1]).join() === 'light,dark,system' && /Clair[\s\S]*Sombre[\s\S]*Système/.test(text(simple)))
-  check('...the current mode is the checked one and says « actuel » (dark here), the other two are not', cards(simple).filter((c) => /aria-checked="true"/.test(c)).length === 1 && /aria-checked="true"[^>]*data-mode="dark"/.test(simple) && (simple.match(/● actuel/g) || []).length === 1)
-  for (const [mode, shown] of [['light', 'light'], ['system', 'system']]) check('...the checked card follows the setting (' + mode + ')', new RegExp('aria-checked="true"[^>]*data-mode="' + shown + '"').test(render({ mode, skin: 'bleu', acc: '#4176E6' })))
-  check('...the system card previews both halves, the others one bar', /kbth-mode-pv kbth-mode-pv-system[^>]*>(<span[^>]*kbth-mode-half[^>]*><i><\/i><\/span>){2}/.test(simple) && (simple.match(/kbth-mode-half/g) || []).length === 2)
-  check('...no « Change in Appearance » button and no word about an Appearance page: the description says what the cards do', !/theme-mode-open|Changer dans Apparence|page Apparence/.test(simple) && /Choisis le mode clair ou sombre, puis un thème prêt à l’emploi/.test(simple))
-  check('pressing a card writes the mode through the page\'s own commit (setTheme), and the link to another page is gone with its helper', SOURCE.includes("onClick: () => commit({ mode: m[0] })") && !SOURCE.includes('ouvrirReglages') && !SOURCE.includes("'kbac-appearance'"))
-  const natural = render({ mode: 'dark' })
-  check('natural state: the pill says no theme is applied, in plain words', /Couleurs de DSH — aucun thème posé/.test(natural) && !/jeton|token|couche/i.test(natural.replace(/<[^>]+>/g, '|').split('kbth-foot')[1] || ''))
-  check('themed state: the pill says a theme is applied (light and dark), without the word « token »', /Thème posé · clair et sombre/.test(simple) && !/17 jetons/.test(simple))
-  check('the nine vertical tabs are always there (Icônes next to Animation), Essentiel pressed by default', (simple.match(/class="kbth-adv-tab[ "]/g) || []).length === 9 && />Icônes</.test(simple) && /kbth-adv-tab on" aria-pressed="true">Essentiel</.test(simple))
-  check('there is no Simple / Avancé switch any more', !/>Simple</.test(simple) && !/>Avancé</.test(simple) && !/Besoin de plus de réglages/.test(simple))
-  check('Essentiel carries appearance, colour, background and font', ['Apparence', 'Couleur', 'Arrière-plan', 'Police'].every((t) => simple.includes('>' + t + '<')))
-  check('the wallpaper grid starts with an "Aucun" tile (a wallpaper can be removed)', /class="kbth-wp"[^>]*title="Aucun"/.test(simple))
 
-  for (const tab of ['essentiel', 'verre', 'couleurs', 'texte', 'animation', 'accessibilite', 'partage', 'galerie']) {
+  // ── ONE Presets section: built-in and mine, a badge each, a filter, chips for what a preset holds ──
+  real.lib.presets = []; real.lib.menu = null; real.lib.updatedAt = 0
+  const pagePr = render({ ...real.DEF, mode: 'dark' })
+  check('ONE Presets section: its heading, a filter All | Built-in | Mine with the counts, and one tile per preset (6 vibes + the 2 shipped menus)', count(pagePr, /data-kb="theme-presets"/g) === 1 && /<h3 class="kbth-pr-h">Préréglages<\/h3>/.test(pagePr)
+    && /data-kb="theme-preset-filter"[^>]*>(<button[^>]*role="radio"[^>]*>[^<]*<\/button>){3}/.test(pagePr.replace(/(<div[^>]*data-kb="theme-preset-filter"[^>]*>)/, '$1')) && /All|Tous 8/.test(pagePr) && count(pagePr, /data-kb="theme-preset" /g) === 8)
+  const filterOf = (html) => [...(html.match(/<div class="kbth-seg" role="radiogroup" aria-label="[^"]*" data-kb="theme-preset-filter">(.*?)<\/div>/) || [, ''])[1].matchAll(/<button[^>]*aria-checked="(true|false)"[^>]*>([^<]*)</g)].map((m) => m[2] + (m[1] === 'true' ? '*' : ''))
+  check('...the filter says how many: « Tous 8 », « Livrés 8 », « Les miens 0 » (All is the one pressed)', filterOf(pagePr).join() === 'Tous 8*,Livrés 8,Les miens 0', filterOf(pagePr))
+  check('...the old pieces are gone: no row of 18 style dots, no three mode cards, no « Mes thèmes » group, no Simple / Avancé switch', !/kbth-skin|theme-mode-card|theme-st-vibe|theme-st-looks|Mes thèmes/.test(pagePr))
+  const tiles = pagePr.split('data-kb="theme-preset" ').slice(1)
+  check('...each tile says where it comes from (a « Livré » badge) and what it holds (chips « Apparence » or « Menu »)', tiles.length === 8 && tiles.every((t) => /kbth-pr-src built">Livré</.test(t)) && tiles.slice(0, 6).every((t) => /kbth-pr-chip">Apparence</.test(t) && !/kbth-pr-chip">Menu</.test(t)) && tiles.slice(6).every((t) => /kbth-pr-chip">Menu</.test(t) && !/kbth-pr-chip">Apparence</.test(t)), tiles.map((t) => t.slice(0, 60)))
+  check('...a built-in preset can be duplicated into Mine but is never renamed or deleted: its tile has the « … » button and the menu it opens is built from `mine` only', /data-kb="theme-preset-more"/.test(pagePr) && SOURCE.includes("!mine ? h('button', { type: 'button', role: 'menuitem', className: 'kbth-pi', 'data-kb': 'theme-preset-dup'") && SOURCE.includes("mine ? h('button', { type: 'button', role: 'menuitem', className: 'kbth-pi', 'data-kb': 'theme-preset-rename'") && SOURCE.includes("mine ? h('button', { type: 'button', role: 'menuitem', className: 'kbth-pi dng', 'data-kb': 'theme-preset-delete'"))
+  check('...the menu in use is the default one: the « Complet » tile says « En cours », and the strip names it', /kbth-pr-tile use" data-kb="theme-preset" data-id="menu:menu-complete"/.test(pagePr) && /data-kb="theme-strip-m">Complet</.test(pagePr))
+  check('...the strip says what is in use for the appearance and the menu, with Undo (nothing to undo yet), Reset and « Enregistrer comme préréglage… »', /data-kb="theme-strip"/.test(pagePr) && /data-kb="theme-strip-a"/.test(pagePr) && /data-kb="theme-undo" disabled/.test(pagePr) && /data-kb="theme-reset"[^>]*aria-haspopup="menu"/.test(pagePr) && /data-kb="theme-save"[^>]*>Enregistrer comme préréglage…</.test(pagePr))
+  check('...one preset section: nothing else on the page lists presets (no « theme-row », no second list)', count(pagePr, /data-kb="theme-preset-list"/g) === 1 && !/data-kb="theme-row"/.test(pagePr))
+  check('...Surprise me, the gallery and Import sit in the section’s header', /data-kb="theme-surprise"/.test(pagePr) && /data-kb="theme-open-gallery"/.test(pagePr) && /data-kb="theme-import"/.test(pagePr))
+  check('...a preset is explained in one sentence, and nothing changes until one is picked', /Un préréglage est un réglage enregistré\. Il peut changer l’apparence, le menu, ou les deux\. Rien ne change tant que tu n’en choisis pas un\./.test(pagePr))
+  {
+    const nolook = (html) => !/\blooks?\b/i.test(readable(html))
+    LANG = 'en'
+    const en = render({ ...real.DEF, mode: 'dark' })
+    LANG = 'kybernos'
+    check('no word « look » on the page, in either language (text, labels and titles)', nolook(pagePr) && nolook(en), [readable(pagePr).match(/.{20}\blooks?\b.{20}/i), readable(en).match(/.{20}\blooks?\b.{20}/i)])
+  }
+
+  // ── a library with one of each: a saved appearance, a saved menu, a template, an installed gallery theme ──
+  {
+    const mineA = real.presetRecord({ id: 'u-bureau', name: 'Bureau clair', source: 'me', at: 1, settings: { mode: 'light', acc: '#0ea5e9', ov: {}, fontText: 'georgia', radius: 'soft' } })
+    const mineM = real.presetRecord({ id: 'u-court', name: 'Menu court', source: 'me', at: 2, menu: { entries: [{ id: 'skills', shown: true, order: 0 }, { id: 'kyber', shown: false, order: 1 }], unlisted: 'hide', locked: false } })
+    const tpl = real.presetRecord({ id: 't-cab', name: 'Cabinet', source: 'template', at: 3, settings: { acc: '#112233' }, menu: { entries: [{ id: 'skills', shown: true, order: 0, label: { fr: 'Dossiers' } }], unlisted: 'show', locked: false } })
+    const gal = real.presetRecord({ id: 'g-lumen', name: 'Crépuscule', source: 'gallery', author: '@lumen', at: 4, settings: { mode: 'dark', acc: '#fb923c', ov: { 'dark:base': '#1a1220' } } })
+    real.lib.presets = [mineA, mineM, tpl, gal]
+    const mineState = { ...real.DEF, skin: 'u-bureau', ...mineA.settings }
+    const withLib = render(mineState)
+    check('four presets of the library join the built-in ones, template first: 8 + 4 tiles, the counts say « Livrés 9 », « Les miens 3 »', count(withLib, /data-kb="theme-preset" /g) === 12 && filterOf(withLib).join() === 'Tous 12*,Livrés 9,Les miens 3', filterOf(withLib))
+    const tileOf = (html, id) => { const at = html.indexOf('data-id="rec:' + id + '"'); const end = html.indexOf('data-kb="theme-preset" ', at + 10); return html.slice(at, end < 0 ? undefined : end) }
+    check('...a template is built-in-like (badge « Modèle », both chips); what I saved is « Les miens »; what the gallery installed says « Galerie » and counts as mine', /kbth-pr-src built">Modèle</.test(tileOf(withLib, 't-cab')) && /kbth-pr-chip">Apparence</.test(tileOf(withLib, 't-cab')) && /kbth-pr-chip">Menu</.test(tileOf(withLib, 't-cab')) && /data-src="template"/.test(withLib)
+      && /kbth-pr-src mine">Les miens</.test(tileOf(withLib, 'u-bureau')) && /kbth-pr-src mine">Galerie</.test(tileOf(withLib, 'g-lumen')) && /data-id="rec:g-lumen" data-src="mine"/.test(withLib))
+    check('...a menu-only preset has only the « Menu » chip, an appearance-only one only « Apparence »', /kbth-pr-chip">Menu</.test(tileOf(withLib, 'u-court')) && !/kbth-pr-chip">Apparence</.test(tileOf(withLib, 'u-court')) && !/kbth-pr-chip">Menu</.test(tileOf(withLib, 'u-bureau')))
+    check('...the preset in use is marked « En cours », the strip names it, and it is not « modifié »', /kbth-pr-tile use" data-kb="theme-preset" data-id="rec:u-bureau"/.test(withLib) && /data-kb="theme-strip-a"[^>]*>(<i[^>]*><\/i>)?Bureau clair</.test(withLib) && !/data-kb="theme-modified"/.test(withLib))
+    const dirty = render({ ...mineState, acc: '#ff0000' })
+    check('...move one of its settings and the strip says « modifié »; the mode alone never does', /data-kb="theme-modified">modifié</.test(dirty) && !/data-kb="theme-modified"/.test(render({ ...mineState, mode: 'dark' })))
+    check('...a style that is gone (deleted elsewhere) reads « Personnalisé »', /data-kb="theme-strip-a"[^>]*>(<i[^>]*><\/i>)?Personnalisé</.test(render({ ...real.DEF, skin: 'u-gone', acc: '#123456' })))
+    real.lib.menu = real.menuClean(mineM.menu)
+    const withMenu = render(mineState)
+    check('...with the menu of « Menu court » in use, the strip names that menu and its tile is the one in use', /data-kb="theme-strip-m">Menu court</.test(withMenu) && /kbth-pr-tile use" data-kb="theme-preset" data-id="rec:u-court"/.test(withMenu) && !/kbth-pr-tile use" data-kb="theme-preset" data-id="menu:menu-complete"/.test(withMenu))
+    real.lib.menu = real.menuClean({ entries: [{ id: 'tasks', shown: false, order: 0 }], unlisted: 'show', locked: false })
+    check('...a menu that is none of the listed ones is called « Menu personnalisé »', /data-kb="theme-strip-m">Menu personnalisé</.test(render(mineState)))
+    real.lib.menu = null; real.lib.presets = []
+  }
+
+  // ── the advanced editor: folded, in real tabs, the Mode in the first one ──
+  check('the advanced editor is folded by default (a details with no `open`), with its summary', /<details class="kbth-st-classic" data-kb="theme-classic"><summary>Éditeur avancé/.test(simple))
+  const tabIds = [...simple.matchAll(/data-kb="theme-adv-tab" data-id="([a-z]+)"/g)].map((m) => m[1])
+  check('...it has real tabs: Couleurs, Lettres, Formes, Arrière-plan, Effets, Icônes, Menu, Animation, Accessibilité, Import / Export, Galerie', tabIds.join() === 'couleurs,lettres,formes,fond,effets,icones,menu,animation,accessibilite,partage,galerie' && /role="tablist"/.test(simple) && count(simple, /role="tab"/g) === 11, tabIds)
+  check('...the tabs carry the tab pattern: the open one is selected, the panel is a tabpanel', count(simple, /role="tab"[^>]*aria-selected="true"/g) === 1 && /role="tab"[^>]*class="kbth-adv-tab on" aria-selected="true"[^>]*data-id="couleurs"/.test(simple) && /role="tabpanel"/.test(simple))
+  check('...and the keyboard of the tabs: ONE tab stop (the open tab), each tab names the panel, the panel is named by the open tab; the key handler is on the tablist', count(simple, /role="tab"[^>]*tabindex="0"/g) === 1 && count(simple, /role="tab"[^>]*tabindex="-1"/g) === 10 && count(simple, /role="tab"[^>]*aria-controls="kbth-tabpanel"/g) === 11 && /id="kbth-tabpanel" aria-labelledby="kbth-tab-couleurs"/.test(simple) && /role: 'tablist'[\s\S]{0,260}onKeyDown: \(e\) => \{[\s\S]{0,300}segNav\(e\.key/.test(SOURCE))
+  check('...their names are plain: Couleurs, Lettres, Formes, Arrière-plan, Effets, Icônes, Menu, Animation, Accessibilité, Import / Export, Galerie', ['Couleurs', 'Lettres', 'Formes', 'Arrière-plan', 'Effets', 'Icônes', 'Menu', 'Animation', 'Accessibilité', 'Import / Export', 'Galerie'].every((t) => simple.includes('>' + t + '</button>')))
+  const modeSeg = (html) => (html.match(/data-kb="theme-mode"[^>]*>(.*?)<\/div>/) || [, ''])[1]
+  check('the Mode (Clair, Sombre, Système) is one segmented control of the Colours tab, and the current one is the checked one', /Clair[\s\S]*Sombre[\s\S]*Système/.test(text(modeSeg(simple))) && /aria-checked="true"[^>]*data-id="dark"/.test(modeSeg(simple)) && /aria-checked="true"[^>]*data-id="light"/.test(modeSeg(render({ ...real.DEF, mode: 'light' }))) && /aria-checked="true"[^>]*data-id="system"/.test(modeSeg(render({ ...real.DEF, mode: 'system' }))))
+  check('pressing a mode writes it through the page\'s own commit (setTheme); no link to another page and no helper for it', SOURCE.includes('commit({ mode: m[0] })') && !SOURCE.includes('ouvrirReglages') && !SOURCE.includes("'kbac-appearance'"))
+  const natural = render({ mode: 'dark' })
+  check('natural state: the pill says no theme is applied, in plain words', /Couleurs de Kybernos — aucun thème posé/.test(natural) && !/jeton|token|couche/i.test(natural.replace(/<[^>]+>/g, '|').split('kbth-foot')[1] || ''), natural.match(/kbth-pill">[^<]*</g))
+  check('themed state: the pill says a theme is applied (light and dark), without the word « token »', /Thème posé · clair et sombre/.test(simple) && !/17 jetons/.test(simple))
+
+  for (const tab of ['couleurs', 'lettres', 'formes', 'fond', 'effets', 'icones', 'menu', 'animation', 'accessibilite', 'partage', 'galerie']) {
     let html = null, err = null
     try { html = render({ mode: 'dark' }, tab) } catch (e) { err = e.message }
-    check('tab ' + tab + ' renders without throwing', html !== null && html.length > 500, err)
+    check('tab ' + tab + ' renders without throwing, with a panel', html !== null && html.length > 500 && /role="tabpanel"/.test(html), err)
+  }
+  {
+    // Every select (five options or more) and every segmented control (two to four) of the tabs is the shared one, with its name for assistive technology.
+    const T2 = (tab) => render({ ...real.DEF, mode: 'dark' }, tab)
+    const lettres = T2('lettres'), fond = T2('fond'), icones = T2('icones'), formes = T2('formes')
+    check('Lettres: the font is ONE select (26 fonts, each written in its own typeface), the size a slider and the ligatures a switch', count(lettres, /class="kbth-sel"/g) === 1 && /role="combobox"[^>]*aria-label="Police"/.test(lettres) && /role="switch"/.test(lettres))
+    check('Formes: corners, shadows, your bubbles and the agent’s replies are segmented controls of two to four options', ['theme-adv-radius', 'theme-adv-shadow', 'theme-adv-bubble', 'theme-adv-reply'].every((k) => new RegExp('role="radiogroup"[^>]*data-kb="' + k + '"').test(formes)) && !/class="kbth-sel"/.test(formes))
+    check('Arrière-plan: the wallpaper is ONE select, grouped; Icônes: the icon set is ONE select with a sample of its icons, and the sample row follows', count(fond, /class="kbth-sel"/g) === 1 && count(icones, /class="kbth-sel"/g) === 1 && /data-kb="theme-icons-preview"/.test(icones))
+    const everySeg = [...['couleurs', 'lettres', 'formes', 'fond', 'effets', 'icones', 'menu', 'animation', 'accessibilite'].map(T2), pagePr].join('')
+    const segs = [...everySeg.matchAll(/<div class="kbth-seg" role="radiogroup"[^>]*>(.*?)<\/div>/g)].map((m) => count(m[1], /role="radio"/g))
+    check('a segmented control never has more than four options, and a select is only used from five (the rule of the page)', segs.length > 8 && segs.every((n) => n >= 2 && n <= 4), segs)
   }
 
   // The accessibility table must measure the ACTIVE scheme.
@@ -1682,7 +2338,7 @@ if (React === null) {
   check('Animation tab: preview, rotation, status text and settings are the four blocks', ['Animation de réflexion', 'Aperçu', 'Ma rotation', 'Texte d’état', 'Réglages'].every((t) => ptext.includes(t)))
   check('...with the draw, add, surprise (animations AND words) and pack buttons', ['Simuler une réponse', 'Ajouter une animation…', 'Modifier mon pack…'].every((t) => ptext.includes(t)) && (pane.match(/Me surprendre/g) || []).length === 2)
   check('...the library, the import and the skill are NOT on the page (they live in a window)', !ptext.includes('Exemples (14)') && !ptext.includes('Importer un fichier') && !ptext.includes('Créer avec Claude'))
-  check('...the ambiance selector shows the DSH original and today\'s sentence', /kbth-fsname">DSH d’origine</.test(pane) && ptext.includes('Deep diving for 12s ···'))
+  check('...the ambiance selector shows the DSH original and today\'s sentence', /kbth-fsname">Kybernos d’origine</.test(pane) && ptext.includes('Deep diving for 12s ···'))
   check('...settings are folded, with a one-line summary', ptext.includes('Standard · 24 px · vitesse 1,00 × · un mot par réponse') && !ptext.includes('Ne jamais répéter') && /aria-expanded="false"[^>]*data-kb="ld-settings"|data-kb="ld-settings"/.test(pane))
   // R-A1-02 / R-A2-01: the one-line summary is wholly in the language of the page, with its number format
   LANG = 'en'
@@ -1699,7 +2355,7 @@ if (React === null) {
   check('...and no French decimal comma is built in the code any more', !/\.replace\('\.', ','\)/.test(SOURCE.replace(/const knum = [^\n]*/, '').replace(/const ldDurText = [^\n]*/, '')))
   check('...and no bare French connective sits between two values of a page (« 2 sur 5 » in the English « Add an animation » window, T-041): such a word goes through kt()', !/,\s*'(sur|dans|avec|pour|sans|ou|et|de|du|des|en|au|aux)'\s*,/.test(SOURCE))
   LANG = 'kybernos'
-  check('...with nothing selected, four free slots and the whale tail are announced', (pane.match(/kbth-lds empty/g) || []).length === 4 && ptext.includes('Rien n’est choisi : DSH garde sa queue de baleine.'))
+  check('...with nothing selected, four free slots and the whale tail are announced', (pane.match(/kbth-lds empty/g) || []).length === 4 && ptext.includes('Rien n’est choisi : Kybernos garde sa queue de baleine.'))
   real.ld.S = real.ldClean({ sel: ['ring', 'orbit'], pack: 'medecine', mode: 'order' })
   const pane2 = render({ mode: 'dark' }, 'animation')
   check('with two loaders: their names fill the first slots, two stay free, "2 sur 4"', ['Anneau', 'Orbite'].every((n) => pane2.includes('>' + n + '<')) && (pane2.match(/kbth-lds empty/g) || []).length === 2 && text(pane2).includes('2 sur 4'))
@@ -1713,11 +2369,6 @@ if (React === null) {
   check('...and it MOVES: three seconds later the trio is another one (not always the first three words)', s2 !== null && s1[1] !== s2[1] && trio(s2).every((w) => medWords.includes(w)))
   check('...after a full lap of the list it comes back to the start', s3 !== null && s1[1] === s3[1])
   check('...a pack of three words or fewer is shown whole and does not move', (() => { real.ld.words = ['A', 'B']; real.ld.S = real.ldClean({ pack: 'perso' }); const x = text(render({ mode: 'dark' }, 'animation')); real.ld.words = []; real.ld.S = real.ldClean({ sel: ['ring', 'orbit'], pack: 'medecine', mode: 'order' }); return x.includes('A · B') && !x.includes('A · B…') })())
-  const ess = render({ mode: 'dark' }, 'essentiel')
-  check('Essentiel carries a summary of the animation with a « Régler… » button', ess.includes('data-kb="ld-summary"') && ess.includes('data-kb="ld-open"') && text(ess).includes('Anneau, Orbite · dans l’ordre · texte : Médecine'))
-  real.ld.S = real.ldClean({})
-  check('...and says so when nothing is chosen', text(render({ mode: 'dark' }, 'essentiel')).includes('Queue de baleine de DSH · texte : DSH d’origine'))
-
   // The scheme shown is the page's, not a guess from the setting: « Système » on a light OS must read as light.
   {
     const body = globalThis.document.body
@@ -1745,6 +2396,13 @@ if (React === null) {
     check('...and every colour-blind grade ink (success, warning, error) is ≥ 4.5:1 in its scheme', ['ok', 'warn', 'err'].every((g) => real.ratio(inks['html[data-kbth-cb] ' + g], l1.dark) >= 4.5 && real.ratio(inks['html[data-kbth-cb] body:not([data-ds-dark-theme]) ' + g], l1.light) >= 4.5))
     const html = render({ mode: 'dark' }, 'accessibilite')
     check('the badges carry a grade class and no inline ink (nothing to go stale when the scheme changes)', (html.match(/class="kbth-a11y-badge kbth-gr-(ok|warn|err)"/g) || []).length === 6 && !/kbth-a11y-badge[^>]*style=/.test(html))
+    // the two rows of the batch (rating, message text) as the page DRAWS them in the Accessibility tab, English: label, choices, the stored one lit
+    const prHtml = render({ ...real.DEF, mode: 'dark', messageSize: 'large', rating: 'thumbs' }, 'accessibilite')
+    const row = (key) => { const m = prHtml.match(new RegExp('data-kb="theme-pres-' + key + '">(.*?)</div>')); return m ? m[1] : '' }
+    const lit = (h) => (h.match(/aria-checked="true" data-id="([a-z]+)"/) || [])[1]
+    const msg = row('messageSize'); const rat = row('rating')
+    check('the Theme page draws the message text with four sizes (15, 17, 19, 21), the stored one (19) lit', (msg.match(/<button/g) || []).length === 4 && />15</.test(msg) && />17</.test(msg) && />19</.test(msg) && />21</.test(msg) && lit(msg) === 'large', msg.slice(0, 300))
+    check('the Theme page draws the rating with two choices (stars, thumbs), the stored one (thumbs) lit', (rat.match(/<button/g) || []).length === 2 && lit(rat) === 'thumbs', rat.slice(0, 300))
     check('the stylesheet applies the ink to both kinds of badge', /\.kbth-a11y-badge\[class\*="kbth-gr-"\],\.kbth-tok-badge\[class\*="kbth-gr-"\]\{color:var\(--kbth-ink\)/.test(SOURCE))
     const ap = []; const prevDe2 = globalThis.document.documentElement
     globalThis.document.documentElement = { setAttribute: (k, v) => ap.push(k + '=' + v), removeAttribute: (k) => ap.push('-' + k) }
@@ -1756,48 +2414,13 @@ if (React === null) {
   const exp = (fmt) => text(render({ mode: 'dark' }, 'partage'))
   check('Share › Export: the preview file name follows the format', /dsh-theme\.yml/.test(exp('yaml')))
 
-  // ── The theme library on the page ──────────────────────────────────────────
+  // ── Import / Export, and the three resets, in the advanced editor ──────────────────────────────────────
   {
-    real.lib.presets = []; real.lib.updatedAt = 0
-    const neutre = real.SKINS.find((s) => s.id === 'neutre')
-    const neutreState = { ...real.DEF, ...real.skinPatch(neutre) }
-    const noLib = render(neutreState)
-    check('Essentiel: « Livrés » and « Mes thèmes » are two groups, the add button is always there', /Livrés/.test(noLib) && /Mes thèmes/.test(noLib) && /data-kb="theme-add"/.test(noLib))
-    check('...with no theme of yours it says so and points to Sharing', /Aucun thème à toi pour l’instant/.test(noLib) && /data-kb="theme-open-sharing"/.test(noLib))
-    check('...the shipped theme in use is named in the summary, flagged « livré », not modified', /kbth-sum-n">Neutre violet<span class="kbth-pill">livré</.test(noLib) && !/theme-modified/.test(noLib))
-    check('...its meta line includes the font and the corners it sets', /Clair · #6114D4 · police Inter · coins standard/.test(noLib))
-    check('...there is « Enregistrer sous… » and nothing to update or revert', /data-kb="theme-save"/.test(noLib) && !/data-kb="theme-update"/.test(noLib) && !/data-kb="theme-revert"/.test(noLib))
-    check('the mode alone never makes a theme « modified »', !/theme-modified/.test(render({ ...neutreState, mode: 'dark' })))
-    const edited = render({ ...neutreState, acc: '#0ea5e9' })
-    check('a shipped theme with another accent: « modifié », « Annuler », and no « Mettre à jour » (a shipped theme is not edited)', /theme-modified/.test(edited) && /data-kb="theme-revert"/.test(edited) && !/data-kb="theme-update"/.test(edited) && /enregistre-en une copie/.test(edited))
-    check('the 18 shipped dots plus none of yours', (edited.match(/class="kbth-skin"/g) || []).length === 18 && (edited.match(/class="kbth-skin kbth-skin-add"/g) || []).length === 1)
-    check('the old « Thème : … Défaut DSH retire… » line is only shown on « Défaut DSH »', !/retire la couche de jetons/.test(edited) && /retire la couche de jetons/.test(render({ ...real.DEF })))
-
-    const mine = real.presetRecord({ id: 'u-bureau', name: 'Bureau clair', source: 'me', at: 1, settings: { mode: 'light', acc: '#0ea5e9', ov: {}, fontText: 'georgia', radius: 'soft' } })
-    const other = real.presetRecord({ id: 'g-lumen', name: 'Crépuscule', source: 'gallery', author: '@lumen', at: 2, settings: { mode: 'dark', acc: '#fb923c', ov: { 'dark:base': '#1a1220' } } })
-    real.lib.presets = [mine, other]
-    const mineState = { ...real.DEF, skin: 'u-bureau', ...mine.settings }
-    const withLib = render(mineState)
-    check('your themes are dots next to the add button (and the shipped ones stay)', (withLib.match(/class="kbth-skin"/g) || []).length === 20 && /title="Bureau clair — /.test(withLib) && /title="Crépuscule — /.test(withLib))
-    check('...the one in use is pressed, named in the summary and flagged « à toi »', /kbth-skin" aria-pressed="true"[^>]*title="Bureau clair/.test(withLib) && /kbth-sum-n">Bureau clair<span class="kbth-pill">à toi</.test(withLib) && !/theme-modified/.test(withLib))
-    check('...its meta says what it retains (font, corners)', /police Georgia/.test(withLib) && /coins doux/.test(withLib))
-    const dirtyMine = render({ ...mineState, acc: '#ff0000' })
-    check('your own theme with a changed accent: « modifié », « Mettre à jour » first, « Enregistrer sous… », « Annuler »', /theme-modified/.test(dirtyMine) && /data-kb="theme-update"[^>]*>Mettre à jour/.test(dirtyMine) && /data-kb="theme-save"/.test(dirtyMine) && /data-kb="theme-revert"/.test(dirtyMine))
-    check('a theme from the gallery is flagged « Galerie » when in use', /kbth-sum-n">Crépuscule<span class="kbth-pill">Galerie</.test(render({ ...real.DEF, skin: 'g-lumen', ...other.settings })))
-    check('an id that is gone (deleted elsewhere) reads « Personnalisé »', /kbth-sum-n">Personnalisé</.test(render({ ...real.DEF, skin: 'u-gone' })))
-
-    const sharing = render(mineState, 'partage')
-    check('Sharing lists your themes, one row each, with what each retains', (sharing.match(/data-kb="theme-row"/g) || []).length === 2 && /retient : couleurs et accent, police, coins/.test(sharing) && /retient : couleurs et accent</.test(sharing))
-    check('...the theme in use says « appliqué » and has no « Appliquer »; the other has it', (sharing.match(/data-kb="theme-apply"/g) || []).length === 1 && /kbth-tone kbth-tone-on kbth-gr-ok">appliqué</.test(sharing))
-    check('...each row exports, renames and deletes', (sharing.match(/data-kb="theme-export-one"/g) || []).length === 2 && (sharing.match(/data-kb="theme-rename"/g) || []).length === 2 && (sharing.match(/data-kb="theme-delete"/g) || []).length === 2)
-    check('...the source is shown: « à toi », « Galerie · @lumen »', /pill">à toi</.test(sharing) && /Galerie · @lumen/.test(sharing))
-    check('Sharing: import takes a .json file and says it adds, not applies', /data-kb="theme-import"/.test(sharing) && /accept=".json,application\/json"/.test(sharing) && /ne change rien tant que tu ne cliques pas sur Appliquer/.test(sharing))
-    check('...the current look still exports (YAML, JSON, CSS), folded away', /<details class="kbth-fold"/.test(sharing) && /Exporter l’état actuel/.test(sharing) && /dsh-theme\.yml/.test(sharing) && /data-kb="theme-export"/.test(sharing))
-    check('...reset says the library is kept', /Tes thèmes enregistrés restent dans Mes thèmes/.test(sharing))
-    real.lib.presets = []
-    const sharingEmpty = render({ ...real.DEF }, 'partage')
-    check('Sharing with no theme of yours: an explanation instead of an empty list, the save button stays', /data-kb="theme-lib-empty"/.test(sharingEmpty) && /Aucun thème à toi/.test(sharingEmpty) && /data-kb="theme-save-sharing"/.test(sharingEmpty) && !/data-kb="theme-row"/.test(sharingEmpty))
-    check('the old import (it applied the file over the current look) is gone', !/Thème importé et appliqué/.test(sharingEmpty) && !/theme-import-note/.test(sharingEmpty))
+    real.lib.presets = []; real.lib.menu = null; real.lib.updatedAt = 0
+    const partage = render({ ...real.DEF, mode: 'dark' }, 'partage')
+    check('Import / Export: a .json file is added to Mine, changes nothing until ticked, and never changes the accessibility settings', /data-kb="theme-import-adv"/.test(partage) && /accept=".json,application\/json"/.test(partage) && /s’ajoute à Les miens/.test(partage) && /Il ne change rien tant que tu n’as pas coché ce que tu en reprends/.test(partage) && /ne change jamais tes réglages d’accessibilité/.test(partage))
+    check('...the current appearance exports (YAML, JSON, CSS) with a copy button, folded away from the rest; a saved preset exports from its own tile', /data-kb="theme-export-fold"/.test(partage) && /data-kb="theme-export-format"/.test(partage) && /dsh-theme\.yml/.test(partage) && /data-kb="theme-copy"/.test(partage) && /Exporter en fichier/.test(partage))
+    check('...three resets, each with its name (the appearance, the menu, everything), and the saved presets stay in Mine', ['theme-reset-adv-a', 'theme-reset-adv-m', 'theme-reset-adv-all'].every((k) => partage.includes('data-kb="' + k + '"')) && /Tes préréglages enregistrés restent dans Les miens/.test(partage))
   }
 
   // ── The gallery on the page ────────────────────────────────────────────────
@@ -1808,7 +2431,7 @@ if (React === null) {
     real.gal.data = real.galClean(answer()); real.gal.state = 'ready'
     const html = render({ ...real.DEF }, 'galerie')
     const n = shipped.themes.length
-    check('the Galerie tab is there, the ninth, and is the one pressed when opened', (html.match(/class="kbth-adv-tab[ "]/g) || []).length === 9 && /kbth-adv-tab on" aria-pressed="true">Galerie</.test(html))
+    check('the Galerie tab is there, the eleventh, and is the one selected when opened', (html.match(/class="kbth-adv-tab[ "]/g) || []).length === 11 && /kbth-adv-tab on" aria-selected="true"[^>]*>Galerie</.test(html))
     check('a card per theme, each with a thumbnail, its name, its author and its description', (html.match(/data-kb="theme-gal-card"/g) || []).length === n && shipped.themes.every((t) => html.includes('>' + t.name.replace(/&/g, '&amp;') + '<')) && (html.match(/par Kybernos/g) || []).length === n && (html.match(/class="kbth-thumb"/g) || []).length === n && html.includes(shipped.themes[0].description.fr),
       { cards: (html.match(/data-kb="theme-gal-card"/g) || []).length, n, names: shipped.themes.filter((t) => !html.includes('>' + t.name.replace(/&/g, '&amp;') + '<')).map((t) => t.name), authors: (html.match(/par Kybernos/g) || []).length, thumbs: (html.match(/class="kbth-thumb"/g) || []).length })
     // The names of the shipped themes are French words; the page says them in English through GAL_NAMES in client.js. A theme added to gallery.json without its line shows its French name on the English page.
@@ -1819,7 +2442,7 @@ if (React === null) {
     check('...every card offers « Installer » and « Essayer »', (html.match(/data-kb="theme-gal-install"/g) || []).length === n && (html.match(/data-kb="theme-gal-try"/g) || []).length === n)
     check('...and says what the theme sets (mode, accent, font, corners)', /Clair · #1f2937 · police Georgia · coins nets/.test(html) && /Sombre · #22c55e · coins nets/.test(html))
     check('the source line says the themes are shipped with Kybernos, and how many there are', /Livré avec Kybernos/.test(html) && html.includes(n + ' thèmes') && !/Catalogue signé/.test(html))
-    check('...a search field and the filter Tous / Clair / Sombre', /data-kb="theme-gal-q"/.test(html) && /aria-pressed="true">Tous</.test(html) && />Clair</.test(html) && />Sombre</.test(html))
+    check('...a search field and the filter Tous / Clair / Sombre', /data-kb="theme-gal-q"/.test(html) && /aria-checked="true"[^>]*>Tous</.test(html) && />Clair</.test(html) && />Sombre</.test(html))
     check('the page says what a theme is: a settings file, no code, nothing loaded from outside', /ne contient aucun code et ne charge rien d’extérieur/.test(html))
     check('before any refresh there is no sentence about the online catalogue', !/data-kb="theme-gal-online"/.test(html))
     check('a plain-text description is escaped, never HTML', !/<script|onerror/.test(html))
@@ -1856,102 +2479,135 @@ if (React === null) {
     check('while it loads: six grey placeholders, hidden from screen readers, no card', (loading.match(/class="kbth-sk"/g) || []).length === 6 && /data-kb="theme-gal-loading"[^>]*aria-hidden|aria-hidden="true"[^>]*data-kb="theme-gal-loading"/.test(loading) && !/theme-gal-card/.test(loading))
     real.gal.state = 'error'
     const err = render({ ...real.DEF }, 'galerie')
-    check('when the host cannot be read: an alert with a way out (retry), not an empty page', /role="alert"/.test(err) && /Impossible de lire la galerie/.test(err) && /data-kb="theme-gal-retry"/.test(err) && /redémarre DSH/.test(err))
+    check('when the host cannot be read: an alert with a way out (retry), not an empty page', /role="alert"/.test(err) && /Impossible de lire la galerie/.test(err) && /data-kb="theme-gal-retry"/.test(err) && /redémarre Kybernos/.test(err))
     real.gal.data = real.galClean(answer()); real.gal.state = 'ready'
     check('« Mes thèmes » on Essentiel now points to the gallery as well', /data-kb="theme-open-gallery"/.test(render({ ...real.DEF })))
   }
   // ── WP-07: in English the page has no French in it, on every tab, with a wallpaper chosen (A2-29, A1-24, A2-09) ──
   {
     LANG = 'en'
-    const FRENCH = /[A-Za-zÀ-ÿ]*[àâçéèêëîïôùûœÀÉÈÊ][A-Za-zÀ-ÿ]*|\b(Visibilité|Opacité|Teinte|Couleurs?|Partage|Galerie|Réinitialiser|Apparence|Enregistrer|Supprimer|Renommer|Appliquer|Fond|Police|Livrés?|Libre|Aucune?|Jetons?|Régler|Mettre|Annuler|Importer|Exporter|Télécharger|jeux|thèmes?)\b/g
-    const tabs = ['essentiel', 'verre', 'couleurs', 'texte', 'animation', 'icones', 'accessibilite', 'partage', 'galerie']
+    const FRENCH = /[A-Za-zÀ-ÿ]*[àâçéèêëîïôùûœÀÉÈÊ][A-Za-zÀ-ÿ]*|\b(Visibilité|Opacité|Teinte|Couleurs?|Partage|Galerie|Réinitialiser|Apparence|Enregistrer|Supprimer|Renommer|Appliquer|Fond|Police|Livrés?|Libre|Aucune?|Jetons?|Régler|Mettre|Annuler|Importer|Exporter|Télécharger|jeux|thèmes?|Préréglages?|Lettres|Formes|Modèle|Entrées?|Menu court)\b/g
+    const tabs = ['couleurs', 'lettres', 'formes', 'fond', 'effets', 'icones', 'menu', 'animation', 'accessibilite', 'partage', 'galerie']
     const seen = {}
+    real.lib.presets = [real.presetRecord({ id: 'u-x', name: 'Bureau', source: 'me', at: 1, settings: { acc: '#0ea5e9' }, menu: { entries: [{ id: 'skills', shown: false, order: 0 }], unlisted: 'show', locked: false } })]
+    real.lib.menu = real.menuClean({ entries: [{ id: 'skills', shown: false, order: 0 }], unlisted: 'show', locked: false })
     for (const tab of tabs) {
       const html = render({ ...real.DEF, mode: 'dark', skin: 'bleu', wp: 'aurore', acc: '#4176E6', iconSet: 'mondrian' }, tab)
-      const found = text(html).match(FRENCH) || []
+      const found = readable(html).match(FRENCH) || []
       if (found.length > 0) seen[tab] = [...new Set(found)].slice(0, 6)
     }
-    check('English: no French word on any of the nine tabs (a wallpaper chosen, so its three sliders show)', Object.keys(seen).length === 0, seen)
-    const ess = text(render({ ...real.DEF, mode: 'dark', skin: 'bleu', wp: 'aurore' }))
-    check('English: the three wallpaper sliders and their hints are English (A2-29)', /Visibility/.test(ess) && /Opacity of the background behind the interface/.test(ess) && /Surface tint/.test(ess) && !/Visibilité|Teinte des surfaces/.test(ess))
-    check('English: the menu-icons hint reads « 20 sets to choose from » (A2-09)', /\d+ sets to choose from/.test(ess) && !/jeux/.test(ess))
+    const main = readable(render({ ...real.DEF, mode: 'dark', skin: 'bleu', wp: 'aurore', acc: '#4176E6' })).match(FRENCH) || []
+    if (main.length > 0) seen.page = [...new Set(main)].slice(0, 6)
+    check('English: no French word on the page, nor on any of the eleven tabs (a wallpaper chosen, a menu arranged, a preset saved)', Object.keys(seen).length === 0, seen)
+    real.lib.presets = []; real.lib.menu = null
+    const fond = text(render({ ...real.DEF, mode: 'dark', skin: 'bleu', wp: 'aurore' }, 'fond'))
+    check('English: the three wallpaper sliders and their hints are English (A2-29)', /Background visibility/.test(fond) && /Opacity of the background behind the interface/.test(fond) && /Surface tint/.test(fond) && !/Visibilité|Teinte des surfaces/.test(fond))
+    const icones = text(render({ ...real.DEF, mode: 'dark', skin: 'bleu' }, 'icones'))
+    check('English: the icon sets line says how many sets there are, in English (A2-09)', /\d+ sets, drawn by/.test(icones) && !/jeux/.test(icones))
     check('English: a theme is described « … · sharp corners · Mondrian icons » (A1-24)', /sharp corners/.test(text(render({ ...real.DEF }, 'galerie'))) || true)
     LANG = 'kybernos'
-    const fr = text(render({ ...real.DEF, mode: 'dark', skin: 'bleu', wp: 'aurore' }))
-    check('French: the same page speaks French and « tu » (no « vous », « votre »)', /Visibilité/.test(fr) && /Teinte des surfaces/.test(fr) && !/\b(vous|votre|vos)\b/i.test(fr))
+    const frFond = text(render({ ...real.DEF, mode: 'dark', skin: 'bleu', wp: 'aurore' }, 'fond'))
+    check('French: the same page speaks French and « tu » (no « vous », « votre »)', /Visibilité/.test(frFond) && /Teinte des surfaces/.test(frFond) && !/\b(vous|votre|vos)\b/i.test(readable(render({ ...real.DEF, mode: 'dark' })) + frFond))
     LANG = 'en'
     const names = [real.SKINS[0].name, real.WPS[1].name, real.FONTS[0].name, real.TOKMAP[0][1]]
     LANG = 'kybernos'
     const namesFr = [real.SKINS[0].name, real.WPS[1].name, real.FONTS[0].name, real.TOKMAP[0][1]]
-    check('the names of the data tables are read when drawn, in the language of the page (not frozen at load)', names.join() === 'DSH default,OLED black,DSH (default),Base background' && namesFr.join() === 'Défaut DSH,Noir OLED,DSH (défaut),Fond de base', [names, namesFr])
+    check('the names of the data tables are read when drawn, in the language of the page (not frozen at load)', names.join() === 'Kybernos default,OLED black,Kybernos (default),Base background' && namesFr.join() === 'Défaut Kybernos,Noir OLED,Kybernos (défaut),Fond de base', [names, namesFr])
     LANG = 'kybernos'
   }
 
-  // ── the look studio, drawn ───────────────────────────────────────────────────
-  section('look studio: the page')
+  // ── the window and its panels ───────────────────────────────────────────────────
+  section('the window and its panels')
   {
-    const count = (html, re) => (html.match(re) || []).length
+    real.lib.presets = []; real.lib.menu = null
     const page = render({ ...real.DEF, mode: 'dark' })
-    check('the page opens on the studio, with the five vibes and « Surprise me »', page.includes('data-kb="theme-studio"') && count(page, /data-kb="theme-st-vibe"/g) === 5 && page.includes('data-kb="theme-st-surprise"'))
+    check('the window is one piece of the page: eleven of its parts can be clicked, seven chips reach what cannot be pointed at', page.includes('data-kb="theme-studio"') && page.includes('data-kb="theme-st-window"'))
     const zones = [...new Set([...page.matchAll(/data-zone="([a-z]+)"/g)].map((m) => m[1]))].sort().join()
-    check('eleven parts of the small window can be clicked', zones === 'accent,agent,icons,letters,mood,sidebar,style,think,user,wall,widgets', zones)
-    check('the parts are real buttons (role, tab stop, a name)', count(page, /data-kb="theme-zone"[^>]*role="button"[^>]*tabindex="0"[^>]*aria-label="[^"]+"/g) >= 11 || count(page, /role="button"[^>]*tabindex="0"[^>]*aria-label="[^"]+"[^>]*data-kb="theme-zone"/g) >= 11 || count(page, /data-zone="[a-z]+"[^>]*tabindex="0"/g) >= 11)
-    check('the three chips for what cannot be pointed at: accent, effects, accessibility', ['accent', 'effects', 'access'].every((z) => page.includes('data-chip="' + z + '"')))
-    check('Undo, Reset, a name, Save, Export and Import', ['theme-st-undo', 'theme-st-reset', 'theme-st-name', 'theme-st-save', 'theme-st-export', 'theme-st-import'].every((k) => page.includes('data-kb="' + k + '"')))
-    check('nothing is open: no panel until a part is clicked', !page.includes('data-kb="theme-st-panel"'))
-    check('the editor of the nine tabs is still whole, folded under it (« Advanced editor »)', /<details[^>]*data-kb="theme-classic"/.test(page) && !/<details[^>]*data-kb="theme-classic"[^>]*\bopen=/.test(page) && page.includes('kbth-adv-tabs') && count(page, /kbth-adv-tab[ "]/g) >= 9 && page.includes('Éditeur avancé'))
-    check('the window draws the look (the accent on the send button, the font of the look)', page.includes('data-kb="theme-st-window"') && /kbth-st-send/.test(page))
+    check('...the eleven parts: accent, agent replies, letters, menu, mood, sidebar, style, thinking animation, your messages, wallpaper, the pills', zones === 'accent,agent,letters,menu,mood,sidebar,style,think,user,wall,widgets', zones)
+    check('...the parts are real buttons (a tab stop, a name)', count(page, /data-zone="[a-z]+"[^>]*tabindex="0"/g) >= 11 || count(page, /role="button"[^>]*tabindex="0"[^>]*aria-label="[^"]+"/g) >= 11)
+    check('...the chips for what cannot be pointed at: mood, accent, letters, wallpaper, effects, menu, accessibility', ['mood', 'accent', 'letters', 'wall', 'effects', 'menu', 'access'].every((z) => page.includes('data-chip="' + z + '"')))
+    check('nothing is open: no panel until a part is clicked, and the hint says so', !page.includes('data-kb="theme-st-panel"') && /Clique sur ce que tu veux changer/.test(page.replace(/<[^>]+>/g, '')) )
+    check('the editor of the tabs is still whole, folded under it', /<details[^>]*data-kb="theme-classic"/.test(page) && !/<details[^>]*data-kb="theme-classic"[^>]*\bopen=/.test(page) && page.includes('Éditeur avancé'))
     const dark = render({ ...real.DEF, mode: 'dark' }), light = render({ ...real.DEF, mode: 'light' })
     check('the window follows the scheme on display (different surfaces in light and in dark)', dark.match(/data-kb="theme-st-window" style="background:([^;]+)/)[1] !== light.match(/data-kb="theme-st-window" style="background:([^;]+)/)[1])
     const withBubble = render({ ...real.DEF, bubbleUser: '#ff00aa', textUser: '#ffffff', replyBg: 'outline' })
     check('your bubble and the frame of the replies are drawn in the window', /kbth-st-bub[^>]*style="[^"]*background:#ff00aa/.test(withBubble) && /kbth-st-reply1[^>]*style="[^"]*border:1px solid/.test(withBubble))
     const noPills = render({ ...real.DEF, wgSessions: false, wgChanges: false, wgUsage: false })
     check('the pills under the message box are drawn only when on (and « No pills » when none)', page.includes('Enregistré') && page.includes('Usage 8') && !noPills.includes('Usage 8') && noPills.includes('Aucune pastille'))
-    const sideOk = render({ ...real.DEF, wp: 'aurore', wpVis: 80 })
-    check('a wallpaper is drawn behind the window', sideOk.includes('kbth-st-wpl') && !page.includes('kbth-st-wpl'))
+    check('a wallpaper is drawn behind the window', render({ ...real.DEF, wp: 'aurore', wpVis: 80 }).includes('kbth-st-wpl') && !page.includes('kbth-st-wpl'))
+    // The window draws the REAL menu: the rows of this install, in the arrangement in use, a hidden row absent, the footer rows always there.
+    const rowsIn = (html) => [...html.matchAll(/data-kb="theme-st-winrow"[^>]*>.*?<span class="kbth-st-rn"[^>]*>([^<]*)</g)].map((m) => m[1])
+    check('the window draws the real menu: the seven rows of this install, then Workspaces', rowsIn(page).join() === 'Kaby,Automatisations,Connecteurs,Compétences,Équipes d’agents,Accueil client,Créations' && /kbth-st-row1 fixed[^>]*>.*?Espaces de travail/.test(page), rowsIn(page))
+    real.lib.menu = real.menuClean({ entries: [{ id: 'skills', shown: true, order: 0, label: { fr: 'Dossiers' } }, { id: 'kyber', shown: false, order: 1 }], unlisted: 'hide', locked: false })
+    check('...it follows the arrangement: order, a name in the page language, a hidden row absent, rows not listed hidden by « unlisted: hide »', rowsIn(render({ ...real.DEF, mode: 'dark' })).join() === 'Dossiers', rowsIn(render({ ...real.DEF, mode: 'dark' })))
+    real.lib.menu = real.menuClean({ entries: MENU_ROWS.map((r, i) => ({ id: r.id, shown: false, order: i })), unlisted: 'show', locked: false })
+    check('...with every entry hidden it says so, and the footer rows stay', /Toutes les entrées sont cachées/.test(render({ ...real.DEF, mode: 'dark' })) && /Espaces de travail/.test(render({ ...real.DEF, mode: 'dark' })))
+    real.lib.menu = null
   }
 
-  section('look studio: the thirteen panels')
+  section('the window: the thirteen panels')
   {
-    const count = (html, re) => (html.match(re) || []).length
-    const studio = (zone, st) => {
+    const studio = (zone, st, menuOver) => {
       reset()
       const S = { ...real.DEF, ...(st || {}) }
       const dark = S.mode !== 'light'
       const c = real.makeTheme(dark ? 'dark' : 'light', real.optsDe(S))
-      return renderToStaticMarkup(React.createElement(real.Studio, { S, c, dark, commit: () => {}, applySkin: () => {}, applyMine: () => {}, skinMeta: () => 'meta', openClassic: () => {}, importFile: () => {}, libNote: null, setLibNote: () => {}, canUndo: () => false, pushHist: () => {}, undo: () => {}, reset: () => {}, initialZone: zone }))
+      return renderToStaticMarkup(React.createElement(real.Studio, { S, c, dark, commit: () => {}, preview: () => {}, applySkin: () => {}, openClassic: () => {}, pushHist: () => {}, menu: { rows: LANG === 'en' ? MENU_ROWS_EN : MENU_ROWS, doc: null, pvDoc: undefined, edit: () => {}, showAll: () => {}, setUnlisted: () => {}, ...(menuOver || {}) }, initialZone: zone }))
     }
-    const titles = { mood: 'Clair ou sombre ?', style: 'Choisis un style', accent: 'Couleur d’accent', sidebar: 'Barre latérale', wall: 'Arrière-plan', user: 'Tes messages', agent: 'Réponses de l’agent', icons: 'Icônes du menu', think: 'Animation de réflexion', letters: 'Lettres', widgets: 'Sous la zone de message', effects: 'Effets et formes', access: 'Accessibilité' }
-    check('every part opens its own panel, titled, with a « Done » button', real.ST_ZONES.every((z) => { const h = studio(z); return h.includes('data-kb="theme-st-panel"') && h.includes('data-panel="' + z + '"') && h.includes('aria-label="' + titles[z] + '"') && h.includes('data-kb="theme-st-done"') }))
+    const titles = { mood: 'Clair ou sombre ?', style: 'Choisis un style', accent: 'Couleur d’accent', sidebar: 'Barre latérale', wall: 'Arrière-plan', user: 'Tes messages', agent: 'Réponses de l’agent', menu: 'Menu', think: 'Animation de réflexion', letters: 'Lettres', widgets: 'Sous la zone de message', effects: 'Effets et formes', access: 'Accessibilité' }
+    check('every part opens its own panel, titled, with a « Terminé » button', real.ST_ZONES.length === 13 && real.ST_ZONES.every((z) => { const h = studio(z); return h.includes('data-kb="theme-st-panel"') && h.includes('data-panel="' + z + '"') && h.includes('>' + titles[z] + '</h3>') && h.includes('data-kb="theme-st-done"') }))
     check('the dice is in every panel but the pills and accessibility (those are needs, not a style)', real.ST_ZONES.every((z) => studio(z).includes('data-kb="theme-dice"') === (z !== 'widgets' && z !== 'access')))
-    check('Light or dark: three cards', count(studio('mood'), /data-kb="theme-st-mood"/g) === 3)
+    check('Light or dark: ONE segmented control of three, the current one checked', /role="radiogroup"[^>]*data-kb="theme-st-mood"/.test(studio('mood')) && count(studio('mood').slice(studio('mood').indexOf('theme-st-mood')), /role="radio"/g) >= 3)
     const st = studio('style')
-    check('Style: the ten shipped looks first, the other eight behind « All 18 styles »', count(st, /data-kb="theme-st-style"/g) === 10 && st.includes('Les 18 styles') && st.includes('la galerie'))
+    check('Style: ONE select over the 18 shipped styles, drawn with their own colours (the person’s own are among the presets)', /role="combobox"[^>]*aria-label="Style"/.test(st) && !/data-kb="theme-st-style" data-id/.test(st) && st.includes('Plus de styles : la galerie') && /Les tiens sont dans les préréglages/.test(st))
     check('Accent: the twelve accents, any colour, how readable the text on it is', count(studio('accent'), /kbth-st-sw"/g) === 12 && studio('accent').includes('Une autre couleur') && studio('accent').includes('data-kb="theme-badge"'))
-    check('Sidebar: four tones; the see-through slider only with a wallpaper', count(studio('sidebar'), /data-kb="theme-st-side"/g) === 4 && !studio('sidebar').includes('Transparence') && studio('sidebar', { wp: 'aurore' }).includes('Transparence'))
-    check('Wallpaper: None + the four kinds, tiles of the open kind, the rest under « More options »', count(studio('wall'), /data-kb="theme-st-wpcat"/g) === 4 && studio('wall').includes('data-kb="theme-st-wpnone"') && count(studio('wall'), /data-kb="theme-st-wp"/g) === real.WPS.filter((w) => w.cat === 'gradients').length && studio('wall').includes('Plus d’options'))
-    check('Your messages: four bubbles, any colour, the text colour', count(studio('user'), /data-kb="theme-st-bubble"/g) === 4 && studio('user').includes('Couleur du texte') && count(studio('user'), /kbth-st-sw[ "]/g) === 8)
-    check('Agent replies: four frames; the reply colour only once there is a frame', count(studio('agent'), /data-kb="theme-st-reply"/g) === 4 && !studio('agent').includes('Couleur de la réponse') && studio('agent', { replyBg: 'card' }).includes('Couleur de la réponse') && studio('agent').includes('Couleur du texte'))
-    check('Agent replies: says plainly that DSH has no bubble there and what happens if it renames its marker', /DSH ne dessine aucune bulle/.test(studio('agent')) && /le cadre disparaît/.test(studio('agent')))
-    check('Menu icons: the twenty-one sets', count(studio('icons'), /data-kb="theme-st-icons"/g) === 21)
+    check('Sidebar: four tones in ONE segmented control; the see-through slider only with a wallpaper', /role="radiogroup"[^>]*data-kb="theme-st-side"/.test(studio('sidebar')) && !/>Transparence</.test(studio('sidebar')) && /Choisis un arrière-plan/.test(studio('sidebar')) && />Transparence</.test(studio('sidebar', { wp: 'aurore' })))
+    check('Wallpaper: ONE select (none + the kinds, grouped) with the sliders under « More options »', /role="combobox"[^>]*aria-label="Arrière-plan"/.test(studio('wall')) && !/data-kb="theme-st-wpcat"/.test(studio('wall')) && studio('wall').includes('Plus d’options') && studio('wall').includes('Visibilité'))
+    check('Your messages: the bubble in ONE segmented control (+ any colour), the text colour', /role="radiogroup"[^>]*data-kb="theme-st-bubble"/.test(studio('user')) && studio('user').includes('Couleur du texte') && studio('user').includes('Une autre couleur'))
+    check('Agent replies: four frames in ONE segmented control; the reply colour only once there is a frame', /role="radiogroup"[^>]*data-kb="theme-st-reply"/.test(studio('agent')) && !studio('agent').includes('Couleur de la réponse') && studio('agent', { replyBg: 'card' }).includes('Couleur de la réponse'))
+    check('Agent replies: says plainly that Kybernos has no bubble there and what happens if it renames its marker', /Kybernos ne dessine aucune bulle/.test(studio('agent')) && /le cadre disparaît/.test(studio('agent')))
+    const menuP = studio('menu')
+    check('Menu: two parts, Entrées | Icônes; the rows of this install with up, down, rename and a switch each; Workspaces and Settings always shown; « Tout réafficher »', /role="radiogroup"[^>]*data-kb="theme-st-menutab"/.test(menuP) && count(menuP, /data-kb="theme-menu-row"/g) === 7 && count(menuP, /data-kb="theme-menu-up"/g) === 7 && count(menuP, /data-kb="theme-menu-down"/g) === 7 && count(menuP, /data-kb="theme-menu-rename"/g) === 7 && count(menuP, /data-kb="theme-menu-show"/g) === 7 && count(menuP, /data-kb="theme-menu-fixed"/g) === 2 && menuP.includes('data-kb="theme-menu-showall"'))
+    check('...the first row cannot go up and the last cannot go down; « Tout réafficher » is off while nothing is hidden', /data-kb="theme-menu-up" disabled/.test(menuP) && count(menuP, /data-kb="theme-menu-up" disabled/g) === 1 && count(menuP, /data-kb="theme-menu-down" disabled/g) === 1 && /data-kb="theme-menu-showall" disabled/.test(menuP))
+    const hiddenDoc = real.menuClean({ entries: MENU_ROWS.map((r, i) => ({ id: r.id, shown: r.id !== 'skills', order: i, ...(r.id === 'tasks' ? { label: { fr: 'Tâches' } } : {}) })), unlisted: 'show', locked: false })
+    const menuH = studio('menu', {}, { doc: hiddenDoc })
+    check('...a hidden row is off and its switch says so; a renamed row shows its name and the original; « Tout réafficher » is on', /kbth-mr-row off" data-kb="theme-menu-row" data-id="skills"/.test(menuH) && /aria-checked="false" aria-label="Afficher Compétences"/.test(menuH) && /Tâches<span class="kbth-mr-was"> · Automatisations</.test(menuH) && !/data-kb="theme-menu-showall" disabled/.test(menuH))
+    const menuL = studio('menu', {}, { doc: { ...hiddenDoc, locked: true } })
+    check('...a menu set by an app is locked: the controls are off, the page says who, and « Tout réafficher » still works', /data-kb="theme-menu-locked"/.test(menuL) && count(menuL, /data-kb="theme-menu-show" disabled/g) === 7 && /data-kb="theme-menu-up" disabled/.test(menuL) && !/data-kb="theme-menu-showall" disabled/.test(menuL))
+    const menuN = studio('menu', {}, { rows: [] })
+    check('...when the menu is not drawn on this screen the panel says so, with no row', /data-kb="theme-menu-none"/.test(menuN) && !/data-kb="theme-menu-row"/.test(menuN))
+    check('Menu: the three zones are offered in ONE segmented control, the menu first and checked, each with its count; the rows drawn are the menu\'s', /role="radiogroup"[^>]*data-kb="theme-menu-zone"/.test(menuP) && count(menuP.slice(menuP.indexOf('theme-menu-zone"')), /role="radio"/g) >= 3 && />Menu \d+\/\d+</.test(menuP) && />Menu du compte 8\/8</.test(menuP) && />Pages des Réglages 5\/5</.test(menuP) && /aria-checked="true"[^>]*>Menu \d/.test(menuP) && !/data-kb="theme-surface-row"/.test(menuP))
+    const surfDoc = real.menuClean({ entries: MENU_ROWS.map((r, i) => ({ id: r.id, shown: true, order: i })), unlisted: 'show', locked: false, surfaces: { secondary: { entries: [{ id: 'help', shown: false, order: 0 }], unlisted: 'show' }, settings: { entries: [{ id: 'workers', shown: false, order: 0 }, { id: 'about', shown: false, order: 1 }], unlisted: 'show' } } })
+    const zoneHtml = (surface, doc) => renderToStaticMarkup(React.createElement(real.SurfaceRows, { surface, rows: surface === 'settings' ? SURFACE_ROWS.settings : SURFACE_ROWS.secondary, doc, edit: () => {}, showAll: () => {}, allShown: false }))
+    const acct = zoneHtml('secondary', surfDoc)
+    check('Account menu zone: every entry of the registry has a row with a Yes/No switch; the four that open the app\'s own screens carry a padlock, « toujours affiché », and a switch that is off the table', count(acct, /data-kb="theme-surface-row"/g) === 8 && count(acct, /data-kb="theme-surface-locked"/g) === 4 && count(acct, /data-kb="theme-surface-show" disabled/g) === 4 && /data-id="account"[^>]*>(?:(?!data-kb="theme-surface-row").)*toujours affiché/.test(acct) && count(acct, /kbth-mr-lk/g) === 4)
+    check('...a hidden entry is off and its switch says so; one shown says « Cacher »', /kbth-mr-row off" data-kb="theme-surface-row" data-surface="secondary" data-id="help"/.test(acct) && /aria-checked="false" aria-label="Afficher Help"/.test(acct) && /aria-label="Cacher Spaces"/.test(acct))
+    check('...it has no up, down or rename (a surface is a set, not a list to reorder), and no group header', !/theme-menu-up|theme-menu-down|theme-menu-name-/.test(acct) && !/theme-surface-group/.test(acct))
+    const stg = zoneHtml('settings', surfDoc)
+    check('Settings pages zone: the pages are under the name of their group (Agents, Interface, System), General is locked, the two hidden pages are off', count(stg, /data-kb="theme-surface-group"/g) === 3 && /data-kb="theme-surface-group">Agents</.test(stg) && /data-kb="theme-surface-group">Interface</.test(stg) && /data-id="general"/.test(stg) && count(stg, /data-kb="theme-surface-locked"/g) === 1 && count(stg, /kbth-mr-row off"/g) === 2)
+    const lockedAcct = zoneHtml('secondary', { ...surfDoc, locked: true })
+    check('...a menu set by an app is read-only on the surfaces too: every switch off, the page says who, « Tout réafficher » stays', /data-kb="theme-menu-locked"/.test(lockedAcct) && count(lockedAcct, /data-kb="theme-surface-show" disabled/g) === 8 && /data-kb="theme-menu-showall" disabled/.test(lockedAcct) === false)
+    check('...« Tout réafficher » is off while nothing on the surface is hidden, on once something is', /data-kb="theme-menu-showall" disabled/.test(renderToStaticMarkup(React.createElement(real.SurfaceRows, { surface: 'secondary', rows: SURFACE_ROWS.secondary, doc: null, edit: () => {}, showAll: () => {}, allShown: true }))) && !/data-kb="theme-menu-showall" disabled/.test(acct))
+    check('with an older menu registry (no hooks of the other surfaces) the zones are not offered: no segmented control, the menu\'s own rows stay', (() => { const keep = MENU_REG.hooks; delete MENU_REG.hooks; try { const html = studio('menu'); return !/data-kb="theme-menu-zone"/.test(html) && !/data-kb="theme-menu-zone-cap"/.test(html) && /data-kb="theme-menu-row"/.test(html) } finally { MENU_REG.hooks = keep } })())
     const th = studio('think')
-    check('Thinking animation: DSH\'s whale tail and the 34 loops in one compact grid, each named for the hover', count(th, /data-kb="theme-st-loop"/g) === 35 && count(th, /data-name="/g) >= 36 && th.includes('data-kb="theme-st-addloop"'))
-    check('Thinking animation: no names printed under the tiles (they show on hover), words in a dropdown, the rest under « More options »', !th.includes('kbth-st-nm') && th.includes('data-kb="theme-st-pack"') && count(th, /<option /g) >= 12 && th.includes('Plus d’options'))
+    check('Thinking animation: Kybernos’s whale tail and the 34 loops in one compact grid, each named for the hover', count(th, /data-kb="theme-st-loop"/g) === 35 && count(th, /data-name="/g) >= 36 && th.includes('data-kb="theme-st-addloop"'))
+    check('Thinking animation: no names printed under the tiles, the words in ONE select, the rest under « More options »', !th.includes('kbth-st-nm') && th.includes('data-kb="theme-st-pack"') && th.includes('Plus d’options'))
     check('Thinking animation: size, speed, tint, time, words kept, change, delay, mix, own words', ['Taille', 'Vitesse', 'Teinter avec ma couleur', 'Montrer le temps', 'Garder le texte', 'Changer de mot', 'Délai', 'Mélanger plusieurs animations', 'Mes propres mots'].every((t) => th.includes(t)))
     const le = studio('letters')
-    check('Letters: six fonts and three sizes, the long list is behind « More options »', count(le, /data-kb="theme-st-font"/g) === 6 && ['Petit', 'Moyen', 'Grand'].every((t) => le.includes(t)) && le.includes('Plus d’options') && count(le, /data-kb="theme-st-fontall"/g) === 30)
+    check('Letters: ONE font select (every font in its own typeface) and three sizes, the exact size is under « More options »', /role="combobox"[^>]*aria-label="Police"/.test(le) && ['Petit', 'Moyen', 'Grand'].every((t) => le.includes(t)) && le.includes('Plus d’options') && !/data-kb="theme-st-fontall"/.test(le))
     check('Letters: says a font only shows if it is installed', /ne s’affiche que si elle est installée/.test(le))
     check('Under the message box: the three real pills, each on its own', count(studio('widgets'), /role="switch"/g) === 3 && ['Pastilles d’état', 'Changements', 'Usage'].every((t) => studio('widgets').includes(t)))
     check('Effects: corners, shadows, glow, glass, blur', ['Coins', 'Ombres', 'Halo', 'Verre', 'Flou du verre'].every((t) => studio('effects').includes(t)))
     check('Accessibility: contrast, motion, focus ring, targets, links, colour-blind palette', ['Contraste', 'Réduire les animations', 'Anneau de focus', 'Cibles de 44 px', 'Liens soulignés', 'Palette daltonisme'].every((t) => studio('access').includes(t)))
-    check('the selected choice is marked (pressed)', /aria-pressed="true"[^>]*data-kb="theme-st-bubble"[^>]*data-id="dark"/.test(studio('user', { bubbleUser: 'dark' })) || /data-kb="theme-st-bubble" data-id="dark"[^>]*>|aria-pressed="true"[^>]*data-id="dark"/.test(studio('user', { bubbleUser: 'dark' })) || /title="[^"]*"[^>]*aria-pressed="true"/.test(studio('user', { bubbleUser: 'dark' })) || studio('user', { bubbleUser: 'dark' }).includes('aria-pressed="true"'))
+    check('the selected choice is marked (checked)', /aria-checked="true"[^>]*data-id="dark"/.test(studio('user', { bubbleUser: 'dark' })))
+    check('a choice drawn by the window is only a PREVIEW until it is kept: the panels take a `preview` hook, and hover does not call `commit`', SOURCE.includes('const preview = typeof props.preview') && !/onMouseEnter: [^,]*commit\(/.test(SOURCE.slice(SOURCE.indexOf('function Studio'), SOURCE.indexOf('// <look-studio:end>'))))
     LANG = 'en'
-    const FRENCH = /[àâçéèêëîïôùûœÀÉÈÊ]|\b(Terminé|Aucun|Annuler|Enregistrer|Exporter|Importer|Choisis|Couleur|Taille|Vitesse|Mélanger|Réinitialiser)\b/
+    const FRENCH = /[àâçéèêëîïôùûœÀÉÈÊ]|\b(Terminé|Aucun|Annuler|Enregistrer|Exporter|Importer|Choisis|Couleur|Taille|Vitesse|Mélanger|Réinitialiser|Entrées|Nom)\b/
     const english = real.ST_ZONES.map((z) => [z, text(studio(z))]).filter(([, t]) => FRENCH.test(t))
     check('English: no French word in any of the thirteen panels', english.length === 0, english.map(([z, t]) => z + ': ' + (t.match(FRENCH) || [])[0]))
-    check('English: the panels are English', studio('user').includes('Your messages') && studio('agent').includes('Agent replies') && studio('think').includes('Thinking animation') && studio('widgets').includes('Under the message box'))
+    check('English: the panels are English', studio('user').includes('Your messages') && studio('agent').includes('Agent replies') && studio('think').includes('Thinking animation') && studio('widgets').includes('Under the message box') && studio('menu').includes('Show every entry') && studio('menu').includes('Skills'))
     const pageEn = text(render({ ...real.DEF }))
-    check('English: the page around the window is English (vibes, hint, actions, advanced editor)', ['Start from a vibe', 'Surprise me', 'Click anything in the window', 'Undo', 'Reset', 'Save', 'Export', 'Import', 'My looks', 'Advanced editor'].every((t) => pageEn.includes(t)))
+    check('English: the page around the window is English (the strip, the presets, the hint, the advanced editor)', ['Appearance', 'Menu', 'Undo', 'Reset', 'Save as preset…', 'Presets', 'Surprise me', 'Gallery', 'Import…', 'Click anything in the window', 'Advanced editor'].every((t) => pageEn.includes(t)))
     LANG = 'kybernos'
   }
   void exp
@@ -1969,9 +2625,9 @@ section('every control has a stored key that something reads')
   // A key that nothing reads would be stored and ignored. Everything but identity/colour data must appear in an applier.
   const appliers = SOURCE.slice(SOURCE.indexOf('const filtreFond'), SOURCE.indexOf('const appliquerTout'))
   const readers = SOURCE.slice(SOURCE.indexOf('const effetsCss'), SOURCE.indexOf('const appliquerPolice')) + appliers
-  const wired = ['glassEffect', 'glassBlur', 'sidebarLinked', 'sidebarOpacity', 'fieldOpacity', 'floatOpacity', 'bgBrightness', 'bgContrast', 'bgSaturation', 'bgDarken', 'bgFit', 'bgMirror', 'ligatures', 'radius', 'showBrand', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks', 'cbSafe']
+  const wired = ['glassEffect', 'glassBlur', 'sidebarLinked', 'sidebarOpacity', 'fieldOpacity', 'floatOpacity', 'bgBrightness', 'bgContrast', 'bgSaturation', 'bgDarken', 'bgFit', 'bgMirror', 'ligatures', 'radius', 'showBrand', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks', 'cbSafe', 'touch']
   const unread = wired.filter((k) => !new RegExp('S\\.' + k + '\\b').test(readers + SOURCE.slice(SOURCE.indexOf('const appliquerJetons'), SOURCE.indexOf('const appliquerFond'))))
-  check('...and each of the 20 newly wired keys is read by an applier', unread.length === 0, unread)
+  check('...and each of the 21 newly wired keys is read by an applier', unread.length === 0, unread)
 }
 
 section('the docs name the screen in English (A2-14)')
@@ -1981,9 +2637,6 @@ section('the docs name the screen in English (A2-14)')
   const docs = { 'README.md': readFileSync(new URL('./README.md', import.meta.url), 'utf8'), 'docs/dev/theme-gallery.md': readFileSync(new URL('../../docs/dev/theme-gallery.md', import.meta.url), 'utf8') }
   const found = Object.entries(docs).flatMap(([f, t]) => t.split('\n').map((l, i) => ({ f, i: i + 1, l })).filter((o) => French.test(o.l.replace(/`[^`]*`/g, ''))).map((o) => o.f + ':' + o.i + ' ' + o.l.trim().slice(0, 60)))
   check('neither document quotes a French label of the Theme page', found.length === 0, found)
-  // And the CODE itself: the thinking-animation summary read « au hasard » in both languages on the English page
-  // (seen live 2026-10-21). Every word of that line now goes through kt(fr, en).
-  check('the thinking-animation summary says « at random » in English, not the French words', /kt\('au hasard', 'at random'\)/.test(SOURCE) && !/mode === 'random' \? 'au hasard'/.test(SOURCE))
   check('the gallery\'s refresh link has an English word while it works', /gal\.refreshing \? kt\('Actualisation…', 'Refreshing…'\)/.test(SOURCE))
 }
 

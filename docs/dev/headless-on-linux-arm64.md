@@ -32,12 +32,12 @@ The model was a stand-in OpenAI-compatible server (`headless-stub`, in the conta
   `packages/kybernos-plugin/index.js`). Headless writes the answer to stdout, so they land in front of the answer and in front of the first `--json` event: a supervisor
   that parses stdout must skip non-JSON lines, or the plugin should log to stderr.
 - The `--session-id` of a first run is only known from its `--json` output (`{"type":"session","sessionId":...}`); an unknown id is an error.
-- A boot line `Config not declared (schemastery not found)` from `kybernos-computers` and `defineTool not found` from `kybernos-relance` appear; they are in the web boot log and did not stop anything (not compared with the Mac).
+- A boot line `defineTool not found` from `kybernos-relance` appears (and, before 2026-11-23, `Config not declared (schemastery not found)` from the E2B plugin); they are in the web boot log and did not stop anything (not compared with the Mac).
 
 ## Commands that worked, in order
 
 ```bash
-# base: node:24-slim arm64 (or debian:bookworm-slim + Node 24.9+)
+# base: node:24-slim arm64 (or debian:bookworm-slim + Node 24.9+; 24.22.3+ for DSH 0.2.3-alpha.1 and later)
 apt-get install -y ca-certificates curl git ripgrep procps python3 make g++
 npm install -g @deepseek-ai/dsh@0.2.1-rc.2 --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs --no-audit --no-fund
 npm install -g pnpm

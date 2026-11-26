@@ -170,7 +170,7 @@ const HEAD = (dir) => 'Your knowledge folder (' + dir + '): documents the person
 
 export function renderList ({ files, ignored, truncated }, dir) {
   if (files.length === 0) {
-    return HEAD(dir) + '\nIt holds no document yet' + (ignored > 0 ? ' (' + ignored + ' file' + (ignored > 1 ? 's' : '') + ' of a kind that cannot be read: text, Markdown, CSV, JSON, HTML, PDF and Word .docx are)' : '') + '. The person can drop files into it.'
+    return HEAD(dir) + '\nIt holds no document yet' + (ignored > 0 ? ' (' + ignored + ' file' + (ignored > 1 ? 's' : '') + ' of a kind that cannot be read: text, Markdown, CSV, JSON, HTML, PDF and Word .docx are)' : '') + '. Files dropped into it are listed here.'
   }
   const lines = files.slice(0, 100).map((f) => f.path + ' · ' + f.kind + ' · ' + kb(f.size) + ' · ' + day(f.mtimeMs))
   return HEAD(dir) + '\n' + files.length + (truncated ? '+' : '') + ' document' + (files.length > 1 ? 's' : '') + ':\n' + lines.join('\n') + (files.length > 100 ? '\n(' + (files.length - 100) + ' more)' : '') + (ignored > 0 ? '\n(' + ignored + ' other file' + (ignored > 1 ? 's' : '') + ' of a kind that cannot be read)' : '')
@@ -256,7 +256,8 @@ export function knowledgeTool ({ dir, now }) {
       schema: {
         type: 'object',
         additionalProperties: false,
-        properties: { ok: { type: 'boolean' }, text: { type: 'string' } },
+        // every key a result can carry: a search also answers its `terms` (the words it looked for) and its `count` of documents, and the engine refuses an output with a key the schema does not declare
+        properties: { ok: { type: 'boolean' }, text: { type: 'string' }, terms: { type: 'array', items: { type: 'string' } }, count: { type: 'integer' } },
         required: ['ok'],
       },
       render: (args, value) => [{ type: 'text', text: typeof value.text === 'string' ? value.text : 'The knowledge folder could not be read.' }],

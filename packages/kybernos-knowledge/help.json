@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Indexe tes documents locaux (Markdown, texte, CSV, Word et PDF) en passages citables et wiki Markdown que Kaby et l’Accueil client peuvent consulter.",
+    "en": "Indexes your local documents (Markdown, text, CSV, Word, and PDF) into citable passages and a Markdown wiki that Kaby and Front Desk can consult."
+  },
+  "steps": [
+    {
+      "fr": "Ouvre Réglages › Base de connaissances, indique un dossier local et lance l’indexation.",
+      "en": "Open Settings › Knowledge Base, pick a local folder, and run indexing."
+    },
+    {
+      "fr": "Demande ensuite à Kaby de répondre à partir de tes documents : il cite le fichier, la section et la page ou les lignes.",
+      "en": "Then ask Kaby to answer from your documents: it cites the file, section, and page or line range."
+    },
+    {
+      "fr": "Coche Partager avec l’Accueil client pour proposer des faits sourcés au brouillon de ta fiche boutique (toujours validés par toi).",
+      "en": "Check Share with Front Desk to propose sourced facts for your shop draft fiche (always reviewed by you)."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Base de connaissances",
+    "en": "Settings › Knowledge Base",
+    "page": true
+  },
+  "good": {
+    "fr": "Tout reste sur cet ordinateur, sans serveur externe ni clé supplémentaire. Les fichiers secrets (.env, clés privées) sont ignorés automatiquement.",
+    "en": "Everything stays on this computer, with no external server or extra key. Secret files (.env, private keys) are skipped automatically."
+  }
+}

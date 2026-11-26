@@ -80,7 +80,7 @@ export function teams (home) {
     const txt = read(join(home, 'kybers', e.name, 'kyber.yml'), 100000)
     if (txt === null) continue
     const name = /^name:\s*["']?(.+?)["']?\s*$/m.exec(txt)?.[1] ?? e.name
-    docs.push({ scope: 'team', id: e.name, title: name, parts: [{ r: 'doc', ts: null, t: txt.slice(0, 8000) }], meta: { where: 'agent teams' }, open: { kind: 'page', view: 'kybers' }, ts: null })
+    docs.push({ scope: 'team', id: e.name, title: name, parts: [{ r: 'doc', ts: null, t: txt.slice(0, 8000) }], meta: { where: 'AI agent teams' }, open: { kind: 'page', view: 'kybers' }, ts: null })
   }
   return docs
 }

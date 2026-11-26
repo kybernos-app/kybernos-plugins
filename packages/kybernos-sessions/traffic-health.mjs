@@ -11,9 +11,13 @@
 //  - only a real answer (`llm/answer`) proves life; a retry alone proves nothing but a doubt;
 //  - the window is the person's last 24 h by default, and older events are ignored;
 //  - a provider we must not pay to ping (our own gateway, `kybernos`) is excluded by name, and an operator can
-//    extend the list with KB_NO_PROBE_PROVIDERS (comma separated).
+//    extend the list with KB_NO_PROBE_PROVIDERS (comma separated);
+//  - so is the small model that runs on the phone (`phone-local`, the phone-model bundle's provider): the ping is not
+//    free there, it WAKES the model (an idle one is unloaded; loading takes longer than the 8 s limit, so the sweep
+//    wrote « No model is answering » on the AI provider tab, phone test 2026-11-20), and the app already says
+//    whether it is loading or ready (`/phone-model/state`). Its real chats still feed the traffic verdict.
 
-export const DEFAULT_EXCLUDED = ['kybernos']
+export const DEFAULT_EXCLUDED = ['kybernos', 'phone-local']
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0)
@@ -25,7 +29,7 @@ export const providerOf = (route) => {
   return i > 0 ? s.slice(0, i) : ''
 }
 
-/** The providers the probe must never call: our own gateway by default, plus whatever the operator adds. */
+/** The providers the probe must never call: our own gateway and the phone's own model by default, plus whatever the operator adds. */
 export const excludedFrom = (env = process.env) => {
   const set = new Set(DEFAULT_EXCLUDED)
   const extra = typeof env?.KB_NO_PROBE_PROVIDERS === 'string' ? env.KB_NO_PROBE_PROVIDERS : ''

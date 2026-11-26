@@ -3,10 +3,12 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { createStore, mountRoutes } from './usage-host.mjs'
+import { createContextReader } from './context-insight.mjs'
 
 export const name = 'kybernos-usage'
 
-const ledgerPath = () => join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'kybernos', 'usage', 'ledger.json')
+const dshHome = () => process.env.DSH_HOME || join(homedir(), '.dsh')
+const ledgerPath = () => join(dshHome(), 'kybernos', 'usage', 'ledger.json')
 
 // What `register` hands back takes the route off again. It is kept here and given to `ctx.effect` by `apply`, so that unloading the plugin removes every route it
 // added: without it a hot reload met « duplicate exact route », logged « routes not mounted » and went on serving the OLD handlers (audit L4-05, L6-04).
@@ -30,8 +32,9 @@ export function apply (ctx) {
         renameSync(tmp, file)
       },
     })
+    const contextReader = createContextReader({ sessionsHome: join(dshHome(), 'sessions') })
     const mount = (webServer) => {
-      try { mountRoutes(kbSuivi(webServer), store); console.log('[kybernos-usage] routes mounted') } catch (e) { console.log('[kybernos-usage] routes not mounted: ' + String(e && e.message ? e.message : e)) }
+      try { mountRoutes(kbSuivi(webServer), store, { contextReader }); console.log('[kybernos-usage] routes mounted') } catch (e) { console.log('[kybernos-usage] routes not mounted: ' + String(e && e.message ? e.message : e)) }
     }
     if (ctx.get('webServer') !== undefined) mount(ctx.get('webServer'))
     else ctx.inject(['webServer'], (host) => mount(host.webServer))

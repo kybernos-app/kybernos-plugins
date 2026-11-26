@@ -16,6 +16,7 @@ import { chmodSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFil
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { monterRoutes } from './index.js'
+import { createRewindLedger } from './turn-rewind.mjs'
 import { sessionSource } from './session-guard.mjs'
 import { OTHER_SECRET, SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
 
@@ -63,6 +64,11 @@ mkdirSync(join(dsh, 'kybernos'), { recursive: true })
 const reglages = join(dsh, 'kybernos', 'settings.json')
 const categories = join(dsh, 'kybernos', 'categories.json')
 writeFileSync(reglages, JSON.stringify({ brain: 'prov/model' }))
+const rewindProbe = join(repo, 'rewind-probe.txt')
+writeFileSync(rewindProbe, 'before rewind\n')
+const seedLedger = createRewindLedger({ rootDir: join(dsh, 'kybernos', 'rewind') })
+seedLedger.recordPreMutation({ sessionId: 'abc12345', cwd: repo, turnId: 'rw-guard-1', prompt: 'Guard probe', rawPath: 'rewind-probe.txt' })
+writeFileSync(rewindProbe, 'after turn\n')
 const text = (file) => (existsSync(file) ? readFileSync(file, 'utf8') : null)
 
 let modelCalls = 0
@@ -84,11 +90,12 @@ const GUARDED = {
   '/kybernos-sessions/categories': { session: 'abc12345', cat: 'ui', titre: 'a title', effect: 'categories' },
   '/kybernos-sessions/brain/health': { models: ['prov/model'], force: true, effect: 'model' },
   '/kybernos-sessions/decision': { categorie: 'zzz qqq xxx', effect: 'model' },
+  '/kybernos-sessions/rewind': { ...SESSION, turnId: 'rw-guard-1', exec: true, effect: 'rewind' },
 }
 /** The POST routes that stay at the strict Origin, and why. None here. */
 const EXCEPTIONS = {}
 /** The routes that only read (a POST is a 405). */
-const READS = ['/kybernos-sessions/state']
+const READS = ['/kybernos-sessions/state', '/kybernos-sessions/rewind/turns']
 
 const routes = new Map()
 const log0 = console.log
@@ -111,14 +118,14 @@ const send = async (path, method, headers, body) => {
   return { status: r.status, text: await r.text().catch(() => '') }
 }
 const REAL = { origin: base0, cookie: cookie() }
-const snapshot = () => JSON.stringify({ tools: toolCalls(), settings: text(reglages), categories: text(categories), model: modelCalls, readme: text(join(repo, 'README.md')), mine: text(join(repo, 'mine.txt')) })
+const snapshot = () => JSON.stringify({ tools: toolCalls(), settings: text(reglages), categories: text(categories), model: modelCalls, readme: text(join(repo, 'README.md')), mine: text(join(repo, 'mine.txt')), rewind: text(rewindProbe) })
 
 try {
   // ── the family: every registered path is classified ─────────────────────────────────────────────────────────
   const answeringPost = []
   for (const path of routes.keys()) if ((await send(path, 'POST', {}, {})).status !== 405) answeringPost.push(path)
   const known = [...Object.keys(GUARDED), ...Object.keys(EXCEPTIONS), ...READS]
-  check('the sessions routes are mounted (' + routes.size + ' paths, ' + answeringPost.length + ' answer a POST)', routes.size === 14 && answeringPost.length === 13)
+  check('the sessions routes are mounted (' + routes.size + ' paths, ' + answeringPost.length + ' answer a POST)', routes.size === 16 && answeringPost.length === 14)
   const unclassified = [...routes.keys()].filter((p) => !known.includes(p))
   check('every mounted path is in GUARDED, EXCEPTIONS or READS (a new write route cannot be forgotten)', unclassified.length === 0, unclassified.join(', '))
   check('...and every route that answers a POST is guarded or a written exception', answeringPost.every((p) => GUARDED[p] !== undefined || EXCEPTIONS[p] !== undefined))
@@ -145,9 +152,10 @@ try {
   for (const [path, short] of GETS) check(short + ': the read stays open to a page with no cookie (GET)', (await send(path, 'GET', { origin: base0 }, {})).status === 200)
   for (const [path, armed] of Object.entries(GUARDED)) {
     const short = path.slice('/kybernos-sessions/'.length)
-    const before = armed.effect === 'tools' ? toolCalls() : armed.effect === 'model' ? modelCalls : armed.effect === 'settings' ? text(reglages) : text(categories)
+    const measure = () => (armed.effect === 'tools' ? toolCalls() : armed.effect === 'model' ? modelCalls : armed.effect === 'settings' ? text(reglages) : armed.effect === 'rewind' ? text(rewindProbe) : text(categories))
+    const before = measure()
     const real = await send(path, 'POST', REAL, armed)
-    const after = armed.effect === 'tools' ? toolCalls() : armed.effect === 'model' ? modelCalls : armed.effect === 'settings' ? text(reglages) : text(categories)
+    const after = measure()
     check(short + ': the real pair with the armed body does the work (' + real.status + ', ' + armed.effect + ' changed: ' + (after !== before) + ')', real.status === 200 && after !== before, real.status + ' ' + real.text.slice(0, 110))
   }
   check('the armed commit and push put the chat\'s file on the remote', git(remote, 'rev-list', '--count', 'main').trim() === '2', git(remote, 'rev-list', '--count', 'main').trim())

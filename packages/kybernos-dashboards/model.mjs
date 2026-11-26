@@ -275,11 +275,11 @@ export const PROVIDERS = {
     },
   },
   'teams.list': {
-    label: 'Agent Teams',
-    about: 'The Agent Teams you defined, with their roles, skills and tools.',
+    label: 'AI Agent Teams',
+    about: 'The AI Agent Teams you defined, with their roles, skills and tools.',
     params: {},
     period: false,
-    columns: [col('team', 'Agent Team', 'string'), col('id', 'Id', 'string'), col('category', 'Category', 'string'), col('mission', 'Mission', 'string'), col('roles', 'Roles', 'number'), col('skills', 'Declared skills', 'number'), col('tools', 'Tools', 'number')],
+    columns: [col('team', 'AI Agent Team', 'string'), col('id', 'Id', 'string'), col('category', 'Category', 'string'), col('mission', 'Mission', 'string'), col('roles', 'Roles', 'number'), col('skills', 'Declared skills', 'number'), col('tools', 'Tools', 'number')],
     routes: () => [{ key: 'load', method: 'GET', path: '/kybernos/load' }],
     build: (parts) => {
       const seen = new Set()
@@ -298,11 +298,11 @@ export const PROVIDERS = {
     },
   },
   'teams.lessons': {
-    label: 'Lessons per Agent Team',
-    about: 'What each Agent Team has learned and how often it ran.',
+    label: 'Lessons per AI Agent Team',
+    about: 'What each AI Agent Team has learned and how often it ran.',
     params: {},
     period: false,
-    columns: [col('team', 'Agent Team', 'string'), col('lessons', 'Lessons', 'number'), col('runs', 'Runs', 'number'), col('last', 'Last activity', 'time')],
+    columns: [col('team', 'AI Agent Team', 'string'), col('lessons', 'Lessons', 'number'), col('runs', 'Runs', 'number'), col('last', 'Last activity', 'time')],
     routes: () => [{ key: 'state', method: 'GET', path: '/kybernos-sessions/state' }],
     build: (parts) => {
       const rows = arr(obj(parts.state).kybers).filter((k) => isObj(k) && typeof k.id === 'string').map((k) => ({
@@ -343,7 +343,7 @@ export const PROVIDERS = {
   },
   'deliverables.list': {
     label: 'Creations',
-    about: 'The files your Agent Teams produced (the Creations page).',
+    about: 'The files your AI Agent Teams produced (the Creations page).',
     params: { limit: 'number 1..60, default 20' },
     period: false,
     columns: [col('name', 'Name', 'string'), col('kind', 'Kind', 'string'), col('workspace', 'Project', 'string'), col('size', 'Size (KB)', 'number'), col('at', 'Modified', 'time'), col('day', 'Day', 'date')],

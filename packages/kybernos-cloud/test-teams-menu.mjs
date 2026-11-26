@@ -261,7 +261,13 @@ console.log('the box of the account menu in a collapsed rail')
   check('a 390 px phone: the menu keeps its ' + lib.RAIL_MENU_WIDTH + ' px, inside the window', phone.width === lib.RAIL_MENU_WIDTH && phone.left === 10, phone)
   const tiny = lib.railMenuBox({ left: 10, top: 700, width: 36 }, 240, 700)
   check('a window narrower than the menu: the window\'s width less 16, never wider', tiny.width === 224 && tiny.left === 8, tiny)
-  check('the menu is drawn through this rule, fixed on <body>, only when the card is narrow', /railMenuBox\(anchor\.getBoundingClientRect\(\), window\.innerWidth, window\.innerHeight\)/.test(source) && /narrow: etroit === true/.test(source) && /railBox !== null \? ReactDOM\.createPortal\(menu, document\.body\)/.test(source))
+  check('the menu is drawn through this rule, fixed on <body>, when the card is narrow', /railMenuBox\(anchor\.getBoundingClientRect\(\), window\.innerWidth, window\.innerHeight\)/.test(source) && /narrow: etroit === true/.test(source) && /railBox !== null \? ReactDOM\.createPortal\(menu, document\.body\)/.test(source))
+  check('and on a phone: the sidebar column is a fixed box, a menu inside it stays under the page\'s dim (measured on the app, 2026-11-08)', /const anchor = \(props\.narrow === true \|\| phoneBox === true\) && props\.toggleRef !== undefined/.test(source) && /max-width: 700px\), \(max-height: 500px\) and \(pointer: coarse\)/.test(source))
+  // The dialogs of the footer (Create a team, Join with an invitation link, the cloud card, Upgrade, and the padlock sheet) are drawn on <body>: the footer slot is hidden on a phone, so a dialog
+  // drawn inside it was invisible (owner's phone test, 2026-11-08: « Create a team » and « Join with an invitation link » opened nothing).
+  const scrims = source.match(/return (onBody\()?h\('div', \{ className: 'kb(c|up)-scrim'/g) || []
+  check('the five dialogs of the footer (the four above and the padlock sheet of the signed-out phone) go through onBody (a portal on <body>), none is drawn in the slot', scrims.length === 5 && scrims.every((x) => x.startsWith('return onBody(')), scrims)
+  check('onBody falls back to the place it is drawn when there is no document', /const onBody = \(node\) => \{\s*try \{ if \(typeof document !== 'undefined'[^\n]*ReactDOM\.createPortal\(node, document\.body\)[^\n]*\} catch \(e\)[^\n]*\s*return node/.test(source))
 }
 
 if (failed > 0) { console.error('\n' + failed + ' check(s) failed'); process.exit(1) }

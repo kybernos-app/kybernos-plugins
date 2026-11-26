@@ -1,5 +1,10 @@
 # Plate v1 — Journal d’activité (Settings ▸ Système)
 
+> **Superseded on 2026-11-09.** The page now follows the owner-approved mockup v3 (two tabs, Calls and Terminal; rows grouped by day, paged).
+> This plate's `index.html` and `kblg.css` were removed with the check that kept `kblg.css` equal to the bundle's CSS: they described a
+> table that no longer exists. `regard.md` stays as the record of the v1 review. The structure checks of the new page live in
+> `packages/kybernos-log/test-client.mjs`, which runs the real page against a mocked host.
+
 `index.html` + `kblg.css` — light and dark at the Settings width (720 px), the 390 px column, and the Settings
 rail with the System fold. The data is simulated; **the CSS is the bundle's own** (`packages/kybernos-log/client.js`,
 `const CSS`), so a change on the plate is a change in the product.

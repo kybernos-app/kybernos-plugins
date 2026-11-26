@@ -1,7 +1,7 @@
 {
   "what": {
-    "fr": "Lit les plugins Kybernos installés avec le gestionnaire de DSH, vérifie que ce sont des données simples et alimente la page Plugins de la Suite. Un plugin refusé est écarté.",
-    "en": "Reads the Kybernos plugins installed with DSH’s plugin manager, checks that they are plain data and feeds the Plugins page of the Suite. A plugin that fails the check is left out."
+    "fr": "Lit les plugins Kybernos installés avec le gestionnaire de Kybernos, vérifie que ce sont des données simples et alimente la page Plugins de la Suite. Un plugin refusé est écarté.",
+    "en": "Reads the Kybernos plugins installed with Kybernos’s plugin manager, checks that they are plain data and feeds the Plugins page of the Suite. A plugin that fails the check is left out."
   },
   "steps": [
     {
@@ -9,12 +9,12 @@
       "en": "Open “Kybernos Suite”, the “Plugins” tab, then “Add a plugin”: GitHub or npm, a file or a folder, or AI."
     },
     {
-      "fr": "DSH installe ; Kybernos lit le plugin et te demande ton accord (« Lire et accepter ») avant que des instructions n’atteignent tes agents.",
-      "en": "DSH installs it; Kybernos reads the plugin and asks for your OK (“Read and accept”) before any instruction reaches your agents."
+      "fr": "L’appli installe ; Kybernos lit le plugin et demande ton accord (« Lire et accepter ») avant que des instructions n’atteignent tes agents.",
+      "en": "The app installs it; Kybernos reads the plugin and asks for your OK (“Read and accept”) before any instruction reaches your agents."
     },
     {
-      "fr": "L’interrupteur de la carte est celui de DSH ; « Retirer le plugin » passe aussi par DSH.",
-      "en": "The switch on a card is DSH’s own; “Remove plugin” goes through DSH too."
+      "fr": "L’interrupteur de la carte est celui de l’appli ; « Retirer le plugin » passe aussi par elle.",
+      "en": "The switch on a card is the app’s own; “Remove plugin” goes through it too."
     }
   ],
   "where": {

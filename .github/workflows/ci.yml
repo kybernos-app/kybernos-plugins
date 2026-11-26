@@ -20,18 +20,30 @@ jobs:
       # livekit, no DSH engine…). The output of both loops is kept so the last step can list them: a skip is not a pass.
       - name: Repo-level tests (every scripts/test-*.mjs)
         run: |
+          # Every file runs; the step fails at the end with the list of red ones (stopping at the first red left the files after it untested).
+          red=""
           for t in scripts/test-*.mjs; do
             echo "== $t"
             node "$t" 2>&1 | tee -a "$RUNNER_TEMP/test-output.log"
-            test "${PIPESTATUS[0]}" -eq 0 || exit 1
+            test "${PIPESTATUS[0]}" -eq 0 || red="$red $t"
           done
+          if [ -n "$red" ]; then echo "RED:$red"; exit 1; fi
       - name: Plugin tests (every packages/*/test*.mjs)
         run: |
+          red=""
           for t in packages/*/test*.mjs; do
             echo "== $t"
             (cd "$(dirname "$t")" && node "$(basename "$t")") 2>&1 | tee -a "$RUNNER_TEMP/test-output.log"
-            test "${PIPESTATUS[0]}" -eq 0 || exit 1
+            test "${PIPESTATUS[0]}" -eq 0 || red="$red $t"
           done
+          # A package's plain tests kept in test/ run from the package folder (dsh-db-viewer).
+          for t in packages/*/test/test*.mjs; do
+            [ -e "$t" ] || continue
+            echo "== $t"
+            (cd "$(dirname "$(dirname "$t")")" && node "test/$(basename "$t")") 2>&1 | tee -a "$RUNNER_TEMP/test-output.log"
+            test "${PIPESTATUS[0]}" -eq 0 || red="$red $t"
+          done
+          if [ -n "$red" ]; then echo "RED:$red"; exit 1; fi
       - name: messaging tests (standalone daemon)
         run: cd packages/messaging && node --test test/*.test.mjs
       - name: front-desk tests (standalone public service)

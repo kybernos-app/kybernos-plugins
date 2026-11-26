@@ -65,7 +65,8 @@ if (mode === 'publish') {
     const open = await v(`(() => { const b = Array.from(document.querySelectorAll('.kba-rowbtn')).find((x) => x.innerText.indexOf(${JSON.stringify(NAME)}) >= 0); if (b) b.click(); return !!b })()`)
     if (open !== true) throw new Error('the automation is not in the list of the page')
     await sleep(1500)
-    if (!(await click('[data-kb="tab-where"]'))) throw new Error('no « Where it runs » tab')
+    // The controls are in the Where card of the Overview (open by itself for an automation already on a cloud computer): unfold it when it is folded.
+    if (!(await v(`!!document.querySelector('[data-kb="where-cloud"]')`)) && !(await click('[data-kb="sheet-edit-where"]'))) throw new Error('no « Where it runs » card')
     await sleep(700)
     await click('[data-kb="where-cloud"]'); await sleep(900)
     // Right after the DSH starts, the page can take a few seconds to know the computers: wait for the picker instead of reading it once.
@@ -76,7 +77,7 @@ if (mode === 'publish') {
       await sleep(1000)
     }
     console.log('picker:', picked)
-    if (picked === '[]') console.log('page says:', await v(`(document.querySelector('[data-kb="tab-where-panel"], [data-kb="where"]') || document.body).innerText.replace(/\\s+/g, ' ').slice(0, 400)`))
+    if (picked === '[]') console.log('page says:', await v(`(document.querySelector('[data-kb="sheet-where-body"], [data-kb="where"]') || document.body).innerText.replace(/\\s+/g, ' ').slice(0, 400)`))
     const opt = JSON.parse(picked).find((o) => o.id === target.id)
     if (opt === undefined || opt.disabled) throw new Error('the page does not offer ' + wantName + ' for an automation that asks')
     if (!opt.on) { await v(`(() => { const b = document.querySelector('[data-kb="where-opt"][data-kb-id="${target.id}"]'); if (b) b.click(); return !!b })()`); await sleep(500) }

@@ -164,8 +164,20 @@ window.__ModuleLoader__.load({
       //    Everything comes straight from the mockup, unchanged.
       // ══════════════════════════════════════════════════════════════════════
 
+      // Codex-inspired default palette: pure white canvas + whisper-grey sidebar in light mode,
+      // calm neutral graphite in dark mode, high-contrast ink and soft blue accent.
+      const EPURE_OV = {
+        'light:base': '#ffffff', 'light:l1': '#ffffff', 'light:l2': '#f7f7f8', 'light:l3': '#ffffff',
+        'light:side': '#f7f7f8', 'light:input': '#ffffff', 'light:code': '#f7f7f8',
+        'light:t1': '#1a1c1f', 'light:t2': '#5f6570', 'light:brand': '#2563eb',
+        'dark:base': '#161618', 'dark:l1': '#161618', 'dark:l2': '#1f1f23', 'dark:l3': '#28282d',
+        'dark:side': '#1c1c1f', 'dark:input': '#202024', 'dark:code': '#1c1c1f',
+        'dark:t1': '#f3f4f6', 'dark:t2': '#a5aab4', 'dark:brand': '#60a5fa'
+      }
+
       const SKINS = [
-        { id: 'dsh', mode: 'dark', acc: null, wp: 'none', vis: 60 },
+        { id: 'epure', mode: null, acc: null, wp: 'none', vis: 60, fontText: 'system-ui', radius: 'soft', shadow: 'soft', bubbleUser: 'auto', ov: { ...EPURE_OV } },
+        { id: 'dsh', mode: 'dark', acc: null, wp: 'none', vis: 60, fontText: 'dsh', radius: 'standard', shadow: 'none', bubbleUser: 'auto' },
         { id: 'bleu', mode: 'dark', acc: '#4176E6', wp: 'nuit', vis: 70 },
         { id: 'aurore', mode: 'dark', acc: '#2DD4BF', wp: 'aurore', vis: 60 },
         { id: 'nebuleuse', mode: 'dark', acc: '#A855F7', wp: 'nebuleuse', vis: 60 },
@@ -260,7 +272,8 @@ window.__ModuleLoader__.load({
       ]
 
       const SKIN_NAMES = {
-        dsh: ['Défaut DSH', 'DSH default'],
+        epure: ['Épuré (Codex)', 'Pure (Codex)'],
+        dsh: ['Défaut Kybernos', 'Kybernos default'],
         bleu: ['Bleu profond', 'Deep blue'],
         aurore: ['Aurore', 'Aurora'],
         nebuleuse: ['Nébuleuse', 'Nebula'],
@@ -453,7 +466,7 @@ window.__ModuleLoader__.load({
         { id: 'courier', name: 'Courier New', stack: "'Courier New', Courier, monospace" }
       ]
       named(FONTS, {
-        dsh: ['DSH (défaut)', 'DSH (default)'],
+        dsh: ['Kybernos (défaut)', 'Kybernos (default)'],
         'system-ui': ['Système', 'System'],
         mono: ['Mono système', 'System mono']
       })
@@ -471,6 +484,8 @@ window.__ModuleLoader__.load({
         // A shipped theme may also set the font and the corners; the older ones leave both alone.
         if (sk.fontText !== undefined) patch.fontText = sk.fontText
         if (sk.radius !== undefined) patch.radius = sk.radius
+        if (sk.shadow !== undefined) patch.shadow = sk.shadow
+        if (sk.bubbleUser !== undefined) patch.bubbleUser = sk.bubbleUser
         // …and the menu icon set (the id of one of the sets above)
         if (sk.iconSet !== undefined) patch.iconSet = sk.iconSet
         return patch
@@ -510,8 +525,8 @@ window.__ModuleLoader__.load({
       // Pure drawing code: no DOM, no state, no I/O. One drawing per (set, menu entry); every drawing is flat fills,
       // no outlines. `t` is the tone kit of the state being drawn: at rest everything is the row's own text colour
       // (`currentColor`, so it follows light and dark themes), when the page is open it takes the entry's hue.
-      const ICON_ENTRIES = ['cloud', 'kyber', 'dash', 'teams', 'ws', 'creations', 'auto', 'skills', 'plug']
-      const ICON_HUES = { cloud: '#14b8a6', kyber: '#8b5cf6', dash: '#3b82f6', teams: '#6366f1', ws: '#f59e0b', creations: '#ec4899', auto: '#f97316', skills: '#10b981', plug: '#06b6d4' }
+      const ICON_ENTRIES = ['cloud', 'kyber', 'dash', 'teams', 'creations', 'auto', 'skills', 'plug']
+      const ICON_HUES = { cloud: '#14b8a6', kyber: '#8b5cf6', dash: '#3b82f6', teams: '#6366f1', creations: '#ec4899', auto: '#f97316', skills: '#10b981', plug: '#06b6d4' }
       const iconRgb = (hex) => { const n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255] }
       const iconHex = (c) => '#' + c.map((x) => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0')).join('')
       const iconMix = (hex, t) => iconHex(iconRgb(hex).map((v) => v + (255 - v) * t))
@@ -551,7 +566,6 @@ window.__ModuleLoader__.load({
         kyber: { p: iDot(6, 6.5, 3.4) + iDot(18, 7, 3.4) + iDot(12, 18, 3.4), s: iPath('M6 6.5 18 7 12 18z') },
         dash: { p: iRect(3, 3, 8, 10, 2.2) + iRect(13, 11, 8, 10, 2.2), s: iRect(13, 3, 8, 6, 2.2) + iRect(3, 15, 8, 6, 2.2) },
         teams: { p: iDot(9, 8, 3.6) + iPath('M2 20a7 7 0 0 1 14 0z'), s: iDot(17.5, 9, 2.8) + iPath('M15 20a5.5 5.5 0 0 1 8.5-4.6V20z') },
-        ws: { p: iPath('M2.5 10.5h19V17a2.5 2.5 0 0 1-2.5 2.5H5A2.5 2.5 0 0 1 2.5 17z'), s: iPath('M2.5 7A2.5 2.5 0 0 1 5 4.5h3.8a2 2 0 0 1 1.6.8L11.7 7H19a2.5 2.5 0 0 1 2.5 2.5v1h-19z') },
         creations: { p: iDot(17, 17, 4.5) + iRect(3, 13.5, 7.5, 7.5, 2), s: iPath('M7.2 3.4a1.2 1.2 0 0 1 2 0l3.9 6.6a1.2 1.2 0 0 1-1 1.8H4.3a1.2 1.2 0 0 1-1-1.8z') + iRect(13.5, 3, 7.5, 7.5, 2.2) },
         auto: { p: iRect(2.8, 4.5, 4.6, 15, 1.5), s: '<g transform="rotate(16 11.7 13.5)">' + iRect(9.4, 6, 4.6, 15, 1.5) + '</g><g transform="rotate(34 17.9 16)">' + iRect(15.6, 9, 4.6, 14, 1.5) + '</g>' },
         skills: { p: iRect(3, 10, 18, 10.5, 2.6), s: iRect(5.2, 5.6, 4, 4.4, 1.4) + iRect(10, 5.6, 4, 4.4, 1.4) + iRect(14.8, 5.6, 4, 4.4, 1.4) },
@@ -562,7 +576,6 @@ window.__ModuleLoader__.load({
         kyber: (t) => t.m(iDot(6.5, 7, 3.5)) + t.ik(iRect(13, 3.5, 7, 7, 0)) + t.m(iPath('M12 13l5.5 8h-11z')),
         dash: (t) => t.m(iRect(3, 3, 8, 10, 0)) + t.ik(iRect(13, 3, 8, 6, 0)) + t.m(iRect(13, 11, 8, 10, 0)) + t.ik(iRect(3, 15, 8, 6, 0)),
         teams: (t) => t.ik(iDot(6, 8, 2.6)) + t.m(iDot(12, 6.5, 3.2)) + t.ik(iDot(18, 8, 2.6)) + t.ik(iPath('M1.5 20a4.5 4.5 0 0 1 9 0z')) + t.m(iPath('M7.5 20a4.5 4.5 0 0 1 9 0z')) + t.ik(iPath('M13.5 20a4.5 4.5 0 0 1 9 0z')),
-        ws: (t) => t.m(iRect(2.5, 9, 19, 11, 0)) + t.ik(iPath('M2.5 9V5.5h8L12.5 9z')),
         creations: (t) => t.m(iPath('M7 3l5 8.5H2z')) + t.ik(iRect(13, 3, 8, 8, 0)) + t.m(iDot(17, 17, 4.5)) + t.ik(iRect(3, 14, 7, 7, 0)),
         auto: (t) => t.m(iRect(3, 4.5, 4.6, 15, 0)) + t.ik('<g transform="rotate(16 11.7 13.5)">' + iRect(9.4, 6, 4.6, 15, 0) + '</g>') + t.m('<g transform="rotate(34 17.9 16)">' + iRect(15.6, 9, 4.6, 14, 0) + '</g>'),
         skills: (t) => t.m(iRect(3, 10.5, 18, 10, 0)) + t.ik(iDot(7.5, 7.4, 2.4)) + t.m(iDot(12, 7.4, 2.4)) + t.ik(iDot(16.5, 7.4, 2.4)),
@@ -597,7 +610,6 @@ window.__ModuleLoader__.load({
         kyber: { m: iRect(4.5, 7.5, 15, 12.5, 4), s: iRect(11, 3.2, 2, 4.5, 1) + iDot(12, 2.8, 1.8) + iRect(1.5, 11.5, 2.2, 5, 1.1) + iRect(20.3, 11.5, 2.2, 5, 1.1), p: iDot(9, 13, 1.9) + iDot(15, 13, 1.9) + iRect(9.3, 16.6, 5.4, 1.5, 0.75), q: '' },
         dash: { m: iRect(3, 12, 4.6, 8.5, 1.2) + iRect(16.4, 2.5, 4.6, 18, 1.2), s: iRect(9.7, 7, 4.6, 13.5, 1.2) + iRect(1.5, 21.6, 21, 1.6, 0.8), p: '', q: '' },
         teams: { m: iDot(12, 7, 3.4) + iPath('M5.5 20.5a6.5 6.5 0 0 1 13 0z'), s: iDot(4.8, 9.5, 2.6) + iPath('M1 20.5a3.8 3.8 0 0 1 7.6 0z') + iDot(19.2, 9.5, 2.6) + iPath('M15.4 20.5a3.8 3.8 0 0 1 7.6 0z'), p: '', q: '' },
-        ws: { m: iRect(2, 8.5, 20, 12.5, 2.5), s: iPath('M2 8.5V6.5A2.5 2.5 0 0 1 4.5 4h5l2.5 3h7.5A2.5 2.5 0 0 1 22 9.5v-1z'), p: '', q: '' },
         creations: { m: iRect(2.5, 3.5, 19, 17, 2.5), s: '', p: iRect(5, 6, 14, 12, 1), q: iPoly([[6.5, 17], [11, 10.5], [14, 14.5], [16, 12], [18, 17]]) + iDot(16.5, 8.5, 1.6) },
         auto: { m: iDot(12, 12, 7.6) + [0, 45, 90, 135, 180, 225, 270, 315].map((a) => iTooth(a, 12, 12, 6.5, 11, 2)).join(''), s: '', p: iDot(12, 12, 3.2), q: '' },
         skills: { m: iPath('M2 5.5c4-1.8 7.5-1.6 10 1v14.5c-2.5-2.5-6-2.8-10-1z') + iPath('M22 5.5c-4-1.8-7.5-1.6-10 1v14.5c2.5-2.5 6-2.8 10-1z'), s: '', p: iRect(11.4, 6, 1.2, 15, 0.6), q: '' },
@@ -619,7 +631,6 @@ window.__ModuleLoader__.load({
         kyber: ['....+....', '....+....', '.#######.', '##.###.##', '##.###.##', '.#######.', '.##...##.', '.#######.', '.........'],
         dash: ['.........', '.......##', '.......##', '....##.##', '....##.##', '.##.##.##', '.##.##.##', '.##.##.##', '+++++++++'],
         teams: ['.........', '.##...##.', '.##...##.', '.........', '####.####', '####.####', '####.####', '####.####', '.........'],
-        ws: ['.........', '.####....', '#########', '#+++++++#', '#########', '#########', '#########', '#########', '.........'],
         creations: ['#########', '#.......#', '#....+..#', '#.......#', '#...#...#', '#..###..#', '#.#####.#', '#########', '.........'],
         auto: ['....#....', '.#.###.#.', '.#######.', '..##.##..', '####.####', '..##.##..', '.#######.', '.#.###.#.', '....#....'],
         skills: ['.........', '.###.###.', '####.####', '####.####', '####.####', '####.####', '.###.###.', '.........', '.........'],
@@ -637,7 +648,6 @@ window.__ModuleLoader__.load({
         kyber: (t) => t.m(iRect(4, 8, 16, 12, 1.5)) + t.s(iRect(10.5, 2.5, 3, 4.5, 0.8) + iRect(1, 11, 2, 5, 0.6) + iRect(21, 11, 2, 5, 0.6)) + t.p(iRect(7.5, 11.5, 3, 3, 0.5) + iRect(13.5, 11.5, 3, 3, 0.5) + iRect(8.5, 16.2, 7, 1.6, 0.5)),
         dash: (t) => t.m(iRect(3, 12, 4.6, 8.5, 0.8) + iRect(16.4, 2.5, 4.6, 18, 0.8)) + t.s(iRect(9.7, 7, 4.6, 13.5, 0.8) + iRect(1.5, 21.6, 21, 1.6, 0.5)),
         teams: (t) => t.m(iRect(10, 3.5, 4.2, 4.2, 0.6) + iRect(7, 9.5, 10.2, 11.5, 0.8)) + t.s(iRect(2, 8, 3.4, 3.4, 0.6) + iRect(1, 12.8, 5.2, 8.2, 0.8) + iRect(18.6, 8, 3.4, 3.4, 0.6) + iRect(17.8, 12.8, 5.2, 8.2, 0.8)),
-        ws: (t) => t.s(iRect(2, 4, 8.5, 4, 0.8)) + t.m(iRect(2, 9.5, 20, 11.5, 0.8)),
         creations: (t) => iMasked('mm', 'creations', t, iRect(5, 6, 14, 12, 0.5), t.m(iRect(2.5, 3.5, 19, 17, 0.8))) + t.s(iRect(7, 13.5, 4, 4, 0.5) + iRect(12.5, 10.5, 4.5, 7, 0.5) + iRect(14.5, 7, 2.6, 2.6, 0.5)),
         auto: (t) => t.m(iRect(7, 7, 10, 10, 0.8) + iRect(10.5, 1.5, 3, 4.5, 0.6) + iRect(10.5, 18, 3, 4.5, 0.6) + iRect(1.5, 10.5, 4.5, 3, 0.6) + iRect(18, 10.5, 4.5, 3, 0.6)) + t.s(iRect(3.5, 3.5, 3, 3, 0.5) + iRect(17.5, 3.5, 3, 3, 0.5) + iRect(3.5, 17.5, 3, 3, 0.5) + iRect(17.5, 17.5, 3, 3, 0.5)) + t.p(iRect(10.5, 10.5, 3, 3, 0.4)),
         skills: (t) => t.m(iRect(2, 5, 9.5, 15.5, 0.8)) + t.s(iRect(12.5, 5, 9.5, 15.5, 0.8)) + t.p(iRect(4, 8.5, 5.5, 1.3, 0.4) + iRect(4, 12, 5.5, 1.3, 0.4) + iRect(14.5, 8.5, 5.5, 1.3, 0.4) + iRect(14.5, 12, 5.5, 1.3, 0.4)),
@@ -651,7 +661,6 @@ window.__ModuleLoader__.load({
         kyber: (t) => t.m(iRing(12, 13.5, 8.8, 2.6)) + t.k(iDot(8.7, 13, 1.7) + iDot(15.3, 13, 1.7)) + t.s(iRect(11.2, 3, 1.6, 3.5, 0.8) + iDot(12, 2.6, 1.7)),
         dash: (t) => t.m(iArc(12, 17.5, 10.5, 3, 270, 450)) + t.s(iArc(12, 17.5, 6, 2.4, 270, 450)) + t.k(iPoly([[11.2, 17.5], [17.5, 9], [18.8, 10.2], [12.8, 18.8]])) + t.m(iDot(12, 18, 1.8)),
         teams: (t) => t.s(iRing(5, 9, 3, 1.4) + iRing(19, 9, 3, 1.4) + iArc(5, 21, 4.6, 1.8, 270, 450) + iArc(19, 21, 4.6, 1.8, 270, 450)) + t.m(iRing(12, 7, 3.8, 1.8) + iArc(12, 21, 6.4, 2.4, 270, 450)),
-        ws: (t) => t.m(iBand('M2 21V8.5a2.5 2.5 0 0 1 2.5-2.5h5l2.5 3h7.5a2.5 2.5 0 0 1 2.5 2.5V21z', 'M4.6 18.6V11.4H19.4v7.2z')),
         creations: (t) => t.m(iBand('M4 3.5h16a2.5 2.5 0 0 1 2.5 2.5v12a2.5 2.5 0 0 1-2.5 2.5H4A2.5 2.5 0 0 1 1.5 18V6A2.5 2.5 0 0 1 4 3.5z', 'M4.2 6.1h15.6v11.8H4.2z')) + t.s(iPoly([[5.5, 16.5], [10, 10.5], [13, 14], [15.5, 11.5], [18.5, 16.5]])) + t.m(iRing(16.5, 8.5, 2, 1)),
         auto: (t) => t.m(iRing(12, 12, 7.2, 2.6) + [0, 45, 90, 135, 180, 225, 270, 315].map((a) => iTooth(a, 12, 12, 6.8, 11, 1.9)).join('')) + t.s(iDot(12, 12, 2)),
         skills: (t) => t.s(iPoly([[7, 14], [4.5, 22], [9, 20], [12, 22.5], [8.5, 14.5]]) + iPoly([[17, 14], [19.5, 22], [15, 20], [12, 22.5], [15.5, 14.5]])) + t.m(iRing(12, 9.5, 7, 2.8)) + t.k(iDot(12, 9.5, 2)),
@@ -668,7 +677,6 @@ window.__ModuleLoader__.load({
         kyber: (t) => iCub(t, 12, 6, 8, 8, 9) + t.p(iDot(6.5, 14.25, 1.3) + iDot(9.5, 15.75, 1.3)) + t.lo(iRect(11.4, 4.5, 1.2, 5.5, 0.6)) + t.hi(iDot(12, 4, 1.7)),
         dash: (t) => iCub(t, 5.8, 13.8, 3.2, 3.2, 5) + iCub(t, 12.2, 9.8, 3.2, 3.2, 9) + iCub(t, 18.6, 5.8, 3.2, 3.2, 13),
         teams: (t) => [[5, 10], [12, 7.5], [19, 10]].map((q) => t.lo('<ellipse cx="' + q[0] + '" cy="21.5" rx="4.2" ry="1.6"/>') + t.md(iPoly([[q[0] - 3.6, 21.5], [q[0] - 2, q[1] + 3.5], [q[0] + 2, q[1] + 3.5], [q[0] + 3.6, 21.5]])) + t.hi(iDot(q[0], q[1], 3))).join(''),
-        ws: (t) => iCub(t, 12, 3, 9, 9, 9) + t.lo(iPoly([[12, 4.8], [17.4, 7.5], [12, 10.2], [6.6, 7.5]])),
         creations: (t) => { const f = (pts) => iFaceQuad(5, 3, 14, 3.6, 12, pts); return iMasked('mi', 'creations', t, iPoly(f([[0.1, 0.12], [0.9, 0.12], [0.9, 0.88], [0.1, 0.88]])), iCub(t, 5, 3, 14, 3.6, 12)) + t.hi(iPoly(f([[0.2, 0.8], [0.42, 0.38], [0.58, 0.62], [0.7, 0.5], [0.82, 0.8]]))) },
         auto: (t) => {
           const star = (dy) => iPoly(Array.from({ length: 24 }, (_, k) => { const R = k % 2 === 0 ? 10.8 : 7.6, a = k * Math.PI / 12; return [iconN(12 + R * Math.sin(a)), iconN(8.5 + dy + 0.6 * R * -Math.cos(a))] }))
@@ -683,7 +691,6 @@ window.__ModuleLoader__.load({
         cloud: [[9.5, 15.5, 1.5], [15.5, 15.5, 1.5]],
         dash: [[17.5, 7, 0.9], [19.9, 7, 0.9]],
         teams: [[10.8, 6.8, 0.8], [13.2, 6.8, 0.8]],
-        ws: [[8, 14.5, 1.6], [16, 14.5, 1.6]],
         skills: [[7, 13, 1.5], [17, 13, 1.5]],
         plug: [[9.5, 13, 1.5], [14.5, 13, 1.5]]
       }
@@ -710,7 +717,6 @@ window.__ModuleLoader__.load({
         kyber: (t) => iFan(t, [12, 13], iPolar(12, 13, 8, 9.5, Math.PI / 8), ['hi', 'md', 'lo', 'md']) + t.p(iDot(8.8, 12, 1.5) + iDot(15.2, 12, 1.5)),
         dash: (t) => [[2, 11], [9, 4], [16, 14]].map((b) => t.hi(iPoly([[b[0], b[1]], [b[0] + 6, b[1]], [b[0], 21]])) + t.md(iPoly([[b[0] + 6, b[1]], [b[0] + 6, 21], [b[0], 21]]))).join(''),
         teams: (t) => [5, 12, 19].map((x, i) => iFan(t, [x, 18], [[x - 4, 21.5], [x - 2.5, 14.5], [x + 2.5, 14.5], [x + 4, 21.5]], ['md', 'lo']) + iFan(t, [x, 9 - (i === 1 ? 1.5 : 0)], iPolar(x, 9 - (i === 1 ? 1.5 : 0), 6, 3.2, 0), ['hi', 'md', 'lo'])).join(''),
-        ws: (t) => iFan(t, [12, 15], [[2, 8], [9, 8], [11, 10.5], [22, 10.5], [22, 20], [2, 20]], ['hi', 'md', 'lo']),
         creations: (t) => t.hi(iPoly([[7, 14], [10, 17], [17, 4]])) + t.md(iPoly([[10, 17], [20, 7], [17, 4]])) + t.lo(iPoly([[3, 21], [7, 14], [10, 17]])) + t.s(iPoly([[17, 4], [20, 7], [22, 5], [19, 2]])),
         auto: (t) => iFan(t, [12, 12], Array.from({ length: 16 }, (_, k) => { const R = k % 2 === 0 ? 10.5 : 7.5, a = k * Math.PI / 8; return [iconN(12 + R * Math.sin(a)), iconN(12 - R * Math.cos(a))] }), ['hi', 'md', 'lo', 'md']) + t.p(iDot(12, 12, 2.8)),
         skills: (t) => iFan(t, [6.5, 13], [[2, 6], [11.5, 8], [11.5, 20], [2, 18]], ['hi', 'md']) + iFan(t, [17.5, 13], [[22, 6], [12.5, 8], [12.5, 20], [22, 18]], ['md', 'lo']),
@@ -767,7 +773,6 @@ window.__ModuleLoader__.load({
         kyber: { p: [[5, 8], [19, 8], [19, 19], [5, 19], [9.5, 12.5], [14.5, 12.5], [12, 3.5], [9.5, 16], [14.5, 16], [12, 8]], l: [[0, 1], [1, 2], [2, 3], [3, 0], [7, 8], [9, 6]], big: 6 },
         dash: { p: [[3, 19], [8, 13], [13, 15.5], [21, 5], [2, 21.5], [22, 21.5]], l: [[0, 1], [1, 2], [2, 3], [4, 5]], big: 3 },
         teams: { p: [[5, 8], [12, 6], [19, 8], [1.5, 19], [8.5, 19], [15.5, 19], [22.5, 19]], l: [[0, 3], [0, 4], [3, 4], [1, 4], [1, 5], [4, 5], [2, 5], [2, 6], [5, 6]], big: 1 },
-        ws: { p: [[3, 7], [10, 7], [12, 9.5], [21, 9.5], [21, 19], [3, 19]], l: iLoop(6, 0), big: 0 },
         creations: { p: [[3, 4], [21, 4], [21, 20], [3, 20], [6, 17], [11, 11], [16, 17], [17, 8]], l: iLoop(4, 0).concat([[4, 5], [5, 6]]), big: 7 },
         auto: { p: iPolar(12, 12, 8, 9, Math.PI / 8).concat([[12, 12]]), l: iLoop(8, 0).concat([[8, 0], [8, 2], [8, 4], [8, 6]]), big: 8 },
         skills: { p: [[2, 6], [12, 8], [22, 6], [22, 19], [12, 21], [2, 19]], l: iLoop(6, 0).concat([[1, 4]]), big: 1 },
@@ -802,7 +807,6 @@ window.__ModuleLoader__.load({
         kyber: (t) => t.s([0, 45, 90, 135, 180, 225, 270, 315].map((a) => iTooth(a, 12, 12, 7.5, 11, 1.4)).join('')) + t.m(iDot(12, 12, 6)) + t.k(iDot(9.8, 11, 0.9) + iDot(14.2, 11, 0.9) + iPath('M9.6 13.6q2.4 3 4.8 0q-2.4 1.4-4.8 0z')),
         dash: (t) => t.s(iPoly([[9, 21], [17, 10], [23, 21]])) + t.m(iPoly([[1, 21], [9, 6], [17, 21]])) + t.p(iPoly([[9, 6], [11.6, 10.5], [9, 9.2], [6.4, 10.5]])),
         teams: (t) => t.k(iRect(5.2, 16, 1.6, 5) + iRect(11.2, 15, 1.6, 6) + iRect(17.2, 16, 1.6, 5)) + t.m(iDot(6, 12, 4) + iDot(12, 9, 5.5) + iDot(18, 12, 4)),
-        ws: (t) => t.m(iRect(4, 11, 16, 10, 0)) + t.k(iPoly([[2, 12], [12, 3], [22, 12]])) + t.p(iRect(10, 15, 4, 6, 1)),
         creations: (t) => t.m(iArc(12, 19, 11, 3, 270, 450)) + t.md(iArc(12, 19, 8, 3, 270, 450)) + t.s(iArc(12, 19, 5, 3, 270, 450)),
         auto: (t) => t.k(iPoly([[10.2, 11], [13.8, 11], [15.5, 21.5], [8.5, 21.5]])) + t.s([20, 110, 200, 290].map((a) => iTooth(a, 12, 10, 1.5, 10, 1.3)).join('')) + t.m(iDot(12, 10, 1.9)),
         skills: (t) => t.m(iPath('M3 20C3 9 10 3 21 3c0 11-6 17-17 17z')) + t.p(iPoly([[4, 19.5], [17, 6.5], [17.8, 7.3], [5, 20.3]])),
@@ -902,6 +906,26 @@ window.__ModuleLoader__.load({
         iconSet: 'classic',
         // Accessibility
         reduceMotion: false, focusRing: 'accent', largeTargets: false, underlineLinks: false,
+        // Touch comfort: on a small screen (480 px or less) bigger rows and icons, full-width menus, section tabs as a list (see TOUCH_RULES)
+        touch: false,
+        // How the pages of Settings are laid out on a small screen (600 px or less; see PRES_RULES). Every default is today's look, so a screen that does not ask for more is unchanged:
+        // `tabsNav` tabs as a bar (`tabs`) or as a menu of rows, then one page per entry (`list`); `rowsLayout` the control under the text (`stacked`) or opposite the label (`inline`);
+        // `rowsDescription` shown under the label (`below`) or behind an « i » (`info`, only the descriptions a page marks `data-kb-desc="fold"`); `helpButton` the « ? » in a square (`boxed`)
+        // or the sign alone (`bare`) or the sign with its word, « Help » (`named`: the owner's item 27, the mockup's page bar); `cardsFrame` cards with their frame (`boxed`) or on the page (`flat`); `chipsStyle` outlined pills (`pill`) or plain text (`plain`); `groupTitles` the group names
+        // of the Settings menu shown (`shown`) or hidden, a space taking their place (`hidden`).
+        tabsNav: 'tabs', rowsLayout: 'stacked', rowsDescription: 'below', helpButton: 'boxed', cardsFrame: 'boxed', chipsStyle: 'pill', groupTitles: 'shown',
+        // The menu, the chat and the search on a small screen (600 px or less; see PRES_RULES), same rule: every default is today's look. `drawerSize` the drawer's search, rows, workspaces and
+        // dock, and the button that opens it, at the usual size (`standard`) or made for a thumb (`large`); `drawerPanels` the engine's own rows of the drawer (its pinned pages, such as « Code review ») shown
+        // as they are (`shown`) or left out so that only Kybernos's rows are drawn (`hidden`); `composerSize` the message box's buttons and its text (`standard` | `large`); `newChatCards` what an empty chat
+        // offers to make, on a phone: ONE slider of the illustrated cards with « See all » (`slider`, the default: the owner's mock-up of 2026-11-24), all of them in a grid on the page (`grid`), or none (`hidden`).
+        // The search is touch comfort (TOUCH_RULES), not a setting of its own.
+        drawerSize: 'standard', drawerPanels: 'shown', composerSize: 'standard', newChatCards: 'slider',
+        // `rating`: how an answer is rated on a phone (the row under it, list item 31): two thumbs (`thumbs`, the default since 2026-11-24: the owner's rule, in Simple AND Complete; up = a 5 sent at once, with the
+        // share box shown under it, down = a 1 that opens the sheet) or the five stars (`stars`, a choice). Wider than 600 px: stars, whatever this says.
+        rating: 'thumbs',
+        // `messageSize`: the size of the text of the messages on a phone (list item 33), four sizes two pixels apart: `compact` 15 px (what the engine drew), `standard` 17 px (the default, Simple and Complete alike: the
+        // owner's mock-up; the phone's stylesheet draws it, no token), `large` 19 px and `xlarge` 21 px; the code in a block follows (12, 13.5, 14, 14 px) and scrolls sideways. These are the sizes that SHOW. Wider than 600 px: the engine's own size.
+        messageSize: 'standard',
         // Chat: the colour of your messages and its text, the frame of the agent's replies and their text
         bubbleUser: 'auto', textUser: null, replyBg: 'none', replyColor: null, textReply: null,
         // The tone of the sidebar, shadows, glow
@@ -909,14 +933,19 @@ window.__ModuleLoader__.load({
         // The pills under the message box: shown unless switched off here
         wgSessions: true, wgChanges: true, wgUsage: true,
         // Bars on hover: the collapsed rail and the chat's top bar leave the layout and come back at the edge (on by default, owner's call 2026-10-22; switch off in the Sidebar panel)
-        autoHideBars: true
+        autoHideBars: true,
+        // Notification counters: the number in brackets in the tab title and the badge on the app icon (drawn by kybernos-pulse, which reads `data-kbth-counters` on <html>). Hidden unless switched on here
+        // (owner's call, 2026-11-24); personal like the pills: never in a theme, a vibe or the dice. Banners and the floating window are not part of it.
+        notifCounters: 'hidden'
       }
-      const ENUMS = { glassEffect: ['frosted', 'liquid'], bgFit: ['cover', 'fill', 'center', 'stretch'], radius: ['sharp', 'standard', 'soft'], focusRing: ['accent', 'double', 'thick'], iconSet: ICON_SET_IDS, sideTone: ['auto', 'darker', 'lighter', 'tinted'], shadow: ['none', 'soft'], replyBg: ['none', 'card', 'outline', 'tint'] }
+      const ENUMS = { glassEffect: ['frosted', 'liquid'], bgFit: ['cover', 'fill', 'center', 'stretch'], radius: ['sharp', 'standard', 'soft'], focusRing: ['accent', 'double', 'thick'], iconSet: ICON_SET_IDS, sideTone: ['auto', 'darker', 'lighter', 'tinted'], shadow: ['none', 'soft'], replyBg: ['none', 'card', 'outline', 'tint'],
+        tabsNav: ['tabs', 'list'], rowsLayout: ['stacked', 'inline'], rowsDescription: ['below', 'info'], helpButton: ['boxed', 'bare', 'named'], cardsFrame: ['boxed', 'flat'], chipsStyle: ['pill', 'plain'], groupTitles: ['shown', 'hidden'],
+        drawerSize: ['standard', 'large'], drawerPanels: ['shown', 'hidden'], composerSize: ['standard', 'large'], newChatCards: ['slider', 'grid', 'hidden'], rating: ['stars', 'thumbs'], messageSize: ['compact', 'standard', 'large', 'xlarge'], notifCounters: ['shown', 'hidden'] }
       /** Your bubble: one of DSH's own / the accent / a soft tone / a dark one, or any colour (a hex). The three text colours are a hex or null (= the colour of the app). */
       const BUBBLE_CHOICES = ['auto', 'accent', 'soft', 'dark']
       const HEX_KEYS = ['textUser', 'replyColor', 'textReply']
       const RANGES = { glassBlur: [0, 40], sidebarOpacity: [0, 100], fieldOpacity: [0, 100], floatOpacity: [0, 100], bgBrightness: [0, 200], bgContrast: [0, 200], bgSaturation: [0, 200], bgDarken: [0, 100] }
-      const BOOLS = ['cbSafe', 'sidebarLinked', 'bgMirror', 'ligatures', 'showBrand', 'reduceMotion', 'largeTargets', 'underlineLinks', 'glow', 'wgSessions', 'wgChanges', 'wgUsage', 'autoHideBars']
+      const BOOLS = ['cbSafe', 'sidebarLinked', 'bgMirror', 'ligatures', 'showBrand', 'reduceMotion', 'largeTargets', 'underlineLinks', 'touch', 'glow', 'wgSessions', 'wgChanges', 'wgUsage', 'autoHideBars']
       /** The choice, range or boolean settings of any object: only the VALID values come out. */
       const valeursValides = (raw) => {
         const out = {}
@@ -1195,6 +1224,379 @@ window.__ModuleLoader__.load({
         poser()
       }
 
+      /**
+       * TOUCH COMFORT: one layer for every menu surface of a small screen, driven by ONE setting (`touch`, an accessibility setting of the person's own, or the `touch` option of a locked preset:
+       * the phone's Simple turns it on). It is a static stylesheet keyed on `html[data-kb-touch="on"]` and a 480 px media query, so switching it is an attribute flip, and it only uses the
+       * STABLE hooks of the app: ARIA roles, `data-slot`, `data-kb*` and the Kybernos plugins' own classes (never a hashed class, but the engine's `_danger_` marker, matched as a substring).
+       * Groups, in order: sheets (every menu and popover spans the screen's width, every dialog but Settings sits at the bottom edge, edge to edge: the engine anchors them to their button with `justify-self`, which is what left the workspace menu 168 px wide
+       * and the view options on the right half), rows (46 px rows of 13 px text become 54 px rows of 16 px text with 22 px icons), the account sheet's Appearance switch, the drawer's rows and icons,
+       * Settings (the list, then every page at 1.14 times its size), the search palette (a full-width sheet that hangs from the TOP edge: the keyboard opens at once and leaves 513 px of 813, a bottom sheet would sit under it; no keyboard hints, the scopes on one scrolling line, bigger rows), and section tabs as a list.
+       */
+      const TOUCH_ATTR = 'data-kb-touch'
+      /** The size of every Settings page in the touch layer: 1.14 times. Whatever hangs inside it in pixels measured on the screen (a popover card: 358 px wide, placed from its button's rectangle) is scaled with it, so it is brought back to 1. */
+      const TOUCH_ZOOM = 1.14
+      const TOUCH_MEDIA = '(max-width: 480px)'
+      /** The section tabs of a page that read as a list on a small screen: Kaby, the Theme editor, Language. (Segmented filters such as Yours / Discover keep their line.) */
+      const TOUCH_TABS = ['.kbkc-tabs', '.kbln-tabs', '.kbth-adv-tabs']
+      const SETTINGS = '[data-shortcut-modal="settings"]'
+      /** Every dialog but Settings (a page), the search palette (its own rules) and the help card of a page (`[data-kb="help-panel"]`): a sheet at the bottom edge, in the engine's flex overlay that centres it.
+       *  The help card is no overlay: it hangs from its « ? » button inside a wrapper as wide as the button, so « width:100% » made it a 44 px strip (owner's phone, 2026-11-23). It keeps its own width and place. */
+      const DIALOG = '[role="dialog"]:not([data-shortcut-modal]):not(.kbsr-dlg):not([data-kb="help-panel"])'
+      /** [selectors, declarations] pairs; each selector is prefixed by the attribute, each declaration made `!important` (the engine's and the mobile bundle's rules are). */
+      const TOUCH_RULES = [
+        [['[role="menu"]', '[role="listbox"]', '[data-trigger-menu]'], 'justify-self:stretch'],
+        [['[role="menu"]'], 'border-radius:22px 22px 0 0'],
+        [['[role="menu"] [role^="menuitem"]', '[role="listbox"] [role="option"]'], 'min-height:54px;padding-inline:14px;gap:14px;font-size:16px'],
+        [['[role="menu"] [role^="menuitem"] svg'], 'width:22px;height:22px;flex:none'],
+        [['[role="menu"] [class*="_danger_"]'], 'margin-top:8px'],
+        [['[data-kb="menu-appearance"]'], 'min-height:58px;font-size:16px'],
+        [['[data-kb="menu-appearance"] > svg'], 'width:22px;height:22px'],
+        [['[data-kb="menu-appearance"] .kbfp-mlab'], 'font-size:16px'],
+        [['[data-kb="menu-appearance"] .kbfp-seg'], 'height:46px;padding:3px;gap:4px;border-radius:23px;background:var(--dsw-alias-bg-layer-3,rgba(128,128,128,.16))'],
+        [['[data-kb="menu-appearance"] .kbfp-seg button.on'], 'background:var(--dsw-alias-bg-layer-1,#fff);box-shadow:0 1px 4px rgba(0,0,0,.25)'],
+        [['[data-kb="menu-appearance"] .kbfp-seg button'], 'width:54px;height:40px;border-radius:20px'],
+        [['[data-kb="menu-appearance"] .kbfp-seg svg'], 'width:24px;height:24px'],
+        [['[data-kb-row]'], 'min-height:58px;font-size:18px'],
+        [['[data-kb-row] svg'], 'width:26px;height:26px'],
+        [['[data-slot="sidebar"] [data-row-key]'], 'min-height:56px;font-size:16px'],
+        [['[data-slot="sidebar"] [data-row-key] button'], 'min-width:44px;min-height:44px'],
+        [['[data-slot="sidebar"] [data-row-key] svg'], 'width:22px;height:22px'],
+        [[SETTINGS + ' [class*="navList"] [data-kb-t]'], 'min-height:62px;font-size:18px'],
+        [[SETTINGS + ' [class*="navList"] [data-kb-t] svg'], 'width:26px;height:26px'],
+        // « Back to workspace » (the Settings header, `.kbsb`): 14 px text and a 15 px arrow in a 22 px line were the smallest thing on a screen of 18 px rows (owner's phone, 2026-11-23). It reads like a row's title
+        // (18 px, the arrow at 24 px) and its tap zone is 48 px high with room on each side.
+        [[SETTINGS + ' .kbsb'], 'min-height:48px;max-width:100%;gap:10px;padding:0 14px 0 0;font-size:18px;font-weight:600;line-height:24px'],
+        [[SETTINGS + ' .kbsb svg'], 'width:24px;height:24px;flex:none'],
+        [[SETTINGS + ' .kbsb-label'], 'min-width:0;overflow:hidden;text-overflow:ellipsis'],
+        [[SETTINGS + ' [data-slot="settings.section"]'], 'zoom:' + TOUCH_ZOOM],
+        [[SETTINGS + ' [data-slot="settings.section"] [data-kb="help-panel"]'], 'zoom:' + (Math.round(1e4 / TOUCH_ZOOM) / 1e4)],
+        [[SETTINGS + ' [data-slot="settings.section"] :is(button:not([role="switch"]):not([data-kb="help-button"]):not(.kbln-help-btn),select,textarea,input:not([type="checkbox"]):not([type="radio"]):not([type="range"]))'], 'min-height:48px'],
+        // The Theme's own controls the line above does not reach: « Import… » is a <label> (it holds the file input: 29 px high on the owner's phone), and the « ⋯ » of a preset tile is a 26 px button the line above made 48 px
+        // from the top of the NAME row, so its sign landed in the middle of the chips under the name. Its tap zone is 44 px now, centred on the name row; the name leaves room for it.
+        [[SETTINGS + ' [data-slot="settings.section"] label.kbth-btn'], 'min-height:48px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box'],
+        [[SETTINGS + ' [data-slot="settings.section"] button.kbth-pr-more[data-kb="theme-preset-more"][aria-haspopup="menu"]:not([disabled])'], 'top:54px;right:2px;width:44px;height:44px;min-width:44px;min-height:44px;padding:0'],
+        [[SETTINGS + ' [data-slot="settings.section"] .kbth-pr-nm'], 'padding-inline-end:34px'],
+        // « Report an answer » in the help card of the app’s parts in About (Simple): the phone layer makes the report button a 44 px flag (`html[data-kb-msg-actions="tap"]`, one class heavier than the card's own rule), so its words
+        // wrapped three lines in a 44 px box and ran out of the card. In this card the button is a plain button again: as wide as its words, 48 px high, never wider than the card.
+        [[SETTINGS + ' .kbk-help [data-kb="report-tail"] > button[data-act="report-open"]'], 'width:auto;max-width:100%;height:auto;min-height:48px;padding:8px 16px;overflow:visible;white-space:normal;text-indent:0;box-sizing:border-box'],
+        [[DIALOG], 'align-self:flex-end;width:100%;max-width:none;margin:0;border-radius:22px 22px 0 0'],
+        [[':has(> ' + DIALOG + ')'], 'padding:0'],
+        [['.kbsr-scrim'], 'align-items:flex-start;padding:0'],
+        [['.kbsr-dlg'], 'width:100%;max-width:none;max-height:58dvh;border-radius:0 0 22px 22px;border-top-width:0'],
+        [['.kbsr-top .kbsr-kbd', '.kbsr-hh'], 'display:none'],
+        [['.kbsr-foot > span:has(> .kbsr-kbd)'], 'display:none'],
+        // the search on a phone: the field 52 px high at 18 px, a ✕ of 52 px where a computer has the « Esc » key, the scopes on ONE line that scrolls (44 px chips at 16 px, the right edge fading to say there is more)
+        [['.kbsr-top'], 'min-height:64px;padding:6px 6px 6px 16px;gap:12px'],
+        // the field: 18 px (the phone layer's `input:not(…)` rule makes every field 16 px with a heavier selector, so this one names the tag and the hook too)
+        [['input.kbsr-in[data-kb="search-input"]'], 'height:52px;font-size:18px'],
+        [['.kbsr-x'], 'display:flex;align-items:center;justify-content:center;flex:none;width:52px;height:52px;padding:0;border:0;border-radius:26px;background:transparent;color:inherit;cursor:pointer'],
+        [['.kbsr-x svg'], 'width:24px;height:24px'],
+        [['.kbsr-scopes'], 'flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:12px 14px;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)'],
+        [['.kbsr-chip'], 'flex:none;height:44px;padding:0 14px 0 12px;font-size:16px'],
+        [['.kbsr-it'], 'padding:12px 10px'],
+        [TOUCH_TABS, 'display:flex;flex-direction:column;align-items:stretch;gap:6px;overflow:visible;position:static;width:100%;padding:0;border:0;border-radius:0;background:transparent'],
+        [TOUCH_TABS.map((x) => x + ' > *'), 'justify-content:flex-start;text-align:start;width:100%;min-height:52px;padding:0 16px;font-size:16px;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));border-radius:12px;box-shadow:none;background:transparent'],
+        [TOUCH_TABS.map((x) => x + ' > [aria-selected="true"]'), 'background:var(--dsw-alias-bg-layer-2,rgba(128,128,128,.12));border-color:var(--dsw-alias-brand-primary,currentColor);font-weight:600'],
+        [TOUCH_TABS.map((x) => x + ' > *::after'), 'display:none']
+      ]
+      /** The touch comfort stylesheet: static, inert until `<html>` carries the attribute. */
+      const touchCss = () => '@media ' + TOUCH_MEDIA + '{\n' + TOUCH_RULES.map((r) => r[0].map((x) => 'html[' + TOUCH_ATTR + '="on"] ' + x).join(',') + '{' + r[1].split(';').map((d) => d + '!important').join(';') + '}').join('\n') + '\n}'
+
+      // kb-pres:begin  (the ONE place of this bundle that names the class prefixes of other bundles; the guards of the prefixes read the bundle without what lies between this line and `kb-pres:end`)
+      /**
+       * PRESENTATION: how the pages of Settings (seven settings: `tabsNav`, `rowsLayout`, `rowsDescription`, `helpButton`, `cardsFrame`, `chipsStyle`, `groupTitles`) and the drawer and the empty chat (four more:
+       * `drawerSize`, `drawerPanels`, `composerSize`, `newChatCards`) are laid out on a small screen, how an answer is rated (`rating`: stars or thumbs) and the size of the text of the messages (`messageSize`: 15, 17, 19 or 21 px). Thirteen settings in all (sixteen tokens: `newChatCards` has two non-default values, `messageSize` three), ONE attribute on <html> that
+       * lists the ones that are on (`data-kb-pres="tabs-list rows-inline …"`, one token each), ONE static stylesheet, inert without the token and under 600 px only (a wider screen is exactly as before).
+       * A person's own setting wins; otherwise the phone's Simple preset asks for them all (`options.presentation`, while the app is in Kaby mode). The content of a page never changes: same labels, same
+       * texts, same order; only the way a row, a card, a chip, the « ? » and the tabs are drawn.
+       * It names the balisage of each page (Memory `.kbmem-*`, Language `.kbln-*`, Kaby `.kbkc-*`, the hub's « ? » `.kbhp-*`) in ONE place and takes over the phone layer's rules (`kybernos-mobile/mobile.css`, `!important`
+       * too) by specificity: `:is(html, #kb-pres)` matches <html> and counts as an id, which the structural selectors of the phone layer (rule 7c) do not reach.
+       * Two things need a hand of the DOM, both added next to what the page drew, never inside React's own nodes' state, and put back if a render removes them (`presWalk`): the « i » that opens a description
+       * a page marked `data-kb-desc="fold"` (a description that warns, or changes what the setting means, is never marked: nothing folds without the mark), and the menu / page navigation of the Kaby tabs.
+       */
+      const PRES_ATTR = 'data-kb-pres'
+      const PRES_MEDIA = '(max-width: 700px), (max-height: 500px) and (pointer: coarse)'
+      /** [setting, the value that turns it on, the token it puts on <html>] */
+      const PRES_TOKENS = [['tabsNav', 'list', 'tabs-list'], ['rowsLayout', 'inline', 'rows-inline'], ['rowsDescription', 'info', 'desc-info'], ['helpButton', 'bare', 'help-bare'], ['helpButton', 'named', 'help-named'], ['cardsFrame', 'flat', 'frame-flat'], ['chipsStyle', 'plain', 'chips-plain'], ['groupTitles', 'hidden', 'groups-hidden'], ['drawerSize', 'large', 'drawer-large'], ['drawerPanels', 'hidden', 'panels-hidden'], ['composerSize', 'large', 'composer-large'], ['newChatCards', 'grid', 'nccards-grid'], ['newChatCards', 'hidden', 'nccards-hidden'], ['rating', 'thumbs', 'rating-thumbs'], ['messageSize', 'compact', 'msg-compact'], ['messageSize', 'large', 'msg-large'], ['messageSize', 'xlarge', 'msg-xlarge']]
+      const presSel = (token) => ':is(html,#kb-pres)[' + PRES_ATTR + '~="' + token + '"]'
+      const PRES_PAGE = '[data-shortcut-modal="settings"]'
+      const PRES_HELP_BTN = ['.kbhp-btn', '.kb6-helpbtn', '.kbln-help-btn', '.kbat-help', '.kbcl-hl']
+      const PRES_HELP_Q = ['.kbhp-q', '.kb6-helpq', '.kbln-help-q', '.kbat-helpq', '.kbcl-hq']
+      /** A Memory row whose control is a switch or one small button sits opposite its label; a segmented choice or a pair of buttons is wider than that and stays under the text. */
+      const PRES_MEM_INLINE = PRES_PAGE + ' .kbmem-srow:not(:has(> .ctl [role="radiogroup"], > .ctl .kbmem-seg, > .ctl .kbmem-acts))'
+      const PRES_SIDEBAR = '[data-slot="sidebar"]'
+      const PRES_WS = '[data-slot="sidebar.workspaces"]'
+      const PRES_CARD = '[data-composer-card]'
+      const PRES_FLOW = '[data-slot="conversation.chat.flow"]'
+      const PRES_KABY = '.kbkc-page'
+      const PRES_TAB = PRES_KABY + ' > .kbkc-tabs > .kbkc-tab'
+      /** [token, selectors (each one under the token), declarations (each made `!important`)] */
+      const PRES_RULES = [
+        // tabsNav = list: the Kaby page is a menu (one row per section), then the section alone with a back row at the top (`.kbth-navback`, put by `presWalk`; the title says the section)
+        ['tabs-list', [PRES_KABY + '[data-kb-nav="menu"] > .kbkc-panel', PRES_KABY + '[data-kb-nav="page"] > .kbkc-tabs'], 'display:none'],
+        ['tabs-list', [PRES_KABY + ' > .kbkc-tabs'], 'display:flex;flex-direction:column;gap:0;margin:0 -8px;padding:0;border:0;overflow:visible;position:static;width:auto;border-radius:0;background:transparent'],
+        ['tabs-list', [PRES_TAB], 'display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;height:auto;min-height:62px;margin:0;padding:0 8px;border:0;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(128,128,128,.25));border-radius:0;background:transparent;box-shadow:none;color:var(--dsw-alias-label-primary,inherit);font-size:18px;font-weight:500;text-align:start;white-space:normal'],
+        ['tabs-list', [PRES_TAB + ':last-child'], 'border-bottom:0'],
+        ['tabs-list', [PRES_TAB + '[aria-selected="true"]'], 'background:transparent;font-weight:500;border-color:var(--dsw-alias-border-l1,rgba(128,128,128,.25))'],
+        ['tabs-list', [PRES_TAB + ':last-child[aria-selected="true"]'], 'border-bottom-color:transparent'],
+        ['tabs-list', [PRES_TAB + '::after'], 'content:"";display:block;flex:none;width:9px;height:9px;margin-inline-end:4px;border:solid currentColor;border-width:2px 2px 0 0;transform:rotate(45deg);opacity:.45'],
+        ['tabs-list', ['[dir="rtl"] ' + PRES_TAB + '::after'], 'transform:rotate(-135deg)'],
+        ['tabs-list', [PRES_KABY + '[data-kb-nav="page"] > .kbth-navback'], 'display:flex;align-self:flex-start;align-items:center;gap:4px;order:-2;position:relative;z-index:1;min-height:44px;margin:0 0 -26px;padding:0 12px 0 0;border:0;background:transparent;color:color-mix(in srgb,var(--dsw-alias-label-primary,currentColor) 72%,transparent);font:inherit;font-size:15px;font-weight:500;text-align:start;cursor:pointer'],
+        ['tabs-list', [PRES_KABY + '[data-kb-nav="page"] > .kbth-navback::before'], 'content:"";display:block;flex:none;width:8px;height:8px;margin-inline:8px 2px;border:solid currentColor;border-width:0 0 1.5px 1.5px;transform:rotate(45deg)'],
+        ['tabs-list', ['[dir="rtl"] ' + PRES_KABY + '[data-kb-nav="page"] > .kbth-navback::before'], 'transform:rotate(-135deg)'],
+        ['tabs-list', [PRES_KABY + '[data-kb-nav="page"] [data-kb-section]'], 'font-size:0;line-height:0'],
+        ['tabs-list', [PRES_KABY + '[data-kb-nav="page"] [data-kb-section]::before'], 'content:attr(data-kb-section);font-size:18px;line-height:1.3'],
+        // rowsLayout = inline: the label and its text on the left, the switch or the small button opposite (a segmented choice or two buttons stay under the text)
+        ['rows-inline', [PRES_MEM_INLINE], 'flex-wrap:nowrap;align-items:center;gap:14px;padding:10px 0;min-height:56px'],
+        ['rows-inline', [PRES_MEM_INLINE + ' > div:first-child'], 'flex:1 1 0;min-width:0'],
+        ['rows-inline', [PRES_MEM_INLINE + ' > .ctl'], 'width:auto;flex:none'],
+        ['rows-inline', [PRES_PAGE + ' .kbln-set-row:has(> label.kbln-sw)'], 'flex-direction:row;flex-wrap:nowrap;align-items:center;gap:14px;min-height:56px'],
+        ['rows-inline', [PRES_PAGE + ' .kbln-set-row:has(> label.kbln-sw) > .kbln-set-txt'], 'flex:1 1 0;min-width:0'],
+        ['rows-inline', [PRES_PAGE + ' .kbkc-mrow'], 'align-items:flex-start;gap:6px 14px;padding-inline:0'],
+        ['rows-inline', [PRES_PAGE + ' .kbkc-mrow > .kbkc-mtext'], 'flex:1 1 0;min-width:0'],
+        // the Kaby page puts its switch first in the DOM: it goes opposite the label like everywhere else, the limit line stays under the text
+        // a note that carries its own button (Memory's « Not connected »): the icon, then the text over the whole width, the button under the text — not a column of two words beside a half-width button
+        ['rows-inline', [PRES_PAGE + ' .kbmem-note:has(> svg):has(> button)'], 'display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;align-items:start'],
+        ['rows-inline', [PRES_PAGE + ' .kbmem-note:has(> svg):has(> button) > button'], 'grid-column:2;justify-self:start'],
+        ['rows-inline', [PRES_PAGE + ' .kbkc-mrow > .kbkc-sw'], 'order:2'],
+        ['rows-inline', [PRES_PAGE + ' .kbkc-mrow > .kbkc-row'], 'order:3;flex:0 0 100%;box-sizing:border-box'],
+        // cardsFrame = flat: the page is the frame already: a card loses its border, its radius and its padding; the next card is told from it by one line (a notice and the dashed « always asked » box keep theirs)
+        ['frame-flat', [PRES_PAGE + ' .kbkc-card', PRES_PAGE + ' .kbkc-lines', PRES_PAGE + ' .kbkc-prov', PRES_PAGE + ' .kbln-langs', PRES_PAGE + ' .kbln-set', PRES_PAGE + ' .kbmz-auto', PRES_PAGE + ' .kbth-pr-strip'], 'border:0;border-radius:0;background:transparent;box-shadow:none'],
+        ['frame-flat', [PRES_PAGE + ' .kbkc-card', PRES_PAGE + ' .kbkc-prov'], 'padding:6px 0 10px'],
+        ['frame-flat', [PRES_PAGE + ' .kbkc-panel > .kbkc-card + .kbkc-card'], 'border-top:1px solid var(--dsw-alias-border-l1,rgba(128,128,128,.25));padding-top:22px'],
+        ['frame-flat', [PRES_PAGE + ' .kbln-lang'], 'padding-inline:4px'],
+        // without its frame a block keeps no side padding: its text lines up with the page margin like the titles above it
+        ['frame-flat', [PRES_PAGE + ' .kbth-pr-strip', PRES_PAGE + ' .kbln-set-row', PRES_PAGE + ' .kbmz-auto'], 'padding-inline:0'],
+        // chipsStyle = plain: a status is a word (« Ready » in the success colour), not an outlined pill
+        ['chips-plain', [PRES_PAGE + ' .kbkc-chip', PRES_PAGE + ' .kbmem-chip', PRES_PAGE + ' .kbth-pr-src.built', PRES_PAGE + ' .kbth-pr-chip', PRES_PAGE + ' .kbln-state', PRES_PAGE + ' .kbln-pill'], 'border:0;border-radius:0;background:transparent;padding:0;min-height:24px;height:auto'],
+        ['chips-plain', [PRES_PAGE + ' .kbkc-chip.ok', PRES_PAGE + ' .kbmem-chip.ok'], 'color:var(--dsw-alias-state-success-primary,#1b7f43);font-weight:600'],
+        // rowsDescription = info: a description a page marked foldable is hidden until the « i » at the end of its label is pressed
+        ['desc-info', ['[data-kb-desc="fold"]:not([data-kb-open="1"])'], 'display:none'],
+        ['desc-info', ['.kbth-info'], 'display:inline-grid;place-items:center;flex:none;width:44px;height:44px;margin:-14px -6px -14px 2px;padding:0;border:0;border-radius:12px;background:transparent;color:var(--dsw-alias-label-secondary,inherit);vertical-align:middle;cursor:pointer'],
+        ['desc-info', ['.kbth-info[aria-expanded="true"]'], 'color:var(--dsw-alias-label-primary,inherit)'],
+        // a Memory label is a wrapping flex line: the « i » stays at the end of the text instead of dropping under it
+        ['desc-info', [PRES_PAGE + ' .kbmem-srow .lab:has(> .kbth-info)'], 'flex-wrap:nowrap'],
+        ['desc-info', [PRES_PAGE + ' .kbln-set-lb:has(> .kbth-info)'], 'display:flex;flex-wrap:nowrap;align-items:center;gap:8px'],
+        ['desc-info', ['.kbth-info:focus-visible'], 'outline:2px solid var(--dsw-alias-brand-primary,currentColor);outline-offset:-2px'],
+        // helpButton = bare: the « ? » alone, its 44 px tap zone stays (the phone layer makes it a square of the card's tone)
+        ['help-bare', PRES_HELP_BTN, 'background:transparent;background-color:transparent;border-color:transparent;box-shadow:none'],
+        ['help-bare', PRES_HELP_Q, 'width:auto;height:auto;border-radius:0;background:transparent;font-size:22px;font-weight:600;line-height:1;color:color-mix(in srgb,var(--dsw-alias-label-primary,currentColor) 80%,transparent)'],
+        ['help-bare', PRES_HELP_BTN.map((x) => x + ':focus-visible'), 'outline:2px solid var(--dsw-alias-brand-primary,currentColor);outline-offset:-2px;border-radius:12px'],
+        // helpButton = named: the « ? » AND its word in one pill, as the page bar of the mockup draws it. The word is no text of the page: `presWalk` stamps `data-kb-help-word` (« Help » / « Aide », in the language at that
+        // moment) on each help button and the rule reads it. The pill keeps the phone layer's tone (no outline) and its 44 px; the accessible name stays the button's own (« How it works »)
+        ['help-named', PRES_HELP_BTN, 'padding:0 16px 0 8px;gap:8px;border-radius:22px;font-size:16px;color:var(--dsw-alias-label-primary,inherit)'],
+        ['help-named', PRES_HELP_BTN.map((x) => x + '::after'), 'content:attr(data-kb-help-word)'],
+        ['help-named', PRES_HELP_BTN.map((x) => x + ':focus-visible'), 'outline:2px solid var(--dsw-alias-brand-primary,currentColor);outline-offset:-2px'],
+        // groupTitles = hidden: the group names of the Settings menu (`[data-kb-fold-toggle]`, drawn by the core plugin, small labels that do nothing on a phone) leave the screen and the focus order
+        // (`visibility:hidden`); the header keeps a gap (16 px, no height) so the groups do not run into one another: a group is told from the next by space alone (a line between nearly every row,
+        // each group often being one page, read as a list of boxes, and drew one above the first row)
+        ['groups-hidden', [PRES_PAGE + ' [data-kb-settings] [data-kb-fold-toggle]'], 'visibility:hidden;height:0;min-height:0;margin:16px 0 0;padding:0;overflow:hidden;border:0;font-size:0;line-height:0;background:none'],
+        // drawerSize = large: the drawer of the phone app (search, rows, workspaces, Recents, dock) and the button that opens it, sized for a thumb (targets 52 px, text 19 to 22 px). The phone layer
+        // (`kybernos-mobile/mobile.css`, menu C2) places the drawer and the touch comfort sizes it at 56 to 58 px; this goes over both. The dock's own height is a variable the scroll area clears.
+        ['drawer-large', [PRES_SIDEBAR], '--kbmob-dock-h:120px'],
+        ['drawer-large', [PRES_SIDEBAR + ' [data-window-drag]'], 'min-height:68px'],
+        ['drawer-large', [PRES_SIDEBAR + ' [data-kb="search-top"]'], 'width:52px;height:52px;min-width:52px;min-height:52px;border-radius:26px;background:color-mix(in srgb,currentColor 9%,transparent)'],
+        ['drawer-large', [PRES_SIDEBAR + ' [data-kb="search-top"] svg'], 'width:28px;height:28px'],
+        ['drawer-large', [PRES_SIDEBAR + ' nav [data-kb-row]'], 'min-height:60px;gap:16px;font-size:22px'],
+        ['drawer-large', [PRES_SIDEBAR + ' nav [data-kb-row] .kb4-lab'], 'font-size:22px'],
+        ['drawer-large', [PRES_SIDEBAR + ' nav [data-kb-row] svg'], 'width:28px;height:28px'],
+        // the engine's pinned panels (a pinned page such as « Code review ») read like the rows above them
+        ['drawer-large', [PRES_SIDEBAR + ' nav [class*="panelRow"]'], 'min-height:60px;gap:16px;font-size:22px'],
+        ['drawer-large', [PRES_SIDEBAR + ' nav [class*="panelRow"] svg'], 'width:28px;height:28px'],
+        ['drawer-large', [PRES_WS + ' [data-sidebar-workspace-header]'], 'min-height:48px;padding:10px 4px 0 16px;font-size:19px;font-weight:600'],
+        // the title may use the line (the engine gives it 45 % of the header, « Espaces de travail » was cut at 19 px)
+        ['drawer-large', [PRES_WS + ' [data-sidebar-workspace-header] > span'], 'font-size:19px;font-weight:600;max-width:none'],
+        // the header's three buttons (options, import, add) do nothing on the phone (the phone layer makes them untouchable and invisible): they only fill the line
+        ['drawer-large', [PRES_WS + ' [data-sidebar-workspace-header] button'], 'display:none'],
+        ['drawer-large', [PRES_WS + ' [data-row-key^="workspace:"]'], 'min-height:64px;font-size:22px'],
+        ['drawer-large', [PRES_WS + ' [data-row-key^="session:"]'], 'min-height:60px;font-size:22px'],
+        ['drawer-large', [PRES_WS + ' [data-row-key^="workspace:"] span', PRES_WS + ' [data-row-key^="session:"] span'], 'font-size:22px'],
+        ['drawer-large', [PRES_WS + ' [data-row-key^="workspace:"] svg'], 'width:28px;height:28px'],
+        ['drawer-large', [PRES_WS + ' [data-row-key^="workspace:"] button'], 'min-width:52px;min-height:52px'],
+        ['drawer-large', [PRES_WS + ' [role="tree"]::after'], 'font-size:17px;font-weight:600;padding:14px 16px 6px'],
+        // « Pinned » (the plugin's folding header, a button) is drawn like « Recents » just above (owner's list 25): the same 17 px / 600 and the same padding; mobile.css gives it the 44 px tap height
+        ['drawer-large', [PRES_WS + ' .kbpin_header'], 'font-size:17px;font-weight:600;padding:14px 16px 6px'],
+        // and the pinned ROWS are Recents rows (owner, 2026-11-24): the title, the folder label and the rename field at the chats' 22 px, the row at their 60 px, the « … » and the chevron at the sizes the rows of the
+        // drawer use. The room kept at the end of a title follows the bigger « … ».
+        ['drawer-large', [PRES_WS + ' .kbpin_row .kbpin_open'], 'height:60px;line-height:60px;font-size:22px;padding-inline-end:56px'],
+        ['drawer-large', [PRES_WS + ' .kbpin_folder'], 'height:60px;font-size:22px;padding:0 16px'],
+        ['drawer-large', [PRES_WS + ' .kbpin_row .kbpin_edit'], 'height:52px;font-size:22px'],
+        ['drawer-large', [PRES_WS + ' .kbpin_row .kbpin_more'], 'width:52px;height:52px'],
+        ['drawer-large', [PRES_WS + ' .kbpin_row .kbpin_more svg'], 'width:24px;height:24px'],
+        ['drawer-large', [PRES_WS + ' .kbpin_header .kbpin_chevron svg'], 'width:20px;height:20px'],
+        ['drawer-large', ['.kbmob-avatar'], 'width:56px;height:56px;font-size:22px'],
+        ['drawer-large', ['.kbmob-newchat'], 'height:56px;border-radius:28px;gap:12px;font-size:21px'],
+        ['drawer-large', ['.kbmob-newchat svg'], 'width:26px;height:26px'],
+        ['drawer-large', ['.kbmob-menu'], 'width:52px;height:52px;border-radius:26px'],
+        ['drawer-large', ['.kbmob-menu svg'], 'width:30px;height:30px'],
+        // drawerPanels = hidden: the drawer draws only Kybernos's rows (Automations, Apps…) and then the Workspaces. The engine's own rows of the same list (its pinned pages: « Code review », « Automation tasks »,
+        // their unpin buttons, and its « More » launcher) are left out. No word is read: the engine translates their names, so a rule keyed on one language left the other with extra rows. A row is the engine's
+        // when it is a `panelEntry` of the sidebar's nav that does not hold the Kybernos menu (`.kb4-menu`); `moreAnchor` is the launcher's own box. A row the Kybernos menu draws is never one of them.
+        ['panels-hidden', [PRES_SIDEBAR + ' nav > [class*="panelEntry"]:not(:has(.kb4-menu))', PRES_SIDEBAR + ' nav > [class*="moreAnchor"]'], 'display:none'],
+        // composerSize = large: the message box's buttons are 52 px with drawings of 26 px, the model's name is 17 px inside a frame (it read as a label), the text 20 px.
+        // EVERY empty-field sentence of the box is 20 px, whatever the engine build draws it with: the box `[data-composer-placeholder]` itself (a build draws the sentence as its own text node,
+        // and the phone layer sizes that box at 12 to 16 px; Simple's « Ask Kaby anything » is such a node), the engine's slot inside it, and the placeholder of a plain field of the box.
+        ['composer-large', [PRES_CARD + ' [data-composer-input]', PRES_CARD + ' [data-composer-placeholder]', PRES_CARD + ' [data-composer-placeholder] *', PRES_CARD + ' [data-slot="conversation.input.placeholder"]', PRES_CARD + ' [data-slot="conversation.input.placeholder"] *'], 'font-size:20px;line-height:1.4'],
+        ['composer-large', [PRES_CARD + ' input::placeholder', PRES_CARD + ' textarea::placeholder'], 'font-size:20px'],
+        ['composer-large', [PRES_CARD + ' [data-composer-input]'], 'min-height:60px'],
+        ['composer-large', [PRES_CARD + ' button[aria-haspopup="listbox"]', PRES_CARD + ' button[class*="_primary"]'], 'width:48px;height:48px;min-width:48px;min-height:48px'],
+        ['composer-large', [PRES_CARD + ' button[aria-haspopup="listbox"] svg', PRES_CARD + ' button[class*="_primary"] svg'], 'width:24px;height:24px'],
+        // The model chip (list item 24, the mock-up's composer block): 15 px in a 48 px frame, as wide as its name needs and no wider, pushed against the send button; the name is whole and only an
+        // overflowing one ends in an ellipsis (the chip gives way before the send button does: it shrinks, the buttons never do).
+        ['composer-large', [PRES_CARD + ' [data-kb="model-seat"]'], 'flex:0 1 auto;min-width:0;margin-left:auto;height:48px;min-height:48px;padding:0 10px 0 12px;gap:6px;font-size:15px;line-height:1.2;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.35));border-radius:24px'],
+        ['composer-large', [PRES_CARD + ' [data-kb="model-seat"] .kbmsl-label'], 'font-size:15px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis'],
+        // The two icons never give way to a long name (a build of the engine lets every span of the seat shrink: measured at 6 px with an overflowing name, the icons were cut).
+        ['composer-large', [PRES_CARD + ' [data-kb="model-seat"] .kbmsl-ic', PRES_CARD + ' [data-kb="model-seat"] .kbmsl-chev'], 'flex:none;overflow:visible'],
+        ['composer-large', [PRES_CARD + ' [data-kb="model-seat"] svg'], 'width:16px;height:16px;flex:none'],
+        ['composer-large', [PRES_CARD + ' [data-kb="model-seat"] .kbmsl-chev svg'], 'width:16px;height:16px'],
+        // newChatCards: the Kybernos plugin draws the phone's cards (`.kb8-ncs`: the slider with « See all », right above the message box, the stack sitting over the box and the keyboard as in any messaging app;
+        // its own sheet is the default, `slider`). `grid`: the same six cards in three columns on the page instead of the slider, « See all » kept (the sheet's own grid, `.kb8-ncs-shgr`, stays a sheet's). `hidden`: no card at
+        // all, and the empty chat is the engine's own (its scroller centres the stack: the message box under the headline).
+        ['nccards-grid', ['.kb8-ncs-sl'], 'display:none'],
+        ['nccards-grid', ['.kb8-ncs-gr:not(.kb8-ncs-shgr)'], 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0 16px'],
+        ['nccards-grid', ['.kb8-ncs-gr:not(.kb8-ncs-shgr) .kb8-ncs-card'], 'width:auto'],
+        ['nccards-hidden', ['.kb8-ncs'], 'display:none'],
+        ['nccards-hidden', ['[class*="scrollBody"]:has(.kb8-ncs)'], 'justify-content:safe center'],
+        // rating `thumbs` (list item 31): the Kybernos plugin draws BOTH the five stars (`.kbq-rating-etoiles`, with its question) and the two thumbs (`.kbq-rating-pouces`, hidden by its own CSS); this token
+        // shows the thumbs, 44 px each, and hides the stars. Up is a 5 sent at once, down opens the same sheet as a low star.
+        ['rating-thumbs', ['.kbq-rating .kbq-rating-question', '.kbq-rating .kbq-rating-etoiles'], 'display:none'],
+        ['rating-thumbs', ['.kbq-rating .kbq-rating-pouces'], 'display:inline-flex'],
+        ['rating-thumbs', ['.kbq-rating .kbq-rating-pouce'], 'width:44px;height:44px;min-width:44px'],
+        // once rated, the thumbs STAY in the row (the lit one says what was chosen) and the thank-you line goes under the row: the card gives its two parts to the row, the rating tag is left out
+        ['rating-thumbs', ['.kbq-rating:has(.kbq-rating-merci)'], 'display:contents'],
+        ['rating-thumbs', ['.kbq-rating-merci'], 'order:9;flex:1 0 100%;padding-left:6px;font-size:14px'],
+        ['rating-thumbs', ['.kbq-rating-merci > .kbq-rating-tag:first-child'], 'display:none'],
+        // after a thumbs-up the share box is shown, ticked as it was sent: a 44 px line, its box big enough for a thumb
+        ['rating-thumbs', ['.kbq-rating-partage-apres'], 'min-height:44px;gap:10px;font-size:14px'],
+        ['rating-thumbs', ['.kbq-rating-partage-apres input'], 'width:22px;height:22px;margin:0;flex:none'],
+        // messageSize (list item 33): the engine keeps the size of the chat's text in --dsh-content-font-size (on <body>, set by General › Font size, 12 to 17 px); the phone's stylesheet gives the chat 17 px
+        // (`standard`, no token), uses that variable for the answer's text and derives the size of the code from it. The three other sizes are this variable on the chat itself (the menu is not touched).
+        ['msg-compact', [PRES_FLOW], '--dsh-content-font-size:15px'],
+        ['msg-large', [PRES_FLOW], '--dsh-content-font-size:19px'],
+        ['msg-xlarge', [PRES_FLOW], '--dsh-content-font-size:21px']
+      ]
+      /** The base of the presentation sheet, outside the media query: what `presWalk` adds stays out of sight until a token asks for it. */
+      const PRES_BASE = '.kbth-info,.kbth-navback{display:none}'
+      /** The presentation stylesheet: static, inert until `<html>` carries a token. */
+      const presCss = () => PRES_BASE + '\n@media ' + PRES_MEDIA + '{\n' + PRES_RULES.map((r) => r[1].map((x) => presSel(r[0]) + ' ' + x).join(',') + '{' + r[2].split(';').map((d) => d + '!important').join(';') + '}').join('\n') + '\n}'
+      /** Whether the locked Simple small-screen presentation applies now: Simple mode (`html.kb-simple` when `data-kb-mode` is set, else `kb-simple` or `kb-kaby`) on a small screen matching `PRES_MEDIA` (never on a wide desktop). */
+      const presSimplePhone = () => {
+        try {
+          const root = document.documentElement
+          const hasMode = typeof root.hasAttribute === 'function' && root.hasAttribute('data-kb-mode')
+          const simple = hasMode ? root.classList.contains('kb-simple') : (root.classList.contains('kb-simple') || root.classList.contains('kb-kaby'))
+          if (!simple) return false
+          if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') return window.matchMedia(PRES_MEDIA).matches === true
+          return root.classList.contains('kb-kaby')
+        } catch (e) { return false }
+      }
+      /** The tokens that are on: a person's own setting (anything but the default) wins; the phone's Simple preset asks for the rest in Simple mode on a small screen; else the default (only `rating` has a default that turns a token on: thumbs, in Simple and in Complete). */
+      const presTokens = (S) => {
+        const locked = presSimplePhone() ? lockedPresentation() : {}
+        return PRES_TOKENS.filter((t) => (S[t[0]] !== undefined && S[t[0]] !== DEF[t[0]] ? S[t[0]] : (locked[t[0]] !== undefined ? locked[t[0]] : DEF[t[0]])) === t[1]).map((t) => t[2])
+      }
+      const INFO_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.2"/><circle cx="12" cy="7.8" r=".7" fill="currentColor"/></svg>'
+      let presSeq = 0
+      let presListening = false
+      let presWatch = null
+      let presQueued = false
+      /** Puts back (or takes away) what the presentation adds to the DOM, from the tokens now on <html>. Idempotent: it changes nothing when everything is in place, so the observer that calls it cannot loop. */
+      const presWalk = () => {
+        presQueued = false
+        try {
+          const tokens = (document.documentElement.getAttribute(PRES_ATTR) || '').split(' ')
+          const fold = tokens.indexOf('desc-info') >= 0
+          const nav = tokens.indexOf('tabs-list') >= 0
+          const named = tokens.indexOf('help-named') >= 0
+          const word = named ? kt('Aide', 'Help') : ''
+          document.querySelectorAll(PRES_HELP_BTN.join(',')).forEach((b) => {
+            if (!named) { if (b.hasAttribute('data-kb-help-word')) b.removeAttribute('data-kb-help-word'); return }
+            if (b.getAttribute('data-kb-help-word') !== word) b.setAttribute('data-kb-help-word', word)
+          })
+          document.querySelectorAll('[data-kb-desc="fold"]').forEach((d) => {
+            const t = d.previousElementSibling
+            if (t === null) return
+            const mine = t.querySelector(':scope > .kbth-info')
+            if (!fold) { if (mine !== null) mine.remove(); d.removeAttribute('data-kb-open'); return }
+            if (mine !== null) return
+            if (!d.id) { presSeq += 1; d.id = 'kbth-d' + presSeq }
+            const b = document.createElement('button')
+            b.type = 'button'; b.className = 'kbth-info'; b.setAttribute('aria-expanded', d.getAttribute('data-kb-open') === '1' ? 'true' : 'false'); b.setAttribute('aria-controls', d.id)
+            b.setAttribute('aria-label', kt('En savoir plus sur ce réglage', 'More about this setting')); b.innerHTML = INFO_ICON
+            t.appendChild(b)
+          })
+          document.querySelectorAll(PRES_KABY).forEach((pg) => {
+            const tl = pg.querySelector(':scope > .kbkc-tabs')
+            const back = pg.querySelector(':scope > .kbth-navback')
+            const title = pg.querySelector('[data-kb="page-title"], .kbhp-title')
+            if (!nav || tl === null) {
+              if (back !== null) back.remove()
+              pg.removeAttribute('data-kb-nav')
+              if (title !== null) title.removeAttribute('data-kb-section')
+              return
+            }
+            if (!pg.hasAttribute('data-kb-nav')) pg.setAttribute('data-kb-nav', 'menu')
+            const name = title !== null ? (title.textContent || '').trim() : ''
+            let b = back
+            if (b === null) { b = document.createElement('button'); b.type = 'button'; b.className = 'kbth-navback'; pg.insertBefore(b, pg.firstChild) }
+            if (b.textContent !== name) b.textContent = name
+            if (title !== null) {
+              if (pg.getAttribute('data-kb-nav') === 'page') {
+                const sel = tl.querySelector('[role="tab"][aria-selected="true"]')
+                const label = sel !== null ? (sel.textContent || '').trim() : ''
+                if (title.getAttribute('data-kb-section') !== label) title.setAttribute('data-kb-section', label)
+              } else if (title.hasAttribute('data-kb-section')) title.removeAttribute('data-kb-section')
+            }
+          })
+        } catch (e) { /* a page that is gone, or outside a browser */ }
+      }
+      const presQueue = () => { if (presQueued) return; presQueued = true; Promise.resolve().then(presWalk) }
+      const presClick = (ev) => {
+        try {
+          const t = ev.target
+          if (t === null || typeof t.closest !== 'function') return
+          const info = t.closest('.kbth-info')
+          if (info !== null) {
+            const d = info.parentElement !== null ? info.parentElement.nextElementSibling : null
+            if (d !== null) { const open = d.getAttribute('data-kb-open') !== '1'; if (open) d.setAttribute('data-kb-open', '1'); else d.removeAttribute('data-kb-open'); info.setAttribute('aria-expanded', open ? 'true' : 'false') }
+            ev.preventDefault(); ev.stopPropagation()
+            return
+          }
+          const back = t.closest('.kbth-navback')
+          if (back !== null && back.parentElement !== null) { back.parentElement.setAttribute('data-kb-nav', 'menu'); presWalk(); back.parentElement.scrollIntoView({ block: 'start' }); ev.preventDefault(); ev.stopPropagation(); return }
+          const tab = t.closest('.kbkc-tabs > [role="tab"]')
+          if (tab !== null && tab.parentElement !== null && tab.parentElement.parentElement !== null) {
+            const pg = tab.parentElement.parentElement
+            if (pg.getAttribute('data-kb-nav') === 'menu' && window.matchMedia(PRES_MEDIA).matches) {
+              const title = pg.querySelector('[data-kb="page-title"], .kbhp-title')
+              if (title !== null) title.setAttribute('data-kb-section', (tab.textContent || '').trim())
+              pg.setAttribute('data-kb-nav', 'page')
+              pg.scrollIntoView({ block: 'start' })
+            }
+          }
+        } catch (e) { /* the page is gone */ }
+      }
+      /** The attribute on <html> follows the tokens; the hand of the DOM (`presWalk`, the clicks) runs only while one is on. */
+      const presSync = (S) => {
+        try {
+          const tokens = presTokens(S)
+          const html = document.documentElement
+          if (tokens.length > 0) html.setAttribute(PRES_ATTR, tokens.join(' ')); else html.removeAttribute(PRES_ATTR)
+          const want = tokens.indexOf('desc-info') >= 0 || tokens.indexOf('tabs-list') >= 0
+          if (want && !presListening) {
+            presListening = true
+            document.addEventListener('click', presClick, true)
+            if (typeof MutationObserver === 'function') { presWatch = new MutationObserver(presQueue); presWatch.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-selected'] }) }
+          } else if (!want && presListening) {
+            presListening = false
+            document.removeEventListener('click', presClick, true)
+            if (presWatch !== null) { presWatch.disconnect(); presWatch = null }
+          }
+          presWalk()
+        } catch (e) { /* outside a browser */ }
+      }
+      // kb-pres:end
+
       /** The sheet of effects that are not tokens: glass (blur), ligatures, logo, motion, focus,
        *  targets, links. A pure string (testable); empty when nothing is requested. The selectors are
        *  DSH's STABLE hooks (`data-slot`, `data-composer-card`, ARIA roles), never its hashed classes. */
@@ -1248,9 +1650,35 @@ window.__ModuleLoader__.load({
         if (!S.wgSessions) css.push(dock + ' [data-kb="status-pill"]{display:none!important}')
         if (!S.wgChanges) css.push(dock + ' [data-kb="changes"]{display:none!important}')
         if (!S.wgUsage) css.push(dock + ' [data-kb="usage-chip"]{display:none!important}')
+        if (S.skin === 'epure') {
+          css.push(EPURE_CSS)
+          if (S.bubbleUser === 'auto') css.push(EPURE_BUBBLE_CSS)
+        }
+        if (typeof navigator !== 'undefined' && /Electron\//i.test(String(navigator.userAgent || '')) && /Mac/i.test(String(navigator.userAgent || ''))) {
+          css.push(
+            'html[data-kb-electron="darwin"] [data-slot="sidebar"]{padding-top:34px}',
+            'html[data-kb-electron="darwin"] header[class*="_header"]{-webkit-app-region:drag}',
+            'html[data-kb-electron="darwin"] header[class*="_header"] :is(button,a,input,select,[role="button"]){-webkit-app-region:no-drag}'
+          )
+        }
         if (S.autoHideBars) css.push(AUTOHIDE_CSS)
         return css.join('\n')
       }
+      /** Codex-inspired minimalist refinements for the "Pure (Codex)" preset:
+       *  whisper hairline dividers, floating rounded composer card, soft blue user message pill,
+       *  and airy pill navigation rows. */
+      const EPURE_CSS = [
+        'body:not([data-ds-dark-theme]){--dsw-alias-border-l1:rgba(0,0,0,.055);--dsw-alias-border-l2:rgba(0,0,0,.09)}',
+        'body[data-ds-dark-theme]{--dsw-alias-border-l1:rgba(255,255,255,.065);--dsw-alias-border-l2:rgba(255,255,255,.11)}',
+        '[data-composer-card]{border-radius:20px!important;border:1px solid var(--dsw-alias-border-l2)!important}',
+        'body:not([data-ds-dark-theme]) [data-composer-card]{box-shadow:0 1px 2px rgba(0,0,0,.03),0 8px 24px rgba(0,0,0,.05)!important}',
+        'body[data-ds-dark-theme] [data-composer-card]{box-shadow:0 2px 14px rgba(0,0,0,.28)!important}',
+        '[data-slot="sidebar"]{border-inline-end:1px solid var(--dsw-alias-border-l1)!important}'
+      ].join('')
+      const EPURE_BUBBLE_CSS = [
+        'body:not([data-ds-dark-theme]) [data-chat-flow-kind="user"]{--dsw-specific-bubble:#e8f1fe;--dsw-alias-label-primary:#1a1c1f}',
+        'body[data-ds-dark-theme] [data-chat-flow-kind="user"]{--dsw-specific-bubble:#1e2c44;--dsw-alias-label-primary:#f3f4f6}'
+      ].join('')
       /** Bars on hover (owner's call, 2026-10-22). Only on a pointer that can hover: a touch screen has nothing to hover with.
        *  - The collapsed rail slides out to an 8 px sliver and the chat takes its column back (the three columns are placed by hand so the
        *    grid does not reflow); it comes back while the pointer or the keyboard is in it, or while a menu opened from it is open
@@ -1260,22 +1688,174 @@ window.__ModuleLoader__.load({
       const AUTOHIDE_FRAME = '[class*="_frame"]:has(>[class*="_sidebarCol"] [class*="_collapsed"])'
       const AUTOHIDE_RAIL = AUTOHIDE_FRAME + '>[class*="_sidebarCol"]'
       const AUTOHIDE_TOP = '[class*="_centerCol"] header[class*="_header"]:has(>[class*="_headerLeading"])'
+      // The chat column that holds the top bar. ONE `:has()`: CSS does not allow a `:has()` inside a `:has()` (the old `position:relative` rule of this
+      // column was written that way and never applied), so the bar's own `:has(>_headerLeading)` is spelled as a child combinator here.
+      const AUTOHIDE_COL = '[class*="_centerCol"]:has(header[class*="_header"]>[class*="_headerLeading"])'
+      const TAB_W = 44
+      const TAB_H = 18
+      const TAB_CHEVRON = 'url("data:image/svg+xml;utf8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 12 12\'%3E%3Cpath d=\'M2 4.5l4 4 4-4\' fill=\'none\' stroke=\'black\' stroke-width=\'1.6\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/%3E%3C/svg%3E")'
       const AUTOHIDE_CSS = '@media (hover:hover) and (pointer:fine){' +
         AUTOHIDE_FRAME + '>[class*="_centerCol"]{grid-column:1 / 3;grid-row:1}' +
         AUTOHIDE_FRAME + '>[class*="_rightbarCol"]{grid-column:3;grid-row:1}' +
         AUTOHIDE_RAIL + '{grid-column:1;grid-row:1;z-index:40;transform:translateX(calc(-100% + 8px));transition:transform .18s ease .2s,box-shadow .18s ease .2s;background:var(--dsw-alias-bg-layer-1)}' +
         'html[dir="rtl"] ' + AUTOHIDE_RAIL + '{transform:translateX(calc(100% - 8px))}' +
         AUTOHIDE_RAIL + ':hover,' + AUTOHIDE_RAIL + ':focus-within,' + AUTOHIDE_RAIL + ':has([aria-haspopup][aria-expanded="true"]){transform:none;transition-delay:0s;box-shadow:0 0 28px rgba(0,0,0,.35)}' +
-        '[class*="_centerCol"]:has(' + AUTOHIDE_TOP.slice('[class*="_centerCol"] '.length) + '){position:relative}' +
-        AUTOHIDE_TOP + '{position:absolute;inset-inline:0;top:0;z-index:30;transform:translateY(calc(-100% + 6px));transition:transform .18s ease .2s,box-shadow .18s ease .2s;background:var(--dsw-alias-bg-layer-1)}' +
+        AUTOHIDE_COL + '{position:relative}' +
+        // `app-region:no-drag`: in the desktop app the top bar is the window's drag handle, and the 6 px sliver that stays on screen would then be
+        // drag area, which never gets the pointer: the bar could not be brought back by hovering it (seen in the Electron app, 2026-11-18). While
+        // the bars hide on hover, the window is dragged by the sidebar's own top row.
+        AUTOHIDE_TOP + '{position:absolute;inset-inline:0;top:0;z-index:30;transform:translateY(calc(-100% + 6px));transition:transform .18s ease .2s,box-shadow .18s ease .2s;background:var(--dsw-alias-bg-layer-1);app-region:no-drag;-webkit-app-region:no-drag}' +
         AUTOHIDE_TOP + ':hover,' + AUTOHIDE_TOP + ':focus-within,' + AUTOHIDE_TOP + ':has([aria-haspopup][aria-expanded="true"]){transform:none;transition-delay:0s;box-shadow:0 8px 24px rgba(0,0,0,.28)}' +
+        // `data-kbth-peek` is set by `peekBind` below while the pointer is in the top PEEK_ZONE px of the bar's column: same look as a hover.
+        'html[data-kbth-peek] ' + AUTOHIDE_TOP + '{transform:none;transition-delay:0s;box-shadow:0 8px 24px rgba(0,0,0,.28)}' +
+        // Pinned (button below, or Ctrl/⌘+Shift+H): the bar is back in the flow of the page, as DSH draws it, and stays.
+        'html[data-kbth-pin-top] ' + AUTOHIDE_TOP + '{position:relative;transform:none;box-shadow:none;transition:none}' +
+        // The tab: a small handle hanging from the top edge of the chat column, always on screen, that pins / unpins the bar. Two pseudo-elements of the
+        // column, so nothing is added to DSH's DOM; `pinBind` finds a click on it by its place. Down chevron = show the bar, up chevron = let it hide.
+        AUTOHIDE_COL + '::before{content:"";position:absolute;z-index:31;top:0;inset-inline-start:50%;margin-inline-start:-' + (TAB_W / 2) + 'px;width:' + TAB_W + 'px;height:' + TAB_H + 'px;box-sizing:border-box;border-radius:0 0 10px 10px;background:var(--dsw-alias-bg-layer-1);box-shadow:inset 0 0 0 1px var(--dsw-alias-border-l2);opacity:.8;cursor:pointer}' +
+        AUTOHIDE_COL + '::after{content:"";position:absolute;z-index:32;top:3px;inset-inline-start:50%;margin-inline-start:-6px;width:12px;height:12px;pointer-events:none;background:var(--dsw-alias-label-secondary,currentColor);-webkit-mask:' + TAB_CHEVRON + ' center/contain no-repeat;mask:' + TAB_CHEVRON + ' center/contain no-repeat}' +
+        'html[data-kbth-pin-top] ' + AUTOHIDE_COL + '::after{transform:scaleY(-1)}' +
         '}'
+      /** The reach of the hidden top bar (owner, 2026-11-19: « toujours dur » in the desktop app). The 6 px sliver is too thin to stop on: in the
+       *  desktop app the page starts right under the window's own title bar, so a hand that goes up overshoots it, and the pointer that leaves
+       *  the page loses its hover. So the bar also comes down while the pointer is in the top PEEK_ZONE px of its column, stays down while the
+       *  pointer is inside it, and waits PEEK_LINGER ms when the pointer leaves the page by the top (the overshoot) before it goes back up.
+       *  Cheap: a pointer below the zone, with the bar up, costs one comparison. `doc` is a parameter so the test can drive it. */
+      const PEEK_ZONE = 28
+      const PEEK_LINGER = 700
+      const PEEK_ATTR = 'data-kbth-peek'
+      const peekBind = (doc) => {
+        const root = doc.documentElement
+        let on = false
+        let timer = null
+        const cancel = () => { if (timer !== null) { clearTimeout(timer); timer = null } }
+        const set = (v) => {
+          if (v === on) return
+          on = v
+          try { if (v) root.setAttribute(PEEK_ATTR, '1'); else root.removeAttribute(PEEK_ATTR) } catch (e) { /* no document element */ }
+        }
+        const onMove = (ev) => {
+          try {
+            const y = ev.clientY
+            if (!on && !(y <= PEEK_ZONE)) return
+            const h = doc.querySelector(AUTOHIDE_TOP)
+            if (h === null) { cancel(); set(false); return }
+            const r = h.getBoundingClientRect()
+            const inside = ev.clientX >= r.left && ev.clientX <= r.right
+            if (inside && y <= PEEK_ZONE) { cancel(); set(true); return }
+            // the bar is down: it stays while the pointer is on it (a few px of margin below), and goes up as soon as the pointer is anywhere else
+            if (on && inside && y <= Math.max(PEEK_ZONE, r.bottom) + 6) { cancel(); return }
+            cancel(); set(false)
+          } catch (e) { /* a page without these APIs: the CSS hover still works */ }
+        }
+        const onLeave = (ev) => {
+          // the pointer left the page: by the top it is the overshoot, give it a moment to come back; anywhere else the bar goes up now
+          if (!on) return
+          cancel()
+          if (ev && ev.clientY <= 1) timer = setTimeout(() => { timer = null; set(false) }, PEEK_LINGER)
+          else set(false)
+        }
+        // `mouseleave` does not bubble, so without capture only the page itself (<html>) reaches `onLeave`: leaving a button inside the bar does not.
+        doc.addEventListener('mousemove', onMove, { capture: true, passive: true })
+        root.addEventListener('mouseleave', onLeave)
+        return () => {
+          cancel()
+          set(false)
+          try { doc.removeEventListener('mousemove', onMove, { capture: true }) } catch (e) { /* gone */ }
+          try { root.removeEventListener('mouseleave', onLeave) } catch (e) { /* gone */ }
+        }
+      }
+      /** Hide / unhide by hand (owner, 2026-11-19: « ya pas de système, hide, unhide ? »). Two ways to the same switch: the tab drawn under the
+       *  column's top edge (see AUTOHIDE_CSS) and Ctrl/⌘+Shift+H. Pinned = the top bar stays in place as DSH draws it; unpinned = it hides to the
+       *  sliver and comes back on hover. Kept in this browser's localStorage (a per-viewer convenience; a private window forgets it). */
+      const PIN_KEY = 'kybernos.top-bar-pinned'
+      const PIN_ATTR = 'data-kbth-pin-top'
+      const pinBind = (doc) => {
+        const root = doc.documentElement
+        const win = doc.defaultView
+        const read = () => { try { return win.localStorage.getItem(PIN_KEY) === '1' } catch (e) { return false } }
+        const write = (v) => { try { if (v) win.localStorage.setItem(PIN_KEY, '1'); else win.localStorage.removeItem(PIN_KEY) } catch (e) { /* no storage: it lasts until the page closes */ } }
+        let pinned = read()
+        const apply = () => { try { if (pinned) root.setAttribute(PIN_ATTR, '1'); else root.removeAttribute(PIN_ATTR) } catch (e) { /* no document element */ } }
+        const toggle = () => { pinned = !pinned; write(pinned); apply() }
+        const onClick = (ev) => {
+          try {
+            if (ev.button !== undefined && ev.button !== 0) return
+            const col = ev.target
+            // a click on the tab (a pseudo-element) lands on the column itself: it is the tab only inside the tab's box, at the top and centre of the column
+            if (col === null || col === undefined || typeof col.matches !== 'function' || !col.matches(AUTOHIDE_COL)) return
+            const r = col.getBoundingClientRect()
+            if (ev.clientY < r.top || ev.clientY > r.top + TAB_H || Math.abs(ev.clientX - (r.left + r.width / 2)) > TAB_W / 2) return
+            ev.preventDefault(); ev.stopPropagation(); toggle()
+          } catch (e) { /* a page without these APIs: the shortcut still works */ }
+        }
+        const onKey = (ev) => {
+          try {
+            if (ev.shiftKey !== true || ev.altKey === true || (ev.metaKey !== true && ev.ctrlKey !== true)) return
+            if (ev.code !== 'KeyH' && String(ev.key).toLowerCase() !== 'h') return
+            if (doc.querySelector(AUTOHIDE_TOP) === null) return // no top bar on this page: the keys stay free
+            ev.preventDefault(); ev.stopPropagation(); toggle()
+          } catch (e) { /* idem */ }
+        }
+        apply()
+        doc.addEventListener('click', onClick, true)
+        doc.addEventListener('keydown', onKey, true)
+        return () => {
+          try { doc.removeEventListener('click', onClick, true) } catch (e) { /* gone */ }
+          try { doc.removeEventListener('keydown', onKey, true) } catch (e) { /* gone */ }
+          try { root.removeAttribute(PIN_ATTR) } catch (e) { /* gone */ }
+        }
+      }
       let effetsDispose = null
+      let peekDispose = null
+      let pinDispose = null
+      // Touch comfort: the stylesheet is inserted once (it is inert without the attribute); the attribute follows the person's setting, or the locked preset's `touch` option while the app is in Kaby mode
+      // (`kb-kaby` on <html>, put there by the Mobile bundle, maybe after this runs: the class is watched).
+      let touchDispose = null
+      let presDispose = null
+      let touchLast = null
+      let touchWatch = null
+      let presMq = null
+      let countersLast = null
+      const touchWanted = (S) => {
+        if (S.touch === true) return true
+        try { return document.documentElement.classList.contains('kb-kaby') && lockedTouch() } catch (e) { return false }
+      }
+      const touchSync = (S) => {
+        try { if (touchWanted(S)) document.documentElement.setAttribute(TOUCH_ATTR, 'on'); else document.documentElement.removeAttribute(TOUCH_ATTR) } catch (e) { /* outside a browser */ }
+      }
       const appliquerEffets = (S) => {
+        touchLast = S
+        touchSync(S)
+        presSync(S)
+        try {
+          if (touchDispose === null) touchDispose = styles.insert(touchCss())
+          if (presDispose === null) presDispose = styles.insert(presCss())
+          if (touchWatch === null && typeof MutationObserver === 'function') {
+            touchWatch = new MutationObserver(() => { if (touchLast !== null) { touchSync(touchLast); presSync(touchLast) } })
+            touchWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+          }
+          if (presMq === null && typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+            const mq = window.matchMedia(PRES_MEDIA)
+            if (mq !== null && mq !== undefined && typeof mq.addEventListener === 'function') {
+              presMq = mq
+              mq.addEventListener('change', () => { if (touchLast !== null) presSync(touchLast) })
+            }
+          }
+        } catch (e) { /* outside a browser */ }
         if (effetsDispose !== null) { try { effetsDispose() } catch (e) { /* already removed */ } effetsDispose = null }
+        if (peekDispose !== null) { try { peekDispose() } catch (e) { /* already removed */ } peekDispose = null }
+        if (pinDispose !== null) { try { pinDispose() } catch (e) { /* already removed */ } pinDispose = null }
+        if (S.autoHideBars) { try { if (typeof document !== 'undefined') { peekDispose = peekBind(document); pinDispose = pinBind(document) } } catch (e) { /* hors navigateur */ } }
         // The thinking-animation engine also reads this attribute: “reduce” applies to it too.
         try { if (S.reduceMotion) document.documentElement.setAttribute('data-kbth-reduced', '1'); else document.documentElement.removeAttribute('data-kbth-reduced') } catch (e) { /* hors navigateur */ }
         try { if (S.cbSafe) document.documentElement.setAttribute('data-kbth-cb', '1'); else document.documentElement.removeAttribute('data-kbth-cb') } catch (e) { /* hors navigateur */ }
+        // The notification counters (title count, app badge): kybernos-pulse reads this attribute, always 'shown' or 'hidden', and is told of a change by the window event `kb-counters-change`.
+        try {
+          const want = S.notifCounters === 'shown' ? 'shown' : 'hidden'
+          document.documentElement.setAttribute('data-kbth-counters', want)
+          if (countersLast !== want) { countersLast = want; window.dispatchEvent(new CustomEvent('kb-counters-change', { detail: want })) }
+        } catch (e) { /* hors navigateur */ }
         const css = effetsCss(S)
         if (css !== '') effetsDispose = styles.insert(css)
       }
@@ -1528,7 +2108,7 @@ window.__ModuleLoader__.load({
         { id: 'education', words: { fr: ['Préparation du cours', 'Correction', 'Différenciation', 'Évaluation', 'Mise en séquence'], en: ['Planning the lesson', 'Marking', 'Differentiating', 'Assessing', 'Sequencing'] } }
       ]
       named(LD_PACKS, {
-        dsh: ['DSH d’origine', 'DSH original'],
+        dsh: ['Kybernos d’origine', 'Kybernos original'],
         mer: ['Mer', 'Sea'],
         cuisine: ['Cuisine', 'Kitchen'],
         atelier: ['Atelier créatif', 'Creative studio'],
@@ -1835,7 +2415,7 @@ window.__ModuleLoader__.load({
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // 4c. THEME LIBRARY ("My themes").
+      // 4c. THEME LIBRARY (the presets of « Mine »).
       //
       //   A preset is DATA: a name plus the settings it retains, in groups so that the person
       //   chooses what travels with it (colours, font, corners, glass and wallpaper,
@@ -1860,7 +2440,7 @@ window.__ModuleLoader__.load({
         icons: ['iconSet'],
         chat: ['bubbleUser', 'textUser', 'replyBg', 'replyColor', 'textReply'],
         glass: ['wp', 'wpVis', 'wpBlur', 'tint', 'glassEffect', 'glassBlur', 'sidebarLinked', 'sidebarOpacity', 'fieldOpacity', 'floatOpacity', 'bgBrightness', 'bgContrast', 'bgSaturation', 'bgDarken', 'bgFit', 'bgMirror'],
-        a11y: ['contrastMode', 'cbSafe', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks']
+        a11y: ['contrastMode', 'cbSafe', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks', 'touch']
       }
       const PRESET_GROUP_NAMES = {
         colors: ['Couleurs et accent', 'Colors and accent'],
@@ -1877,9 +2457,79 @@ window.__ModuleLoader__.load({
       const PRESET_LIMIT = 100
       const PRESET_NAME_MAX = 40
       const PRESET_ID = /^[a-z0-9][a-z0-9-]{0,63}$/
-      const PRESET_SOURCES = ['me', 'file', 'gallery']
+      const PRESET_SOURCES = ['me', 'file', 'gallery', 'template']
       const PRESET_FILE_MAX = 200 * 1024
       const LIB_KEY = 'kybernos.theme.presets.v1'
+      /** The menu in use, as the menu itself reads it at first paint (kybernos-plugin/client.js `kbMenuPrefsRead`): written only by this page. */
+      const MENU_KEY = 'kybernos.theme.menu.v1'
+      const MENU_EVENT = 'kb-menu-prefs-change'
+      // The menu arrangement: { entries: [{ id, shown, order, label? }], unlisted: 'show' | 'hide', locked }. Three copies of this check
+      // exist and must agree (preset-store.mjs `sanitizeMenu`, kybernos-plugin/client.js `kbMenuPrefsClean`); each package's test pins the same vectors.
+      const MENU_ENTRIES_MAX = 24
+      const MENU_LABEL_MAX = 40
+      const MENU_ID = /^[a-z][a-z0-9-]{1,23}$/
+      /** The rows a person can never hide: the host's own (Workspaces, Settings, the account). They cannot even be stored. */
+      const MENU_NEVER = ['workspaces', 'projects', 'settings', 'account']
+      /**
+       * The two other places an arrangement shows or hides entries (`surfaces` of the arrangement; the main menu is its own `entries`): the SECONDARY menu (the account menu the avatar
+       * opens) and the SETTINGS pages. `never`: ids that cannot even be stored there (Settings, the account, the referral and the sign-out open the app's own screens on the phone;
+       * General is the page Settings opens on). Their entries are { id, shown, order }: no name. Mirrors preset-store.mjs `MENU_SURFACES`.
+       */
+      const MENU_SURFACES = { secondary: { never: ['account', 'referral', 'settings', 'logout'], max: 24 }, settings: { never: ['general'], trustedNever: [], max: 64 } }
+      const MENU_SURFACE_IDS = ['secondary', 'settings']
+      const MENU_LANGS = ['en', 'fr', 'es', 'ar']
+      const menuText = (s) => String(s).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ').replace(/\s+/g, ' ').trim()
+      /** One surface of an arrangement (the secondary menu or the Settings pages) out of any value, or null when it says nothing. Same checks as the main menu's entries. */
+      const menuSurfaceClean = (raw, spec, trusted) => {
+        const never = trusted === true && Array.isArray(spec.trustedNever) ? spec.trustedNever : spec.never
+        if (raw === null || typeof raw !== 'object' || Array.isArray(raw) || !Array.isArray(raw.entries)) return null
+        const seen = new Set()
+        const kept = []
+        for (const e of raw.entries) {
+          if (kept.length >= spec.max) break
+          if (e === null || typeof e !== 'object' || Array.isArray(e) || typeof e.id !== 'string' || !MENU_ID.test(e.id) || never.indexOf(e.id) >= 0 || seen.has(e.id) || typeof e.shown !== 'boolean') continue
+          seen.add(e.id)
+          kept.push({ id: e.id, shown: e.shown, order: Number.isInteger(e.order) && e.order >= 0 && e.order <= 99 ? e.order : kept.length })
+        }
+        kept.sort((a, b) => a.order - b.order)
+        kept.forEach((e, i) => { e.order = i })
+        const unlisted = raw.unlisted === 'hide' ? 'hide' : 'show'
+        return kept.length === 0 && unlisted === 'show' ? null : { entries: kept, unlisted }
+      }
+      /** One arrangement out of any value, or null. Bad entries are dropped one by one, never trusted; sorted by `order`, renumbered 0..n-1. `surfaces` is kept only when it says something. */
+      const menuClean = (raw, trusted) => {
+        if (raw === null || typeof raw !== 'object' || Array.isArray(raw) || !Array.isArray(raw.entries)) return null
+        const seen = new Set()
+        const kept = []
+        for (const e of raw.entries) {
+          if (kept.length >= MENU_ENTRIES_MAX) break
+          if (e === null || typeof e !== 'object' || Array.isArray(e) || typeof e.id !== 'string' || !MENU_ID.test(e.id) || MENU_NEVER.indexOf(e.id) >= 0 || seen.has(e.id) || typeof e.shown !== 'boolean') continue
+          seen.add(e.id)
+          const entry = { id: e.id, shown: e.shown, order: Number.isInteger(e.order) && e.order >= 0 && e.order <= 99 ? e.order : kept.length }
+          if (e.label !== null && typeof e.label === 'object' && !Array.isArray(e.label)) {
+            const label = {}
+            MENU_LANGS.forEach((l) => {
+              if (typeof e.label[l] !== 'string') return
+              const t = menuText(e.label[l])
+              if (t !== '' && t.length <= MENU_LABEL_MAX && !/[<>]/.test(t)) label[l] = t
+            })
+            if (Object.keys(label).length > 0) entry.label = label
+          }
+          kept.push(entry)
+        }
+        kept.sort((a, b) => a.order - b.order)
+        kept.forEach((e, i) => { e.order = i })
+        const out = { entries: kept, unlisted: raw.unlisted === 'hide' ? 'hide' : 'show', locked: raw.locked === true }
+        if (raw.surfaces !== null && typeof raw.surfaces === 'object' && !Array.isArray(raw.surfaces)) {
+          const surfaces = {}
+          MENU_SURFACE_IDS.forEach((k) => { const v = menuSurfaceClean(raw.surfaces[k], MENU_SURFACES[k], trusted === true); if (v !== null) surfaces[k] = v })
+          if (Object.keys(surfaces).length > 0) out.surfaces = surfaces
+        }
+        return out
+      }
+      /** Does a cleaned arrangement say anything: an entry on the main menu or on another surface, or a surface that hides what it does not list? */
+      const menuHasContent = (menu) => menu !== null && menu !== undefined && (menu.entries.length > 0 || menu.surfaces !== undefined)
+      const menuSame = (a, b) => JSON.stringify(a === undefined ? null : a) === JSON.stringify(b === undefined ? null : b)
 
       /** The settings of a theme out of any object: only the keys a theme may carry, only valid values. null when nothing is left. */
       const presetSettings = (raw) => {
@@ -1891,27 +2541,31 @@ window.__ModuleLoader__.load({
       }
       const presetName = (raw) => (typeof raw === 'string'
         ? raw.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, PRESET_NAME_MAX) : '')
-      /** One library record, or null. The same shape check as the host's (preset-store.mjs), plus the meaning of the values. */
+      /** One library record, or null. The same shape check as the host's (preset-store.mjs), plus the meaning of the values. A preset holds an appearance part (`settings`), a menu part (`menu`), or both. */
       const presetRecord = (raw) => {
         if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null
         if (typeof raw.id !== 'string' || !PRESET_ID.test(raw.id)) return null
         const name = presetName(raw.name)
         const settings = presetSettings(raw.settings)
-        if (name === '' || settings === null) return null
+        const menu = raw.menu === undefined || raw.menu === null ? null : menuClean(raw.menu)
+        const menuOk = menuHasContent(menu)
+        if (name === '' || (settings === null && !menuOk)) return null
         const rec = {
-          id: raw.id, name, settings,
+          id: raw.id, name,
           source: PRESET_SOURCES.indexOf(raw.source) >= 0 ? raw.source : 'file',
           at: typeof raw.at === 'number' && Number.isFinite(raw.at) ? Math.max(0, Math.round(raw.at)) : 0
         }
+        if (settings !== null) rec.settings = settings
+        if (menuOk) rec.menu = menu
         if (typeof raw.author === 'string' && raw.author.trim() !== '') rec.author = raw.author.trim().slice(0, 60)
         if (typeof raw.gid === 'string' && PRESET_ID.test(raw.gid)) rec.gid = raw.gid
         if (Number.isInteger(raw.v) && raw.v >= 0 && raw.v <= 1000000) rec.v = raw.v
         return rec
       }
 
-      const lib = { presets: [], updatedAt: 0, hostState: 'unknown', pulled: false, pushTimer: null, subs: new Set() }
+      const lib = { presets: [], menu: null, updatedAt: 0, hostState: 'unknown', pulled: false, pushTimer: null, subs: new Set() }
       const libNotify = () => { lib.subs.forEach((f) => { try { f() } catch (e) { /* a page that is gone */ } }) }
-      /** A library document (from the browser or the host), always put back in the expected shape. */
+      /** A library document (from the browser or the host), always put back in the expected shape. `menu` is the menu in use (null: the default menu). */
       const libClean = (raw) => {
         const r = (raw !== null && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {}
         const seen = new Set()
@@ -1920,17 +2574,34 @@ window.__ModuleLoader__.load({
           const rec = presetRecord(p)
           if (rec !== null && !seen.has(rec.id) && presets.length < PRESET_LIMIT) { seen.add(rec.id); presets.push(rec) }
         })
-        return { presets, updatedAt: typeof r.updatedAt === 'number' && Number.isFinite(r.updatedAt) ? Math.max(0, Math.round(r.updatedAt)) : 0 }
+        const menu = r.menu === undefined || r.menu === null ? null : menuClean(r.menu)
+        return { presets, menu, updatedAt: typeof r.updatedAt === 'number' && Number.isFinite(r.updatedAt) ? Math.max(0, Math.round(r.updatedAt)) : 0 }
+      }
+      /** The document that goes to the browser copy and to the host. */
+      const libDoc = () => {
+        const doc = { v: 1, updatedAt: lib.updatedAt, presets: lib.presets }
+        if (lib.menu !== null) doc.menu = lib.menu
+        return doc
       }
       const libRead = () => {
         try {
           const raw = localStorage.getItem(LIB_KEY)
           const c = libClean(raw === null ? {} : JSON.parse(raw))
-          lib.presets = c.presets; lib.updatedAt = c.updatedAt
-        } catch (e) { lib.presets = []; lib.updatedAt = 0 }
+          lib.presets = c.presets; lib.menu = c.menu; lib.updatedAt = c.updatedAt
+        } catch (e) { lib.presets = []; lib.menu = null; lib.updatedAt = 0 }
       }
-      const libWrite = () => { try { localStorage.setItem(LIB_KEY, JSON.stringify({ v: 1, updatedAt: lib.updatedAt, presets: lib.presets })) } catch (e) { /* quota */ } }
+      /** What the menu reads at first paint: written with the library, and the menu is told (same tab: an event; other tabs: the `storage` event). */
+      const menuMirror = (announce) => {
+        try { localStorage.setItem(MENU_KEY, JSON.stringify({ v: 1, updatedAt: lib.updatedAt, menu: lib.menu })) } catch (e) { /* quota */ }
+        if (announce === true) { try { window.dispatchEvent(new CustomEvent(MENU_EVENT)) } catch (e) { /* outside a browser */ } }
+      }
+      const libWrite = (menuMoved) => {
+        try { localStorage.setItem(LIB_KEY, JSON.stringify(libDoc())) } catch (e) { /* quota */ }
+        if (menuMoved !== false) menuMirror(menuMoved === true)
+      }
       libRead()
+      // A menu kept in the library but missing from the menu's own key (site data cleared in part): put it back, without waking anybody.
+      try { if (lib.menu !== null && localStorage.getItem(MENU_KEY) === null) menuMirror(false) } catch (e) { /* no storage */ }
 
       const libHostUrl = () => { try { return new URL('kybernos-theme/preset-store', document.baseURI).pathname } catch (e) { return '/kybernos-theme/preset-store' } }
       const libHost = async (body) => {
@@ -1949,7 +2620,7 @@ window.__ModuleLoader__.load({
         if (lib.pushTimer !== null) clearTimeout(lib.pushTimer)
         lib.pushTimer = setTimeout(() => {
           lib.pushTimer = null
-          libHost({ library: { v: 1, updatedAt: lib.updatedAt, presets: lib.presets } }).then((j) => {
+          libHost({ library: libDoc() }).then((j) => {
             const state = j.ok === true ? 'on' : 'off'
             if (state !== lib.hostState) { lib.hostState = state; libNotify() }
           })
@@ -1961,11 +2632,15 @@ window.__ModuleLoader__.load({
         const was = lib.hostState
         lib.hostState = j.ok === true ? 'on' : 'off'
         if (j.ok !== true) { if (was !== lib.hostState) libNotify(); return false }
-        const sig = () => JSON.stringify([lib.updatedAt, lib.presets.map((p) => p.id + p.name)])
+        const sig = () => JSON.stringify([lib.updatedAt, lib.presets.map((p) => p.id + p.name), lib.menu])
         const before = sig()
         if (j.library !== null && j.library !== undefined) {
           const c = libClean(j.library)
-          if (c.updatedAt > lib.updatedAt) { lib.presets = c.presets; lib.updatedAt = c.updatedAt; libWrite() }
+          if (c.updatedAt > lib.updatedAt) {
+            const menuMoved = !menuSame(c.menu, lib.menu)
+            lib.presets = c.presets; lib.menu = c.menu; lib.updatedAt = c.updatedAt
+            libWrite(menuMoved) // a menu that came from the disk copy is announced to the menu, like one set on this page
+          }
           else if (c.updatedAt < lib.updatedAt) libSchedulePush()
         } else if (lib.updatedAt > 0) libSchedulePush() // the disk has nothing yet: give it what this browser knows
         lib.pulled = true
@@ -1982,11 +2657,12 @@ window.__ModuleLoader__.load({
       const presetId = (prefix) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
       const libNameTaken = (name, exceptId) => {
         const k = name.trim().toLowerCase()
-        return SKINS.some((s) => s.name.toLowerCase() === k) || lib.presets.some((p) => p.id !== exceptId && p.name.toLowerCase() === k)
+        return SKINS.some((s) => s.name.toLowerCase() === k) || ST_VIBES.some((v) => kt(v.fr, v.en).toLowerCase() === k || v.fr.toLowerCase() === k || v.en.toLowerCase() === k)
+          || MENU_BUILTINS.some((m) => m.fr.toLowerCase() === k || m.en.toLowerCase() === k) || lib.presets.some((p) => p.id !== exceptId && p.name.toLowerCase() === k)
       }
       /** `name`, or `name (2)`, `name (3)`... when it is already taken by a shipped theme or one of yours. */
       const libFreeName = (name) => {
-        const base = presetName(name) || kt('Thème', 'Theme')
+        const base = presetName(name) || kt('Préréglage', 'Preset')
         let n = base
         for (let i = 2; libNameTaken(n); i += 1) n = base.slice(0, PRESET_NAME_MAX - String(i).length - 3).trim() + ' (' + i + ')'
         return n
@@ -2004,6 +2680,209 @@ window.__ModuleLoader__.load({
         libSet(lib.presets.map((p) => (p.id === id ? (presetRecord({ ...p, ...patch, at: Date.now() }) || p) : p)))
       }
       const libRemove = (id) => { libSet(lib.presets.filter((p) => p.id !== id)) }
+      /** Puts a menu in use (a MENU DOC, or null for the default menu): browser first, the menu is told at once, the disk after. Returns false when nothing changed. */
+      const menuUse = (doc) => {
+        const next = doc === null || doc === undefined ? null : menuClean(doc)
+        if (doc !== null && doc !== undefined && next === null) return false
+        if (menuSame(next, lib.menu)) return false
+        lib.menu = next
+        lib.updatedAt = Math.max(Date.now(), lib.updatedAt + 1)
+        libWrite(true); libNotify(); libSchedulePush()
+        return true
+      }
+
+      // ── The menu: the rows this install draws now, and the arrangement in use ───────────────────────────────────────────
+      //   kybernos-plugin publishes ONE registry of the rows (`window.__KB_MENU_ENTRIES__`: id, icon, default name; the same ids as the menu's
+      //   own rows) and reads the arrangement back from MENU_KEY. This page is the only writer of the arrangement; rows are found by their stable
+      //   hook (`data-kb-row`) on the menu's side, never by their label. A row the arrangement does not list follows `unlisted`.
+      const menuRegistry = () => { try { const r = window.__KB_MENU_ENTRIES__; return r !== undefined && r !== null && r.v === 1 && typeof r.list === 'function' ? r : null } catch (e) { return null } }
+      /** The rows this install can draw right now, in the default order: [{ id, icon, name, off? }] (`off: true` = a row the default menu leaves out, a plugin's `defaultShown: false`). [] when the menu is not there. */
+      const menuRows = () => {
+        const r = menuRegistry()
+        if (r === null) return []
+        try {
+          const list = r.list()
+          return (Array.isArray(list) ? list : []).filter((x) => x !== null && typeof x === 'object' && typeof x.id === 'string' && MENU_ID.test(x.id) && MENU_NEVER.indexOf(x.id) < 0 && typeof x.name === 'string')
+            .slice(0, MENU_ENTRIES_MAX).map((x) => (x.off === true ? { id: x.id, icon: typeof x.icon === 'string' ? x.icon : null, name: x.name, off: true } : { id: x.id, icon: typeof x.icon === 'string' ? x.icon : null, name: x.name }))
+        } catch (e) { return [] }
+      }
+      /** The key of the page language in a row's `label`, or null (a language the labels do not cover: the default name is shown). */
+      const menuLabelKey = () => { const l = lang(); const two = l === 'kybernos' ? 'fr' : String(l).slice(0, 2).toLowerCase(); return MENU_LANGS.indexOf(two) >= 0 ? two : null }
+      /**
+       * The rows as the person sees them for an arrangement (a MENU DOC or null): [{ id, icon, base, name, shown, label, listed }] in display order.
+       * Listed rows come first, by `order`; the others keep their default order after them. A name is `label[page language]` or the default one.
+       */
+      const menuView = (doc, rows) => {
+        const ents = doc === null || doc === undefined ? [] : doc.entries
+        const byId = {}
+        rows.forEach((r) => { byId[r.id] = r })
+        const key = menuLabelKey()
+        const mk = (r, e) => {
+          const label = e !== null && e.label !== undefined ? { ...e.label } : {}
+          return { id: r.id, icon: r.icon, base: r.name, name: key !== null && label[key] !== undefined ? label[key] : r.name, shown: e !== null ? e.shown : (r.off !== true && !(doc !== null && doc !== undefined && doc.unlisted === 'hide')), label, listed: e !== null, off: r.off === true }
+        }
+        const listed = new Set(ents.map((e) => e.id))
+        return ents.filter((e) => byId[e.id] !== undefined).map((e) => mk(byId[e.id], e)).concat(rows.filter((r) => !listed.has(r.id)).map((r) => mk(r, null)))
+      }
+      /** Do the surfaces of an arrangement hide nothing (no entry hidden, nothing hidden by default)? True when it has none. */
+      const menuSurfacesDefault = (doc) => doc === null || doc === undefined || doc.surfaces === undefined || MENU_SURFACE_IDS.every((k) => doc.surfaces[k] === undefined || (doc.surfaces[k].unlisted === 'show' && doc.surfaces[k].entries.every((e) => e.shown)))
+      /** Is this arrangement the default menu (every row shown, default order and names, nothing hidden by default)? */
+      const menuIsDefault = (doc, rows) => {
+        if (doc === null || doc === undefined) return true
+        if (doc.unlisted === 'hide' || doc.locked === true || !menuSurfacesDefault(doc)) return false
+        const v = menuView(doc, rows)
+        return v.every((x, i) => x.shown === !x.off && x.id === rows[i].id && Object.keys(x.label).length === 0) && doc.entries.every((e) => rows.some((r) => r.id === e.id))
+      }
+      /**
+       * An edit of the arrangement: `fn` gets the rows as a plain list [{ id, shown, label }] (in display order) and changes it in place (move, show or hide, rename);
+       * the answer is the new FULL arrangement (one entry per row of this install), or null when it is the default menu. A row listed in `doc` that this install does not
+       * have (a preset from another machine) is kept, after the others. A locked arrangement is left alone (null is not "default" here: `undefined` = refused).
+       */
+      const menuEdit = (doc, rows, fn) => {
+        if (doc !== null && doc !== undefined && doc.locked === true) return undefined
+        const list = menuView(doc, rows).map((v) => ({ id: v.id, shown: v.shown, label: { ...v.label } }))
+        fn(list)
+        const kept = (doc === null || doc === undefined ? [] : doc.entries).filter((e) => !rows.some((r) => r.id === e.id))
+        const entries = list.map((v) => ({ id: v.id, shown: v.shown, order: 0, ...(Object.keys(v.label).length > 0 ? { label: v.label } : {}) })).concat(kept.map((e) => ({ ...e, order: 0 })))
+        entries.forEach((e, i) => { e.order = i })
+        const next = menuClean({ entries, unlisted: doc === null || doc === undefined ? 'show' : doc.unlisted, locked: false, surfaces: doc === null || doc === undefined ? undefined : doc.surfaces })
+        return next === null || menuIsDefault(next, rows) ? null : next
+      }
+      // ── The account menu and the Settings pages: the same shown / hidden choice, one entry per item of the registry's `secondary` and `settings` surfaces ──
+      /** The entries of a surface this install can draw: [{ id, name, locked, group, groupName }] in the default order. [] when the registry is not there or is too old to know surfaces. */
+      const surfaceRows = (surface) => {
+        const r = menuRegistry()
+        const spec = MENU_SURFACES[surface]
+        if (r === null || spec === undefined || r.hooks === undefined || r.hooks === null || typeof r.hooks[surface] !== 'string') return []
+        try {
+          const list = r.list(surface)
+          return (Array.isArray(list) ? list : []).filter((x) => x !== null && typeof x === 'object' && typeof x.id === 'string' && MENU_ID.test(x.id) && typeof x.name === 'string')
+            .slice(0, spec.max).map((x) => ({ id: x.id, name: x.name, locked: x.locked === true || spec.never.indexOf(x.id) >= 0, group: typeof x.group === 'string' ? x.group : '', groupName: typeof x.groupName === 'string' ? x.groupName : '' }))
+        } catch (e) { return [] }
+      }
+      /** The entries of a surface as the person sees them for an arrangement: `rows` plus `shown` (a locked entry is always shown; a listed one follows its entry; the rest follow `unlisted`). */
+      const surfaceView = (doc, surface, rows) => {
+        const s = doc === null || doc === undefined || doc.surfaces === undefined || doc.surfaces[surface] === undefined ? null : doc.surfaces[surface]
+        const byId = new Map((s === null ? [] : s.entries).map((e) => [e.id, e.shown]))
+        return rows.map((r) => ({ ...r, shown: r.locked ? true : (byId.has(r.id) ? byId.get(r.id) : !(s !== null && s.unlisted === 'hide')) }))
+      }
+      /**
+       * An edit of one surface: `fn` gets [{ id, shown, locked }] (in the registry's order) and changes it in place; the answer is the new FULL arrangement (the main menu and the other surface
+       * untouched), or null when it is the default menu. A listed entry this install does not have is kept. A locked arrangement is left alone (`undefined` = refused).
+       */
+      const surfaceEdit = (doc, surface, rows, mainRows, fn) => {
+        if (doc !== null && doc !== undefined && doc.locked === true) return undefined
+        const list = surfaceView(doc, surface, rows).map((v) => ({ id: v.id, shown: v.shown, locked: v.locked }))
+        fn(list)
+        const old = doc === null || doc === undefined || doc.surfaces === undefined || doc.surfaces[surface] === undefined ? null : doc.surfaces[surface]
+        const kept = (old === null ? [] : old.entries).filter((e) => !rows.some((r) => r.id === e.id))
+        const entries = list.filter((v) => !v.locked).map((v) => ({ id: v.id, shown: v.shown, order: 0 })).concat(kept.map((e) => ({ ...e, order: 0 })))
+        entries.forEach((e, i) => { e.order = i })
+        const surfaces = { ...(doc === null || doc === undefined || doc.surfaces === undefined ? {} : doc.surfaces), [surface]: { entries, unlisted: old === null ? 'show' : old.unlisted } }
+        const next = menuClean({ entries: doc === null || doc === undefined ? [] : doc.entries, unlisted: doc === null || doc === undefined ? 'show' : doc.unlisted, locked: false, surfaces })
+        return next === null || menuIsDefault(next, mainRows) ? null : next
+      }
+      /** Every row shown again, in the page. A locked arrangement stays locked (that is the escape hatch of the person, not the app's). */
+      const menuShowAll = (doc, rows) => {
+        if (doc === null || doc === undefined) return null
+        const surfaces = {}
+        MENU_SURFACE_IDS.forEach((k) => { if (doc.surfaces !== undefined && doc.surfaces[k] !== undefined) surfaces[k] = { entries: doc.surfaces[k].entries.map((e) => ({ ...e, shown: true })), unlisted: 'show' } })
+        const full = menuClean({ entries: doc.entries.map((e) => ({ ...e, shown: true })), unlisted: 'show', locked: doc.locked === true, surfaces })
+        return full === null ? null : (doc.locked === true ? full : (menuIsDefault(full, rows) ? null : full))
+      }
+      /** The shipped menu arrangements: the default one, and a short menu of two entries (everything else is kept out, by the `unlisted` rule). */
+      const MENU_BUILTINS = [
+        { id: 'menu-complete', fr: 'Complet', en: 'Complete', menu: null },
+        { id: 'menu-simple', fr: 'Simple', en: 'Simple', menu: { entries: [{ id: 'skills', shown: true, order: 0 }, { id: 'deliverables', shown: true, order: 1 }], unlisted: 'hide', locked: false } }
+      ]
+      /**
+       * The presets an APP locks: shipped here, read only. They are never in the library and never in the menu in use, so a person cannot edit, delete, import or forge one; the only way
+       * to read one is `window.__KB_THEME_LOCKED__` (below), and the app that applies it (the phone's Kaby mode, through the Kybernos plugin) asks it by id. Each is a MENU DOC with `locked: true`.
+       *
+       * `locked-simple` is the phone's SIMPLE (the shell's Kaby mode token), the owner's six defaults of 2026-11-22, the menu changed on 2026-11-23 (mockup 2):
+       *   1. the menu is the owner's three rows (Automations, Apps, Conversations), as the REAL drawer draws them: `tasks` (the Automations page, which holds the reminders) keeps the registry's own
+       *      name « Automations », `connectors` (the Connectors page) is shown under the name « Apps », and the conversations are the drawer's own list (Recents); `kyber` (the Kaby row at the top) is
+       *      hidden, the « Kaby » folder under Workspaces and Settings › Kaby are the ways in; every other row of the full app is hidden (`unlisted: hide`). The ids are the registry's
+       *      (`window.__KB_MENU_ENTRIES__`), never a Simple-only id;
+       *   2. Referral stays in the account menu, locked (it is in the surface's `never`: it cannot even be listed);
+       *   3. Help and Send feedback stay;
+       *   4. Phone and channels is hidden, and so are the entries that open the web or a team (the list of spaces and its team rows, Create a team, Join, Upgrade, Team settings, Website): the phone's
+       *      embedded engine cannot start a team's engine (`dsh_not_found`), so no row of the phone may offer one (the toast of kybernos-cloud stays as the fallback for a path that still opens a team);
+       *   5. Settings keeps five pages: Kaby, Memory & Lessons, Theme, Language and About (the app's own parts, « The Kybernos app » of 2026-11-23, are drawn inside About since item 28: kybernos-mobile files them there); General,
+       *      Usage, Connectors, and every other page (any added later too) are hidden (`unlisted: hide`). General is the one page a person's own arrangement can never hide (the surface's
+       *      `never`); a locked preset is shipped here and read through `lockedMenu`, which is the only path that cleans with `trusted`, so it can hide it. Connectors stays in the MAIN menu, as « Apps »;
+       *   6. nothing about the chat's own wording or look (the gear, the time): that stays in Kaby mode; a preset shows or hides entries and, through `options`, turns a behaviour on (touch comfort, the padlock,
+       *      `messageActions`: the row under an answer appears on a tap).
+       */
+      const LOCKED_PRESETS = {
+        'locked-simple': {
+          name: { fr: 'Simple (téléphone)', en: 'Simple (phone)' },
+          // Options are settings of THIS plugin that the preset turns on while the app is in Kaby mode (never stored, never in the person's settings): `touch` is touch comfort (TOUCH_RULES).
+          // `appPage` is read by kybernos-mobile (through `window.__KB_THEME_LOCKED__.options`) for the app’s parts that Simple draws inside About (they were the page « The Kybernos app » until item 28): `log: false` does not draw the engine-log card (a developer's card),
+          // `computer: 'linked'` draws the computer card only when a computer is really linked (the phone's own engine, or no news yet, says nothing a person needs). Absent or unreadable = everything is drawn,
+          // as in the full app, so reversing either is one word here.
+          // `padlock` is read by kybernos-cloud (the one that knows whether somebody is signed in): the rows of the drawer it lists carry a padlock while nobody is signed in, and a tap on one opens a one-sentence sheet
+          // (« Sign in » / « Not now ») instead of the page. Signed in, or no list, or an unreadable preset = the drawer is exactly the full app's.
+          // `messageActions` is read by the Kybernos plugin (the one that draws the row): `'tap'` hides the row under the agent's answers (copy, read aloud, stars, branch, usage, report) until a tap on the answer,
+          // and puts its buttons at 44 px (kybernos-mobile). Absent or another word = the row is drawn as in the full app (shown on a phone, on hover on a computer).
+          // `presentation` is the layout of the Settings pages (PRES_RULES): menu of rows for the Kaby page, rows opposite their label, « ? Help » named, cards on the page, chips as text, descriptions a page marks behind an « i ».
+          options: { touch: true, presentation: { tabsNav: 'list', rowsLayout: 'inline', rowsDescription: 'info', helpButton: 'named', cardsFrame: 'flat', chipsStyle: 'plain', groupTitles: 'hidden', drawerSize: 'large', drawerPanels: 'hidden', composerSize: 'large', newChatCards: 'slider', rating: 'thumbs', messageSize: 'standard' }, appPage: { log: false, computer: 'linked' }, padlock: ['tasks', 'connectors'], messageActions: 'tap' },
+          menu: {
+            entries: [{ id: 'kyber', shown: false, order: 0 }, { id: 'tasks', shown: true, order: 1 }, { id: 'connectors', shown: true, order: 2, label: { en: 'Apps', fr: 'Apps' } }],
+            unlisted: 'hide',
+            locked: true,
+            surfaces: {
+              secondary: {
+                entries: [
+                  { id: 'spaces', shown: false, order: 0 }, { id: 'create-team', shown: false, order: 1 }, { id: 'join-team', shown: false, order: 2 }, { id: 'plan', shown: true, order: 3 },
+                  { id: 'upgrade', shown: false, order: 4 }, { id: 'team-settings', shown: false, order: 5 }, { id: 'appearance', shown: true, order: 6 }, { id: 'phone', shown: false, order: 7 },
+                  { id: 'website', shown: false, order: 8 }, { id: 'help', shown: true, order: 9 }, { id: 'feedback', shown: true, order: 10 },
+                  // signed out (the account menu's own rows): « Create an account » and « See plans » open the server's web pages (the phone app offers no sign-up, and offers are not for a person with no account); « Sign in » is never hidden
+                  { id: 'signup', shown: false, order: 11 }, { id: 'plans', shown: false, order: 12 }
+                ],
+                unlisted: 'show'
+              },
+              settings: {
+                // General is hidden too (a locked preset is the one reader the surface's `never` does not bind: see `trustedNever`); the phone's Settings opens on the list, and every General setting is
+                // one tap away in the full app (« Need more? »), the language and the look have their own pages.
+                entries: [{ id: 'general', shown: false, order: 0 }].concat(['kaby', 'memory', 'theme', 'language', 'about'].map((id, i) => ({ id, shown: true, order: i + 1 }))),
+                unlisted: 'hide'
+              }
+            }
+          }
+        }
+      }
+      /** A locked preset's options (a fresh copy; `{}` for an id this build does not ship). */
+      const lockedOptions = (id) => (typeof id === 'string' && Object.prototype.hasOwnProperty.call(LOCKED_PRESETS, id) ? JSON.parse(JSON.stringify(LOCKED_PRESETS[id].options)) : {})
+      /** True when the phone's Simple preset turns touch comfort on. */
+      const lockedTouch = () => lockedOptions('locked-simple').touch === true
+      /** The Settings-page layout the phone's Simple preset asks for (`{}` when it asks for none). */
+      const lockedPresentation = () => { const p = lockedOptions('locked-simple').presentation; return p !== null && typeof p === 'object' ? p : {} }
+      /** A locked preset's arrangement (a fresh, checked copy: nothing a caller does to it reaches the table), or null for an id this build does not ship. */
+      const lockedMenu = (id) => (typeof id === 'string' && Object.prototype.hasOwnProperty.call(LOCKED_PRESETS, id) ? menuClean(JSON.parse(JSON.stringify(LOCKED_PRESETS[id].menu)), true) : null)
+      /** What an arrangement does to the menu, in short lines for the person ("Shows 4 of 7 entries", "Renamed: …"). */
+      const menuLines = (doc, rows) => {
+        if (doc === null || doc === undefined) return [kt('Toutes les entrées, dans l’ordre habituel.', 'Every entry, in the usual order.')]
+        const v = menuView(doc, rows)
+        const shown = v.filter((x) => x.shown)
+        const hidden = v.filter((x) => !x.shown)
+        const lines = [kt('Montre ' + shown.length + ' entrée' + (shown.length === 1 ? '' : 's') + ' sur ' + v.length, 'Shows ' + shown.length + ' of ' + v.length + ' entries')]
+        if (hidden.length > 0 && hidden.length <= 4) lines.push(kt('Cache : ', 'Hides: ') + hidden.map((x) => x.base).join(', '))
+        const renamed = v.filter((x) => x.name !== x.base)
+        if (renamed.length > 0) lines.push(kt('Renommé : ', 'Renamed: ') + renamed.slice(0, 3).map((x) => x.base + ' → ' + x.name).join(', '))
+        if (!v.every((x, i) => x.id === rows[i].id)) lines.push(kt('Ordre changé', 'Order changed'))
+        if (doc.unlisted === 'hide') lines.push(kt('Les entrées ajoutées plus tard restent cachées.', 'Entries added later stay hidden.'))
+        // The other two places, in one line each: how many entries are hidden there, or that only the listed ones show.
+        const where = { secondary: [kt('Menu du compte', 'Account menu'), 'secondary'], settings: [kt('Réglages', 'Settings'), 'settings'] }
+        MENU_SURFACE_IDS.forEach((k) => {
+          const sf = doc.surfaces === undefined ? undefined : doc.surfaces[k]
+          if (sf === undefined) return
+          const n = sf.entries.filter((e) => !e.shown).length
+          if (sf.unlisted === 'hide') lines.push(where[k][0] + kt(' : seules les pages listées sont montrées (' + sf.entries.filter((e) => e.shown).length + ').', ': only the listed entries show (' + sf.entries.filter((e) => e.shown).length + ').'))
+          else if (n > 0) lines.push(where[k][0] + kt(' : cache ' + n + (n === 1 ? ' entrée.' : ' entrées.'), ': hides ' + n + (n === 1 ? ' entry.' : ' entries.')))
+        })
+        return lines
+      }
 
       /** What the person chose to keep, out of the current look. Colours always travel. */
       const presetFromState = (S, groups) => {
@@ -2018,20 +2897,31 @@ window.__ModuleLoader__.load({
       const presetFile = (rec) => {
         const doc = { format: PRESET_FORMAT, version: 1, name: rec.name }
         if (rec.author !== undefined) doc.author = rec.author
-        doc.settings = rec.settings
+        if (rec.settings !== undefined) doc.settings = rec.settings
+        if (rec.menu !== undefined) doc.menu = rec.menu
         return JSON.stringify(doc, null, 2)
       }
-      /** The text of a file → { ok, name, settings, legacy } or { ok:false, error }. An old export (the whole look, no frame) still imports: as a theme. */
+      /**
+       * The text of a file → { ok, name, settings, menu, legacy, author, droppedA11y } or { ok:false, error }. A file carries an appearance part, a menu part, or both; an old
+       * export (the whole look, no frame) still imports: as an appearance. What comes from a file never carries the person's accessibility settings: they are dropped here.
+       */
       const presetFromFileText = (text) => {
         if (typeof text !== 'string' || text.length === 0 || text.length > PRESET_FILE_MAX) return { ok: false, error: 'size' }
         let raw = null
         try { raw = JSON.parse(text) } catch (e) { return { ok: false, error: 'json' } }
         if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false, error: 'shape' }
         const framed = raw.format === PRESET_FORMAT
-        const settings = presetSettings(framed ? raw.settings : raw)
-        if (settings === null) return { ok: false, error: 'empty' }
+        let settings = presetSettings(framed ? raw.settings : raw)
+        const menuRaw = framed && raw.menu !== undefined && raw.menu !== null ? menuClean(raw.menu) : null
+        const menu = menuHasContent(menuRaw) ? menuRaw : null
+        let droppedA11y = false
+        if (settings !== null) {
+          PRESET_GROUPS.a11y.forEach((k) => { if (settings[k] !== undefined) { delete settings[k]; droppedA11y = true } })
+          if (Object.keys(settings).length === 0) settings = null
+        }
+        if (settings === null && menu === null) return { ok: false, error: 'empty' }
         const name = framed ? presetName(raw.name) : ''
-        return { ok: true, name: name === '' ? kt('Thème importé', 'Imported theme') : name, settings, legacy: !framed, author: framed && typeof raw.author === 'string' ? raw.author : undefined }
+        return { ok: true, name: name === '' ? kt('Préréglage importé', 'Imported preset') : name, settings: settings === null ? undefined : settings, menu: menu === null ? undefined : menu, legacy: !framed, droppedA11y, author: framed && typeof raw.author === 'string' ? raw.author : undefined }
       }
 
       // “Modified” = a setting this theme retains has moved. The mode is left out on purpose: DSH's own
@@ -2040,13 +2930,6 @@ window.__ModuleLoader__.load({
       const settingsDirty = (S, settings) => Object.keys(settings).some((k) => k !== 'mode' && settingText(S[k]) !== settingText(settings[k]))
       /** What a shipped theme sets, in the same shape as a library theme's settings. */
       const skinSettings = (sk) => { const p = skinPatch(sk); delete p.skin; return p }
-      /** A library theme drawn like a shipped one (dot, accent, meta line). */
-      const presetAsSkin = (rec) => ({
-        id: rec.id, name: rec.name,
-        mode: rec.settings.mode === 'light' || rec.settings.mode === 'dark' ? rec.settings.mode : null,
-        acc: rec.settings.acc === undefined ? null : rec.settings.acc, ov: rec.settings.ov || {},
-        fontText: rec.settings.fontText, radius: rec.settings.radius, iconSet: rec.settings.iconSet
-      })
       const RADIUS_LABEL = { sharp: ['coins nets', 'sharp corners'], standard: ['coins standard', 'standard corners'], soft: ['coins doux', 'soft corners'] }
       /** The groups a set of settings retains: { colors: true, font: false, ... }. */
       const groupsOf = (settings) => {
@@ -2074,7 +2957,7 @@ window.__ModuleLoader__.load({
       //   has been verified and cached. The page never sees an unverified catalogue, and it checks what
       //   it is given anyway: a theme is data, so a catalogue theme goes through the same check as a file
       //   (`presetSettings`) and never carries accessibility settings.
-      //   Installing puts a copy in “My themes” (source “gallery”, with its catalogue id and version);
+      //   Installing puts a copy in Mine (source “gallery”, with its catalogue id and version);
       //   from then on it is yours, and the gallery only offers an update when its version moves.
       // ══════════════════════════════════════════════════════════════════════
 
@@ -2268,10 +3151,66 @@ window.__ModuleLoader__.load({
         if (theme === undefined) return { ok: false, reason: 'unknown preset: ' + wanted }
         return seamImport(ctx, { name: theme.name, settings: theme.settings, source: 'gallery', gid: theme.id, v: theme.v, author: theme.author })
       }
+      /** The menu a template asks for: a FULL arrangement over the rows of this install, in the order in use, every row shown, only the renamed rows carrying a label. null when it renames nothing. */
+      const seamTemplateMenu = (menuLabels) => {
+        if (menuLabels === null || typeof menuLabels !== 'object' || Array.isArray(menuLabels)) return null
+        const names = Object.keys(menuLabels).filter((id) => MENU_ID.test(id) && MENU_NEVER.indexOf(id) < 0)
+        if (names.length === 0) return null
+        const rows = menuRows()
+        const view = menuView(lib.menu, rows)
+        const ids = view.map((v) => v.id).concat(names.filter((id) => !view.some((v) => v.id === id)))
+        const entries = ids.map((id, i) => {
+          const cur = view.find((v) => v.id === id)
+          const label = { ...(cur !== undefined ? cur.label : {}), ...(menuLabels[id] !== null && typeof menuLabels[id] === 'object' ? menuLabels[id] : {}) }
+          return { id, shown: true, order: i, ...(Object.keys(label).length > 0 ? { label } : {}) }
+        })
+        const doc = menuClean({ entries, unlisted: 'show', locked: false })
+        return doc !== null && doc.entries.some((e) => e.label !== undefined) ? doc : null
+      }
+      /**
+       * Third form: `{ preset: { name, settings?, menuLabels?, gid?, v?, author? }, apply: { appearance, menu } }` — a template. ONE record is stored
+       * (source `template`, its appearance and its menu part), then only the ticked parts are applied; both false = stored, nothing changes. A menu
+       * that comes from outside never replaces the person's own without keeping it first in Mine (one click to go back).
+       */
+      const seamTemplate = async (ctx, input) => {
+        const p = input.preset
+        const a = input.apply
+        if (p === null || typeof p !== 'object' || Array.isArray(p) || typeof p.name !== 'string' || presetName(p.name) === '') return { ok: false, reason: 'a preset with a name is expected' }
+        if (a === null || typeof a !== 'object' || Array.isArray(a) || typeof a.appearance !== 'boolean' || typeof a.menu !== 'boolean') return { ok: false, reason: 'apply: { appearance, menu } is expected' }
+        if (p.settings !== undefined && p.settings !== null) {
+          const bad = PRESET_GROUPS.a11y.filter((k) => p.settings !== null && typeof p.settings === 'object' && Object.prototype.hasOwnProperty.call(p.settings, k))
+          if (bad.length > 0) return { ok: false, reason: 'accessibility setting: ' + bad[0] }
+        }
+        const settings = presetSettings(p.settings)
+        const menu = seamTemplateMenu(p.menuLabels)
+        if (settings === null && menu === null) return { ok: false, reason: 'nothing to store: no known setting and no menu name' }
+        const doc = { name: presetName(p.name), source: 'template' }
+        if (settings !== null) doc.settings = settings
+        if (menu !== null) doc.menu = menu
+        if (typeof p.gid === 'string' && PRESET_ID.test(p.gid)) doc.gid = p.gid
+        if (Number.isInteger(p.v) && p.v >= 0 && p.v <= 1000000) doc.v = p.v
+        if (typeof p.author === 'string' && p.author.trim() !== '') doc.author = p.author.trim().slice(0, 60)
+        const j = await libHost({ import: doc })
+        const refusal = seamRefusal(j)
+        if (refusal !== null) return { ok: false, reason: refusal }
+        const rec = j.ok === true ? presetRecord(j.preset) : presetRecord({ ...doc, id: presetId('t'), name: libFreeName(doc.name), at: Date.now() })
+        if (rec === null) return { ok: false, reason: 'the preset could not be stored' }
+        if (a.appearance === true && rec.settings !== undefined) {
+          const bad = seamApply(ctx, { ...rec.settings, skin: rec.id })
+          if (bad !== null) return bad
+        }
+        seamAdopt(rec)
+        if (a.menu === true && rec.menu !== undefined) {
+          if (lib.menu !== null && !menuSame(lib.menu, rec.menu)) libAdd(libFreeName(kt('Mon menu', 'My menu')), 'me', undefined, { menu: lib.menu })
+          menuUse(rec.menu)
+        }
+        return { ok: true, id: rec.id }
+      }
       /** `window.__KB_THEME_APPLY__(input)`: an id (string) or a settings bag. Never throws, always answers. */
       const seamApplyInput = async (ctx, input) => {
         try {
           if (typeof input === 'string') return await seamById(ctx, input)
+          if (input !== null && typeof input === 'object' && !Array.isArray(input) && input.preset !== undefined) return await seamTemplate(ctx, input)
           if (input !== null && typeof input === 'object' && !Array.isArray(input)) return await seamBag(ctx, input)
           return { ok: false, reason: 'a preset id or a settings object is expected' }
         } catch (e) { return { ok: false, reason: String(e !== null && e.message ? e.message : e) } }
@@ -2280,11 +3219,34 @@ window.__ModuleLoader__.load({
        *  reads the CURRENT context (a re-activation rebinds the services, not the function). */
       let seamFn = null
       let seamCtx = null
+      /** `window.__KB_THEME_MODE__(mode?)`: with 'light', 'dark' or 'system' it sets the light/dark preference (the one of the footer's sun/moon, and of the three cards above), and answers `{ ok }`; with nothing it answers the stored
+       *  one, or null. It adds no row to « My styles » (an id or a bag given to `__KB_THEME_APPLY__` is an import). Kaby's settings on the phone use it. Never throws. */
+      let modeFn = null
       const publierSeam = (ctx) => {
         try {
           seamCtx = ctx
           if (seamFn === null) seamFn = (input) => seamApplyInput(seamCtx, input)
           try { if (window.__KB_THEME_APPLY__ === undefined) window.__KB_THEME_APPLY__ = seamFn } catch (e) { /* outside a browser */ }
+          if (modeFn === null) {
+            modeFn = (mode) => {
+              try {
+                if (mode === undefined) { const m = readState().mode; return m === 'light' || m === 'dark' || m === 'system' ? m : null }
+                if (mode !== 'light' && mode !== 'dark' && mode !== 'system') return { ok: false, reason: 'light, dark or system is expected' }
+                const bad = seamApply(seamCtx, { mode })
+                return bad !== null ? bad : { ok: true }
+              } catch (e) { return { ok: false, reason: String(e !== null && e.message ? e.message : e) } }
+            }
+          }
+          try { if (window.__KB_THEME_MODE__ === undefined) window.__KB_THEME_MODE__ = modeFn } catch (e) { /* outside a browser */ }
+          // The presets an app locks (the phone's Simple): read only, never in the library. Published once and made unwritable, so no other script can stand in for it.
+          try {
+            if (window.__KB_THEME_LOCKED__ === undefined) {
+              Object.defineProperty(window, '__KB_THEME_LOCKED__', { value: Object.freeze({ v: 1, ids: () => Object.keys(LOCKED_PRESETS), get: lockedMenu, options: lockedOptions, name: (id) => (Object.prototype.hasOwnProperty.call(LOCKED_PRESETS, id) ? kt(LOCKED_PRESETS[id].name.fr, LOCKED_PRESETS[id].name.en) : '') }), writable: false, configurable: false, enumerable: false })
+              window.dispatchEvent(new CustomEvent('kb-locked-presets-ready'))
+            }
+          } catch (e) { /* outside a browser, or a page that froze window */ }
+          // The menu in use, read only (for tests and for the templates page's "before / after" text): a MENU DOC, or null for the default menu.
+          try { if (window.__KB_THEME_MENU__ === undefined) window.__KB_THEME_MENU__ = Object.freeze({ v: 1, current: () => (lib.menu === null ? null : JSON.parse(JSON.stringify(lib.menu))) }) } catch (e) { /* outside a browser */ }
           // The versioned alias, when the page seam exists (docs/dev/plugin-contract.md): additive, re-offered on `kybernos:registry`.
           const offrir = () => { try { if (window.__KB__ !== undefined && window.__KB__ !== null && window.__KB__.version === 1) window.__KB__.provide('kybernos/theme', '1.0.0', { apply: seamFn }) } catch (e) { /* the seam is optional */ } }
           offrir()
@@ -2320,33 +3282,13 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kbth-main{display:flex;flex-direction:column;gap:22px;min-width:0}
 .kbth-head{display:flex;flex-direction:column;gap:6px}
 .kbth-sub{font-size:14px;line-height:1.55;color:var(--dsw-alias-label-secondary);max-width:640px}
-.kbth-seg{display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:var(--dsw-alias-bg-layer-2);width:max-content}
+.kbth-seg{display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:var(--dsw-alias-bg-layer-2);width:max-content;max-width:100%;overflow-x:auto}
 /* (29/09, on request) Simple/Advanced selector (and Mode) CLEARER: 14px,
    generous padding, active state in the brand colour — nobody has to look
    for the active segment in a grey background any more. */
 .kbth-seg button{appearance:none;border:1px solid transparent;font:inherit;font-size:14px;font-weight:500;padding:8px 18px;border-radius:9px;cursor:pointer;background:transparent;color:var(--dsw-alias-label-secondary);transition:background .12s,color .12s,border-color .12s}
-.kbth-seg button:hover:not([aria-pressed="true"]){background:var(--dsw-alias-interactive-bg-hover)}
-.kbth-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.kbth-mode{display:flex;flex-direction:column;gap:12px;padding:12px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;text-align:start;cursor:pointer}
-.kbth-mode:hover{border-color:var(--dsw-alias-border-l4)}
-.kbth-mode.on{border-color:var(--dsw-alias-brand-primary)}
-.kbth-mode-pv{display:flex;height:64px;border-radius:10px;overflow:hidden;align-items:center;justify-content:center}
-.kbth-mode-pv i{display:block;width:60%;height:10px;border-radius:5px}
-.kbth-mode-light{background:var(--dsw-static-neutral-50)}
-.kbth-mode-light i{background:var(--dsw-static-neutral-900);opacity:.25}
-.kbth-mode-dark{background:var(--dsw-static-neutral-1000)}
-.kbth-mode-dark i{background:var(--dsw-static-neutral-100);opacity:.25}
-.kbth-mode-pv-light{background:var(--dsw-static-neutral-50)}
-.kbth-mode-pv-light i{background:var(--dsw-static-neutral-900);opacity:.25}
-.kbth-mode-pv-dark{background:var(--dsw-static-neutral-1000)}
-.kbth-mode-pv-dark i{background:var(--dsw-static-neutral-100);opacity:.25}
-.kbth-mode-half{flex:1 1 0;height:100%;display:flex;align-items:center;justify-content:center}
-.kbth-mode-half i{width:56%}
-.kbth-mode-n{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:14px;font-weight:500}
-.kbth-mode-cur{font-size:12px;font-weight:400;color:var(--dsw-alias-state-success-primary)}
-body:not([data-ds-dark-theme]) .kbth-mode-cur{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 55%,var(--dsw-alias-label-primary))}
-@media (max-width:560px){.kbth-modes{grid-template-columns:1fr}}
-.kbth-seg button[aria-pressed="true"]{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.kbth-seg button:hover:not([aria-checked="true"]){background:var(--dsw-alias-interactive-bg-hover)}
+.kbth-seg button[aria-checked="true"]{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
 /* (29/09) The native “Appearance” block of General is replaced by the
    Appearance section of this page (same preference via themeSvc.setTheme):
    marked data-kbth-own by the observer below, it disappears — one single
@@ -2367,37 +3309,16 @@ body:not([data-ds-dark-theme]) .kbth-mode-cur{color:color-mix(in srgb,var(--dsw-
   background:var(--dsw-alias-state-warn-tertiary);color:var(--dsw-alias-state-warn-label);
   border:.5px solid var(--dsw-alias-state-warn-secondary);flex-basis:100%}
 .kbth-conflict strong{font-weight:600}
-/* Round dots: the theme's background on one side, its accent on the other.
-   Nothing else — no frame, no meta under each dot (the state of the chosen
-   theme is shown on one line, under the row). */
-.kbth-icsets{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
-.kbth-icset{appearance:none;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:7px;text-align:left;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
-.kbth-icset:hover{border-color:var(--dsw-alias-border-l3)}
-.kbth-icset.on{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
-.kbth-icset-n{font-size:13px;font-weight:600}
+/* Icon sets: the sample row of the Icons tab. */
 .kbth-icset-r{display:flex;gap:6px;color:var(--dsw-alias-label-tertiary)}
 .kbth-icset-i{display:inline-flex;width:18px;height:18px}
 .kbth-icset-i svg{display:block}
-.kbth-skins{display:flex;flex-wrap:wrap;gap:12px 14px;align-items:flex-start}
-.kbth-skin{appearance:none;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;
-  padding:2px;border:0;background:none;width:76px;border-radius:12px}
 /* (30/09) Dot of the ready-made themes: clean hairline on a light AND dark background
    (1 px at border-l2; the 0.5 px at l3 vanished on light bases),
    discreet depth through an inner shadow — the disc no longer floats.
    corner-shape:round — the shell sets superellipse(1.5) globally (Chrome 139),
    which paints border-radius:50% as a SQUIRCLE: a colour dot must
    read round; the superellipse stays on the shell's surfaces. */
-.kbth-skin-dot{width:34px;height:34px;border-radius:50%;corner-shape:round;flex:none;
-  border:1px solid var(--dsw-alias-border-l2);
-  box-shadow:inset 0 1px 2px rgba(0,0,0,.18);
-  transition:transform .12s,box-shadow .12s}
-.kbth-skin:hover .kbth-skin-dot{transform:scale(1.07)}
-.kbth-skin[aria-pressed="true"] .kbth-skin-dot,
-.kbth-skin:focus-visible .kbth-skin-dot{box-shadow:inset 0 1px 2px rgba(0,0,0,.18),0 0 0 2px var(--dsw-alias-bg-layer-1,var(--dsw-alias-bg-layer-2)),0 0 0 4px var(--dsw-alias-brand-primary)}
-.kbth-skin:focus-visible{outline:none}
-.kbth-skin-name{font-size:11px;line-height:1.35;text-align:center;color:var(--dsw-alias-label-secondary);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-.kbth-skin[aria-pressed="true"] .kbth-skin-name{color:var(--dsw-alias-label-primary);font-weight:600}
 .kbth-acc{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .kbth-sw{position:relative;width:26px;height:26px;border-radius:50%;corner-shape:round;overflow:hidden;border:1px solid var(--dsw-alias-border-l3);cursor:pointer;flex:none;transition:border-color .12s}
 .kbth-sw:hover{border-color:var(--dsw-alias-border-l4)}
@@ -2415,18 +3336,11 @@ body:not([data-ds-dark-theme]) .kbth-mode-cur{color:color-mix(in srgb,var(--dsw-
 .kbth-dot[aria-pressed="true"]{box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-1),0 0 0 4px var(--dsw-alias-brand-primary)}
 .kbth-btn{appearance:none;font:inherit;font-size:12px;padding:5px 11px;border-radius:8px;cursor:pointer;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);transition:background .12s,border-color .12s}
 .kbth-btn:hover{background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-3));border-color:var(--dsw-alias-border-l3)}
-.kbth-wpcats{display:flex;gap:6px;flex-wrap:wrap}
 .kbth-cat{appearance:none;font:inherit;font-size:12px;padding:3px 10px;border-radius:999px;cursor:pointer;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-secondary);transition:background .12s,color .12s}
 .kbth-cat{position:relative}
 .kbth-cat::before{content:"";position:absolute;inset:-2px 0}
 .kbth-cat:hover:not([aria-pressed="true"]){background:var(--dsw-alias-interactive-bg-hover)}
 .kbth-cat[aria-pressed="true"]{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
-.kbth-wps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.kbth-wp{appearance:none;font:inherit;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:5px;padding:6px;border-radius:10px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);transition:border-color .12s,box-shadow .12s}
-.kbth-wp:hover:not([aria-pressed="true"]){border-color:var(--dsw-alias-border-l3);background:var(--dsw-alias-interactive-bg-hover)}
-.kbth-wp[aria-pressed="true"]{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
-.kbth-wp-band{height:38px;border-radius:6px;border:.5px solid var(--dsw-alias-border-l3)}
-.kbth-wp-name{font-size:11px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kbth-slider{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:999px;cursor:pointer;
   background:linear-gradient(to right,var(--dsw-alias-brand-primary) 0 var(--fill,50%),var(--dsw-alias-interactive-bg-hover,var(--dsw-alias-bg-layer-3)) var(--fill,50%) 100%)}
 .kbth-slider::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--dsw-alias-bg-layer-1);border:2px solid var(--dsw-alias-brand-primary);transition:transform .1s}
@@ -2633,15 +3547,7 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
 .kbth-disc-t{font-size:13px;font-weight:600}
 .kbth-disc-s{flex:1;font-size:12px;color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .kbth-setbody{display:flex;flex-direction:column;gap:12px;padding:14px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1)}
-.kbth-skinblock{display:flex;flex-direction:column;gap:10px}
-.kbth-skin-add .kbth-skin-dot{border:1.5px dashed var(--dsw-alias-border-l4);box-shadow:none;background:transparent;color:var(--dsw-alias-label-secondary);font-size:20px;line-height:1;display:grid;place-items:center}
-.kbth-skin-add:hover .kbth-skin-dot{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary)}
 .kbth-empty{font-size:12px;color:var(--dsw-alias-label-tertiary);line-height:1.5;padding:2px 0;max-width:54ch}
-.kbth-sum{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1)}
-.kbth-sum-tx{display:flex;flex-direction:column;gap:3px;flex:1;min-width:200px}
-.kbth-sum-n{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.kbth-sum-m{font-size:12px;color:var(--dsw-alias-label-tertiary);line-height:1.45}
-.kbth-sum-a{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 /* A pill with a state colour. Not a .kbth-pill: the light-scheme list further down greys every one of those. */
 .kbth-tone{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--tone);color:var(--tone);background:var(--tone-bg,transparent)}
 .kbth-tone-on{--tone:var(--kbth-ink,var(--dsw-alias-state-success-primary))}
@@ -2650,15 +3556,6 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
 .kbth-bad{font-size:12px;color:var(--kbth-ink,var(--dsw-alias-state-error-primary));line-height:1.45}
 .kbth-btn.kbth-danger{color:var(--kbth-ink,var(--dsw-alias-state-error-primary))}
 .kbth-in.bad{border-color:var(--dsw-alias-state-error-primary)}
-.kbth-lib{display:flex;flex-direction:column;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);overflow:hidden}
-.kbth-trow{display:flex;align-items:center;gap:12px;padding:10px 14px;flex-wrap:wrap}
-.kbth-trow+.kbth-trow,.kbth-trow+.kbth-exp,.kbth-exp+.kbth-trow{border-top:1px solid var(--dsw-alias-border-l1)}
-.kbth-trow .kbth-skin-dot{width:28px;height:28px;flex:none}
-.kbth-trow-tx{display:flex;flex-direction:column;gap:2px;flex:1;min-width:170px}
-.kbth-trow-n{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.kbth-trow-m{font-size:11px;color:var(--dsw-alias-label-tertiary);line-height:1.4}
-.kbth-trow-a{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.kbth-exp{padding:10px 14px 14px;display:flex;flex-direction:column;gap:8px;background:var(--dsw-alias-bg-layer-2)}
 .kbth-state{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:16px;border:1px dashed var(--dsw-alias-border-l3);border-radius:12px}
 .kbth-fold{border:1px solid var(--dsw-alias-border-l2);border-radius:12px;padding:10px 14px}
 .kbth-fold>summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}
@@ -2733,15 +3630,11 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
 .kbth-wchip{display:inline-flex;align-items:center;gap:4px;padding:2px 4px 2px 9px;border:1px solid var(--dsw-alias-border-l2);border-radius:999px;font-size:12px;color:var(--dsw-alias-label-secondary)}
 .kbth-wchip button{appearance:none;border:0;background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer;width:18px;height:18px;border-radius:50%;line-height:1;font-size:13px}
 .kbth-wchip button:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
-.kbth-sum{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1)}
-.kbth-sum-ic{display:flex;align-items:center;gap:10px;min-width:30px;color:var(--dsw-alias-label-secondary)}
-.kbth-sum-tx{display:flex;flex-direction:column;gap:2px;flex:1;min-width:160px}
-.kbth-new{font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:999px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#0f1115)}
 /* ── Small texts in the LIGHT scheme ────────────────────────────────────────
    DSH colours its discreet texts with label-tertiary (#81858C, 3.7:1 on white) and label-caption
    (#ADB2B8, 2.1:1): below the AA threshold of 4.5:1. On THIS page, in light only, they take
    label-secondary (5.7:1). Dark gains nothing from it and keeps its hierarchy. Measured on the real GUI. */
-body:not([data-ds-dark-theme]) :is(.kbth-icset-r,.kbth-st-lbl,.kbth-st-hint,.kbth-st-sub,.kbth-st-cap,.kbth-st-grp,.kbth-st-x,.kbth-a11y-hex,.kbth-adv-css,.kbth-card-a,.kbth-card-m,.kbth-src,.kbth-adv-swatch-label,.kbth-disc-s,.kbth-drop,.kbth-empty,.kbth-export-bar,.kbth-fschev,.kbth-fsempty,.kbth-fsmeta,.kbth-fsopt-name,.kbth-grp,.kbth-hex span,.kbth-hint,.kbth-lcard-meta,.kbth-ldp-bar,.kbth-ldp-step,.kbth-lds-ord,.kbth-lds-x,.kbth-lds.empty,.kbth-mx,.kbth-note,.kbth-panel2 p,.kbth-pill,.kbth-ramp-label,.kbth-sec-d,.kbth-sl-vl,.kbth-sum-m,.kbth-toggle-hint,.kbth-tok-css,.kbth-tok-hex,.kbth-trow-m,.kbth-wchip button){color:var(--dsw-alias-label-secondary)}
+body:not([data-ds-dark-theme]) :is(.kbth-pr-k,.kbth-sh-fine,.kbth-sel-nm.ph,.kbth-sel-chev,.kbth-sel-grp,.kbth-mr-grip,.kbth-mr-was,.kbth-mr-always,.kbth-mz-cap,.kbth-mr-gh,.kbth-icset-r,.kbth-st-hint,.kbth-st-sub,.kbth-st-cap,.kbth-a11y-hex,.kbth-adv-css,.kbth-card-a,.kbth-card-m,.kbth-src,.kbth-adv-swatch-label,.kbth-disc-s,.kbth-drop,.kbth-empty,.kbth-export-bar,.kbth-fschev,.kbth-fsempty,.kbth-fsmeta,.kbth-fsopt-name,.kbth-grp,.kbth-hex span,.kbth-hint,.kbth-lcard-meta,.kbth-ldp-bar,.kbth-ldp-step,.kbth-lds-ord,.kbth-lds-x,.kbth-lds.empty,.kbth-mx,.kbth-note,.kbth-panel2 p,.kbth-pill,.kbth-ramp-label,.kbth-sec-d,.kbth-sl-vl,.kbth-toggle-hint,.kbth-tok-css,.kbth-tok-hex,.kbth-wchip button){color:var(--dsw-alias-label-secondary)}
 /* The "in use" pill is a brand fill with its own label pair: the grey of the rule above made it 3.3:1 (1.4:1 in Neutral violet). */
 body:not([data-ds-dark-theme]) .kbth-pill.ok{color:var(--dsw-alias-label-primary-foreground,#fff)}
 /* ── Ink of the grades (AAA / AA / large text / fail) ───────────────────────────────────────
@@ -2762,9 +3655,8 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-warn{--kbth-ink:#0078
 html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A00}
 .kbth-a11y-badge[class*="kbth-gr-"],.kbth-tok-badge[class*="kbth-gr-"]{color:var(--kbth-ink);border-color:var(--kbth-ink)}
 /* ── The look studio (the simple view): a small DSH drawn from the look in use, panels under the part you click ──
-   The window paints itself with the look's own colours (inline); everything around it speaks DSH's tokens. */
+   The window paints itself with the look's own colours (inline); everything around it speaks Kybernos's tokens. */
 .kbth-st{display:flex;flex-direction:column;gap:14px;min-width:0}
-.kbth-st-lbl{font-size:12px;color:var(--dsw-alias-label-tertiary);margin-right:2px}
 .kbth-st-vibes,.kbth-st-also,.kbth-st-looks,.kbth-st-chips,.kbth-st-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .kbth-st-chip{appearance:none;font:inherit;font-size:13px;display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);cursor:pointer}
 .kbth-st-chip:hover{border-color:var(--dsw-alias-border-l4)}
@@ -2815,26 +3707,6 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
 .kbth-st-ic:hover{border-color:var(--dsw-alias-border-l4);color:var(--dsw-alias-label-primary)}
 .kbth-st-sub{font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary);margin-top:2px}
 .kbth-st-cap{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-tertiary)}
-.kbth-st-tiles{display:grid;gap:8px}
-.kbth-st-tiles.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
-.kbth-st-tiles.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
-.kbth-st-tiles.c5{grid-template-columns:repeat(5,minmax(0,1fr))}
-.kbth-st-tiles.scroll{max-height:210px;overflow:auto;padding:2px}
-.kbth-st-tiles.tall{max-height:270px}
-.kbth-st-tile{appearance:none;font:inherit;padding:0;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);cursor:pointer;display:flex;flex-direction:column;overflow:hidden;text-align:center;min-width:0}
-.kbth-st-tile:hover{border-color:var(--dsw-alias-border-l4)}
-.kbth-st-tile[aria-pressed="true"]{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
-.kbth-st-mini{position:relative;height:52px;overflow:hidden;display:flex;align-items:center;justify-content:center}
-.kbth-st-nm{font-size:11.5px;line-height:1.25;padding:6px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kbth-st-ms{position:absolute;left:0;top:0;bottom:0;width:30%}
-.kbth-st-ms.wide{width:38%}
-.kbth-st-ml{position:absolute;left:38%;top:13px;width:40%;height:4px;border-radius:2px;opacity:.7}
-.kbth-st-mbar{position:absolute;left:38%;bottom:11px;width:24%;height:9px;border-radius:5px}
-.kbth-st-wp,.kbth-st-wpfill{position:absolute;inset:0}
-.kbth-st-pill{display:block;width:62%;height:18px;border-radius:9px}
-.kbth-st-reply{display:block}
-.kbth-st-ic4{display:flex;gap:6px;align-items:center;color:var(--dsw-alias-label-secondary)}
-.kbth-st-ab{font-size:24px;font-weight:600;line-height:1}
 .kbth-st-sws{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
 .kbth-st-sw{appearance:none;width:24px;height:24px;border-radius:50%;border:0;padding:0;box-shadow:0 0 0 1px var(--dsw-alias-border-l3);cursor:pointer}
 .kbth-st-sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-1),0 0 0 4px var(--dsw-alias-brand-primary)}
@@ -2848,7 +3720,6 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
 .kbth-st-more{border-top:1px solid var(--dsw-alias-border-l2);padding-top:8px}
 .kbth-st-more>summary{cursor:pointer;font-size:12.5px;color:var(--dsw-alias-label-secondary);padding:4px 0}
 .kbth-st-mb{display:flex;flex-direction:column;gap:12px;padding-top:10px}
-.kbth-st-sel{font:inherit;font-size:13px;padding:6px 10px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);min-width:180px}
 .kbth-st-lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:6px;padding:4px 2px}
 .kbth-st-lt{position:relative;appearance:none;height:46px;padding:0;border-radius:12px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);display:grid;place-items:center;cursor:pointer;color:var(--dsw-alias-label-secondary)}
 .kbth-st-lt:hover{border-color:var(--dsw-alias-border-l4)}
@@ -2856,38 +3727,131 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
 .kbth-st-lt.add{border-style:dashed}
 .kbth-st-lt::after{content:attr(data-name);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);z-index:5;padding:3px 8px;border-radius:7px;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-layer-1);font-size:11px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .1s}
 .kbth-st-lt:hover::after,.kbth-st-lt:focus-visible::after{opacity:1}
-.kbth-st-fontlist{display:flex;flex-direction:column;gap:6px;max-height:210px;overflow:auto}
-.kbth-st-grp{font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary);margin-top:4px}
-.kbth-st-ft{appearance:none;font:inherit;display:flex;align-items:baseline;gap:7px;padding:7px 9px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);cursor:pointer;min-width:0;text-align:start}
-.kbth-st-ft b{font-size:17px;font-weight:600}
-.kbth-st-ft span{font-size:11.5px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kbth-st-ft[aria-pressed="true"]{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
-.kbth-st-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .kbth-st-actions .kbth-in{width:auto;flex:1;min-width:150px;max-width:260px}
 .kbth-st .kbth-in::placeholder{color:var(--dsw-alias-label-secondary);opacity:1}
 .kbth-st .kbth-in{box-sizing:border-box}
 .kbth-st-sp{flex:1}
-.kbth-st-look{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--dsw-alias-border-l2);border-radius:999px;background:var(--dsw-alias-bg-layer-1)}
-.kbth-st-look.on{border-color:var(--dsw-alias-brand-primary)}
-.kbth-st-look.del{padding:3px 10px;gap:8px;font-size:12.5px}
-.kbth-st-lookb{appearance:none;border:0;background:none;font:inherit;font-size:13px;color:var(--dsw-alias-label-primary);padding:4px 4px 4px 9px;display:inline-flex;align-items:center;gap:7px;cursor:pointer}
-.kbth-st-lookb i{width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 1px var(--dsw-alias-border-l3)}
-.kbth-st-x{appearance:none;border:0;background:none;color:var(--dsw-alias-label-tertiary);font-size:15px;line-height:1;padding:4px 8px 4px 2px;min-width:24px;min-height:24px;cursor:pointer}
-.kbth-st-x:hover{color:var(--dsw-alias-state-error-primary)}
+.kbth-st-sec .kbth-link{font-size:12.5px}
+.kbth-st-classic>.kbth-foot{padding:0 16px 12px}
 .kbth-st-classic{border:1px solid var(--dsw-alias-border-l2);border-radius:14px}
 .kbth-st-classic>summary{cursor:pointer;padding:13px 16px;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
 .kbth-st-classic>summary .kbth-hint{margin-left:6px;font-weight:400}
 .kbth-st-classic[open]>summary{border-bottom:1px solid var(--dsw-alias-border-l2)}
 .kbth-st-classic>.kbth-sec{padding:16px}
+/* ── Presets: ONE section, built-in and mine (a preset can hold the appearance, the menu, or both) ───────── */
+.kbth-pr{display:flex;flex-direction:column;gap:12px;min-width:0}
+.kbth-pr-strip{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1)}
+.kbth-pr-sp{display:flex;align-items:center;gap:8px;min-width:0}
+.kbth-pr-k{font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary)}
+.kbth-pr-v{display:inline-flex;align-items:center;gap:7px;min-width:0;font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbth-pr-dot{width:14px;height:14px;flex:none;border-radius:50%;box-shadow:0 0 0 1px var(--dsw-alias-border-l3)}
+.kbth-pr-rel{position:relative}
+.kbth-pr-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.kbth-pr-h{margin:0;font-size:15px;font-weight:700;color:var(--dsw-alias-label-primary)}
+.kbth-pr-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.kbth-pr-tile{position:relative;min-width:0;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1)}
+.kbth-pr-tile:hover{border-color:var(--dsw-alias-border-l4)}
+.kbth-pr-tile.use{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
+.kbth-pr-btn{appearance:none;display:flex;flex-direction:column;width:100%;padding:0;border:0;border-radius:inherit;background:none;font:inherit;color:inherit;text-align:start;cursor:pointer}
+.kbth-pr-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kbth-pr-pv{position:relative;display:flex;align-items:center;justify-content:center;height:58px;overflow:hidden;border-radius:11px 11px 0 0;background:var(--dsw-alias-bg-layer-2)}
+.kbth-pr-sb{position:absolute;left:0;top:0;bottom:0;width:30%}
+.kbth-pr-ac{position:absolute;left:38%;bottom:13px;width:30%;height:9px;border-radius:5px}
+.kbth-pr-mb{display:flex;flex-direction:column;gap:5px;width:46%}
+.kbth-pr-mb b{display:block;height:6px;border-radius:3px;background:var(--dsw-alias-label-tertiary);opacity:.55}
+.kbth-pr-use{position:absolute;right:6px;bottom:5px;padding:1px 7px;border-radius:999px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground);font-size:10px;font-weight:600}
+.kbth-pr-tt{display:flex;flex-direction:column;gap:5px;padding:8px 10px 10px}
+.kbth-pr-nm{padding-inline-end:24px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbth-pr-tm{display:flex;flex-wrap:wrap;gap:4px}
+.kbth-pr-src,.kbth-pr-chip{padding:0 7px;border:1px solid var(--dsw-alias-border-l2);border-radius:999px;font-size:10.5px;line-height:1.55;color:var(--dsw-alias-label-secondary)}
+.kbth-pr-src.mine{border-color:color-mix(in srgb,var(--dsw-alias-brand-primary) 45%,transparent);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 14%,transparent);color:var(--dsw-alias-label-primary)}
+.kbth-pr-more{appearance:none;position:absolute;right:6px;top:62px;width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:16px;line-height:1;cursor:pointer}
+.kbth-pr-more:hover,.kbth-pr-more[aria-expanded="true"]{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
+.kbth-pr-ov{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:10px;border:1px solid var(--dsw-alias-border-l4);border-radius:12px;background:var(--dsw-alias-bg-layer-2);font-size:12.5px;color:var(--dsw-alias-label-primary)}
+.kbth-pr-row{display:flex;flex-wrap:wrap;gap:6px}
+.kbth-pop{position:absolute;z-index:30;top:calc(100% + 6px);right:0;display:flex;flex-direction:column;min-width:190px;padding:5px;border:1px solid var(--dsw-alias-border-l3);border-radius:10px;background:var(--dsw-alias-bg-layer-2);box-shadow:0 10px 28px rgba(0,0,0,.28)}
+.kbth-pr-tile>.kbth-pop{top:92px;right:6px}
+.kbth-pi{appearance:none;padding:7px 10px;border:0;border-radius:7px;background:none;font:inherit;font-size:13px;text-align:start;color:var(--dsw-alias-label-primary);cursor:pointer}
+.kbth-pi:hover,.kbth-pi:focus-visible{background:var(--dsw-alias-interactive-bg-hover)}
+.kbth-pi.dng{color:var(--dsw-alias-state-error-primary)}
+/* ── The apply sheet and the save sheet (drawn next to the window: the result shows before it is applied) ───────── */
+.kbth-sheet{display:flex;flex-direction:column;gap:10px;margin-top:10px;padding:14px 16px;border:1px solid var(--dsw-alias-border-l3);border-radius:16px;background:var(--dsw-alias-bg-layer-1)}
+.kbth-sh-hd{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.kbth-sh-hd h3{margin:0;font-size:15px;font-weight:700;color:var(--dsw-alias-label-primary)}
+.kbth-sh-opt{display:flex;align-items:flex-start;gap:10px;padding:9px 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;cursor:pointer}
+.kbth-sh-opt:has(input:checked){border-color:var(--dsw-alias-brand-primary)}
+.kbth-sh-opt input{flex:none;margin-top:3px}
+.kbth-sh-opt b{display:block;font-size:13px;color:var(--dsw-alias-label-primary)}
+.kbth-sh-dl{display:block;margin-top:2px;font-size:12px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
+.kbth-sh-fine{margin:0;font-size:11.5px;line-height:1.5;color:var(--dsw-alias-label-tertiary)}
+.kbth-sh-btns{display:flex;flex-wrap:wrap;gap:8px}
+/* ── One select for five options or more (each option drawn in its own style), segmented control for two to four ───────── */
+.kbth-sel{position:relative;display:block;width:100%;max-width:360px}
+.kbth-sel-btn{appearance:none;display:flex;align-items:center;gap:9px;width:100%;min-height:36px;padding:0 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:9px;background:var(--dsw-alias-bg-layer-1);font:inherit;font-size:14px;text-align:start;color:var(--dsw-alias-label-primary);cursor:pointer}
+.kbth-sel-btn:hover,.kbth-sel.open .kbth-sel-btn{border-color:var(--dsw-alias-border-l4)}
+.kbth-sel-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.kbth-sel-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbth-sel-nm.ph{color:var(--dsw-alias-label-tertiary)}
+.kbth-sel-chev{flex:none;color:var(--dsw-alias-label-tertiary)}
+.kbth-sel-list{position:absolute;z-index:40;inset-inline:0;top:calc(100% + 4px);max-height:280px;overflow:auto;padding:4px;border:1px solid var(--dsw-alias-border-l3);border-radius:10px;background:var(--dsw-alias-bg-layer-2);box-shadow:0 10px 28px rgba(0,0,0,.28)}
+.kbth-sel-grp{padding:8px 8px 3px;font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary)}
+.kbth-sel-opt{display:flex;align-items:center;gap:9px;min-height:34px;padding:0 8px;border-radius:7px;font-size:14px;color:var(--dsw-alias-label-primary);cursor:pointer}
+.kbth-sel-opt[data-act="1"]{background:var(--dsw-alias-interactive-bg-hover)}
+.kbth-sel-opt[aria-selected="true"]{box-shadow:inset 3px 0 0 var(--dsw-alias-brand-primary)}
+.kbth-sel-sw{display:inline-block;width:16px;height:16px;flex:none;border-radius:50%;box-shadow:0 0 0 1px var(--dsw-alias-border-l3)}
+.kbth-sel-sw.wp{border-radius:5px}
+.kbth-sel-ic{display:inline-flex;align-items:center;gap:4px;flex:none;color:var(--dsw-alias-label-secondary)}
+.kbth-icsets-pv{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary)}
+/* ── The Menu panel: the real rows, show or hide, order, a name per language ───────── */
+.kbth-mr{display:flex;flex-direction:column;gap:10px;min-width:0}
+.kbth-mr-list{display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1)}
+.kbth-mr-row{display:flex;flex-direction:column;gap:6px;padding:7px 10px;border-top:1px solid var(--dsw-alias-border-l1)}
+.kbth-mr-row:first-child{border-top:0}
+.kbth-mr-row.off .kbth-mr-ico,.kbth-mr-row.off .kbth-mr-nm{opacity:.5}
+.kbth-mr-row.drag{opacity:.45}
+.kbth-mr-main{display:flex;align-items:center;gap:8px;min-width:0}
+.kbth-mr-grip{width:14px;flex:none;font-size:13px;letter-spacing:-2px;color:var(--dsw-alias-label-tertiary);cursor:grab;user-select:none}
+.kbth-mr-ico{display:inline-flex;width:18px;height:18px;flex:none;color:var(--dsw-alias-label-secondary)}
+.kbth-mr-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;font-weight:500;color:var(--dsw-alias-label-primary)}
+.kbth-mr-was{font-weight:400;color:var(--dsw-alias-label-tertiary)}
+.kbth-mr-always{flex:none;font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
+.kbth-mr-row.fixed .kbth-mr-nm{color:var(--dsw-alias-label-secondary);font-weight:400}
+.kbth-mr-acts{display:inline-flex;align-items:center;gap:4px;flex:none}
+.kbth-mr-b{appearance:none;min-width:28px;height:28px;padding:0 6px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-2);font:inherit;font-size:13px;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kbth-mr-b.txt{padding:0 9px;font-size:12px}
+.kbth-mr-b:hover:not(:disabled){border-color:var(--dsw-alias-border-l4);color:var(--dsw-alias-label-primary)}
+.kbth-mr-b[aria-expanded="true"]{border-color:var(--dsw-alias-brand-primary)}
+.kbth-mr-b:disabled,.kbth-mr .kbth-toggle:disabled{opacity:.4;cursor:default}
+.kbth-mr-names{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;padding:2px 0 4px 40px}
+.kbth-mr-names .kbth-hint{grid-column:1/-1}
+.kbth-mr-nl{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
+.kbth-mr-foot{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.kbth-mz{display:flex;flex-direction:column;gap:10px;min-width:0}
+.kbth-mz>.kbth-seg{align-self:flex-start;max-width:100%;overflow-x:auto}
+.kbth-mz-cap{margin:0;font-size:12.5px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
+.kbth-mr-blk{display:flex;flex-direction:column;gap:6px}
+.kbth-mr-gh{padding:6px 2px 0;font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary)}
+.kbth-mr-always{display:inline-flex;align-items:center;gap:5px}
+.kbth-mr-lk{flex:none}
+.kbth-mr-unl{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.kbth-st-row1.fixed{margin-top:6px;opacity:.85}
+@media (max-width:560px){
+.kbth-adv-cols{grid-template-columns:minmax(0,1fr)}
+.kbth-adv-tabs{flex-direction:row;overflow-x:auto;overflow-y:hidden;position:static;padding-bottom:4px}
+.kbth-adv-tab{flex:0 0 auto}
+.kbth-pr-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+.kbth-pr-tile>.kbth-pop{left:6px;right:6px;min-width:0}
+.kbth-pr-strip{gap:8px 12px}
+.kbth-mr-names{grid-template-columns:minmax(0,1fr);padding-left:0}
+.kbth-mr-b{min-width:32px;height:32px}
+.kbth-mr-main{flex-wrap:wrap}
+.kbth-mr-nm{flex:1 1 90px}
+.kbth-mr-acts{margin-inline-start:auto}
+.kbth-sel{max-width:none}
+}
 [hidden]{display:none!important}
 
 `
-
-      const seg = (opts) => h('div', { className: 'kbth-seg', role: 'group' },
-        opts.items.map((it) => h('button', {
-          key: it.id, type: 'button', 'aria-pressed': it.on === true ? 'true' : 'false',
-          onClick: it.tap,
-        }, it.label)))
 
       const slider = (o) => h('div', { className: 'kbth-sl' },
         h('div', { className: 'kbth-sl-hd' },
@@ -2951,7 +3915,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
         const reader = new FileReader()
         const save = async (rec, okText) => {
           const r = await ldAddRecord(rec)
-          if (r.ok !== true) done('err', r.error ? kt('Refusée par DSH : ' + r.error + '.', 'Refused by DSH: ' + r.error + '.') : kt('Refusée par DSH : raison inconnue.', 'Refused by DSH: unknown reason.'))
+          if (r.ok !== true) done('err', r.error ? kt('Refusée par Kybernos : ' + r.error + '.', 'Refused by Kybernos: ' + r.error + '.') : kt('Refusée par Kybernos : raison inconnue.', 'Refused by Kybernos: unknown reason.'))
           else if (r.local === true) done('warn', okText + kt(' Elle n’est pas enregistrée sur le disque : elle reste dans ce navigateur jusqu’au rechargement.', ' It is not saved to disk: it stays in this browser until the page reloads.'))
           else done('ok', okText)
         }
@@ -3003,30 +3967,6 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
       const ldCopy = (text, then) => {
         try { navigator.clipboard.writeText(text).then(() => then(true), () => then(false)) } catch (e) { then(false) }
       }
-      /** A list of text nodes (not a sentence): the page translator goes node by node. */
-      const ldSummaryHint = () => {
-        const sel = ld.S.sel.map(ldById).filter((x) => x !== null)
-        const p = ldPackById(ld.S.pack)
-        const names = []
-        sel.forEach((l, i) => { if (i > 0) names.push(', '); names.push(l.name) })
-        return (sel.length > 0 ? names.concat([' · ', ld.S.mode === 'random' ? kt('au hasard', 'at random') : kt('dans l’ordre', 'in order')]) : [kt('Queue de baleine de DSH', 'DSH whale tail')]).concat([' · ', kt('texte :', 'text:'), ' ', p.name])
-      }
-
-      /** The summary line of Essentials: points to the Animation tab. */
-      function LdSummary(props) {
-        const [, bump] = React.useReducer((x) => x + 1, 0)
-        React.useEffect(() => { ld.subs.add(bump); return () => { ld.subs.delete(bump) } }, [])
-        const sel = ld.S.sel.map(ldById).filter((x) => x !== null)
-        return h('div', { className: 'kbth-sum', 'data-kb': 'ld-summary' },
-          h('div', { className: 'kbth-sum-ic' }, sel.length > 0
-            ? sel.map((l) => h(LdView, { key: l.id, l, px: 28, spd: 1 }))
-            : h('svg', { width: 28, height: 28, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' }, h('path', { d: LD_WHALE, stroke: 'currentColor', strokeWidth: 1 }))),
-          h('div', { className: 'kbth-sum-tx' },
-            h('span', { className: 'kbth-sec-t', style: { textTransform: 'none', fontSize: 13 } }, kt('Animation de réflexion ', 'Thinking animation '), h('span', { className: 'kbth-new' }, kt('Nouveau', 'NEW'))),
-            h('span', { className: 'kbth-hint' }, ldSummaryHint())),
-          h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-open', onClick: props.onOpen }, kt('Régler…', 'Adjust…')))
-      }
-
       function AnimationPane(props) {
         const ctx = props.ctx
         if (ld.ctx === null) ld.ctx = ctx
@@ -3143,7 +4083,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
                 h('span', { className: 'kbth-ldp-text', 'data-kb': 'ld-label' }, label)))),
           h('div', { className: 'kbth-ldp-bar' },
             h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-draw', disabled: sel.length === 0, onClick: draw }, kt('↻ Simuler une réponse', '↻ Simulate a reply')),
-            cur !== null ? h('span', null, kt('Animation tirée : ', 'Animation drawn: '), h('b', { style: { color: 'var(--dsw-alias-label-primary)' } }, cur.name)) : h('span', null, kt('Aucune animation choisie : la queue de baleine de DSH s’affiche.', 'No animation chosen: the DSH whale tail is shown.')),
+            cur !== null ? h('span', null, kt('Animation tirée : ', 'Animation drawn: '), h('b', { style: { color: 'var(--dsw-alias-label-primary)' } }, cur.name)) : h('span', null, kt('Aucune animation choisie : la queue de baleine de Kybernos s’affiche.', 'No animation chosen: the Kybernos whale tail is shown.')),
             drawn !== null && drawn.hist.length > 1 ? drawn.hist.map((n, i) => h('span', { key: i + n, className: 'kbth-ldchip' + (i === 0 ? ' cur' : '') }, n)) : null))
 
         // ── Rotation ────────────────────────────────────────────────────────
@@ -3168,7 +4108,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
             seg({ items: [
               { id: 'random', label: kt('Au hasard', 'Random'), on: S.mode === 'random', tap: () => ldSet({ mode: 'random' }) },
               { id: 'order', label: kt('Dans l’ordre', 'In order'), on: S.mode === 'order', tap: () => ldSet({ mode: 'order' }) }] })),
-          sel.length === 0 ? h('div', { className: 'kbth-note' }, kt('Rien n’est choisi : DSH garde sa queue de baleine.', 'Nothing is chosen: DSH keeps its whale tail.')) : null,
+          sel.length === 0 ? h('div', { className: 'kbth-note' }, kt('Rien n’est choisi : Kybernos garde sa queue de baleine.', 'Nothing is chosen: Kybernos keeps its whale tail.')) : null,
           h('div', { className: 'kbth-ldt' }, slots),
           h('div', { className: 'kbth-row', style: { gap: 8 } },
             h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-open-picker', onClick: (e) => { setTab('examples'); open('picker', e) } }, sel.length < LD_MAX ? kt('+ Ajouter une animation…', '+ Add an animation…') : kt('Parcourir la bibliothèque…', 'Browse the library…')),
@@ -3287,7 +4227,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
                   ldImport(f).then((r) => { setNote({ t: r.t, text: r.text }); if (r.t !== 'err') setTab('mine') })
                   input.value = ''
                 } }))),
-            h('p', null, kt('Avant usage, DSH retire les scripts, les liens externes et les images intégrées du fichier.', 'Before use, DSH removes scripts, external links and embedded images from the file.'))),
+            h('p', null, kt('Avant usage, Kybernos retire les scripts, les liens externes et les images intégrées du fichier.', 'Before use, Kybernos removes scripts, external links and embedded images from the file.'))),
           h('div', { className: 'kbth-panel2' },
             h('h4', null, kt('Créer avec Claude', 'Create with Claude')),
             h('p', null, kt('Décris l’animation, colle la commande dans le chat : le skill « loader » la dessine et elle apparaît ici toute seule.', 'Describe the animation, paste the command in the chat: the “loader” skill draws it and it appears here by itself.')),
@@ -3304,7 +4244,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
               [['examples', kt('Exemples', 'Examples'), LD_PRESETS.length], ['mine', kt('Mes animations', 'My animations'), ld.mine.length], ['add', kt('Ajouter la tienne', 'Add your own'), null]].map((t) =>
                 h('button', { key: t[0], type: 'button', className: 'kbth-cat', 'aria-pressed': tab === t[0] ? 'true' : 'false', 'data-kb': 'ld-tab', 'data-id': t[0], onClick: () => { setTab(t[0]); setNote(null) } }, t[1], t[2] === null ? null : ' (' + t[2] + ')'))),
             note !== null ? h('div', { className: 'kbth-status ' + note.t, role: 'status', 'data-kb': 'ld-note' }, note.text) : null,
-            ld.hostState === 'off' && ldHostOn() ? h('div', { className: 'kbth-status warn' }, kt('Le disque de DSH ne répond pas : tes importations restent dans ce navigateur jusqu’au rechargement.', 'DSH’s disk does not answer: your imports stay in this browser until it reloads.')) : null,
+            ld.hostState === 'off' && ldHostOn() ? h('div', { className: 'kbth-status warn' }, kt('Le disque de Kybernos ne répond pas : tes importations restent dans ce navigateur jusqu’au rechargement.', 'Kybernos’s disk does not answer: your imports stay in this browser until it reloads.')) : null,
             tab === 'add' ? addTab : h('div', { className: 'kbth-sec', style: { gap: 10 } },
               ex ? h('div', { className: 'kbth-pills' }, [['all', kt('Toutes', 'All')], ['mono', kt('Une couleur', 'One colour')], ['color', kt('Colorées', 'Colourful')]].map((f) =>
                 h('button', { key: f[0], type: 'button', className: 'kbth-pillb', 'aria-pressed': filter === f[0] ? 'true' : 'false', onClick: () => setFilter(f[0]) }, f[1]))) : null,
@@ -3348,36 +4288,246 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           modal === null ? null : portal(h(React.Fragment, null, h('div', { className: 'kbth-mback', onClick: close }), modal === 'picker' ? picker : packModal)))
       }
 
-      /** A window in front of the settings box: Escape closes it, Tab stays inside it, the focus goes back to where it came from. */
-      function ThemeModal(props) {
+      // ══════════════════════════════════════════════════════════════════════
+      // 5b-bis. THE SHARED CONTROLS — a compact select (five options or more), a segmented control (two to four), and the menu rows editor.
+      //     Options are drawn in their own style (a font in its own typeface, a colour as a dot). Hover or the arrow keys preview in the window
+      //     (never in the real interface: a preview is a state of the page, not a commit), Enter keeps, Escape puts back what was there.
+      // ══════════════════════════════════════════════════════════════════════
+
+      /** The keyboard of a list: the index a key goes to (Arrow keys, Home, End), or null when the key is not for moving. Pure, pinned by the tests. */
+      const selNav = (key, i, n) => {
+        if (n <= 0) return null
+        if (key === 'ArrowDown') return Math.min(n - 1, i + 1)
+        if (key === 'ArrowUp') return Math.max(0, i - 1)
+        if (key === 'Home') return 0
+        if (key === 'End') return n - 1
+        return null
+      }
+      /** The same for a segmented control: Left / Right (Up / Down too) move to the next segment, without wrapping past the ends. */
+      const segNav = (key, i, n) => {
+        if (key === 'ArrowRight' || key === 'ArrowDown') return Math.min(n - 1, i + 1)
+        if (key === 'ArrowLeft' || key === 'ArrowUp') return Math.max(0, i - 1)
+        if (key === 'Home') return 0
+        if (key === 'End') return n - 1
+        return null
+      }
+
+      /** The fonts as select options (grouped, each written in its own typeface). */
+      const fontOptions = () => FONTS.map((f, i) => ({ value: f.id, label: f.name, group: i < 15 ? kt('Sans empattement', 'Sans serif') : (i < 22 ? kt('Avec empattement', 'Serif') : kt('Chasse fixe', 'Monospace')), style: f.stack === null ? undefined : { fontFamily: f.stack } }))
+      /** The wallpapers as select options, grouped by category, with a swatch. */
+      const wallOptions = () => WPS.map((w) => ({ value: w.id, label: w.name, group: w.id === 'none' ? undefined : (WPCATS.find((cat) => cat.id === w.cat) || { name: w.cat }).name, lead: h('i', { className: 'kbth-sel-sw wp', style: w.id === 'none' ? undefined : { background: w.css } }) }))
+      /** The icon sets as select options, each with three of its own icons as a sample. */
+      const iconSetOptions = () => ICON_SETS.map((st) => ({ value: st.id, label: st[kbLang()], lead: h('span', { className: 'kbth-sel-ic', 'aria-hidden': 'true' }, ['kyber', 'auto', 'skills'].map((e, i) => h('span', { key: e, dangerouslySetInnerHTML: { __html: stIcon(st.id, e, i === 0, 14) } }))) }))
+
+      /**
+       * A compact select. props: { id, label, value, options: [{ value, label, group?, style?, lead? }], onPick(value), onPreview(value | null), kb }.
+       * The button shows the option in use in its own style; the list is a listbox. Hover or arrow keys call `onPreview(value)`; closing without a choice calls
+       * `onPreview(null)`. A choice calls `onPreview(null)` first, then `onPick(value)`: the preview never leaks into what is stored.
+       */
+      function KbSelect(props) {
+        const [open, setOpen] = React.useState(false)
+        const [act, setAct] = React.useState(0)
         const box = React.useRef(null)
+        const listRef = React.useRef(null)
+        const previewed = React.useRef(false)
+        const opts = props.options
+        const found = opts.findIndex((o) => o.value === props.value)
+        const curIdx = Math.max(0, found)
+        const preview = (i) => { if (typeof props.onPreview === 'function' && opts[i] !== undefined) { previewed.current = true; props.onPreview(opts[i].value) } }
+        const revert = () => { if (previewed.current) { previewed.current = false; if (typeof props.onPreview === 'function') props.onPreview(null) } }
+        const shut = () => { setOpen(false); revert() }
+        const pick = (i) => {
+          const o = opts[i]
+          revert(); setOpen(false)
+          if (o !== undefined && o.value !== props.value) props.onPick(o.value)
+          try { if (box.current !== null) { const b = box.current.querySelector('button.kbth-sel-btn'); if (b !== null && typeof b.focus === 'function') b.focus() } } catch (e) { /* gone */ }
+        }
+        const openList = () => { setAct(curIdx); setOpen(true) }
+        // A press outside the select closes it, and what was previewed goes back.
         React.useEffect(() => {
-          const back = typeof document !== 'undefined' ? document.activeElement : null
-          const el = box.current
-          if (el !== null && el !== undefined) {
-            const first = el.querySelector('input:not([disabled]),textarea')
-            if (first !== null && typeof first.focus === 'function') first.focus(); else if (typeof el.focus === 'function') el.focus()
+          if (!open) return undefined
+          const down = (e) => { if (box.current !== null && !box.current.contains(e.target)) shut() }
+          document.addEventListener('mousedown', down)
+          return () => document.removeEventListener('mousedown', down)
+        }, [open])
+        // Follows the keyboard in a long list.
+        React.useEffect(() => {
+          if (!open || listRef.current === null) return
+          const el = listRef.current.querySelector('[data-act="1"]')
+          if (el !== null && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'nearest' })
+        }, [open, act])
+        // Whatever unmounts the select with a preview running puts the window back.
+        React.useEffect(() => () => { if (previewed.current) { previewed.current = false; try { if (typeof props.onPreview === 'function') props.onPreview(null) } catch (e) { /* gone */ } } }, [])
+        const key = (e) => {
+          if (!open) {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openList() }
+            return
           }
-          const key = (e) => {
-            if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); props.onClose(); return }
-            if (e.key === 'Tab' && box.current) {
-              // Always ours: DSH's settings box has its own focus trap and this window sits outside it (portal).
-              const f = Array.prototype.slice.call(box.current.querySelectorAll('button,input,textarea,select,a[href],[tabindex="0"]')).filter((x) => !x.disabled && x.offsetParent !== null)
-              e.preventDefault(); e.stopPropagation()
-              if (f.length === 0) return
-              const i = f.indexOf(document.activeElement)
-              f[i < 0 ? (e.shiftKey ? f.length - 1 : 0) : (i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus()
-            }
-          }
-          document.addEventListener('keydown', key, true)
-          return () => {
-            document.removeEventListener('keydown', key, true)
-            try { if (back !== null && back !== undefined && typeof back.focus === 'function') back.focus() } catch (e) { /* gone */ }
-          }
-        }, [])
-        return portal(h(React.Fragment, null,
-          h('div', { className: 'kbth-mback', onClick: props.onClose }),
-          h('div', { className: 'kbth-mdlg', style: { width: 'min(480px, calc(100vw - 32px))' }, role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': props.labelId, tabIndex: -1, ref: box, 'data-kb': props.kb, onKeyDown: (e) => e.stopPropagation() }, props.children)))
+          if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); shut(); return }
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(act); return }
+          if (e.key === 'Tab') { shut(); return }
+          const next = selNav(e.key, act, opts.length)
+          if (next !== null) { e.preventDefault(); setAct(next); preview(next) }
+        }
+        const cur = found >= 0 ? opts[found] : null // a value that is not in the list (a preset's own id, say) shows the placeholder, never the first option
+        const lid = 'kbth-sel-' + props.id
+        let lastGroup = null
+        const items = []
+        opts.forEach((o, i) => {
+          if (o.group !== undefined && o.group !== lastGroup) { lastGroup = o.group; items.push(h('div', { key: 'g:' + o.group, className: 'kbth-sel-grp', role: 'presentation' }, o.group)) }
+          items.push(h('div', {
+            key: String(o.value), id: lid + '-' + i, role: 'option', className: 'kbth-sel-opt', 'aria-selected': o.value === props.value ? 'true' : 'false', 'data-act': i === act ? '1' : '0', 'data-value': String(o.value), 'data-kb': 'theme-sel-opt',
+            style: o.style,
+            onMouseDown: (e) => e.preventDefault(),
+            onMouseEnter: () => { setAct(i); preview(i) },
+            onClick: () => pick(i)
+          }, o.lead !== undefined ? o.lead : null, h('span', { className: 'kbth-sel-nm' }, o.label)))
+        })
+        return h('div', { className: 'kbth-sel' + (open ? ' open' : ''), ref: box, 'data-kb': props.kb || 'theme-sel' },
+          h('button', {
+            type: 'button', className: 'kbth-sel-btn', role: 'combobox', 'aria-haspopup': 'listbox', 'aria-expanded': open ? 'true' : 'false', 'aria-controls': lid, 'aria-label': props.label,
+            'aria-activedescendant': open ? lid + '-' + act : undefined, 'data-value': String(cur === null ? '' : cur.value), style: cur === null ? undefined : cur.style,
+            onClick: () => { if (open) shut(); else openList() }, onKeyDown: key
+          }, cur !== null && cur.lead !== undefined ? cur.lead : null, h('span', { className: 'kbth-sel-nm' + (cur === null ? ' ph' : '') }, cur === null ? (props.placeholder === undefined ? '' : props.placeholder) : cur.label),
+          h('svg', { className: 'kbth-sel-chev', width: 14, height: 14, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' }, h('path', { d: open ? 'M3.5 10.5 8 6l4.5 4.5' : 'M3.5 5.5 8 10l4.5-4.5', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round' }))),
+          open ? h('div', { className: 'kbth-sel-list', id: lid, role: 'listbox', 'aria-label': props.label, ref: listRef, onMouseLeave: () => revert() }, items) : null)
+      }
+
+      /**
+       * A segmented control (two to four options): a radio group, Left / Right move the choice, hover or focus previews it through `opts.pv`
+       * (`{ on(id), off() }`, optional). items: [{ id, label, on, tap, style? }].
+       */
+      const seg = (opts) => h('div', {
+        className: 'kbth-seg', role: 'radiogroup', 'aria-label': opts.label, 'data-kb': opts.kb,
+        onKeyDown: (e) => {
+          const i = opts.items.findIndex((it) => it.on === true)
+          const next = segNav(e.key, i < 0 ? 0 : i, opts.items.length)
+          if (next === null || next === i) return
+          e.preventDefault(); e.stopPropagation()
+          if (opts.pv !== undefined) opts.pv.off()
+          opts.items[next].tap()
+          try { const kids = e.currentTarget.children; if (kids[next] !== undefined && typeof kids[next].focus === 'function') kids[next].focus() } catch (er) { /* gone */ }
+        }
+      }, opts.items.map((it, i) => h('button', {
+        key: it.id, type: 'button', role: 'radio', 'aria-checked': it.on === true ? 'true' : 'false', 'data-id': it.id,
+        tabIndex: it.on === true || (i === 0 && !opts.items.some((x) => x.on === true)) ? 0 : -1, style: it.style,
+        onClick: () => { if (opts.pv !== undefined) opts.pv.off(); it.tap() },
+        onMouseEnter: opts.pv !== undefined && it.on !== true ? () => opts.pv.on(it.id) : undefined, onMouseLeave: opts.pv !== undefined ? () => opts.pv.off() : undefined,
+        onFocus: opts.pv !== undefined && it.on !== true ? () => opts.pv.on(it.id) : undefined, onBlur: opts.pv !== undefined ? () => opts.pv.off() : undefined
+      }, it.label)))
+
+      /**
+       * The rows of the menu: show or hide, order (drag, or the arrows), a name per language. props: { rows, doc, edit(fn), showAll(), setUnlisted(v), compact }.
+       * `rows` are the rows of this install (the registry's), `doc` the arrangement in use; the host's own rows (Workspaces, Settings, the account) are drawn
+       * after them and cannot be hidden. A locked arrangement (set by an app) is read-only here, except « Show every entry ».
+       */
+      function MenuRows(props) {
+        const [drag, setDrag] = React.useState(null)
+        const [naming, setNaming] = React.useState(null)
+        const view = menuView(props.doc, props.rows)
+        const locked = props.doc !== null && props.doc !== undefined && props.doc.locked === true
+        const allShown = view.every((v) => v.shown) && (props.doc === null || props.doc === undefined || props.doc.unlisted === 'show') && props.surfacesShown !== false
+        const move = (id, to) => props.edit((list) => {
+          const from = list.findIndex((x) => x.id === id)
+          if (from < 0 || to < 0 || to >= list.length || from === to) return
+          const item = list.splice(from, 1)[0]
+          list.splice(to, 0, item)
+        })
+        const setShown = (id, shown) => props.edit((list) => { const x = list.find((y) => y.id === id); if (x !== undefined) x.shown = shown })
+        const setLabel = (id, lng, text) => props.edit((list) => {
+          const x = list.find((y) => y.id === id)
+          if (x === undefined) return
+          const t = menuText(text)
+          if (t === '' || t.length > MENU_LABEL_MAX || /[<>]/.test(t)) delete x.label[lng]; else x.label[lng] = t
+        })
+        if (props.rows.length === 0) {
+          return h('div', { className: 'kbth-note', role: 'status', 'data-kb': 'theme-menu-none' }, kt('Le menu n’est pas affiché sur cet écran : ses entrées apparaissent ici dès que Kybernos le dessine.', 'The menu is not drawn on this screen: its entries show up here as soon as Kybernos draws it.'))
+        }
+        return h('div', { className: 'kbth-mr', 'data-kb': 'theme-menu-rows' },
+          locked ? h('div', { className: 'kbth-note', role: 'status', 'data-kb': 'theme-menu-locked' }, kt('Ce menu est réglé par une application : tu peux seulement tout réafficher.', 'This menu is set by an app: you can only show every entry again.')) : null,
+          h('div', { className: 'kbth-mr-list', role: 'list' },
+            view.map((v, i) => {
+              const open = naming === v.id && !locked
+              return h('div', { key: v.id, role: 'listitem', className: 'kbth-mr-row' + (v.shown ? '' : ' off') + (drag === v.id ? ' drag' : ''), 'data-kb': 'theme-menu-row', 'data-id': v.id,
+                draggable: !locked, onDragStart: (e) => { if (locked) return; setDrag(v.id); try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', v.id) } catch (er) { /* synthetic */ } },
+                onDragOver: (e) => { if (drag !== null) e.preventDefault() }, onDragEnd: () => setDrag(null),
+                onDrop: (e) => { e.preventDefault(); if (drag !== null && drag !== v.id) move(drag, i); setDrag(null) } },
+                h('div', { className: 'kbth-mr-main' },
+                  h('span', { className: 'kbth-mr-grip', 'aria-hidden': 'true' }, '⋮⋮'),
+                  v.icon !== null ? h('span', { className: 'kbth-mr-ico', 'aria-hidden': 'true', dangerouslySetInnerHTML: { __html: props.icon(v.icon) } }) : h('span', { className: 'kbth-mr-ico', 'aria-hidden': 'true' }),
+                  h('span', { className: 'kbth-mr-nm' }, v.name, v.name !== v.base ? h('span', { className: 'kbth-mr-was' }, ' · ' + v.base) : null),
+                  h('span', { className: 'kbth-mr-acts' },
+                    h('button', { type: 'button', className: 'kbth-mr-b', 'data-kb': 'theme-menu-up', disabled: locked || i === 0, 'aria-label': kt('Monter ', 'Move up ') + v.name, onClick: () => move(v.id, i - 1) }, '↑'),
+                    h('button', { type: 'button', className: 'kbth-mr-b', 'data-kb': 'theme-menu-down', disabled: locked || i === view.length - 1, 'aria-label': kt('Descendre ', 'Move down ') + v.name, onClick: () => move(v.id, i + 1) }, '↓'),
+                    h('button', { type: 'button', className: 'kbth-mr-b txt', 'data-kb': 'theme-menu-rename', disabled: locked, 'aria-expanded': open ? 'true' : 'false', onClick: () => setNaming(open ? null : v.id) }, kt('Nom', 'Name')),
+                    h('button', { type: 'button', className: 'kbth-toggle' + (v.shown ? ' on' : ''), role: 'switch', 'aria-checked': v.shown ? 'true' : 'false', 'aria-label': (v.shown ? kt('Cacher ', 'Hide ') : kt('Afficher ', 'Show ')) + v.name, 'data-kb': 'theme-menu-show', disabled: locked, onClick: () => setShown(v.id, !v.shown) }, h('span', { className: 'kbth-toggle-knob' })))),
+                open ? h('div', { className: 'kbth-mr-names', 'data-kb': 'theme-menu-names' },
+                  [['en', 'English'], ['fr', 'Français']].map((l) => h('label', { key: l[0], className: 'kbth-mr-nl' }, h('span', null, l[1]),
+                    h('input', { className: 'kbth-in', maxLength: MENU_LABEL_MAX, value: v.label[l[0]] === undefined ? '' : v.label[l[0]], placeholder: v.base, 'data-kb': 'theme-menu-name-' + l[0], 'aria-label': v.base + ' · ' + l[1], onInput: (e) => setLabel(v.id, l[0], e.target.value) }))),
+                  h('div', { className: 'kbth-hint' }, kt('Laisse vide pour garder le nom d’origine. Chaque langue garde son propre nom.', 'Leave empty to keep the original name. Each language keeps its own name.'))) : null)
+            }),
+            [kt('Espaces de travail', 'Workspaces'), kt('Réglages et compte', 'Settings and account')].map((nm, i) => h('div', { key: 'fixed' + i, role: 'listitem', className: 'kbth-mr-row fixed', 'data-kb': 'theme-menu-fixed' },
+              h('div', { className: 'kbth-mr-main' }, h('span', { className: 'kbth-mr-grip', 'aria-hidden': 'true' }), h('span', { className: 'kbth-mr-ico', 'aria-hidden': 'true' }), h('span', { className: 'kbth-mr-nm' }, nm), h('span', { className: 'kbth-mr-always' }, kt('toujours affiché', 'always shown')))))),
+          h('div', { className: 'kbth-mr-foot' },
+            h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-menu-showall', disabled: allShown, onClick: () => props.showAll() }, kt('Tout réafficher', 'Show every entry')),
+            props.compact === true || locked ? null : h('div', { className: 'kbth-mr-unl' }, h('span', { className: 'kbth-lb' }, kt('Entrées ajoutées plus tard', 'Entries added later')),
+              seg({ label: kt('Entrées ajoutées plus tard', 'Entries added later'), kb: 'theme-menu-unlisted', items: [['show', kt('Affichées', 'Shown')], ['hide', kt('Cachées', 'Hidden')]].map((u) => ({ id: u[0], label: u[1], on: (props.doc === null || props.doc === undefined ? 'show' : props.doc.unlisted) === u[0], tap: () => props.setUnlisted(u[0]) })) }))))
+      }
+
+      /** A closed padlock, 12 px, drawn in the text colour. */
+      const lockMark = () => h('svg', { width: 12, height: 12, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: 'kbth-mr-lk' },
+        h('rect', { x: 5, y: 11, width: 14, height: 10, rx: 2 }), h('path', { d: 'M8 11V8a4 4 0 0 1 8 0v3' }))
+      /**
+       * The entries of one surface (the account menu, the Settings pages): a switch per entry, a padlock on the ones that can never be hidden (they open the app's own screens, or are the page
+       * Settings opens on), Settings pages under the name of their group. props: { surface, rows, doc, edit(fn), showAll(), allShown }. A locked arrangement (set by an app) is read-only, except « Show every entry ».
+       */
+      function SurfaceRows(props) {
+        const view = surfaceView(props.doc, props.surface, props.rows)
+        const locked = props.doc !== null && props.doc !== undefined && props.doc.locked === true
+        const setShown = (id, shown) => props.edit((list) => { const x = list.find((y) => y.id === id); if (x !== undefined && x.locked !== true) x.shown = shown })
+        const blocks = []
+        view.forEach((v) => {
+          const last = blocks[blocks.length - 1]
+          if (last !== undefined && last.group === v.group) last.items.push(v)
+          else blocks.push({ group: v.group, name: typeof v.groupName === 'string' ? v.groupName : '', items: [v] })
+        })
+        const rowOf = (v) => h('div', { key: v.id, role: 'listitem', className: 'kbth-mr-row' + (v.shown ? '' : ' off') + (v.locked ? ' fixed' : ''), 'data-kb': 'theme-surface-row', 'data-surface': props.surface, 'data-id': v.id },
+          h('div', { className: 'kbth-mr-main' },
+            h('span', { className: 'kbth-mr-nm' }, v.name),
+            v.locked ? h('span', { className: 'kbth-mr-always', 'data-kb': 'theme-surface-locked' }, lockMark(), kt('toujours affiché', 'always shown')) : null,
+            h('span', { className: 'kbth-mr-acts' },
+              h('button', { type: 'button', className: 'kbth-toggle' + (v.shown ? ' on' : ''), role: 'switch', 'aria-checked': v.shown ? 'true' : 'false', 'aria-label': (v.shown ? kt('Cacher ', 'Hide ') : kt('Afficher ', 'Show ')) + v.name, 'data-kb': 'theme-surface-show', disabled: locked || v.locked, onClick: () => setShown(v.id, !v.shown) }, h('span', { className: 'kbth-toggle-knob' })))))
+        return h('div', { className: 'kbth-mr', 'data-kb': 'theme-surface-rows', 'data-surface': props.surface },
+          locked ? h('div', { className: 'kbth-note', role: 'status', 'data-kb': 'theme-menu-locked' }, kt('Ce menu est réglé par une application : tu peux seulement tout réafficher.', 'This menu is set by an app: you can only show every entry again.')) : null,
+          blocks.map((b, i) => h('div', { key: 'b' + i, className: 'kbth-mr-blk' },
+            b.name !== '' ? h('div', { className: 'kbth-mr-gh', 'data-kb': 'theme-surface-group' }, b.name) : null,
+            h('div', { className: 'kbth-mr-list', role: 'list', 'aria-label': b.name !== '' ? b.name : undefined }, b.items.map(rowOf)))),
+          h('div', { className: 'kbth-mr-foot' },
+            h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-menu-showall', disabled: props.allShown, onClick: () => props.showAll() }, kt('Tout réafficher', 'Show every entry'))))
+      }
+      /**
+       * The three places an arrangement shows or hides entries, one at a time: the menu (its rows: order, names, show or hide), the account menu, the Settings pages. A zone the install cannot draw (an older
+       * menu that knows no other surface) is not offered. props: the MenuRows ones, plus `editSurface(surface, fn)`.
+       */
+      function MenuZones(props) {
+        const [zone, setZone] = React.useState('main')
+        const rowsOf = { secondary: surfaceRows('secondary'), settings: surfaceRows('settings') }
+        const flat = (k) => surfaceView(props.doc, k, rowsOf[k])
+        const surfacesShown = MENU_SURFACE_IDS.every((k) => flat(k).every((v) => v.shown) && (props.doc === null || props.doc === undefined || props.doc.surfaces === undefined || props.doc.surfaces[k] === undefined || props.doc.surfaces[k].unlisted === 'show'))
+        const mainView = menuView(props.doc, props.rows)
+        const allShown = mainView.every((v) => v.shown) && (props.doc === null || props.doc === undefined || props.doc.unlisted === 'show') && surfacesShown
+        const zones = [['main', kt('Menu', 'Menu'), mainView.filter((v) => v.shown).length + '/' + mainView.length]]
+          .concat([['secondary', kt('Menu du compte', 'Account menu')], ['settings', kt('Pages des Réglages', 'Settings pages')]].filter((z) => rowsOf[z[0]].length > 0).map((z) => [z[0], z[1], flat(z[0]).filter((v) => v.shown).length + '/' + rowsOf[z[0]].length]))
+        const cur = zones.some((z) => z[0] === zone) ? zone : 'main'
+        const caption = { main: null,
+          secondary: kt('Le menu du compte, celui que l’avatar ouvre. Cadenas : l’entrée ouvre un écran propre à l’app et ne peut pas être cachée.', 'The account menu the avatar opens. Padlock: the entry opens one of the app’s own screens and can never be hidden.'),
+          settings: kt('Les pages des Réglages, des pages entières : ce qu’il y a dans une page n’a pas de repère, donc ne peut être ni montré ni caché. Général est la page qui s’ouvre en premier : elle reste.', 'The Settings pages, whole pages only: what is inside a page has no hook, so it cannot be shown or hidden. General is the page Settings opens on: it stays.') }[cur]
+        return h('div', { className: 'kbth-mz', 'data-kb': 'theme-menu-zones' },
+          zones.length > 1 ? seg({ label: kt('Quoi montrer ou cacher', 'What to show or hide'), kb: 'theme-menu-zone', items: zones.map((z) => ({ id: z[0], label: z[1] + ' ' + z[2], on: cur === z[0], tap: () => setZone(z[0]) })) }) : null,
+          caption !== null ? h('p', { className: 'kbth-mz-cap', 'data-kb': 'theme-menu-zone-cap' }, caption) : null,
+          cur === 'main'
+            ? h(MenuRows, { ...props, surfacesShown })
+            : h(SurfaceRows, { key: cur, surface: cur, rows: rowsOf[cur], doc: props.doc, edit: (fn) => props.editSurface(cur, fn), showAll: props.showAll, allShown }))
       }
 
       // <look-studio:begin>
@@ -3396,15 +4546,14 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
       const ST_SPEEDS = [['slow', 0.6, 'Lent', 'Slow'], ['normal', 1, 'Normal', 'Normal'], ['fast', 1.6, 'Rapide', 'Fast']]
       /** Text colours on offer (« auto » is the colour of the app). */
       const ST_INKS = ['#FFFFFF', '#E5E7EB', '#FDE68A', '#A7F3D0', '#BFDBFE', '#111111', '#374151']
-      const ST_ZONES = ['mood', 'style', 'accent', 'sidebar', 'wall', 'user', 'agent', 'icons', 'think', 'letters', 'widgets', 'effects', 'access']
-      /** The shipped themes of the first sight: the ten that are not the inherited packs. */
-      const ST_FIRST_SKINS = 10
+      const ST_ZONES = ['mood', 'style', 'accent', 'sidebar', 'wall', 'user', 'agent', 'menu', 'think', 'letters', 'widgets', 'effects', 'access']
       const ST_SIZE_ID = (fs) => (fs <= 13 ? 's' : (fs >= 16 ? 'l' : 'm'))
 
       /** The keys of a look (what a theme may keep, accessibility excluded: those are needs, not a style). A vibe starts from the defaults of these. */
       const stLookKeys = () => PRESET_KEYS.filter((k) => PRESET_GROUPS.a11y.indexOf(k) < 0)
-      /** Five whole looks: a theme, an accent, a font, the tone of the sidebar, icons, how replies are framed, the pills under the message box and the thinking animation + words. */
+      /** Six whole looks: a theme, an accent, a font, the tone of the sidebar, icons, how replies are framed, the pills under the message box and the thinking animation + words. */
       const ST_VIBES = [
+        { id: 'epure', fr: 'Épuré (Codex)', en: 'Pure (Codex)', dot: '#2563EB', skin: 'epure', set: { mode: 'light', fontText: 'system-ui', fs: 14, radius: 'soft', shadow: 'soft', bubbleUser: 'auto', iconSet: 'classic', wgSessions: false, wgChanges: false, wgUsage: true }, think: 'dots', pack: 'dsh' },
         { id: 'work', fr: 'Travail', en: 'Work', dot: '#3B82F6', skin: 'clair', set: { acc: '#3B82F6', fontText: 'avenir', fs: 14, sideTone: 'lighter', iconSet: 'classic', wgSessions: false, wgChanges: false, wgUsage: true }, think: 'dots', pack: 'finance' },
         { id: 'dev', fr: 'Dev', en: 'Dev', dot: '#22C55E', skin: 'oled', set: { acc: '#22C55E', fontText: 'jetbrains-mono', fs: 13, sideTone: 'darker', iconSet: 'matrice', replyBg: 'outline', bubbleUser: 'dark', wgSessions: true, wgChanges: true, wgUsage: true }, think: 'bars', pack: 'ingenierie' },
         { id: 'study', fr: 'Études', en: 'Study', dot: '#F59E0B', skin: 'papier', set: { acc: '#F59E0B', fontText: 'nunito', fs: 16, iconSet: 'kawaii', replyBg: 'card', wgSessions: false, wgChanges: false, wgUsage: true }, think: 'bunny', pack: 'education' },
@@ -3430,7 +4579,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
         wall: () => ({ state: { wp: stPick(WPS.filter((w) => w.id !== 'none')).id, wpVis: 50 + Math.floor(Math.random() * 50) } }),
         user: () => ({ state: { bubbleUser: stPick(BUBBLE_CHOICES), textUser: null } }),
         agent: () => ({ state: { replyBg: stPick(ENUMS.replyBg), replyColor: null, textReply: null } }),
-        icons: () => ({ state: { iconSet: stPick(ICON_SET_IDS) } }),
+        menu: () => ({ state: { iconSet: stPick(ICON_SET_IDS) } }),
         think: () => ({ loop: { sel: [stPick(LD_PRESETS).id], pack: stPick(LD_PACKS).id } }),
         letters: () => ({ state: { fontText: stPick(ST_FONTS)[0], fs: stPick(ST_SIZES)[1] } }),
         effects: () => ({ state: { radius: stPick(ENUMS.radius), shadow: stPick(ENUMS.shadow), glow: Math.random() < 0.3 } })
@@ -3439,7 +4588,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
       const stSurprise = () => {
         const state = { ...surprendre() }
         const loop = {}
-        ;['icons', 'letters', 'sidebar', 'user', 'agent', 'think', 'effects'].forEach((z) => { const r = ST_RAND[z](); Object.assign(state, r.state || {}); Object.assign(loop, r.loop || {}) })
+        ;['menu', 'letters', 'sidebar', 'user', 'agent', 'think', 'effects'].forEach((z) => { const r = ST_RAND[z](); Object.assign(state, r.state || {}); Object.assign(loop, r.loop || {}) })
         return { state, loop }
       }
       /** The colour DSH paints its own bubble with, in the scheme shown (read from the page when there is one). */
@@ -3457,7 +4606,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
       /** An SVG for one menu entry, in the set `setId` (the classic set is the application's own, lent through a seam). */
       const stIcon = (setId, entry, on, size) => {
         let svg = null
-        try { svg = setId === 'classic' ? (typeof window.__KB_MENU_CLASSIC__ === 'function' ? window.__KB_MENU_CLASSIC__(entry, size) : null) : iconSvg(setId, entry, on, size) } catch (e) { svg = null }
+        try { svg = entry === null || entry === undefined ? null : (setId === 'classic' ? (typeof window.__KB_MENU_CLASSIC__ === 'function' ? window.__KB_MENU_CLASSIC__(entry, size) : null) : iconSvg(setId, entry, on, size)) } catch (e) { svg = null }
         return typeof svg === 'string' ? svg : '<svg width="' + size + '" height="' + size + '" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="2.5" stroke="currentColor" stroke-width="1.3"/></svg>'
       }
       const ST_PENCIL = 'M11.2 2.3a1.6 1.6 0 0 1 2.3 2.3L5.4 12.7 2 13.5l.8-3.4z'
@@ -3477,14 +4626,11 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
 
       function Studio(props) {
         const S = props.S, c = props.c, dark = props.dark, commit = props.commit
+        const menuP = props.menu !== undefined ? props.menu : { rows: [], doc: null, pvDoc: undefined, edit: () => {}, editSurface: () => {}, showAll: () => {}, setUnlisted: () => {} }
         const [zoneOn, setZone] = React.useState(props.initialZone === undefined ? null : props.initialZone)
         const [more, setMore] = React.useState({})
-        const [fq, setFq] = React.useState('')
-        const [wpCat, setWpCat] = React.useState('gradients')
-        const [allStyles, setAllStyles] = React.useState(false)
         const [mixOn, setMixOn] = React.useState(ld.S.sel.length > 1)
-        const [lookName, setLookName] = React.useState('')
-        const [delId, setDelId] = React.useState(null)
+        const [menuTab, setMenuTab] = React.useState('rows')
         const [note, setNote] = React.useState(null)
         const [narrow, setNarrow] = React.useState(false)
         const [hexDraft, setHexDraft] = React.useState(null)
@@ -3555,7 +4701,10 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           else if (r.state !== undefined) commit(r.state)
           applyLoop(r.loop)
         }
-        const applyVibe = (v) => { const p = stVibePatch(v); props.setLibNote(null); commit(p.state); applyLoop(p.loop); setMixOn(false) }
+        // A preview is a state of the page (the window draws it), never a commit: `pvOf(key)` is the hover / arrow-key preview of one setting.
+        const preview = typeof props.preview === 'function' ? props.preview : () => {}
+        const pvOf = (key) => (v) => preview(v === null ? null : { [key]: v })
+        const pvSeg = (key) => ({ on: (id) => preview({ [key]: id }), off: () => preview(null) })
         const dice = (z) => (ST_RAND[z] === undefined ? null : h('button', { type: 'button', className: 'kbth-st-ic', 'data-kb': 'theme-dice', 'aria-label': say('Tirer au sort pour ce panneau', 'Draw one at random for this panel'), title: say('Au hasard', 'Random'), onClick: () => apply(ST_RAND[z]()) },
           h('svg', { width: 16, height: 16, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' }, h('rect', { x: 2, y: 2, width: 12, height: 12, rx: 3, stroke: 'currentColor', strokeWidth: 1.3 }), [[5.2, 5.2], [10.8, 5.2], [8, 8], [5.2, 10.8], [10.8, 10.8]].map((p, i) => h('circle', { key: i, cx: p[0], cy: p[1], r: 0.95, fill: 'currentColor' }))))
         )
@@ -3563,9 +4712,6 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
         // ── small builders ────────────────────────────────────────────────
         const sub = (t) => h('div', { className: 'kbth-st-sub' }, t)
         const cap = (t) => h('p', { className: 'kbth-st-cap' }, t)
-        const tile = (t) => h('button', { key: t.id, type: 'button', className: 'kbth-st-tile', 'aria-pressed': t.on ? 'true' : 'false', title: t.title, onClick: t.tap, 'data-kb': t.kb, 'data-id': t.id },
-          h('div', { className: 'kbth-st-mini', style: t.bg !== undefined ? { background: t.bg } : undefined }, t.inner), h('span', { className: 'kbth-st-nm' }, t.label))
-        const tiles = (cols, list) => h('div', { className: 'kbth-st-tiles c' + cols }, list.map(tile))
         const swatches = (list, cur, tap, autoLabel) => h('div', { className: 'kbth-st-sws' }, list.map((col) => {
           const on = col === null ? cur === null : (cur !== null && String(cur).toLowerCase() === col.toLowerCase())
           return h('button', { key: col === null ? 'auto' : col, type: 'button', className: 'kbth-st-sw' + (col === null ? ' auto' : ''), style: col === null ? undefined : { background: col }, 'aria-pressed': on ? 'true' : 'false', 'aria-label': col === null ? autoLabel : col, title: col === null ? autoLabel : col, onClick: () => tap(col) })
@@ -3582,28 +4728,18 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
 
         // ── mood ──────────────────────────────────────────────────────────
         const moodPanel = () => [
-          tiles(3, [['light', say('Clair', 'Light')], ['dark', say('Sombre', 'Dark')], ['system', say('Système', 'System')]].map((m) => ({
-            id: m[0], kb: 'theme-st-mood', on: S.mode === m[0], tap: () => commit({ mode: m[0] }), label: m[1],
-            bg: m[0] === 'system' ? 'linear-gradient(90deg,' + makeTheme('light', o).base + ' 50%,' + makeTheme('dark', o).base + ' 50%)' : makeTheme(m[0], o).base
-          }))),
+          seg({ label: say('Clair ou sombre ?', 'Light or dark?'), kb: 'theme-st-mood', items: [['light', say('Clair', 'Light')], ['dark', say('Sombre', 'Dark')], ['system', say('Système', 'System')]].map((m) => ({ id: m[0], label: m[1], on: S.mode === m[0], tap: () => commit({ mode: m[0] }) })) }),
           cap(say('S’applique à toute l’interface. « Système » suit le réglage de ton appareil.', 'Applies to the whole interface. “System” follows your device setting.'))
         ]
 
         // ── style ─────────────────────────────────────────────────────────
         const skinTheme = (sk) => makeTheme(sk.mode === null || sk.mode === undefined ? (dark ? 'dark' : 'light') : sk.mode, { acc: sk.acc, ov: sk.ov || {}, lvl: 0, cb: false, tint: 0, dom: '', sideTone: 'auto' })
-        const skinMini = (sk) => {
-          const t = skinTheme(sk)
-          const w = WPS.find((x) => x.id === sk.wp)
-          return [w !== undefined && w.id !== 'none' ? h('i', { key: 'w', className: 'kbth-st-wp', style: { background: w.css, opacity: (sk.vis || 60) / 100 } }) : null,
-            h('i', { key: 's', className: 'kbth-st-ms', style: { background: t.side } }), h('i', { key: 'l', className: 'kbth-st-ml', style: { background: t.t3 } }), h('i', { key: 'b', className: 'kbth-st-mbar', style: { background: t.fill } })]
-        }
+        const skinOpts = SKINS.map((sk) => ({ value: sk.id, label: sk.name, lead: h('i', { className: 'kbth-sel-sw', style: { background: skinTheme(sk).base, boxShadow: 'inset 0 0 0 4px ' + (skinAccent(sk) || skinTheme(sk).brand) } }) }))
         const stylePanel = () => [
-          tiles(5, SKINS.filter((sk, i) => allStyles || i < ST_FIRST_SKINS).map((sk) => ({
-            id: sk.id, kb: 'theme-st-style', on: S.skin === sk.id, tap: () => props.applySkin(sk), label: sk.name, title: sk.name + ' — ' + props.skinMeta(sk),
-            bg: skinTheme(sk).base, inner: skinMini(sk)
-          }))),
-          h('div', { className: 'kbth-st-row' }, chip(allStyles ? say('Montrer ' + ST_FIRST_SKINS, 'Show ' + ST_FIRST_SKINS) : say('Les ' + SKINS.length + ' styles', 'All ' + SKINS.length + ' styles'), allStyles, () => setAllStyles(!allStyles), 'theme-st-allstyles'),
-            h('button', { type: 'button', className: 'kbth-link', onClick: () => props.openClassic('galerie') }, say('Plus de styles : la galerie', 'More looks: the gallery')))
+          h('div', { key: 'sel', className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Style', 'Style')),
+            h(KbSelect, { id: 'style', kb: 'theme-st-style', label: say('Style', 'Style'), value: S.skin, options: skinOpts, placeholder: say('Personnalisé', 'Custom'), onPick: (id) => { const sk = SKINS.find((x) => x.id === id); if (sk !== undefined) props.applySkin(sk) }, onPreview: (id) => { const sk = id === null ? undefined : SKINS.find((x) => x.id === id); preview(sk === undefined ? null : skinPatch(sk)) } })),
+          cap(say(SKINS.length + ' styles livrés avec Kybernos. Les tiens sont dans les préréglages.', SKINS.length + ' styles shipped with Kybernos. Yours are in the presets.')),
+          h('div', { key: 'gal', className: 'kbth-st-row' }, h('button', { type: 'button', className: 'kbth-link', onClick: () => props.openClassic('galerie') }, say('Plus de styles : la galerie', 'More styles: the gallery')))
         ]
 
         // ── accent ────────────────────────────────────────────────────────
@@ -3626,11 +4762,10 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
         // ── sidebar ───────────────────────────────────────────────────────
         const sideNames = { auto: say('Auto', 'Auto'), darker: say('Plus sombre', 'Darker'), lighter: say('Plus clair', 'Lighter'), tinted: say('Teintée', 'Tinted') }
         const sidebarPanel = () => [
-          tiles(4, ENUMS.sideTone.map((t) => ({ id: t, kb: 'theme-st-side', on: S.sideTone === t, tap: () => commit({ sideTone: t }), label: sideNames[t], bg: makeTheme(dark ? 'dark' : 'light', { ...o, sideTone: 'auto' }).base,
-            inner: h('i', { className: 'kbth-st-ms wide', style: { background: makeTheme(dark ? 'dark' : 'light', { ...o, sideTone: t }).side } }) }))),
+          seg({ label: say('Ton de la barre latérale', 'Sidebar tone'), kb: 'theme-st-side', pv: pvSeg('sideTone'), items: ENUMS.sideTone.map((t) => ({ id: t, label: sideNames[t], on: S.sideTone === t, tap: () => commit({ sideTone: t }) })) }),
           wpOn ? sl(say('Transparence', 'See-through'), 0, 100, S.sidebarOpacity, S.sidebarOpacity + ' %', (v) => commit({ sidebarOpacity: v }), S.sidebarLinked ? undefined : say('Activé dans « Plus d’options ».', 'Switched on under “More options”.'))
             : cap(say('Choisis un arrière-plan pour qu’il se voie à travers la barre latérale.', 'Pick a wallpaper to let it show through the sidebar.')),
-          ldToggle(say('Barres au survol', 'Bars on hover'), S.autoHideBars, () => commit({ autoHideBars: !S.autoHideBars }), say('Le rail replié et la barre du haut du chat se cachent, et reviennent quand tu approches le bord de la fenêtre.', 'The collapsed rail and the chat’s top bar hide, and come back when you reach for the edge of the window.')),
+          ldToggle(say('Barres au survol', 'Bars on hover'), S.autoHideBars, () => commit({ autoHideBars: !S.autoHideBars }), say('Le rail replié et la barre du haut du chat se cachent, et reviennent quand tu approches le bord de la fenêtre. La languette sous le bord du haut, ou Ctrl/⌘+Maj+H, épingle la barre ou la laisse se cacher.', 'The collapsed rail and the chat’s top bar hide, and come back when you reach for the edge of the window. The tab under the top edge, or Ctrl/⌘+Shift+H, pins the bar or lets it hide.')),
           moreBox('sidebar', [
             ldToggle(say('Laisser voir le fond', 'Let the wallpaper show'), S.sidebarLinked, () => commit({ sidebarLinked: !S.sidebarLinked }), say('Désactivé, la barre latérale reste pleine.', 'When off, the sidebar stays solid.')),
             sl(say('Flou derrière', 'Blur behind'), 0, 40, S.glassBlur, S.glassBlur + ' px', (v) => commit({ glassBlur: v }), wpOn ? undefined : themeNeeds),
@@ -3639,10 +4774,10 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
         ]
 
         // ── wallpaper ─────────────────────────────────────────────────────
+        const wpOpts = wallOptions()
         const wallPanel = () => [
-          h('div', { className: 'kbth-st-chips' }, chip(say('Aucun', 'None'), S.wp === 'none', () => commit({ wp: 'none' }), 'theme-st-wpnone'),
-            WPCATS.map((cat) => h('button', { key: cat.id, type: 'button', className: 'kbth-st-chip', 'aria-pressed': S.wp !== 'none' && wpCat === cat.id ? 'true' : 'false', 'data-kb': 'theme-st-wpcat', 'data-id': cat.id, onClick: () => setWpCat(cat.id) }, cat.name))),
-          h('div', { className: 'kbth-st-tiles c4 scroll' }, WPS.filter((w) => w.cat === wpCat).map((w) => tile({ id: w.id, kb: 'theme-st-wp', on: S.wp === w.id, tap: () => commit({ wp: w.id }), label: w.name, inner: h('i', { className: 'kbth-st-wpfill', style: { background: w.css } }) }))),
+          h('div', { key: 'sel', className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Arrière-plan', 'Wallpaper')),
+            h(KbSelect, { id: 'wall', kb: 'theme-st-wall', label: say('Arrière-plan', 'Wallpaper'), value: S.wp, options: wpOpts, onPick: (id) => commit({ wp: id }), onPreview: pvOf('wp') })),
           moreBox('wall', [
             sl(say('Visibilité', 'Visibility'), 0, 100, S.wpVis, S.wpVis + ' %', (v) => commit({ wpVis: v })),
             sl(say('Flou de l’image', 'Image blur'), 0, 40, S.wpBlur, S.wpBlur + ' px', (v) => commit({ wpBlur: v })),
@@ -3657,39 +4792,35 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
 
         // ── your messages / the agent's replies ───────────────────────────
         const dshBubble = stDshBubble(dark, S.bubbleUser !== 'auto')
-        const bubbleNames = { auto: say('Auto (DSH)', 'Auto (DSH)'), accent: say('Accent', 'Accent'), soft: say('Doux', 'Soft'), dark: say('Sombre', 'Dark') }
+        const bubbleNames = { auto: say('Auto (Kybernos)', 'Auto (Kybernos)'), accent: say('Accent', 'Accent'), soft: say('Doux', 'Soft'), dark: say('Sombre', 'Dark') }
         const userPanel = () => [
           sub(say('Couleur de la bulle', 'Bubble color')),
-          tiles(4, BUBBLE_CHOICES.map((b) => ({ id: b, kb: 'theme-st-bubble', on: S.bubbleUser === b, tap: () => commit({ bubbleUser: b }), label: bubbleNames[b], bg: c.base,
-            inner: h('i', { className: 'kbth-st-pill', style: { background: b === 'auto' ? dshBubble : bulleDe({ ...S, bubbleUser: b }, c, dark).bg } }) }))),
+          seg({ label: say('Couleur de la bulle', 'Bubble color'), kb: 'theme-st-bubble', pv: pvSeg('bubbleUser'), items: BUBBLE_CHOICES.map((b) => ({ id: b, label: bubbleNames[b], on: S.bubbleUser === b, tap: () => commit({ bubbleUser: b }) })) }),
           h('div', { className: 'kbth-st-row' }, anyColor(validHex(S.bubbleUser) ? S.bubbleUser : dshBubble, validHex(S.bubbleUser), (v) => commit({ bubbleUser: toHex(HEX(v)) }), say('Une autre couleur', 'Any color'))),
           sub(say('Couleur du texte', 'Text color')),
           swatches([null].concat(ST_INKS), S.textUser, (col) => commit({ textUser: col }), say('Auto (suit l’application)', 'Auto (follows the app)')),
-          moreBox('user', [cap(say('La bulle utilise le réglage de couleur propre à DSH. La couleur du texte ne s’applique qu’à tes messages : le reste de l’application garde la sienne.', 'The bubble uses DSH’s own color setting. The text color applies to your messages only: the rest of the app keeps its own.'))])
+          moreBox('user', [cap(say('La bulle utilise le réglage de couleur propre à Kybernos. La couleur du texte ne s’applique qu’à tes messages : le reste de l’application garde la sienne.', 'The bubble uses Kybernos’s own color setting. The text color applies to your messages only: the rest of the app keeps its own.'))])
         ]
-        const replyNames = { none: say('Aucun (DSH)', 'None (DSH)'), card: say('Carte', 'Card'), outline: say('Contour', 'Outline'), tint: say('Teinte', 'Tinted') }
-        const replyMini = (b) => {
-          const own = S.replyColor
-          const st = { width: '70%', height: 22, borderRadius: 7 }
-          if (b === 'card') { st.background = own !== null ? own : rgba(c.t1, 0.08); st.border = '1px solid ' + c.b2 }
-          if (b === 'outline') st.border = '1px solid ' + (own !== null ? own : c.b4)
-          if (b === 'tint') st.background = rgba(own !== null ? own : c.fill, 0.14)
-          return h('i', { className: 'kbth-st-reply', style: st })
-        }
+        const replyNames = { none: say('Aucun (Kybernos)', 'None (Kybernos)'), card: say('Carte', 'Card'), outline: say('Contour', 'Outline'), tint: say('Teinte', 'Tinted') }
         const agentPanel = () => [
           sub(say('Fond de la réponse', 'Reply background')),
-          tiles(4, ENUMS.replyBg.map((b) => ({ id: b, kb: 'theme-st-reply', on: S.replyBg === b, tap: () => commit({ replyBg: b }), label: replyNames[b], bg: c.base, inner: replyMini(b) }))),
+          seg({ label: say('Fond de la réponse', 'Reply background'), kb: 'theme-st-reply', pv: pvSeg('replyBg'), items: ENUMS.replyBg.map((b) => ({ id: b, label: replyNames[b], on: S.replyBg === b, tap: () => commit({ replyBg: b }) })) }),
           S.replyBg !== 'none' ? [sub(say('Couleur de la réponse', 'Reply color')), swatches([null].concat(ACCS), S.replyColor, (col) => commit({ replyColor: col }), say('Auto', 'Auto'))] : null,
           sub(say('Couleur du texte', 'Text color')),
           swatches([null].concat(ST_INKS), S.textReply, (col) => commit({ textReply: col }), say('Auto (suit l’application)', 'Auto (follows the app)')),
-          moreBox('agent', [cap(say('DSH ne dessine aucune bulle autour des réponses de l’agent : un fond ou un contour est ajouté autour de chacune. Si DSH renomme le repère qui sert à les trouver, le cadre disparaît et le reste du thème continue de marcher.', 'DSH draws no bubble around the agent’s replies: a background or an outline is added around each one. If DSH renames the marker used to find them, the frame goes away and the rest of the theme keeps working.'))])
+          moreBox('agent', [cap(say('Kybernos ne dessine aucune bulle autour des réponses de l’agent : un fond ou un contour est ajouté autour de chacune. Si Kybernos renomme le repère qui sert à les trouver, le cadre disparaît et le reste du thème continue de marcher.', 'Kybernos draws no bubble around the agent’s replies: a background or an outline is added around each one. If Kybernos renames the marker used to find them, the frame goes away and the rest of the theme keeps working.'))])
         ]
 
-        // ── menu icons ────────────────────────────────────────────────────
-        const iconsPanel = () => [
-          h('div', { className: 'kbth-st-tiles c3 scroll tall' }, ICON_SETS.map((st) => tile({ id: st.id, kb: 'theme-st-icons', on: S.iconSet === st.id, tap: () => commit({ iconSet: st.id }), label: st[lang], title: st.hint[lang],
-            inner: h('div', { className: 'kbth-st-ic4' }, ['kyber', 'dash', 'ws', 'creations'].map((e, i) => h('span', { key: e, dangerouslySetInnerHTML: { __html: stIcon(st.id, e, i === 0, 17) } }))) }))),
-          cap(ICON_SETS.length + say(' jeux, dessinés par le code du plugin.', ' sets, drawn by the plugin’s own code.'))
+        // ── the menu: its rows, and the icons they wear ─────────────────────
+        const iconOpts = iconSetOptions()
+        const iconsPick = () => h('div', { key: 'ics', className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Jeu d’icônes', 'Icon set')),
+          h(KbSelect, { id: 'iconset', kb: 'theme-st-icons', label: say('Jeu d’icônes', 'Icon set'), value: S.iconSet, options: iconOpts, onPick: (id) => commit({ iconSet: id }), onPreview: pvOf('iconSet') }))
+        const menuPanel = () => [
+          seg({ label: say('Panneau du menu', 'Menu panel'), kb: 'theme-st-menutab', items: [['rows', say('Entrées', 'Rows')], ['icons', say('Icônes', 'Icons')]].map((t) => ({ id: t[0], label: t[1], on: menuTab === t[0], tap: () => setMenuTab(t[0]) })) }),
+          menuTab === 'rows'
+            ? h(MenuZones, { key: 'rows', rows: menuP.rows, doc: menuP.doc, edit: menuP.edit, editSurface: menuP.editSurface, showAll: menuP.showAll, setUnlisted: menuP.setUnlisted, compact: true, icon: (e) => stIcon(S.iconSet, e, false, 16) })
+            : [iconsPick(), cap(ICON_SETS.length + say(' jeux, dessinés par le code du plugin.', ' sets, drawn by the plugin’s own code.'))],
+          h('div', { key: 'adv', className: 'kbth-st-row' }, h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'theme-st-menu-adv', onClick: () => props.openClassic(menuTab === 'rows' ? 'menu' : 'icones') }, say('Plus de réglages : éditeur avancé', 'More settings: advanced editor')))
         ]
 
         // ── thinking animation ────────────────────────────────────────────
@@ -3719,18 +4850,17 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           const words = ldWordList(ld.S.pack)
           return [
             h('div', { className: 'kbth-st-lgrid' },
-              loopTile('dsh', null, say('Queue de baleine de DSH', 'DSH whale tail'), ld.S.sel.length === 0),
+              loopTile('dsh', null, say('Queue de baleine de Kybernos', 'Kybernos whale tail'), ld.S.sel.length === 0),
               LD_PRESETS.map((l) => loopTile(l.id, l, l.name, ld.S.sel.indexOf(l.id) >= 0)),
               ld.mine.map((l) => loopTile(l.id, l, l.name, ld.S.sel.indexOf(l.id) >= 0)),
               h('label', { className: 'kbth-st-lt add', title: say('Ajouter la tienne (SVG, Lottie, GIF, WebP)', 'Add your own (SVG, Lottie, GIF, WebP)'), 'data-name': say('Ajouter la tienne (SVG, Lottie, GIF, WebP)', 'Add your own (SVG, Lottie, GIF, WebP)') },
                 h('svg', { width: 18, height: 18, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' }, h('path', { d: 'M8 3v10M3 8h10', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round' })),
                 h('input', { type: 'file', accept: '.svg,.json,.gif,.webp,.png', 'data-kb': 'theme-st-addloop', style: { display: 'none' }, 'aria-label': say('Ajouter ta propre animation', 'Add your own animation'), onChange: (e) => { const input = e.target; const f = input.files && input.files[0]; if (f) importLoop(f); input.value = '' } }))),
             note !== null ? h('div', { className: note.ok ? 'kbth-ok kbth-gr-ok' : 'kbth-bad kbth-gr-err', role: 'status', 'data-kb': 'theme-st-note' }, note.text) : null,
-            cap(say('Choisie : ', 'Selected: ') + (selNames.length > 0 ? selNames.join(', ') : say('queue de baleine de DSH', 'DSH whale tail')) + say(' · survole une vignette pour son nom', ' · hover a tile for its name')),
+            cap(say('Choisie : ', 'Selected: ') + (selNames.length > 0 ? selNames.join(', ') : say('queue de baleine de Kybernos', 'Kybernos whale tail')) + say(' · survole une vignette pour son nom', ' · hover a tile for its name')),
             h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Mots affichés', 'Words it shows')),
-              h('select', { className: 'kbth-st-sel', 'data-kb': 'theme-st-pack', 'aria-label': say('Mots affichés', 'Words it shows'), value: packs.some((p) => p.id === ld.S.pack) ? ld.S.pack : 'dsh', onChange: (e) => loop({ pack: e.target.value }) },
-                packs.map((p) => h('option', { key: p.id, value: p.id }, p.name)))),
-            cap(words.length > 0 ? words.slice(0, 5).join(', ') + (words.length > 5 ? '…' : '') : say('La phrase de DSH (« Deep diving… »).', 'DSH’s own phrase (“Deep diving…”).')),
+              h(KbSelect, { id: 'pack', kb: 'theme-st-pack', label: say('Mots affichés', 'Words it shows'), value: packs.some((p) => p.id === ld.S.pack) ? ld.S.pack : 'dsh', options: packs.map((p) => ({ value: p.id, label: p.name })), onPick: (id) => loop({ pack: id }) })),
+            cap(words.length > 0 ? words.slice(0, 5).join(', ') + (words.length > 5 ? '…' : '') : say('La phrase de Kybernos (« Deep diving… »).', 'Kybernos’s own phrase (“Deep diving…”).')),
             moreBox('think', [
               h('div', { key: 'size', className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Taille', 'Size')), seg({ items: [['compact', '14 px'], ['standard', '24 px'], ['large', '40 px']].map((z) => ({ id: z[0], label: z[1], on: ld.S.size === z[0], tap: () => loop({ size: z[0] }) })) })),
               h('div', { key: 'speed', className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Vitesse', 'Speed')), seg({ items: ST_SPEEDS.map((z) => ({ id: z[0], label: say(z[2], z[3]), on: Math.abs(ld.S.speed - z[1]) < 0.01, tap: () => loop({ speed: z[1] }) })) })),
@@ -3751,20 +4881,15 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
         // ── letters ───────────────────────────────────────────────────────
         const inkKey = (dark ? 'dark' : 'light') + ':t1'
         const setInk = (col) => { const ov = { ...S.ov }; if (col === null) delete ov[inkKey]; else ov[inkKey] = col; commit({ ov }) }
+        const fontOpts = fontOptions()
         const lettersPanel = () => {
-          const fq2 = fq.trim().toLowerCase()
-          const grp = (name, list) => (list.length === 0 ? null : [h('div', { key: 'g' + name, className: 'kbth-st-grp' }, name), h('div', { key: 'l' + name, className: 'kbth-st-tiles c3' }, list.map((f) => h('button', { key: f.id, type: 'button', className: 'kbth-st-ft', 'aria-pressed': S.fontText === f.id ? 'true' : 'false', 'data-kb': 'theme-st-fontall', 'data-id': f.id, style: f.stack === null ? undefined : { fontFamily: f.stack }, onClick: () => commit({ fontText: f.id }) }, h('b', null, 'Aa'), h('span', null, f.name))))])
-          const part = (a, b) => FONTS.slice(a, b).filter((f) => fq2 === '' || f.name.toLowerCase().indexOf(fq2) >= 0)
           const inkNow = S.ov[inkKey] === undefined ? null : S.ov[inkKey]
           return [
-            tiles(3, ST_FONTS.map((f) => { const fo = FONTS.find((x) => x.id === f[0]) || FONTS[0]; return { id: f[0], kb: 'theme-st-font', on: S.fontText === f[0], tap: () => commit({ fontText: f[0] }), label: say(f[1], f[2]), inner: h('div', { className: 'kbth-st-ab', style: fo.stack === null ? undefined : { fontFamily: fo.stack } }, 'Aa') } })),
-            h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Taille', 'Size')), seg({ items: ST_SIZES.map((z) => ({ id: z[0], label: say(z[2], z[3]), on: ST_SIZE_ID(S.fs) === z[0], tap: () => commit({ fs: z[1] }) })) })),
+            h('div', { key: 'f', className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Police', 'Font')),
+              h(KbSelect, { id: 'font', kb: 'theme-st-font', label: say('Police', 'Font'), value: S.fontText, options: fontOpts, onPick: (id) => commit({ fontText: id }), onPreview: pvOf('fontText') })),
+            h('div', { key: 's', className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Taille', 'Size')), seg({ label: say('Taille du texte', 'Text size'), kb: 'theme-st-size', pv: { on: (id) => preview({ fs: ST_SIZES.find((z) => z[0] === id)[1] }), off: () => preview(null) }, items: ST_SIZES.map((z) => ({ id: z[0], label: say(z[2], z[3]), on: ST_SIZE_ID(S.fs) === z[0], tap: () => commit({ fs: z[1] }) })) })),
+            cap(say('Une police ne s’affiche que si elle est installée sur ton ordinateur.', 'A font only shows if it is installed on your computer.')),
             moreBox('letters', [
-              sub(say('Toutes les polices', 'All fonts')),
-              h('input', { key: 'q', className: 'kbth-in', 'data-kb': 'theme-st-fq', value: fq, placeholder: say('Chercher une police (Roboto, Open Sans, Lato…)', 'Search a font (Roboto, Open Sans, Lato…)'), 'aria-label': say('Chercher une police', 'Search a font'), onInput: (e) => setFq(e.target.value) }),
-              h('div', { key: 'fl', className: 'kbth-st-fontlist' }, grp(say('Sans empattement', 'Sans serif'), part(0, 15)), grp(say('Avec empattement', 'Serif'), part(15, 22)), grp(say('Chasse fixe', 'Monospace'), part(22, FONTS.length)),
-                FONTS.every((f) => fq2 !== '' && f.name.toLowerCase().indexOf(fq2) < 0) ? cap(say('Aucune police de ce nom.', 'No font with that name.')) : null),
-              cap(say('Une police ne s’affiche que si elle est installée sur ton ordinateur.', 'A font only shows if it is installed on your computer.')),
               sl(say('Taille exacte', 'Exact size'), 12, 17, S.fs, S.fs + ' px', (v) => commit({ fs: v })),
               sub(say('Couleur du texte de l’application', 'App text color')),
               swatches([null].concat(ST_INKS), inkNow, (col) => setInk(col), say('Auto', 'Auto')),
@@ -3784,8 +4909,8 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
 
         // ── effects and shape · accessibility (chips under the window) ─────
         const effectsPanel = () => [
-          h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Coins', 'Corners')), seg({ items: [['sharp', say('Nets', 'Sharp')], ['standard', say('Standard', 'Standard')], ['soft', say('Doux', 'Soft')]].map((z) => ({ id: z[0], label: z[1], on: S.radius === z[0], tap: () => commit({ radius: z[0] }) })) })),
-          h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Ombres', 'Shadows')), seg({ items: [['none', say('Aucune', 'None')], ['soft', say('Douces', 'Soft')]].map((z) => ({ id: z[0], label: z[1], on: S.shadow === z[0], tap: () => commit({ shadow: z[0] }) })) })),
+          h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Coins', 'Corners')), seg({ label: say('Coins', 'Corners'), kb: 'theme-st-radius', pv: pvSeg('radius'), items: [['sharp', say('Nets', 'Sharp')], ['standard', say('Standard', 'Standard')], ['soft', say('Doux', 'Soft')]].map((z) => ({ id: z[0], label: z[1], on: S.radius === z[0], tap: () => commit({ radius: z[0] }) })) })),
+          h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Ombres', 'Shadows')), seg({ label: say('Ombres', 'Shadows'), kb: 'theme-st-shadow', pv: pvSeg('shadow'), items: [['none', say('Aucune', 'None')], ['soft', say('Douces', 'Soft')]].map((z) => ({ id: z[0], label: z[1], on: S.shadow === z[0], tap: () => commit({ shadow: z[0] }) })) })),
           ldToggle(say('Halo', 'Glow'), S.glow, () => commit({ glow: !S.glow }), say('Une lueur de ta couleur autour de la zone de message.', 'A soft light of your color around the message box.')),
           h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Verre', 'Glass')), seg({ items: [['frosted', say('Dépoli', 'Frosted')], ['liquid', 'Liquid glass']].map((z) => ({ id: z[0], label: z[1], on: S.glassEffect === z[0], tap: () => commit({ glassEffect: z[0] }) })) })),
           sl(say('Flou du verre', 'Glass blur'), 0, 40, S.glassBlur, S.glassBlur + ' px', (v) => commit({ glassBlur: v }), wpOn ? undefined : themeNeeds)
@@ -3795,13 +4920,14 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           ldToggle(say('Réduire les animations', 'Reduce animations'), S.reduceMotion, () => commit({ reduceMotion: !S.reduceMotion }), say('Coupe les boucles et les transitions.', 'Turns off loops and transitions.')),
           h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Anneau de focus', 'Focus ring')), seg({ items: [['accent', 'Accent'], ['double', 'Double'], ['thick', say('Épais', 'Thick')]].map((z) => ({ id: z[0], label: z[1], on: S.focusRing === z[0], tap: () => commit({ focusRing: z[0] }) })) })),
           ldToggle(say('Cibles de 44 px', '44 px targets'), S.largeTargets, () => commit({ largeTargets: !S.largeTargets }), say('Boutons et champs plus grands.', 'Larger buttons and fields.')),
+          ldToggle(say('Confort au doigt', 'Touch comfort'), S.touch, () => commit({ touch: !S.touch }), say('Petit écran : lignes et icônes plus grandes, menus pleine largeur.', 'Small screen: bigger rows and icons, full-width menus.')),
           ldToggle(say('Liens soulignés', 'Underlined links'), S.underlineLinks, () => commit({ underlineLinks: !S.underlineLinks })),
           ldToggle(say('Palette daltonisme', 'Color-blind palette'), S.cbSafe, () => commit({ cbSafe: !S.cbSafe }), say('Succès, alerte et erreur en couleurs plus sûres.', 'Success, warning and error in safer colors.'))
         ]
         const PANELS = {
           mood: [say('Clair ou sombre ?', 'Light or dark?'), moodPanel], style: [say('Choisis un style', 'Pick a style'), stylePanel], accent: [say('Couleur d’accent', 'Accent color'), accentPanel],
           sidebar: [say('Barre latérale', 'Sidebar'), sidebarPanel], wall: [say('Arrière-plan', 'Wallpaper'), wallPanel], user: [say('Tes messages', 'Your messages'), userPanel], agent: [say('Réponses de l’agent', 'Agent replies'), agentPanel],
-          icons: [say('Icônes du menu', 'Menu icons'), iconsPanel], think: [say('Animation de réflexion', 'Thinking animation'), thinkPanel], letters: [say('Lettres', 'Letters'), lettersPanel],
+          menu: [say('Menu', 'Menu'), menuPanel], think: [say('Animation de réflexion', 'Thinking animation'), thinkPanel], letters: [say('Lettres', 'Letters'), lettersPanel],
           widgets: [say('Sous la zone de message', 'Under the message box'), widgetsPanel], effects: [say('Effets et formes', 'Effects and shape'), effectsPanel], access: [say('Accessibilité', 'Accessibility'), accessPanel]
         }
 
@@ -3828,7 +4954,11 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
         const sel0 = ld.S.sel.length > 0 ? ldById(ld.S.sel[0]) : null
         const word = (() => { const w = ldWordList(ld.S.pack); return w.length > 0 ? w[0] : say('Plongée', 'Deep diving') })()
         const dockOn = S.wgSessions || S.wgChanges || S.wgUsage
-        const names = [['kyber', 'Kaby'], ['dash', say('Tableaux de bord', 'Dashboards')], ['ws', say('Espaces', 'Workspaces')], ['creations', say('Créations', 'Creations')], ['auto', say('Automatisations', 'Automations')]]
+        // The rows of the real menu (the registry's, in the arrangement in use or the one being previewed); five stand-ins when the menu is not drawn here.
+        const wRegistry = menuP.rows
+        const wRows = wRegistry.length > 0
+          ? menuView(menuP.pvDoc !== undefined ? menuP.pvDoc : menuP.doc, wRegistry).filter((v) => v.shown).map((v) => [v.icon, v.name])
+          : [['kyber', 'Kaby'], ['dash', say('Tableaux de bord', 'Dashboards')], ['creations', say('Créations', 'Creations')], ['auto', say('Automatisations', 'Automations')], ['skills', say('Compétences', 'Skills')]]
         const pencil = h('span', { className: 'kbth-stz-pen', 'aria-hidden': 'true' }, h('svg', { width: 10, height: 10, viewBox: '0 0 16 16', fill: 'currentColor' }, h('path', { d: ST_PENCIL })))
         const Z = (id, label, cls, style, ...kids) => h('div', {
           className: 'kbth-stz' + (zoneOn === id ? ' open' : '') + (cls ? ' ' + cls : ''), style, 'data-zone': id, 'data-kb': 'theme-zone', role: 'button', tabIndex: 0, 'aria-label': label, title: label,
@@ -3840,10 +4970,12 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           wpOn ? h('div', { className: 'kbth-st-wpl', 'aria-hidden': 'true', style: { background: wpo.css, backgroundSize: flat ? undefined : aj.size, backgroundPosition: 'center', backgroundRepeat: flat ? undefined : aj.repeat, opacity: S.wpVis / 100, filter: filtreFond(S), transform: S.bgMirror ? 'scaleX(-1)' : 'none' } }) : null,
           Z('sidebar', say('Changer la barre latérale', 'Change the sidebar'), 'kbth-st-side big', { background: sideBg, backdropFilter: wpOn && S.sidebarLinked ? glass : undefined, WebkitBackdropFilter: wpOn && S.sidebarLinked ? glass : undefined, borderRightColor: c.b1 },
             Z('style', say('Changer le style', 'Change the style'), 'kbth-st-brand', { color: c.accText }, S.showBrand ? h('span', { className: 'kbth-st-logo' }, h('b', null, 'K'), 'ybernos') : h('span', { className: 'kbth-st-logo' }, h('b', null, 'K'))),
-            Z('icons', say('Changer les icônes du menu', 'Change the menu icons'), 'kbth-st-rows big', undefined,
-              names.map((n, i) => h('div', { key: n[0], className: 'kbth-st-row1' + (i === 0 ? ' on' : ''), style: i === 0 ? { background: c.navAct, borderRadius: rad(8) } : { borderRadius: rad(8) } },
+            Z('menu', say('Changer le menu : entrées, ordre, noms et icônes', 'Change the menu: entries, order, names and icons'), 'kbth-st-rows big', undefined,
+              wRows.map((n, i) => h('div', { key: (n[0] === null ? 'x' : n[0]) + ':' + i, className: 'kbth-st-row1' + (i === 0 ? ' on' : ''), 'data-kb': 'theme-st-winrow', style: i === 0 ? { background: c.navAct, borderRadius: rad(8) } : { borderRadius: rad(8) } },
                 h('span', { className: 'kbth-st-ico', style: { color: i === 0 ? c.accText : c.t3 }, dangerouslySetInnerHTML: { __html: stIcon(S.iconSet, n[0], i === 0, 16) } }),
-                h('span', { className: 'kbth-st-rn', style: { color: i === 0 ? c.t1 : c.t2 } }, n[1]))))),
+                h('span', { className: 'kbth-st-rn', style: { color: i === 0 ? c.t1 : c.t2 } }, n[1]))),
+              wRows.length === 0 ? h('div', { className: 'kbth-st-row1', 'data-kb': 'theme-st-winempty', style: { color: c.t3 } }, say('Toutes les entrées sont cachées', 'Every entry is hidden')) : null,
+              h('div', { className: 'kbth-st-row1 fixed', style: { color: c.t3, borderRadius: rad(8) } }, h('span', { className: 'kbth-st-rn' }, say('Espaces de travail', 'Workspaces'))))),
           h('div', { className: 'kbth-st-main' },
             h('div', { className: 'kbth-st-top', style: { borderBottomColor: c.b1 } },
               Z('letters', say('Changer les lettres', 'Change the letters'), 'kbth-st-title', undefined, say('Aide aux devoirs', 'Homework help')),
@@ -3871,73 +5003,223 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           h('div', { className: 'kbth-st-ph2' }, h('h3', null, panel[0]), h('div', { className: 'kbth-st-pa' }, dice(zoneOn), h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-st-done', onClick: () => setZone(null) }, say('Terminé', 'Done')))),
           ...[panel[1]()].flat(Infinity))
 
-        // ══ vibes, chips, actions, my looks ═══════════════════════════════
-        const doSurprise = () => { props.setLibNote(null); apply(stSurprise()) }
-        const vibes = h('div', { className: 'kbth-st-vibes', 'data-kb': 'theme-st-vibes' }, h('span', { className: 'kbth-st-lbl' }, say('Partir d’une ambiance', 'Start from a vibe')),
-          ST_VIBES.map((v) => h('button', { key: v.id, type: 'button', className: 'kbth-st-chip', 'aria-pressed': stVibeOn(S, v) ? 'true' : 'false', 'data-kb': 'theme-st-vibe', 'data-id': v.id, onClick: () => applyVibe(v) }, h('i', { style: { background: v.dot } }), say(v.fr, v.en))),
-          h('button', { type: 'button', className: 'kbth-st-chip surprise', 'data-kb': 'theme-st-surprise', onClick: doSurprise }, h('svg', { width: 14, height: 14, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' }, h('rect', { x: 2, y: 2, width: 12, height: 12, rx: 3, stroke: 'currentColor', strokeWidth: 1.3 }), [[5.2, 5.2], [10.8, 5.2], [8, 8], [5.2, 10.8], [10.8, 10.8]].map((p, i) => h('circle', { key: i, cx: p[0], cy: p[1], r: 0.95, fill: 'currentColor' }))), say('Me surprendre', 'Surprise me')))
-        const also = h('div', { className: 'kbth-st-also' }, h('span', { className: 'kbth-st-lbl' }, say('Aussi :', 'Also:')),
-          [['accent', say('Couleur d’accent', 'Accent color')], ['effects', say('Effets et formes', 'Effects and shape')], ['access', say('Accessibilité', 'Accessibility')]].map((z) => h('button', { key: z[0], type: 'button', className: 'kbth-st-chip', 'data-chip': z[0], 'data-kb': 'theme-st-chip', 'aria-pressed': zoneOn === z[0] ? 'true' : 'false', onClick: (e) => { e.stopPropagation(); setZone(zoneOn === z[0] ? null : z[0]) } }, z[1])))
-        const saveLook = () => {
-          const name = presetName(lookName) === '' ? libFreeName(say('Mon thème', 'My theme')) : presetName(lookName)
-          if (libNameTaken(name)) { props.setLibNote({ ok: false, text: say('Ce nom existe déjà. Choisis-en un autre.', 'That name already exists. Pick another one.') }); return }
-          const rec = libAdd(name, 'me', presetFromState(S, { font: true, radius: true, icons: true, chat: true, glass: true, a11y: false }))
-          if (rec === null) { props.setLibNote({ ok: false, text: say('La bibliothèque est pleine (' + PRESET_LIMIT + ' thèmes). Supprime-en un dans l’éditeur avancé › Partage.', 'The library is full (' + PRESET_LIMIT + ' themes). Delete one in the advanced editor › Sharing.') }); return }
-          setLookName(''); commit({ skin: rec.id }); props.setLibNote({ ok: true, text: say('« ' + rec.name + ' » est enregistré dans Mes thèmes.', '“' + rec.name + '” is saved in My themes.') })
-        }
-        const exportLook = () => {
-          const name = presetName(lookName) === '' ? say('Mon thème', 'My theme') : presetName(lookName)
-          const file = presetFile({ name, settings: presetFromState(S, { font: true, radius: true, icons: true, chat: true, glass: true, a11y: false }) })
-          props.setLibNote(downloadText('theme-' + fileSlug(name) + '.json', file) ? { ok: true, text: say('« ' + name + ' » est téléchargé en fichier .json.', '“' + name + '” is downloaded as a .json file.') } : { ok: false, text: say('Le téléchargement a échoué.', 'The download failed.') })
-        }
-        const actions = h('div', { className: 'kbth-st-actions' },
-          h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-st-undo', disabled: !props.canUndo(), onClick: () => { props.setLibNote(null); props.undo() } }, say('Annuler', 'Undo')),
-          h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-st-reset', onClick: () => { props.setLibNote(null); props.reset() } }, say('Réinitialiser', 'Reset')),
-          h('span', { className: 'kbth-st-sp' }),
-          h('input', { className: 'kbth-in', 'data-kb': 'theme-st-name', value: lookName, maxLength: PRESET_NAME_MAX, placeholder: say('Donne un nom à ce thème…', 'Name this look…'), 'aria-label': say('Nom du thème', 'Name of the look'), onInput: (e) => setLookName(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); saveLook() } } }),
-          h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-st-save', onClick: saveLook }, say('Enregistrer', 'Save')),
-          h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-st-export', onClick: exportLook }, say('Exporter', 'Export')),
-          h('label', { className: 'kbth-btn', style: { cursor: 'pointer' } }, say('Importer', 'Import'), h('input', { type: 'file', accept: '.json,application/json', 'data-kb': 'theme-st-import', style: { display: 'none' }, onChange: (e) => { const input = e.target; const f = input.files && input.files[0]; if (f) props.importFile(f); input.value = '' } })))
-        const mine = h('div', { className: 'kbth-st-looks', 'data-kb': 'theme-st-looks' }, h('span', { className: 'kbth-st-lbl' }, say('Mes thèmes', 'My looks')),
-          lib.presets.length === 0 ? h('span', { className: 'kbth-hint' }, say('Aucun pour l’instant : règle ton thème, donne-lui un nom, puis Enregistrer.', 'None yet: set your look, name it, then Save.')) : null,
-          lib.presets.map((rec) => (delId === rec.id
-            ? h('span', { key: rec.id, className: 'kbth-st-look del' }, say('Supprimer « ' + rec.name + ' » ?', 'Delete “' + rec.name + '”?'),
-              h('button', { type: 'button', className: 'kbth-btn kbth-danger kbth-gr-err', 'data-kb': 'theme-st-delyes', onClick: () => { libRemove(rec.id); setDelId(null); props.setLibNote({ ok: true, text: say('« ' + rec.name + ' » supprimé.', '“' + rec.name + '” deleted.') }) } }, say('Supprimer', 'Delete')),
-              h('button', { type: 'button', className: 'kbth-btn', onClick: () => setDelId(null) }, say('Garder', 'Keep')))
-            : h('span', { key: rec.id, className: 'kbth-st-look' + (S.skin === rec.id ? ' on' : '') },
-              h('button', { type: 'button', className: 'kbth-st-lookb', 'data-kb': 'theme-st-look', 'data-id': rec.id, 'aria-pressed': S.skin === rec.id ? 'true' : 'false', onClick: () => { props.setLibNote(null); props.applyMine(rec) } },
-                h('i', { style: { background: 'radial-gradient(circle at 50% 50%,' + (rec.settings.acc || '#808080') + ' 0 3.5px,' + makeTheme(rec.settings.mode === 'light' ? 'light' : 'dark', { acc: rec.settings.acc === undefined ? null : rec.settings.acc, ov: rec.settings.ov || {}, lvl: 0, cb: false, tint: 0, dom: '' }).base + ' 4px 100%)' } }), rec.name),
-              h('button', { type: 'button', className: 'kbth-st-x', 'aria-label': say('Supprimer ', 'Delete ') + rec.name, onClick: () => setDelId(rec.id) }, '×')))),
-          h('button', { type: 'button', className: 'kbth-link', onClick: () => props.openClassic('galerie') }, say('Trouver d’autres thèmes (galerie)', 'Find more looks (gallery)')))
-        const status = props.libNote
-        const hint = h('div', { className: 'kbth-st-hint' }, h('svg', { width: 12, height: 12, viewBox: '0 0 16 16', fill: 'currentColor', 'aria-hidden': 'true' }, h('path', { d: ST_PENCIL })), h('b', null, say('Clique sur ce que tu veux changer', 'Click anything in the window')), say(' dans la fenêtre.', ' to change it.'))
+        // ══ the chips that open a panel, and the inspector slot (the apply and save sheets of the Presets section) ══
+        const also = h('div', { className: 'kbth-st-also', 'data-kb': 'theme-st-also' },
+          [['mood', say('Clair ou sombre', 'Light or dark')], ['accent', say('Couleur d’accent', 'Accent color')], ['letters', say('Lettres', 'Letters')], ['wall', say('Arrière-plan', 'Wallpaper')], ['effects', say('Effets et formes', 'Effects and shape')], ['menu', say('Menu', 'Menu')], ['access', say('Accessibilité', 'Accessibility')]].map((z) => h('button', { key: z[0], type: 'button', className: 'kbth-st-chip', 'data-chip': z[0], 'data-kb': 'theme-st-chip', 'aria-pressed': zoneOn === z[0] ? 'true' : 'false', onClick: (e) => { e.stopPropagation(); setZone(zoneOn === z[0] ? null : z[0]) } }, z[1])))
+        const hint = h('div', { className: 'kbth-st-hint' }, h('svg', { width: 12, height: 12, viewBox: '0 0 16 16', fill: 'currentColor', 'aria-hidden': 'true' }, h('path', { d: ST_PENCIL })), h('b', null, say('Clique sur ce que tu veux changer', 'Click anything in the window')), say(' dans la fenêtre, ou choisis ci-dessous.', ' to change it, or pick below.'))
 
         return h('div', { className: 'kbth-st' + (narrow ? ' narrow' : ''), 'data-kb': 'theme-studio' },
-          vibes, hint,
-          h('div', { className: 'kbth-st-stage', ref: stage, 'data-kb': 'theme-st-stage' }, win, popEl),
-          also, actions,
-          status !== null && status !== undefined ? h('div', { className: status.ok ? 'kbth-ok kbth-gr-ok' : 'kbth-bad kbth-gr-err', role: 'status', 'data-kb': 'theme-st-status' }, status.text) : null,
-          mine)
+          hint,
+          h('div', { className: 'kbth-st-stage', ref: stage, 'data-kb': 'theme-st-stage' }, win, props.inspector === undefined ? null : props.inspector, popEl),
+          also)
       }
       // <look-studio:end>
+
+      // ══════════════════════════════════════════════════════════════════════
+      // 5d. PRESETS — ONE section for everything that can be applied: built-in (the five vibes, two menus, the templates) and mine (saved, imported,
+      //     installed from the gallery). A preset changes the appearance, the menu, or both; the person says which, with ticks, before anything changes.
+      //     The pure parts (what the list holds, what applying with these ticks does) are functions of their own, pinned by the tests.
+      // ══════════════════════════════════════════════════════════════════════
+
+      /** One record of the library as a list item. `guarded`: it comes from outside (a file, the gallery, a template), so its menu is never applied unless ticked. */
+      const presetRecItem = (rec) => ({
+        key: 'rec:' + rec.id, id: rec.id, kind: 'rec', name: rec.name, src: rec.source === 'template' ? 'template' : 'mine', rec, A: rec.settings !== undefined, M: rec.menu !== undefined,
+        ACC: rec.settings !== undefined && PRESET_GROUPS.a11y.some((k) => rec.settings[k] !== undefined), guarded: rec.source !== 'me'
+      })
+      /** Everything the section lists, in order: the vibes, the two menus, the templates (built-in), then mine. */
+      const presetItems = () => {
+        const out = []
+        ST_VIBES.forEach((v) => out.push({ key: 'vibe:' + v.id, id: v.id, kind: 'vibe', name: kt(v.fr, v.en), src: 'builtin', vibe: v, A: true, M: false, ACC: false, guarded: false }))
+        MENU_BUILTINS.forEach((m) => out.push({ key: 'menu:' + m.id, id: m.id, kind: 'menu', name: kt(m.fr, m.en), src: 'builtin', menuDoc: m.menu, A: false, M: true, ACC: false, guarded: false }))
+        lib.presets.filter((p) => p.source === 'template').forEach((rec) => out.push(presetRecItem(rec)))
+        lib.presets.filter((p) => p.source !== 'template').forEach((rec) => out.push(presetRecItem(rec)))
+        return out
+      }
+      const presetBuiltin = (item) => item.src !== 'mine'
+      /** The menu part of an item (a MENU DOC, or null = the default menu), or undefined when it has none. */
+      const presetMenuOf = (item) => (item.kind === 'menu' ? item.menuDoc : (item.rec !== undefined ? item.rec.menu : undefined))
+      /** The ticks a sheet starts with: the appearance, the menu unless it comes from outside, the accessibility only of the person's own preset. */
+      const presetTicks = (item) => ({ tA: item.A, tM: item.M && !item.guarded, tAcc: item.ACC && !item.guarded })
+      /**
+       * What applying an item with these ticks does: `{ patch, loop, menu, keep }`. `patch`: the settings to commit (a11y keys only when ticked); `loop`: the thinking
+       * animation of a vibe; `menu`: undefined (untouched), null (the default menu) or an arrangement; `keep`: the menu in use is the person's own and must be kept in Mine first.
+       */
+      const presetPlan = (item, ticks, rows) => {
+        const plan = { patch: null, loop: null, menu: undefined, keep: false }
+        if (ticks.tA === true && item.A) {
+          if (item.vibe !== undefined) { const v = stVibePatch(item.vibe); plan.patch = v.state; plan.loop = v.loop }
+          else if (item.rec !== undefined && item.rec.settings !== undefined) {
+            const st = { ...item.rec.settings }
+            if (ticks.tAcc !== true) PRESET_GROUPS.a11y.forEach((k) => { delete st[k] })
+            plan.patch = { skin: item.rec.id, ...st }
+          }
+        }
+        if (ticks.tM === true && item.M) {
+          const doc = presetMenuOf(item)
+          const next = doc === null || doc === undefined || menuIsDefault(doc, rows) ? null : doc
+          plan.menu = next
+          plan.keep = item.guarded === true && lib.menu !== null && !menuSame(lib.menu, next)
+        }
+        return plan
+      }
+      /** A full arrangement of the rows of this install (what « the default menu » means as a preset): every row shown, in the order in use. null when the menu is not drawn here. */
+      const menuFull = (doc, rows) => {
+        if (rows.length === 0) return doc === null || doc === undefined ? null : doc
+        const v = menuView(doc, rows)
+        return menuClean({ entries: v.map((x, i) => ({ id: x.id, shown: x.shown, order: i, ...(Object.keys(x.label).length > 0 ? { label: x.label } : {}) })), unlisted: doc === null || doc === undefined ? 'show' : doc.unlisted, locked: false, surfaces: doc === null || doc === undefined ? undefined : doc.surfaces })
+      }
+      /** Short lines for what the appearance part of an item holds. */
+      const presetAppearanceLines = (item) => {
+        if (item.vibe !== undefined) return [kt('Couleurs, police, icônes, animation de réflexion.', 'Colors, font, icons, thinking animation.')]
+        if (item.rec === undefined || item.rec.settings === undefined) return []
+        const g = groupsOf(item.rec.settings)
+        return [Object.keys(PRESET_GROUPS).filter((k) => k !== 'a11y' && g[k]).map((k) => groupLabel(k)).join(', ')]
+      }
+      /** Swatch data for a tile: the colours of the appearance (or a few menu bars), or null. */
+      const presetSwatch = (item, dark) => {
+        const st = item.vibe !== undefined ? stVibePatch(item.vibe).state : (item.rec !== undefined ? item.rec.settings : undefined)
+        if (st === undefined || st === null) return null
+        const m = st.mode === 'light' || st.mode === 'dark' ? st.mode : (dark ? 'dark' : 'light')
+        const t = makeTheme(m, { acc: st.acc === undefined ? null : st.acc, ov: st.ov || {}, lvl: 0, cb: false, tint: 0, dom: '', sideTone: st.sideTone || 'auto' })
+        return { bg: t.base, side: t.side, line: t.t4, accent: st.acc === undefined || st.acc === null ? t.brand : st.acc }
+      }
+
+      function PresetsBlock(props) {
+        const S = props.S
+        const [filter, setFilter] = React.useState('all')
+        const [menuFor, setMenuFor] = React.useState(null)
+        const [renaming, setRenaming] = React.useState(null)
+        const [confirming, setConfirming] = React.useState(null)
+        const [resetOpen, setResetOpen] = React.useState(false)
+        const rows = props.rows
+        const items = presetItems()
+        const nBuilt = items.filter(presetBuiltin).length
+        const shown = items.filter((it) => filter === 'all' || (filter === 'builtin' ? presetBuiltin(it) : !presetBuiltin(it)))
+        const inUse = (it) => {
+          const curMenu = lib.menu
+          const menuIn = it.M && (it.kind === 'menu' || it.rec !== undefined) && (() => { const d = presetMenuOf(it); return menuSame(d === null || d === undefined || menuIsDefault(d, rows) ? null : d, curMenu) })()
+          if (it.vibe !== undefined) return stVibeOn(S, it.vibe)
+          if (it.A && !it.M) return it.rec !== undefined && S.skin === it.rec.id
+          if (!it.A && it.M) return menuIn === true
+          return it.rec !== undefined && S.skin === it.rec.id && menuIn === true
+        }
+        // The names in the strip: the appearance (a vibe, one of mine, a shipped style, or custom) and the menu (one that is listed, or custom).
+        const vibeNow = ST_VIBES.find((v) => stVibeOn(S, v))
+        const recNow = lib.presets.find((p) => p.id === S.skin && p.settings !== undefined) || null
+        const skinNow = recNow === null ? (SKINS.find((x) => x.id === S.skin) || null) : null
+        const aName = vibeNow !== undefined ? kt(vibeNow.fr, vibeNow.en) : (recNow !== null ? recNow.name : (skinNow !== null ? skinNow.name : (estNaturel(S) ? kt('Défaut Kybernos', 'Kybernos default') : kt('Personnalisé', 'Custom'))))
+        const aMod = vibeNow === undefined && ((recNow !== null && settingsDirty(S, recNow.settings)) || (recNow === null && skinNow !== null && settingsDirty(S, skinSettings(skinNow))))
+        const menuNow = lib.menu
+        const mItem = items.filter((it) => !it.A && it.M).concat(items.filter((it) => it.A && it.M)).find((it) => { const d = presetMenuOf(it); return menuSame(d === null || d === undefined || menuIsDefault(d, rows) ? null : d, menuNow) })
+        const mName = mItem !== undefined ? mItem.name : kt('Menu personnalisé', 'Custom menu')
+        const dotOf = (() => { const t = makeTheme(props.dark ? 'dark' : 'light', optsDe(S)); return 'radial-gradient(circle at 50% 50%,' + (S.acc === null ? t.brand : S.acc) + ' 0 4px,' + t.base + ' 4.5px 100%)' })()
+
+        const open = (it) => {
+          setMenuFor(null)
+          if (!it.M && !it.ACC) props.apply(it, { tA: true, tM: false, tAcc: false })
+          else props.openSheet(it, presetTicks(it))
+        }
+        const dup = (it) => {
+          setMenuFor(null)
+          const settings = it.vibe !== undefined ? presetSettings(stVibePatch(it.vibe).state) : (it.rec !== undefined ? it.rec.settings : undefined)
+          const doc = presetMenuOf(it)
+          const menu = it.M ? (doc === null || doc === undefined ? menuFull(null, rows) : doc) : undefined
+          const rec = libAdd(it.name + kt(' (copie)', ' (copy)'), 'me', settings === undefined ? undefined : settings, menu === undefined || menu === null ? undefined : { menu })
+          props.say(rec === null ? { ok: false, text: kt('La bibliothèque est pleine (' + PRESET_LIMIT + ' préréglages).', 'The library is full (' + PRESET_LIMIT + ' presets).') } : { ok: true, text: kt('« ' + rec.name + ' » est dans Les miens.', '“' + rec.name + '” is in Mine.') })
+        }
+        const doRename = () => {
+          if (renaming === null) return
+          const name = presetName(renaming.text)
+          if (name === '') { props.say({ ok: false, text: kt('Donne un nom au préréglage.', 'Give the preset a name.') }); return }
+          if (libNameTaken(name, renaming.id)) { props.say({ ok: false, text: kt('Ce nom existe déjà. Choisis-en un autre.', 'That name already exists. Pick another one.') }); return }
+          libPatch(renaming.id, { name }); setRenaming(null); props.say(null)
+        }
+        const exportOne = (it) => {
+          setMenuFor(null)
+          const ok = downloadText('preset-' + fileSlug(it.name) + '.json', presetFile(it.rec))
+          props.say(ok ? { ok: true, text: kt('« ' + it.name + ' » est téléchargé en fichier .json.', '“' + it.name + '” is downloaded as a .json file.') } : { ok: false, text: kt('Le téléchargement a échoué.', 'The download failed.') })
+        }
+
+        const tile = (it) => {
+          const mine = !presetBuiltin(it)
+          const sw = presetSwatch(it, props.dark)
+          const used = inUse(it)
+          const bars = it.M ? menuView(presetMenuOf(it) === undefined ? null : presetMenuOf(it), rows).filter((v) => v.shown).length : 0
+          const pvMenu = it.M ? (presetMenuOf(it) === undefined ? null : presetMenuOf(it)) : undefined
+          const chips = [it.A ? kt('Apparence', 'Appearance') : null, it.M ? kt('Menu', 'Menu') : null].filter((x) => x !== null)
+          const badge = it.src === 'mine' ? (it.rec.source === 'gallery' ? kt('Galerie', 'Gallery') : kt('Les miens', 'Mine')) : (it.src === 'template' ? kt('Modèle', 'Template') : kt('Livré', 'Built-in'))
+          const pv = () => props.preview(it.vibe !== undefined ? stVibePatch(it.vibe).state : (it.rec !== undefined && it.rec.settings !== undefined ? { skin: it.rec.id, ...it.rec.settings } : null), pvMenu)
+          return h('div', { key: it.key, className: 'kbth-pr-tile' + (used ? ' use' : ''), 'data-kb': 'theme-preset', 'data-id': it.key, 'data-src': it.src },
+            h('button', { type: 'button', className: 'kbth-pr-btn', 'data-kb': 'theme-preset-open', 'aria-label': kt('Appliquer ', 'Apply ') + it.name, onClick: () => open(it), onMouseEnter: pv, onFocus: pv, onMouseLeave: () => props.preview(null), onBlur: () => props.preview(null) },
+              h('span', { className: 'kbth-pr-pv', style: sw === null ? undefined : { background: sw.bg } },
+                sw !== null ? [h('i', { key: 's', className: 'kbth-pr-sb', style: { background: sw.side } }), h('i', { key: 'a', className: 'kbth-pr-ac', style: { background: sw.accent } })]
+                  : h('span', { key: 'm', className: 'kbth-pr-mb' }, Array.from({ length: Math.min(6, Math.max(1, bars)) }).map((x, i) => h('b', { key: i }))),
+                used ? h('span', { className: 'kbth-pr-use' }, kt('En cours', 'In use')) : null),
+              h('span', { className: 'kbth-pr-tt' }, h('span', { className: 'kbth-pr-nm' }, it.name),
+                h('span', { className: 'kbth-pr-tm' }, h('span', { className: 'kbth-pr-src ' + (mine ? 'mine' : 'built') }, badge), chips.map((ch) => h('span', { key: ch, className: 'kbth-pr-chip' }, ch))))),
+            h('button', { type: 'button', className: 'kbth-pr-more', 'data-kb': 'theme-preset-more', 'aria-label': kt('Plus pour ', 'More for ') + it.name, 'aria-haspopup': 'menu', 'aria-expanded': menuFor === it.key ? 'true' : 'false', onClick: () => setMenuFor(menuFor === it.key ? null : it.key) }, '…'),
+            menuFor === it.key ? h('div', { className: 'kbth-pop', role: 'menu', 'data-kb': 'theme-preset-menu' },
+              h('button', { type: 'button', role: 'menuitem', className: 'kbth-pi', 'data-kb': 'theme-preset-apply', onClick: () => open(it) }, kt('Appliquer…', 'Apply…')),
+              !mine ? h('button', { type: 'button', role: 'menuitem', className: 'kbth-pi', 'data-kb': 'theme-preset-dup', onClick: () => dup(it) }, kt('Dupliquer dans Les miens', 'Duplicate to Mine')) : null,
+              mine ? h('button', { type: 'button', role: 'menuitem', className: 'kbth-pi', 'data-kb': 'theme-preset-rename', onClick: () => { setMenuFor(null); setRenaming({ id: it.id, text: it.name }) } }, kt('Renommer', 'Rename')) : null,
+              mine ? h('button', { type: 'button', role: 'menuitem', className: 'kbth-pi', 'data-kb': 'theme-preset-export', onClick: () => exportOne(it) }, kt('Exporter en fichier', 'Export as a file')) : null,
+              mine ? h('button', { type: 'button', role: 'menuitem', className: 'kbth-pi dng', 'data-kb': 'theme-preset-delete', onClick: () => { setMenuFor(null); setConfirming(it.id) } }, kt('Supprimer…', 'Delete…')) : null) : null,
+            renaming !== null && renaming.id === it.id ? h('div', { className: 'kbth-pr-ov', 'data-kb': 'theme-preset-renaming' },
+              h('input', { className: 'kbth-in', maxLength: PRESET_NAME_MAX, value: renaming.text, autoFocus: true, 'aria-label': kt('Nouveau nom', 'New name'), 'data-kb': 'theme-preset-rename-in', onInput: (e) => setRenaming({ id: it.id, text: e.target.value }), onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); doRename() } else if (e.key === 'Escape') { e.stopPropagation(); setRenaming(null) } } }),
+              h('div', { className: 'kbth-pr-row' }, h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-preset-rename-ok', onClick: doRename }, kt('Enregistrer', 'Save')), h('button', { type: 'button', className: 'kbth-btn', onClick: () => setRenaming(null) }, kt('Annuler', 'Cancel')))) : null,
+            confirming === it.id ? h('div', { className: 'kbth-pr-ov', 'data-kb': 'theme-preset-confirm' },
+              h('span', null, kt('Supprimer « ' + it.name + ' » ?', 'Delete “' + it.name + '”?')),
+              h('div', { className: 'kbth-pr-row' }, h('button', { type: 'button', className: 'kbth-btn kbth-danger kbth-gr-err', 'data-kb': 'theme-preset-delete-yes', onClick: () => { libRemove(it.id); setConfirming(null); props.say({ ok: true, text: kt('« ' + it.name + ' » supprimé.', '“' + it.name + '” deleted.') }) } }, kt('Supprimer', 'Delete')), h('button', { type: 'button', className: 'kbth-btn', onClick: () => setConfirming(null) }, kt('Garder', 'Keep')))) : null)
+        }
+
+        const strip = h('div', { className: 'kbth-pr-strip', 'data-kb': 'theme-strip' },
+          h('div', { className: 'kbth-pr-sp' }, h('span', { className: 'kbth-pr-k' }, kt('Apparence', 'Appearance')), h('span', { className: 'kbth-pr-v', 'data-kb': 'theme-strip-a' }, h('i', { className: 'kbth-pr-dot', style: { background: dotOf } }), aName, aMod ? h('span', { className: 'kbth-tone kbth-tone-mod', 'data-kb': 'theme-modified' }, kt('modifié', 'modified')) : null)),
+          h('div', { className: 'kbth-pr-sp' }, h('span', { className: 'kbth-pr-k' }, kt('Menu', 'Menu')), h('span', { className: 'kbth-pr-v', 'data-kb': 'theme-strip-m' }, mName)),
+          h('span', { className: 'kbth-st-sp' }),
+          h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-undo', disabled: !props.canUndo(), onClick: () => { props.say(null); props.undo() } }, kt('Annuler', 'Undo')),
+          h('div', { className: 'kbth-pr-rel' },
+            h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-reset', 'aria-haspopup': 'menu', 'aria-expanded': resetOpen ? 'true' : 'false', onClick: () => setResetOpen(!resetOpen) }, kt('Réinitialiser', 'Reset')),
+            resetOpen ? h('div', { className: 'kbth-pop', role: 'menu', 'data-kb': 'theme-reset-menu' },
+              [['appearance', kt('Réinitialiser l’apparence', 'Reset the appearance')], ['menu', kt('Réinitialiser le menu', 'Reset the menu')], ['all', kt('Tout réinitialiser', 'Reset everything')]].map((r) => h('button', { key: r[0], type: 'button', role: 'menuitem', className: 'kbth-pi', 'data-kb': 'theme-reset-' + r[0], onClick: () => { setResetOpen(false); props.say(null); props.reset(r[0]) } }, r[1]))) : null),
+          h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-save', onClick: props.openSave }, kt('Enregistrer comme préréglage…', 'Save as preset…')))
+
+        const counts = [['all', kt('Tous', 'All'), items.length], ['builtin', kt('Livrés', 'Built-in'), nBuilt], ['mine', kt('Les miens', 'Mine'), items.length - nBuilt]]
+        return h('div', { className: 'kbth-pr', 'data-kb': 'theme-presets' },
+          strip,
+          props.note !== null && props.note !== undefined ? h('div', { className: props.note.ok ? 'kbth-ok kbth-gr-ok' : 'kbth-bad kbth-gr-err', role: 'status', 'data-kb': 'theme-note' }, props.note.text) : null,
+          h('div', { className: 'kbth-pr-head' },
+            h('h3', { className: 'kbth-pr-h' }, kt('Préréglages', 'Presets')),
+            seg({ label: kt('Afficher les préréglages', 'Show presets'), kb: 'theme-preset-filter', items: counts.map((f) => ({ id: f[0], label: f[1] + ' ' + f[2], on: filter === f[0], tap: () => setFilter(f[0]) })) }),
+            h('span', { className: 'kbth-st-sp' }),
+            h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-surprise', onClick: props.surprise }, kt('Me surprendre', 'Surprise me')),
+            h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-open-gallery', onClick: () => props.openClassic('galerie') }, kt('Galerie', 'Gallery')),
+            h('label', { className: 'kbth-btn', style: { cursor: 'pointer' } }, kt('Importer…', 'Import…'), h('input', { type: 'file', accept: '.json,application/json', 'data-kb': 'theme-import', style: { display: 'none' }, onChange: (e) => { const input = e.target; const f = input.files && input.files[0]; if (f) props.importFile(f); input.value = '' } }))),
+          h('p', { className: 'kbth-hint' }, kt('Un préréglage est un réglage enregistré. Il peut changer l’apparence, le menu, ou les deux. Rien ne change tant que tu n’en choisis pas un.', 'A preset is a saved setup. It can change the appearance, the menu, or both. Nothing changes until you pick one.')),
+          h('div', { className: 'kbth-pr-tiles', 'data-kb': 'theme-preset-list' }, shown.map(tile)),
+          shown.length === 0 ? h('div', { className: 'kbth-empty' }, kt('Aucun préréglage ici : règle l’apparence ou le menu, puis « Enregistrer comme préréglage ».', 'No preset here yet: set the appearance or the menu, then “Save as preset”.')) : null)
+      }
 
       function Page(props) {
         const ctxRef = props.ctx
         const themeSvc = (ctxRef && ctxRef.theme) ? ctxRef.theme : null
         const [S, setS] = React.useState(readState())
         const [hexDraft, setHexDraft] = React.useState(null)
-        const [wpCat, setWpCat] = React.useState('gradients')
         const [tokSel, setTokSel] = React.useState('l1')
         const [revision, setRevision] = React.useState(0)
-        // The theme library (“My themes”): redrawn when it changes (own writes, or the disk copy arriving).
+        // The preset library and the menu in use: redrawn when they change (own writes, or the disk copy arriving), and when the menu's rows change.
         const [, libBump] = React.useReducer((x) => x + 1, 0)
         React.useEffect(() => { lib.subs.add(libBump); libPull(true); return () => { lib.subs.delete(libBump) } }, [])
-        const [saveDlg, setSaveDlg] = React.useState(null)       // null | { name, groups, error }: the “Save as theme” window
-        const [renameId, setRenameId] = React.useState(null)     // Sharing: the row being renamed...
-        const [renameDraft, setRenameDraft] = React.useState('')
-        const [delId, setDelId] = React.useState(null)           // ...the one waiting for a delete confirmation...
-        const [expId, setExpId] = React.useState(null)           // ...the one whose file is shown
-        const [libNote, setLibNote] = React.useState(null)       // { ok, text }: the last thing the library did or refused
+        React.useEffect(() => {
+          const reg = menuRegistry()
+          if (reg === null || typeof reg.subscribe !== 'function') return undefined
+          let off = null
+          try { off = reg.subscribe(() => libBump()) } catch (e) { off = null }
+          return () => { try { if (typeof off === 'function') off() } catch (e) { /* already detached */ } }
+        }, [])
+        const [libNote, setLibNote] = React.useState(null)       // { ok, text }: the last thing the presets did or refused
+        const [pv, setPv] = React.useState(null)                 // a preview: { s: settings to draw over the state, m: a menu to draw (null = the default one) } — the window shows it, nothing is stored
+        const [sheet, setSheet] = React.useState(null)           // the apply sheet: { key, ticks } for the item being applied
+        const [saveSheet, setSaveSheet] = React.useState(null)   // the save sheet: { name, tA, tM, tAcc, error }
         // The gallery: redrawn when the catalogue arrives; the search and the filter live here.
         const [, galBump] = React.useReducer((x) => x + 1, 0)
         const [galQ, setGalQ] = React.useState('')
@@ -3946,8 +5228,8 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
         const trialRef = React.useRef(null)
         trialRef.current = trial
         const [exportFmt, setExportFmt] = React.useState('yaml')  // displayed export format (not stored)
-        const [advTab, setAdvTab] = React.useState('essentiel') // open tab: Essentials = the basic settings
-        const [classicOpen, setClassicOpen] = React.useState(false) // the editor of the nine tabs sits folded under the simple view
+        const [advTab, setAdvTab] = React.useState('couleurs')   // open tab of the advanced editor
+        const [classicOpen, setClassicOpen] = React.useState(false) // the advanced editor sits folded under the window
         // Undo: the looks before each change (the page's state and the animation store), at most 40; a burst of changes (a slider drag) is one step.
         const histRef = React.useRef([])
         const histAt = React.useRef(0)
@@ -3956,89 +5238,8 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           const gap = now - histAt.current
           histAt.current = now // the window slides: a drag that lasts three seconds is still one step
           if (gap < 700) return
-          histRef.current.push(JSON.stringify({ s: cur === undefined ? readState() : cur, l: ld.S }))
+          histRef.current.push(JSON.stringify({ s: cur === undefined ? readState() : cur, l: ld.S, m: lib.menu }))
           if (histRef.current.length > 40) histRef.current.shift()
-        }
-
-        // ── Font picker ────────────────────────────────────────────
-        // The state lives here, with the other controls: rendering outside a browser
-        // only runs Page, and a nested component would never be called.
-        const [fontOuvert, setFontOuvert] = React.useState(false)
-        const [fontQ, setFontQ] = React.useState('')
-        const [fontActif, setFontActif] = React.useState(0)
-        const boitePolice = React.useRef(null)
-        const champPolice = React.useRef(null)
-        React.useEffect(() => {
-          const el = champPolice.current
-          if (!fontOuvert || el === null) return undefined
-          el.focus()
-          // Escape closes the fonts panel, NOT the whole settings dialog: we cut the
-          // propagation at the native level (the one the dialog listens at), not only in React.
-          const stop = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setFontOuvert(false) } }
-          el.addEventListener('keydown', stop)
-          return () => el.removeEventListener('keydown', stop)
-        }, [fontOuvert])
-        React.useEffect(() => { setFontActif(0) }, [fontQ])
-        React.useEffect(() => {
-          // Follows the keyboard selection in a scrolling list.
-          const el = boitePolice.current === null ? null : boitePolice.current.querySelector('[data-actif="1"]')
-          if (el !== null && el !== undefined && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' })
-        }, [fontActif, fontOuvert])
-        React.useEffect(() => {
-          // A click elsewhere closes it — no focus trap.
-          if (!fontOuvert) return undefined
-          const dehors = (e) => { if (boitePolice.current !== null && boitePolice.current.contains(e.target) === false) setFontOuvert(false) }
-          document.addEventListener('mousedown', dehors)
-          return () => document.removeEventListener('mousedown', dehors)
-        }, [fontOuvert])
-
-        // Picker rendering: a large button (the current font, in its own
-        // typeface) + a panel with search and the list of families.
-        const selecteurPolice = (courant, onPick) => {
-          const plat = (s) => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-          const liste = FONTS.filter((x) => plat(x.name).indexOf(plat(fontQ)) >= 0)
-          const choisi = FONTS.find((x) => x.id === courant) || FONTS[0]
-          const prendre = (id) => { onPick(id); setFontOuvert(false); setFontQ('') }
-          const clavier = (e) => {
-            if (e.key === 'Escape') { setFontOuvert(false); return }
-            if (e.key === 'ArrowDown') { e.preventDefault(); setFontActif((i) => Math.min(i + 1, liste.length - 1)); return }
-            if (e.key === 'ArrowUp') { e.preventDefault(); setFontActif((i) => Math.max(i - 1, 0)); return }
-            if (e.key === 'Enter') { e.preventDefault(); if (liste[fontActif] !== undefined) prendre(liste[fontActif].id) }
-          }
-          return h('div', { className: 'kbth-fsel', ref: boitePolice },
-            h('button', {
-              type: 'button', className: 'kbth-fsbtn', 'aria-haspopup': 'listbox', 'aria-expanded': String(fontOuvert),
-              onClick: () => setFontOuvert((o) => !o),
-              style: choisi.stack === null ? {} : { fontFamily: choisi.stack }
-            },
-              h('span', { className: 'kbth-fsname' }, choisi.name),
-              h('span', { className: 'kbth-fschev' },
-                h('svg', { width: 15, height: 15, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
-                  h('path', {
-                    d: fontOuvert ? 'M3.5 10.5 8 6l4.5 4.5' : 'M3.5 5.5 8 10l4.5-4.5',
-                    stroke: 'currentColor', strokeWidth: '1.6', strokeLinecap: 'round', strokeLinejoin: 'round'
-                  })))),
-            h('div', { className: 'kbth-fsmeta' }, choisi.stack === null ? kt('Police native de DSH', 'Native DSH font') : choisi.stack),
-            fontOuvert
-              ? h('div', { className: 'kbth-fspanel' },
-                h('input', {
-                  className: 'kbth-fssearch', ref: champPolice, value: fontQ, placeholder: kt('Rechercher une police…', 'Search a font…'),
-                  'aria-label': kt('Rechercher une police', 'Search a font'), onInput: (e) => setFontQ(e.target.value), onKeyDown: clavier
-                }),
-                h('div', { className: 'kbth-fslist', role: 'listbox' },
-                  liste.length === 0
-                    ? h('div', { className: 'kbth-fsempty' }, kt('Aucune police ne correspond.', 'No font matches.'))
-                    : liste.map((x, i) => h('button', {
-                      key: x.id, type: 'button', role: 'option', className: 'kbth-fsopt',
-                      'aria-selected': x.id === courant ? 'true' : 'false',
-                      'data-actif': i === fontActif ? '1' : '0',
-                      onMouseEnter: () => setFontActif(i),
-                      onClick: () => prendre(x.id),
-                      style: x.stack === null ? {} : { fontFamily: x.stack }
-                    },
-                      h('span', { className: 'kbth-fsopt-name' }, x.name),
-                      h('span', { className: 'kbth-fsopt-sample' }, kt('Le renard brun saute par-dessus le chien paresseux.', 'The quick brown fox jumps over the lazy dog.'))))))
-              : null)
         }
 
                 // Follow the real mode (the native page can change it too). A
@@ -4074,6 +5275,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
         // Any other change made during a trial ends it: the person is editing the look they see.
         const commit = (patch, replace, transient, noHist) => {
           if (transient !== true && trialRef.current !== null) { trialRef.current = null; setTrial(null) }
+          if (transient !== true) setPv((cur) => (cur === null ? cur : null))
           setS((cur) => {
             const next = replace === true ? { ...patch } : { ...cur, ...patch }
             if (transient !== true && noHist !== true) pushHist(cur)
@@ -4111,56 +5313,29 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
         const cl = makeTheme('light', o)
         const cd = makeTheme('dark', o)
 
-        // The ready-made theme picker: concentric “chip” dot.
-        // The theme's BACKGROUND as a disc, the ACCENT as a centred dot — the 135°
-        // diagonal with a hard stop (measured on 30/09) read like a
-        // road sign, not like a theme. A skin without a mode (inherited pack)
-        // is drawn in the current scheme: that is the one the user
-        // will see when selecting it.
-        const skinDot = (sk) => {
-          const m = (sk.mode === null || sk.mode === undefined) ? (dark ? 'dark' : 'light') : sk.mode
-          const so = { acc: sk.acc, ov: sk.ov || {}, lvl: 0, cb: false, tint: 0, dom: '' }
-          const sd = makeTheme(m, so)
-          const acc = skinAccent(sk) || sd.brand
-          // point d'accent 13 px sur disque 34 px (~38 %), bord adouci 0,5 px
-          // to avoid the anti-aliasing staircase on the circle.
-          return 'radial-gradient(circle at 50% 50%,' + acc + ' 0 6.5px,' + sd.base + ' 7px 100%)'
-        }
+        // The window draws the state with a preview laid over it (a hovered option, a tile, an apply sheet): nothing is stored before a click.
+        const rowsNow = menuRows()
+        const sheetItem = sheet === null ? null : (presetItems().find((x) => x.key === sheet.key) || null)
+        const sheetPlan = sheetItem === null ? null : presetPlan(sheetItem, sheet.ticks, rowsNow)
+        const baseSv = sheetPlan !== null && sheetPlan.patch !== null ? { ...S, ...sheetPlan.patch } : S
+        const Sv = pv !== null && pv.s !== null && pv.s !== undefined ? { ...baseSv, ...pv.s } : baseSv
+        const darkV = Sv === S ? dark : schemeSombre(Sv)
+        const cV = Sv === S ? c : makeTheme(darkV ? 'dark' : 'light', optsDe(Sv))
+        const pvMenuDoc = pv !== null && pv.m !== undefined ? pv.m : (sheetPlan !== null && sheetPlan.menu !== undefined ? sheetPlan.menu : undefined)
+        const preview = (patch, menuDoc) => setPv((cur) => {
+          const next = (patch === null || patch === undefined) && menuDoc === undefined ? null : { s: patch === undefined ? null : patch, m: menuDoc }
+          return cur === null && next === null ? cur : next
+        })
+        const pvOf = (key) => (v) => preview(v === null ? null : { [key]: v })
+        const pvSeg = (key) => ({ on: (id) => preview({ [key]: id }), off: () => preview(null) })
+
         const skinMeta = (sk) => (sk.mode === 'dark' ? kt('Sombre', 'Dark') : (sk.mode === 'light' ? kt('Clair', 'Light') : kt('Clair + sombre', 'Light + dark'))) +
           (skinAccent(sk) === null ? kt(' · accent neutre', ' · neutral accent') : ' · ' + skinAccent(sk)) +
           (sk.fontText !== undefined ? kt(' · police ', ' · font ') + (FONTS.find((f) => f.id === sk.fontText) || FONTS[0]).name : '') +
           (sk.radius !== undefined ? ' · ' + kt(RADIUS_LABEL[sk.radius][0], RADIUS_LABEL[sk.radius][1]) : '') +
           (sk.iconSet !== undefined ? ((nm) => kt(' · icônes ' + nm, ' · ' + nm + ' icons'))((ICON_SETS.find((x) => x.id === sk.iconSet) || ICON_SETS[0])[kbLang()]) : '')
 
-        // The theme in use: one of yours, or a shipped one. “Modified” = a setting it retains has moved.
-        const activeMine = lib.presets.find((x) => x.id === S.skin) || null
-        const activeSkin = activeMine !== null ? null : (SKINS.find((x) => x.id === S.skin) || null)
-        const activeNow = activeMine !== null ? presetAsSkin(activeMine) : activeSkin
-        const activeModified = activeMine !== null ? settingsDirty(S, activeMine.settings) : (activeSkin !== null && settingsDirty(S, skinSettings(activeSkin)))
         const applyMine = (rec) => commit({ skin: rec.id, ...rec.settings })
-        // Back to the theme as it was saved. The mode stays as it is: it is not part of “modified” either.
-        const revertTheme = () => {
-          const full = activeMine !== null ? { skin: activeMine.id, ...activeMine.settings } : (activeSkin !== null ? skinPatch(activeSkin) : null)
-          if (full === null) return
-          const { mode, ...rest } = full
-          setHexDraft(null); commit(rest)
-        }
-        const openSave = () => { setLibNote(null); setSaveDlg({ name: libFreeName(kt('Mon thème', 'My theme')), groups: { font: true, radius: true, icons: true, chat: true, glass: true, a11y: false }, error: '' }) }
-        const doSave = () => {
-          if (saveDlg === null) return
-          const name = presetName(saveDlg.name)
-          if (name === '') { setSaveDlg({ ...saveDlg, error: kt('Donne un nom au thème.', 'Give the theme a name.') }); return }
-          if (libNameTaken(name)) { setSaveDlg({ ...saveDlg, error: kt('Ce nom existe déjà. Choisis-en un autre.', 'That name already exists. Pick another one.') }); return }
-          const rec = libAdd(name, 'me', presetFromState(S, saveDlg.groups))
-          if (rec === null) { setSaveDlg({ ...saveDlg, error: kt('La bibliothèque est pleine (' + PRESET_LIMIT + ' thèmes). Supprime-en un dans Partage.', 'The library is full (' + PRESET_LIMIT + ' themes). Delete one in Sharing.') }); return }
-          setSaveDlg(null); commit({ skin: rec.id })
-          setLibNote({ ok: true, text: kt('Thème « ' + rec.name + ' » enregistré dans Mes thèmes.', 'Theme “' + rec.name + '” saved in My themes.') })
-        }
-        const doUpdate = () => {
-          if (activeMine === null) return
-          libPatch(activeMine.id, { settings: presetFromState(S, groupsOf(activeMine.settings)) })
-          setLibNote({ ok: true, text: kt('Thème « ' + activeMine.name + ' » mis à jour.', 'Theme “' + activeMine.name + '” updated.') })
-        }
 
         // An active THIRD-PARTY theme (dream-skin…) takes over the preference:
         // measured, a setTheme('light') is reasserted dark in under 250 ms.
@@ -4176,49 +5351,75 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
         // accent per scheme in `ov`, so S.acc stays null).
         const hexShown = hexDraft !== null ? hexDraft : ((S.acc === null ? c.brand : S.acc).replace('#', ''))
 
-        // ── Simple : apparence ──────────────────────────────────────────────
-        const skinButton = (sk, rec) => h('button', {
-          key: sk.id, type: 'button', className: 'kbth-skin',
-          'aria-pressed': S.skin === sk.id ? 'true' : 'false',
-          title: sk.name + ' — ' + skinMeta(sk),
-          'aria-label': sk.name + ' — ' + skinMeta(sk),
-          onClick: () => { setLibNote(null); setHexDraft(null); if (rec === null) commit(skinPatch(sk)); else applyMine(rec) }
-        },
-          h('span', { className: 'kbth-skin-dot', style: { background: skinDot(sk) } }),
-          h('span', { className: 'kbth-skin-name' }, sk.name))
-        const toSharing = h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'theme-open-sharing', onClick: () => setAdvTab('partage') }, kt('Partage', 'Sharing'))
-        const toGallery = h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'theme-open-gallery', onClick: () => setAdvTab('galerie') }, kt('Galerie', 'Gallery'))
-        const themeSummary = h('div', { className: 'kbth-sum', 'data-kb': 'theme-sum' },
-          h('div', { className: 'kbth-sum-tx' },
-            h('div', { className: 'kbth-sum-n' }, activeNow === null ? kt('Personnalisé', 'Custom') : activeNow.name,
-              activeModified ? h('span', { className: 'kbth-tone kbth-tone-mod', 'data-kb': 'theme-modified' }, kt('modifié', 'modified')) : null,
-              activeNow === null ? null : h('span', { className: 'kbth-pill' }, activeMine === null ? kt('livré', 'shipped') : (activeMine.source === 'gallery' ? kt('Galerie', 'Gallery') : kt('à toi', 'yours')))),
-            libNote !== null
-              ? h('div', { className: libNote.ok ? 'kbth-ok kbth-gr-ok' : 'kbth-bad kbth-gr-err', role: 'status', 'data-kb': 'theme-note' }, libNote.text)
-              : h('div', { className: 'kbth-sum-m' }, activeNow === null
-                ? kt('Réglage libre : enregistre-le pour le retrouver en un clic.', 'Free setting: save it to get it back in one click.')
-                : skinMeta(activeNow) + (activeModified && activeMine === null ? kt(' · un thème livré ne se modifie pas : enregistre-en une copie.', ' · a shipped theme is not edited: save a copy.') : ''))),
-          h('div', { className: 'kbth-sum-a' },
-            activeMine !== null && activeModified ? h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-update', onClick: doUpdate }, kt('Mettre à jour', 'Update')) : null,
-            h('button', { type: 'button', className: 'kbth-btn' + (activeMine !== null && activeModified ? '' : ' kbth-ldpri'), 'data-kb': 'theme-save', onClick: openSave }, kt('Enregistrer sous…', 'Save as…')),
-            activeModified ? h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-revert', onClick: revertTheme }, kt('Annuler les changements', 'Undo the changes')) : null))
-        const themeBlock = h('div', { className: 'kbth-sec', 'data-kb': 'theme-block' },
-          h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, kt('Thème', 'Theme')),
-            h('div', { className: 'kbth-sec-d' }, kt('Un thème règle les couleurs ; il peut aussi retenir la police, les coins et les icônes du menu. Gère les tiens dans ', 'A theme sets the colors; it can also keep the font, the corners and the menu icons. Manage yours in '), toSharing, '.')),
-          h('div', { className: 'kbth-skinblock' },
-            h('div', { className: 'kbth-grp' }, kt('Livrés', 'Shipped')),
-            h('div', { className: 'kbth-skins', 'data-kb': 'theme-shipped' }, SKINS.map((sk) => skinButton(sk, null)))),
-          h('div', { className: 'kbth-skinblock' },
-            h('div', { className: 'kbth-grp' }, kt('Mes thèmes', 'My themes')),
-            h('div', { className: 'kbth-skins', 'data-kb': 'theme-mine' },
-              lib.presets.map((rec) => skinButton(presetAsSkin(rec), rec)),
-              h('button', { type: 'button', className: 'kbth-skin kbth-skin-add', 'data-kb': 'theme-add', 'aria-label': kt('Enregistrer l’état actuel comme thème', 'Save the current look as a theme'), onClick: openSave },
-                h('span', { className: 'kbth-skin-dot', 'aria-hidden': 'true' }, '+'),
-                h('span', { className: 'kbth-skin-name' }, kt('Enregistrer', 'Save')))),
-            lib.presets.length === 0 ? h('div', { className: 'kbth-empty' }, kt('Aucun thème à toi pour l’instant. Règle l’apparence puis « Enregistrer », importe un fichier dans ', 'No theme of yours yet. Set the look, then “Save”, import a file in '), toSharing, kt(', ou installe-en un depuis la ', ', or install one from the '), toGallery, '.') : null),
-          themeSummary,
-          S.skin === 'dsh' ? h('div', { className: 'kbth-hint' }, kt('« Défaut DSH » retire la couche de jetons : l’apparence native repasse telle quelle.', '“DSH default” removes the token layer: the native look comes back as is.')) : null)
+
+        // ── what the presets do ─────────────────────────────────────────────────────────────────────────────────────
+        const say = (n) => setLibNote(n)
+        const editMenu = (fn) => { const next = menuEdit(lib.menu, rowsNow, fn); if (next === undefined) return; pushHist(); menuUse(next) }
+        const editSurface = (surface, fn) => { const next = surfaceEdit(lib.menu, surface, surfaceRows(surface), rowsNow, fn); if (next === undefined) return; pushHist(); menuUse(next) }
+        const menuShowEvery = () => { pushHist(); menuUse(menuShowAll(lib.menu, rowsNow)); say({ ok: true, text: kt('Toutes les entrées sont affichées.', 'Every entry is shown again.') }) }
+        const setUnlisted = (v) => {
+          if (lib.menu !== null && lib.menu.locked === true) return
+          const base = menuFull(lib.menu, rowsNow)
+          if (base === null) return
+          const next = menuClean({ ...base, unlisted: v })
+          pushHist(); menuUse(next === null || menuIsDefault(next, rowsNow) ? null : next)
+        }
+        const applyItem = (item, ticks) => {
+          const plan = presetPlan(item, ticks, rowsNow)
+          if (plan.patch === null && plan.menu === undefined) { setSheet(null); return }
+          pushHist(); setHexDraft(null)
+          if (plan.patch !== null) commit(plan.patch)
+          if (plan.loop !== null) ldSet(plan.loop)
+          if (plan.menu !== undefined) {
+            if (plan.keep) libAdd(libFreeName(kt('Mon menu', 'My menu')), 'me', undefined, { menu: lib.menu })
+            menuUse(plan.menu)
+          }
+          setSheet(null); setPv(null)
+          const parts = [plan.patch !== null ? kt('l’apparence', 'the appearance') : null, plan.menu !== undefined ? kt('le menu', 'the menu') : null].filter((x) => x !== null)
+          say({ ok: true, text: kt('« ' + item.name + ' » appliqué : ' + parts.join(' et ') + '.', '“' + item.name + '” applied: ' + parts.join(' and ') + '.') + (plan.keep ? kt(' Ton menu d’avant est gardé dans Les miens.', ' Your previous menu is kept in Mine.') : '') })
+        }
+        const openSheet = (item, ticks) => { setSaveSheet(null); setLibNote(null); setSheet({ key: item.key, ticks }) }
+        const openSave = () => { setSheet(null); setLibNote(null); setSaveSheet({ name: libFreeName(kt('Mon préréglage', 'My preset')), tA: true, tM: lib.menu !== null, tAcc: false, error: '' }) }
+        const doSave = () => {
+          const sv = saveSheet
+          if (sv === null) return
+          const name = presetName(sv.name)
+          if (name === '') { setSaveSheet({ ...sv, error: kt('Donne un nom au préréglage.', 'Give the preset a name.') }); return }
+          if (libNameTaken(name)) { setSaveSheet({ ...sv, error: kt('Ce nom existe déjà. Choisis-en un autre.', 'That name already exists. Pick another one.') }); return }
+          const a11yOnly = {}
+          PRESET_GROUPS.a11y.forEach((k) => { if (S[k] !== undefined) a11yOnly[k] = S[k] })
+          const settings = sv.tA ? presetFromState(S, { font: true, radius: true, icons: true, chat: true, glass: true, a11y: sv.tAcc }) : (sv.tAcc ? a11yOnly : null)
+          const menu = sv.tM ? menuFull(lib.menu, rowsNow) : null
+          if (settings === null && menu === null) { setSaveSheet({ ...sv, error: kt('Coche au moins une case.', 'Tick at least one box.') }); return }
+          const rec = libAdd(name, 'me', settings === null ? undefined : settings, menu === null ? undefined : { menu })
+          if (rec === null) { setSaveSheet({ ...sv, error: kt('La bibliothèque est pleine (' + PRESET_LIMIT + ' préréglages). Supprime-en un d’abord.', 'The library is full (' + PRESET_LIMIT + ' presets). Delete one first.') }); return }
+          setSaveSheet(null)
+          if (sv.tA) commit({ skin: rec.id })
+          say({ ok: true, text: kt('« ' + rec.name + ' » est enregistré dans Les miens.', '“' + rec.name + '” is saved in Mine.') })
+        }
+        const doReset = (what) => {
+          pushHist(); setHexDraft(null)
+          if (what !== 'menu') commit({ ...DEF }, true)
+          if (what !== 'appearance') menuUse(null)
+          say({ ok: true, text: what === 'menu' ? kt('Menu remis par défaut.', 'Menu reset to the default.') : (what === 'appearance' ? kt('Apparence remise par défaut.', 'Appearance reset to the default.') : kt('Tout est remis par défaut.', 'Everything is back to the default.')) })
+        }
+        const doSurprise = () => {
+          const r = stSurprise()
+          pushHist(); setHexDraft(null)
+          commit(r.state); ldSet(r.loop)
+          say({ ok: true, text: kt('Surprise ! Une apparence au hasard. Ton menu n’a pas changé.', 'Surprise! A random appearance. Your menu did not change.') })
+        }
+        const undoStep = () => {
+          const snap = histRef.current.pop()
+          if (snap === undefined) return
+          histAt.current = 0 // the next change is a new step, however soon it comes
+          try { const p = JSON.parse(snap); setHexDraft(null); commit(p.s, true, false, true); ldSet({ ...p.l }); if (p.m !== undefined) menuUse(p.m) } catch (e) { /* a damaged step is dropped */ }
+        }
+        // A sheet that opens comes into view next to the window.
+        React.useEffect(() => {
+          if (sheet === null && saveSheet === null) return
+          try { const el = document.querySelector('[data-kb="theme-sheet"],[data-kb="theme-save-sheet"]'); if (el !== null && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'nearest' }) } catch (e) { /* nothing to scroll */ }
+        }, [sheet === null, saveSheet === null])
 
         // The mode (Light / Dark / System) is set HERE, on three cards (the Appearance page that used to hold them is gone). The same preference as the footer's sun/moon:
         // `commit({ mode })` stores it in this page's state and writes it through `themeSvc.setTheme`. A third-party theme that takes the preference over is told below.
@@ -4227,58 +5428,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           h('strong', null, kt('Conflit de thème : ', 'Theme conflict: ')),
           kt('Un autre plugin (« ' + themeTiers + ' ») contrôle le mode clair/sombre. ', 'Another plugin (“' + themeTiers + '”) controls the light/dark mode. '),
           kt('Désactive-le dans son propre panneau pour que ce réglage s’applique.', 'Turn it off in its own panel for this setting to apply.'))
-        const apparence = h('div', { className: 'kbth-sec' },
-          h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, kt('Apparence', 'Appearance')),
-            h('div', { className: 'kbth-sec-d' }, kt('Choisis le mode clair ou sombre, puis un thème prêt à l’emploi.', 'Pick the light or dark mode, then a ready-made theme.'))),
-          h('div', { className: 'kbth-modes', 'data-kb': 'theme-mode', role: 'radiogroup', 'aria-label': kt('Mode', 'Mode') },
-            modes.map((m) => {
-              const on = S.mode === m[0]
-              return h('button', {
-                key: m[0], type: 'button', role: 'radio', 'aria-checked': on ? 'true' : 'false', 'data-kb': 'theme-mode-card', 'data-mode': m[0],
-                className: 'kbth-mode' + (on ? ' on' : ''), onClick: () => commit({ mode: m[0] }),
-              },
-                h('span', { className: 'kbth-mode-pv kbth-mode-pv-' + m[0], 'aria-hidden': 'true' },
-                  m[0] === 'system'
-                    ? [h('span', { key: 'l', className: 'kbth-mode-half kbth-mode-light' }, h('i', null)), h('span', { key: 'd', className: 'kbth-mode-half kbth-mode-dark' }, h('i', null))]
-                    : h('i', null)),
-                h('span', { className: 'kbth-mode-n' }, m[1], on ? h('span', { className: 'kbth-mode-cur' }, '● ' + kt('actuel', 'current')) : null))
-            })),
-          h('div', { className: 'kbth-hint' }, kt('S’applique à toute l’interface DSH. « Système » suit le réglage de ton appareil.', 'Applies to the whole DSH interface. “System” follows your device setting.')),
-          conflictNote,
-          h('button', { className: 'kbth-btn', type: 'button', style: { width: 'max-content' },
-            onClick: () => commit(surprendre()) }, kt('Me surprendre', 'Surprise me')),
-          themeBlock)
-
-        // ── Simple : couleur ────────────────────────────────────────────────
         const accentHex = S.acc === null ? c.brand : S.acc
-        const couleur = h('div', { className: 'kbth-sec' },
-          h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, kt('Couleur', 'Color')),
-            h('div', { className: 'kbth-sec-d' }, kt('Teinte des boutons, interrupteurs et sélections.', 'Tint of buttons, switches and selections.'))),
-          h('div', { className: 'kbth-row' },
-            h('span', { className: 'kbth-lb' }, 'Accent'),
-            h('div', { className: 'kbth-acc' },
-              h('label', { className: 'kbth-sw', style: { background: accentHex }, title: kt('Pipette', 'Eyedropper') },
-                h('input', { type: 'color', value: accentHex, 'aria-label': kt('Choisir la couleur d’accent', 'Pick the accent color'),
-                  onInput: (e) => { setHexDraft(null); commit({ acc: e.target.value }) } })),
-              h('label', { className: 'kbth-hex' + (hexDraft !== null && !validHex(hexDraft) ? ' bad' : '') },
-                h('span', null, '#'),
-                h('input', { value: hexShown, maxLength: 7, spellCheck: false, 'aria-label': kt('Code hexadécimal', 'Hex code'),
-                  onInput: (e) => {
-                    const v = e.target.value
-                    setHexDraft(v)
-                    const p = HEX(v)
-                    if (p !== null) commit({ acc: toHex(p) })
-                  } })),
-              S.acc !== null ? h('button', { className: 'kbth-btn', type: 'button',
-                onClick: () => { setHexDraft(null); commit({ acc: null }) } }, kt('Rétablir', 'Reset')) : null)),
-          h('div', { className: 'kbth-dots' },
-            ACCS.map((a) => h('button', {
-              key: a, type: 'button', className: 'kbth-dot', style: { background: a },
-              'aria-pressed': S.acc !== null && S.acc.toLowerCase() === a.toLowerCase() ? 'true' : 'false',
-              title: a, 'aria-label': 'Accent ' + a,
-              onClick: () => { setHexDraft(null); commit({ acc: a }) } }))))
         // P2-8 (chasse Settings 27/09) : les ratios WCAG restent en vue
         // Advanced — in Simple, this contrast jargon has no business here.
         const ratiosAccent = h('div', { className: 'kbth-hint' },
@@ -4293,49 +5443,6 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
             title: kt('Texte sur un bouton d’accent', 'Text on an accent button')
           }, ratio(c.onAcc, c.fill).toFixed(2) + ':1'),
           kt(' pour le texte d’un bouton plein.', ' for the text of a filled button.'))
-        // ── Simple : fond ───────────────────────────────────────────────────
-        // The “None” tile opens the grid: without it, a background that was set could no longer be removed.
-        const fonds = [WPS[0]].concat(WPS.filter((w) => w.cat === wpCat))
-        const fond = h('div', { className: 'kbth-sec' },
-          h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, kt('Arrière-plan', 'Background')),
-            h('div', { className: 'kbth-sec-d' }, kt('Couleur, dégradé, motif ou image derrière l’interface.', 'Color, gradient, pattern or image behind the interface.'))),
-          h('div', { className: 'kbth-row' },
-            h('span', { className: 'kbth-lb' }, kt('Fond', 'Background')),
-            h('div', { className: 'kbth-wpcats' },
-              WPCATS.map((cat) => h('button', {
-                key: cat.id, type: 'button', className: 'kbth-cat',
-                'aria-pressed': wpCat === cat.id ? 'true' : 'false',
-                onClick: () => setWpCat(cat.id) }, cat.name)),
-              wpo.id !== 'none' && WPCATS.every((cat) => cat.id !== wpo.cat)
-                ? h('button', { type: 'button', className: 'kbth-cat', onClick: () => commit({ wp: 'none' }) }, kt('Retirer (« ' + wpo.name + ' »)', 'Remove (“' + wpo.name + '”)')) : null)),
-          h('div', { className: 'kbth-wps' },
-            fonds.map((w) => h('button', {
-              key: w.id, type: 'button', className: 'kbth-wp',
-              'aria-pressed': S.wp === w.id ? 'true' : 'false', title: w.name,
-              onClick: () => commit({ wp: w.id }) },
-              h('span', { className: 'kbth-wp-band', style: { background: w.css } }),
-              h('span', { className: 'kbth-wp-name', title: w.name }, w.name)))),
-          wpo.id !== 'none' ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
-            slider({ label: kt('Visibilité', 'Visibility'), min: 0, max: 100, value: S.wpVis, text: S.wpVis + ' %',
-              tap: (v) => commit({ wpVis: v }), hint: kt('Opacité du fond derrière l’interface.', 'Opacity of the background behind the interface.') }),
-            slider({ label: kt('Flou', 'Blur'), min: 0, max: 40, value: S.wpBlur, text: S.wpBlur + ' px',
-              tap: (v) => commit({ wpBlur: v }), hint: kt('Adoucit le fond pour laisser la place au contenu.', 'Softens the background to make room for the content.') }),
-            slider({ label: kt('Teinte des surfaces', 'Surface tint'), min: 0, max: 100, value: S.tint, text: S.tint + ' %',
-              tap: (v) => commit({ tint: v }), hint: kt('Tire les panneaux vers la dominante du fond, pour que l’interface s’y fonde.', 'Pulls the panels towards the dominant color of the background, so the interface blends into it.') })) : null)
-
-        // ── Simple : police ─────────────────────────────────────────────────
-        const police = h('div', { className: 'kbth-sec' },
-          h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, kt('Police', 'Font')),
-            h('div', { className: 'kbth-sec-d' }, kt('Choisis la police de l’interface ; la recherche filtre les familles.', 'Choose the interface font; search filters the families.'))),
-          selecteurPolice(S.fontText, (id) => commit({ fontText: id })),
-          slider({ label: kt('Taille du texte', 'Text size'), min: 12, max: 17, value: S.fs, text: S.fs + ' px',
-            tap: (v) => commit({ fs: v }), hint: kt('La taille de la conversation — le réglage natif de DSH, en direct.', 'The conversation size — DSH’s native setting, live.') }))
-
-        // ── Simple: menu icons ─────────────────────────────────────────
-        // One row of the nine entries per state (grey at rest, then the colour of the open page). The classic set is drawn by the
-        // application itself, which owns its line icons: it lends the drawing through window.__KB_MENU_CLASSIC__.
         const iconeApercu = (setId, etat) => h('div', { className: 'kbth-icset-r', style: setId === 'classic' && etat ? { color: 'var(--dsw-alias-brand-primary)' } : undefined },
           ICON_ENTRIES.map((e) => {
             let svg = null
@@ -4346,52 +5453,29 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
             } catch (err) { svg = null }
             return h('span', { key: e, className: 'kbth-icset-i', dangerouslySetInnerHTML: { __html: typeof svg === 'string' ? svg : '' } })
           }))
-        const icones = h('div', { className: 'kbth-sec', 'data-kb': 'theme-icons' },
-          h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, kt('Icônes du menu', 'Menu icons')),
-            h('div', { className: 'kbth-sec-d' }, kt('Le dessin des entrées de la barre latérale : gris au repos, en couleur sur la page ouverte. Un thème peut le retenir.', 'How the sidebar entries are drawn: grey at rest, in colour on the open page. A theme can keep it.'))),
-          h('div', { className: 'kbth-icsets', role: 'radiogroup', 'aria-label': kt('Icônes du menu', 'Menu icons') },
-            ICON_SETS.map((st) => h('button', {
-              key: st.id, type: 'button', role: 'radio', 'aria-checked': S.iconSet === st.id ? 'true' : 'false',
-              className: 'kbth-icset' + (S.iconSet === st.id ? ' on' : ''), 'data-kb': 'theme-icset', 'data-id': st.id,
-              title: st.hint[kbLang()], onClick: () => commit({ iconSet: st.id })
-            }, h('span', { className: 'kbth-icset-n' }, st[kbLang()]), iconeApercu(st.id, false), iconeApercu(st.id, true)))))
-
-        // The Essentiel tab only says which set is in use; the sets themselves live in their own tab, next to Animation.
-        const iconesNom = (ICON_SETS.find((x) => x.id === S.iconSet) || ICON_SETS[0])[kbLang()]
-        const iconesResume = h('div', { className: 'kbth-sum', 'data-kb': 'icons-summary' },
-          h('div', { className: 'kbth-sum-tx' },
-            h('span', { className: 'kbth-sec-t', style: { textTransform: 'none', fontSize: 13 } }, kt('Icônes du menu', 'Menu icons')),
-            h('span', { className: 'kbth-hint' }, kt(iconesNom + ' · ' + (ICON_SETS.length - 1) + ' jeux à choisir', iconesNom + ' · ' + (ICON_SETS.length - 1) + ' sets to choose from')),
-            iconeApercu(S.iconSet, false)),
-          h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'icons-open', onClick: () => setAdvTab('icones') }, kt('Régler…', 'Adjust…')))
-
-        // ── Advanced: sub-tabs ──────────────────────────────────────────
-        const ADV_TABS = [
-          { id: 'essentiel', label: kt('Essentiel', 'Essentials') },
-          { id: 'verre', label: kt('Verre et fond', 'Glass and background') },
-          { id: 'couleurs', label: kt('Couleurs', 'Colors') },
-          { id: 'texte', label: kt('Texte et forme', 'Text and shape') },
-          { id: 'animation', label: 'Animation' },
-          { id: 'icones', label: kt('Icônes', 'Icons') },
-          { id: 'accessibilite', label: kt('Accessibilité', 'Accessibility') },
-          { id: 'partage', label: kt('Partage', 'Sharing') },
-          { id: 'galerie', label: kt('Galerie', 'Gallery') }
-        ]
-
         // Reusable toggle switch
         const toggle = (label, value, onToggle, hint) => h('div', { className: 'kbth-toggle-row' },
           h('span', { className: 'kbth-toggle-label' }, label, hint ? h('span', { className: 'kbth-toggle-hint', title: hint }, ' ?') : null),
           h('button', { type: 'button', className: 'kbth-toggle' + (value ? ' on' : ''), role: 'switch', 'aria-checked': value ? 'true' : 'false', 'aria-label': label, onClick: onToggle },
             h('span', { className: 'kbth-toggle-knob' })))
 
-        // ── Essentials tab (= condensed Simple mode) ──────────────────────
-        const advEssentiel = h('div', { className: 'kbth-sec' },
-          h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, kt('Essentiel', 'Essentials')),
-            h('div', { className: 'kbth-sec-d' }, kt('Apparence, accent, fond, police et icônes du menu.', 'Appearance, accent, background, font and menu icons.'))),
-          apparence, couleur, ratiosAccent, fond, police, iconesResume,
-          h(LdSummary, { onOpen: () => setAdvTab('animation') }))
+
+        // ── The tabs of the advanced editor ─────────────────────────────────────────────────────────────────────────
+        const ADV_TABS = [
+          { id: 'couleurs', label: kt('Couleurs', 'Colors') },
+          { id: 'lettres', label: kt('Lettres', 'Letters') },
+          { id: 'formes', label: kt('Formes', 'Shapes') },
+          { id: 'fond', label: kt('Arrière-plan', 'Background') },
+          { id: 'effets', label: kt('Effets', 'Effects') },
+          { id: 'icones', label: kt('Icônes', 'Icons') },
+          { id: 'menu', label: 'Menu' },
+          { id: 'animation', label: 'Animation' },
+          { id: 'accessibilite', label: kt('Accessibilité', 'Accessibility') },
+          { id: 'partage', label: kt('Import / Export', 'Import / Export') },
+          { id: 'galerie', label: kt('Galerie', 'Gallery') }
+        ]
+        const sech = (t, d) => h('div', { className: 'kbth-sec-h' }, h('div', { className: 'kbth-sec-t' }, t), d === undefined ? null : h('div', { className: 'kbth-sec-d' }, d))
+        const rowOf = (label, ctl) => h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, label), ctl)
 
         // ── Onglet Verre et fond ───────────────────────────────────────────
         // The glass settings only have an effect on a background: without a chosen background we say so, and the preview shows
@@ -4407,42 +5491,6 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           h('div', { className: 'kbth-gpv-main' },
             h('div', { className: 'kbth-gpv-menu', style: { background: wpOn ? verreAlpha('l3', 1 - S.floatOpacity / 100) : c.l3, backdropFilter: wpOn ? flou : 'none', WebkitBackdropFilter: wpOn ? flou : 'none' } }, h('span', { className: 'kbth-gpv-line' }), h('span', { className: 'kbth-gpv-line short' })),
             h('div', { className: 'kbth-gpv-input', style: { background: wpOn ? verreAlpha('input', 1 - S.fieldOpacity / 100) : c.input, backdropFilter: wpOn ? flou : 'none', WebkitBackdropFilter: wpOn ? flou : 'none' } }, h('span', { className: 'kbth-gpv-line short' }))))
-        const advVerre = h('div', { className: 'kbth-sec' },
-          h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, kt('Verre', 'Glass')),
-            h('div', { className: 'kbth-sec-d' }, kt('Transparence et flou des surfaces posées sur le fond.', 'Transparency and blur of the surfaces placed over the background.'))),
-          verrePreview,
-          wpOn ? null : h('div', { className: 'kbth-note' }, kt('Ces réglages s’appliquent dès qu’un fond est choisi : Essentiel › Arrière-plan.', 'These settings apply as soon as a background is chosen: Essentials › Background.')),
-          h('div', { className: 'kbth-row' },
-            h('span', { className: 'kbth-lb' }, kt('Effet', 'Effect')),
-            seg({ items: [
-              { id: 'frosted', label: kt('Verre dépoli', 'Frosted glass'), on: S.glassEffect === 'frosted', tap: () => commit({ glassEffect: 'frosted' }) },
-              { id: 'liquid', label: 'Liquid glass', on: S.glassEffect === 'liquid', tap: () => commit({ glassEffect: 'liquid' }) }] })),
-          slider({ label: kt('Flou du verre', 'Glass blur'), min: 0, max: 40, value: S.glassBlur, text: S.glassBlur + ' px', tap: (v) => commit({ glassBlur: v }) }),
-          toggle(kt('Lier la barre latérale au fond', 'Link the sidebar to the background'), S.sidebarLinked, () => commit({ sidebarLinked: !S.sidebarLinked }), kt('Désactivé, la barre latérale reste pleine.', 'When off, the sidebar stays solid.')),
-          h('div', { style: S.sidebarLinked ? null : { opacity: 0.45, pointerEvents: 'none' } },
-            slider({ label: kt('Transparence de la barre latérale', 'Sidebar transparency'), min: 0, max: 100, value: S.sidebarOpacity, text: S.sidebarOpacity + ' %', tap: (v) => commit({ sidebarOpacity: v }) })),
-          slider({ label: kt('Transparence des champs', 'Field transparency'), min: 0, max: 100, value: S.fieldOpacity, text: S.fieldOpacity + ' %', tap: (v) => commit({ fieldOpacity: v }) }),
-          slider({ label: kt('Transparence des menus', 'Menu transparency'), min: 0, max: 100, value: S.floatOpacity, text: S.floatOpacity + ' %', tap: (v) => commit({ floatOpacity: v }) }),
-          h('div', { style: { height: 16 } }),
-          h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, kt('Image de fond', 'Background image')),
-            h('div', { className: 'kbth-sec-d' }, kt('Réglages fins du fond choisi.', 'Fine adjustments for the chosen background.'))),
-          slider({ label: kt('Visibilité du fond', 'Background visibility'), min: 0, max: 100, value: S.wpVis, text: S.wpVis + ' %', tap: (v) => commit({ wpVis: v }) }),
-          slider({ label: kt('Flou de l’image', 'Image blur'), min: 0, max: 40, value: S.wpBlur, text: S.wpBlur + ' px', tap: (v) => commit({ wpBlur: v }) }),
-          slider({ label: kt('Luminosité', 'Brightness'), min: 0, max: 200, value: S.bgBrightness, text: S.bgBrightness + ' %', tap: (v) => commit({ bgBrightness: v }) }),
-          slider({ label: kt('Contraste', 'Contrast'), min: 0, max: 200, value: S.bgContrast, text: S.bgContrast + ' %', tap: (v) => commit({ bgContrast: v }) }),
-          slider({ label: 'Saturation', min: 0, max: 200, value: S.bgSaturation, text: S.bgSaturation + ' %', tap: (v) => commit({ bgSaturation: v }) }),
-          slider({ label: kt('Assombrissement', 'Darkening'), min: 0, max: 100, value: S.bgDarken, text: S.bgDarken + ' %', tap: (v) => commit({ bgDarken: v }) }),
-          h('div', { className: 'kbth-row' },
-            h('span', { className: 'kbth-lb' }, kt('Ajustement', 'Fit')),
-            seg({ items: [
-              { id: 'cover', label: kt('Couvrir', 'Cover'), on: S.bgFit === 'cover', tap: () => commit({ bgFit: 'cover' }) },
-              { id: 'fill', label: kt('Remplir', 'Fill'), on: S.bgFit === 'fill', tap: () => commit({ bgFit: 'fill' }) },
-              { id: 'center', label: kt('Centrer', 'Center'), on: S.bgFit === 'center', tap: () => commit({ bgFit: 'center' }) },
-              { id: 'stretch', label: kt('Étirer', 'Stretch'), on: S.bgFit === 'stretch', tap: () => commit({ bgFit: 'stretch' }) }] })),
-          toggle(kt('Miroir horizontal', 'Horizontal mirror'), S.bgMirror, () => commit({ bgMirror: !S.bgMirror })))
-
         // ── Onglet Couleurs ────────────────────────────────────────────────
         const sel = TOKINDEX[tokSel] || TOKMAP[0]
         const selClair = cl[sel[0]], selSombre = cd[sel[0]]
@@ -4463,7 +5511,8 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           h('div', { className: 'kbth-row' },
             h('span', { className: 'kbth-lb' }, 'Accent'),
             h('div', { className: 'kbth-acc' },
-              h('label', { className: 'kbth-sw', style: { background: accentHex }, title: kt('Pipette', 'Eyedropper') },
+              // role: the phone's settings rule grows the first child of a two-child row (« a label and its control »); a role keeps this round swatch out of it (it was stretched into an ellipse)
+              h('label', { className: 'kbth-sw', role: 'presentation', style: { background: accentHex }, title: kt('Pipette', 'Eyedropper') },
                 h('input', { type: 'color', value: accentHex, 'aria-label': kt('Choisir la couleur d’accent', 'Pick the accent color'),
                   onInput: (e) => { setHexDraft(null); commit({ acc: e.target.value }) } })),
               h('div', { className: 'kbth-dots' },
@@ -4479,7 +5528,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
                 h('span', null, '#'),
                 h('input', { value: hexShown, maxLength: 7, spellCheck: false, 'aria-label': kt('Code hexadécimal', 'Hex code'),
                   onInput: (e) => { const v = e.target.value; setHexDraft(v); const p = HEX(v); if (p !== null) commit({ acc: toHex(p) }) } })),
-              S.acc !== null ? h('button', { className: 'kbth-btn', type: 'button', onClick: () => { setHexDraft(null); commit({ acc: null }) } }, kt('Neutre DSH', 'Neutral DSH')) : null)),
+              S.acc !== null ? h('button', { className: 'kbth-btn', type: 'button', onClick: () => { setHexDraft(null); commit({ acc: null }) } }, kt('Neutre Kybernos', 'Neutral Kybernos')) : null)),
           // Rampe de couleurs
           h('div', { className: 'kbth-ramp' },
             [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950].map((step) => {
@@ -4537,28 +5586,80 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
             modifie ? h('button', { className: 'kbth-btn', type: 'button', style: { width: 'max-content' },
               onClick: () => { const ov = { ...S.ov }; delete ov['light:' + sel[0]]; delete ov['dark:' + sel[0]]; commit({ ov }) } }, kt('Rétablir', 'Reset')) : null))
 
-        // ── Onglet Texte et forme ──────────────────────────────────────────
-        const advTexte = h('div', { className: 'kbth-sec' },
-          h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, kt('Texte', 'Text')),
-            h('div', { className: 'kbth-sec-d' }, kt('La police se choisit dans Essentiel.', 'The font is chosen in Essentials.'))),
-          slider({ label: kt('Taille du texte', 'Text size'), min: 12, max: 17, value: S.fs, text: S.fs + ' px', tap: (v) => commit({ fs: v }) }),
-          toggle('Ligatures', S.ligatures, () => commit({ ligatures: !S.ligatures }), kt('Fusionne « fi », « -> » et autres paires dans les polices qui en ont.', 'Joins “fi”, “->” and other pairs in fonts that have them.')),
-          h('div', { style: { height: 16 } }),
-          h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, kt('Forme', 'Shape')),
-            h('div', { className: 'kbth-sec-d' }, kt('Arrondi des boutons, cartes et panneaux.', 'Rounding of buttons, cards and panels.'))),
-          h('div', { className: 'kbth-row' },
-            h('span', { className: 'kbth-lb' }, kt('Rayons', 'Radii')),
-            seg({ items: [
-              { id: 'sharp', label: kt('Net', 'Sharp'), on: S.radius === 'sharp', tap: () => commit({ radius: 'sharp' }) },
-              { id: 'standard', label: 'Standard', on: S.radius === 'standard', tap: () => commit({ radius: 'standard' }) },
-              { id: 'soft', label: kt('Doux', 'Soft'), on: S.radius === 'soft', tap: () => commit({ radius: 'soft' }) }] })),
-          h('div', { style: { height: 16 } }),
-          h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, kt('Identité', 'Identity')),
-            h('div', { className: 'kbth-sec-d' }, kt('Ce qui rappelle le harness.', 'What reminds you of the harness.'))),
+
+        // Colors: the mode, then the accent and the colour tokens.
+        const advCol = h('div', { className: 'kbth-sec', 'data-kb': 'theme-tab-couleurs' },
+          sech(kt('Mode', 'Mode'), kt('S’applique à toute l’interface Kybernos. « Système » suit le réglage de ton appareil.', 'Applies to the whole Kybernos interface. “System” follows your device setting.')),
+          seg({ label: kt('Mode', 'Mode'), kb: 'theme-mode', items: modes.map((m) => ({ id: m[0], label: m[1], on: S.mode === m[0], tap: () => commit({ mode: m[0] }) })) }),
+          advCouleurs, ratiosAccent)
+
+        // Letters: one font select, the size, the ligatures.
+        const advLettres = h('div', { className: 'kbth-sec', 'data-kb': 'theme-tab-lettres' },
+          sech(kt('Police', 'Font'), kt('Choisis la police de l’interface : chaque nom est écrit dans sa propre police.', 'Choose the interface font: each name is written in its own typeface.')),
+          rowOf(kt('Police', 'Font'), h(KbSelect, { id: 'adv-font', kb: 'theme-adv-font', label: kt('Police', 'Font'), value: S.fontText, options: fontOptions(), onPick: (id) => commit({ fontText: id }), onPreview: pvOf('fontText') })),
+          h('div', { className: 'kbth-hint' }, kt('Une police ne s’affiche que si elle est installée sur ton ordinateur.', 'A font only shows if it is installed on your computer.')),
+          slider({ label: kt('Taille du texte', 'Text size'), min: 12, max: 17, value: S.fs, text: S.fs + ' px', tap: (v) => commit({ fs: v }), hint: kt('La taille de la conversation : le réglage natif de Kybernos, en direct.', 'The conversation size: Kybernos’s native setting, live.') }),
+          toggle('Ligatures', S.ligatures, () => commit({ ligatures: !S.ligatures }), kt('Fusionne « fi », « -> » et autres paires dans les polices qui en ont.', 'Joins “fi”, “->” and other pairs in fonts that have them.')))
+
+        // Shapes: corners, shadows, glow, the logo, the frames of the messages.
+        const bubbleLabels = { auto: kt('Auto (Kybernos)', 'Auto (Kybernos)'), accent: 'Accent', soft: kt('Doux', 'Soft'), dark: kt('Sombre', 'Dark') }
+        const replyLabels = { none: kt('Aucun (Kybernos)', 'None (Kybernos)'), card: kt('Carte', 'Card'), outline: kt('Contour', 'Outline'), tint: kt('Teinte', 'Tinted') }
+        const advFormes = h('div', { className: 'kbth-sec', 'data-kb': 'theme-tab-formes' },
+          sech(kt('Formes', 'Shapes'), kt('Arrondi des boutons, cartes et panneaux, ombres et cadres des messages.', 'Rounding of buttons, cards and panels, shadows and the frames of the messages.')),
+          rowOf(kt('Coins', 'Corners'), seg({ label: kt('Coins', 'Corners'), kb: 'theme-adv-radius', pv: pvSeg('radius'), items: [['sharp', kt('Nets', 'Sharp')], ['standard', 'Standard'], ['soft', kt('Doux', 'Soft')]].map((z) => ({ id: z[0], label: z[1], on: S.radius === z[0], tap: () => commit({ radius: z[0] }) })) })),
+          rowOf(kt('Ombres', 'Shadows'), seg({ label: kt('Ombres', 'Shadows'), kb: 'theme-adv-shadow', pv: pvSeg('shadow'), items: [['none', kt('Aucune', 'None')], ['soft', kt('Douces', 'Soft')]].map((z) => ({ id: z[0], label: z[1], on: S.shadow === z[0], tap: () => commit({ shadow: z[0] }) })) })),
+          toggle(kt('Halo', 'Glow'), S.glow, () => commit({ glow: !S.glow }), kt('Une lueur de ta couleur autour de la zone de message.', 'A soft light of your color around the message box.')),
+          rowOf(kt('Tes messages', 'Your messages'), seg({ label: kt('Couleur de la bulle', 'Bubble color'), kb: 'theme-adv-bubble', pv: pvSeg('bubbleUser'), items: BUBBLE_CHOICES.map((b) => ({ id: b, label: bubbleLabels[b], on: S.bubbleUser === b, tap: () => commit({ bubbleUser: b }) })) })),
+          rowOf(kt('Réponses de l’agent', 'Agent replies'), seg({ label: kt('Fond de la réponse', 'Reply background'), kb: 'theme-adv-reply', pv: pvSeg('replyBg'), items: ENUMS.replyBg.map((b) => ({ id: b, label: replyLabels[b], on: S.replyBg === b, tap: () => commit({ replyBg: b }) })) })),
           toggle(kt('Logo et nom', 'Logo and name'), S.showBrand, () => commit({ showBrand: !S.showBrand }), kt('Dans la barre latérale et sur l’écran d’accueil.', 'In the sidebar and on the home screen.')))
+
+        // Background: one select of wallpapers, then the fine settings.
+        const advFond = h('div', { className: 'kbth-sec', 'data-kb': 'theme-tab-fond' },
+          sech(kt('Arrière-plan', 'Background'), kt('Couleur, dégradé, motif ou image derrière l’interface.', 'Color, gradient, pattern or image behind the interface.')),
+          rowOf(kt('Fond', 'Background'), h(KbSelect, { id: 'adv-wall', kb: 'theme-adv-wall', label: kt('Arrière-plan', 'Wallpaper'), value: S.wp, options: wallOptions(), onPick: (id) => commit({ wp: id }), onPreview: pvOf('wp') })),
+          wpOn ? null : h('div', { className: 'kbth-note' }, kt('Choisis un arrière-plan : les réglages ci-dessous s’appliquent dès qu’il y en a un.', 'Pick a wallpaper: the settings below apply as soon as there is one.')),
+          slider({ label: kt('Visibilité du fond', 'Background visibility'), min: 0, max: 100, value: S.wpVis, text: S.wpVis + ' %', tap: (v) => commit({ wpVis: v }), hint: kt('Opacité du fond derrière l’interface.', 'Opacity of the background behind the interface.') }),
+          slider({ label: kt('Flou de l’image', 'Image blur'), min: 0, max: 40, value: S.wpBlur, text: S.wpBlur + ' px', tap: (v) => commit({ wpBlur: v }) }),
+          slider({ label: kt('Teinte des surfaces', 'Surface tint'), min: 0, max: 100, value: S.tint, text: S.tint + ' %', tap: (v) => commit({ tint: v }), hint: kt('Tire les panneaux vers la dominante du fond, pour que l’interface s’y fonde.', 'Pulls the panels towards the dominant color of the background, so the interface blends into it.') }),
+          slider({ label: kt('Luminosité', 'Brightness'), min: 0, max: 200, value: S.bgBrightness, text: S.bgBrightness + ' %', tap: (v) => commit({ bgBrightness: v }) }),
+          slider({ label: kt('Contraste', 'Contrast'), min: 0, max: 200, value: S.bgContrast, text: S.bgContrast + ' %', tap: (v) => commit({ bgContrast: v }) }),
+          slider({ label: 'Saturation', min: 0, max: 200, value: S.bgSaturation, text: S.bgSaturation + ' %', tap: (v) => commit({ bgSaturation: v }) }),
+          slider({ label: kt('Assombrissement', 'Darkening'), min: 0, max: 100, value: S.bgDarken, text: S.bgDarken + ' %', tap: (v) => commit({ bgDarken: v }) }),
+          rowOf(kt('Ajustement', 'Fit'), seg({ label: kt('Ajustement', 'Fit'), kb: 'theme-adv-fit', pv: pvSeg('bgFit'), items: [['cover', kt('Couvrir', 'Cover')], ['fill', kt('Remplir', 'Fill')], ['center', kt('Centrer', 'Center')], ['stretch', kt('Étirer', 'Stretch')]].map((f) => ({ id: f[0], label: f[1], on: S.bgFit === f[0], tap: () => commit({ bgFit: f[0] }) })) })),
+          toggle(kt('Miroir horizontal', 'Horizontal mirror'), S.bgMirror, () => commit({ bgMirror: !S.bgMirror })))
+
+        // Effects: glass, the sidebar, the pills under the message box.
+        const advEffets = h('div', { className: 'kbth-sec', 'data-kb': 'theme-tab-effets' },
+          sech(kt('Verre', 'Glass'), kt('Transparence et flou des surfaces posées sur le fond.', 'Transparency and blur of the surfaces placed over the background.')),
+          verrePreview,
+          wpOn ? null : h('div', { className: 'kbth-note' }, kt('Ces réglages s’appliquent dès qu’un fond est choisi : onglet Arrière-plan.', 'These settings apply as soon as a background is chosen: Background tab.')),
+          rowOf(kt('Effet', 'Effect'), seg({ label: kt('Effet de verre', 'Glass effect'), kb: 'theme-adv-glass', pv: pvSeg('glassEffect'), items: [['frosted', kt('Verre dépoli', 'Frosted glass')], ['liquid', 'Liquid glass']].map((z) => ({ id: z[0], label: z[1], on: S.glassEffect === z[0], tap: () => commit({ glassEffect: z[0] }) })) })),
+          slider({ label: kt('Flou du verre', 'Glass blur'), min: 0, max: 40, value: S.glassBlur, text: S.glassBlur + ' px', tap: (v) => commit({ glassBlur: v }) }),
+          toggle(kt('Lier la barre latérale au fond', 'Link the sidebar to the background'), S.sidebarLinked, () => commit({ sidebarLinked: !S.sidebarLinked }), kt('Désactivé, la barre latérale reste pleine.', 'When off, the sidebar stays solid.')),
+          h('div', { style: S.sidebarLinked ? null : { opacity: 0.45, pointerEvents: 'none' } },
+            slider({ label: kt('Transparence de la barre latérale', 'Sidebar transparency'), min: 0, max: 100, value: S.sidebarOpacity, text: S.sidebarOpacity + ' %', tap: (v) => commit({ sidebarOpacity: v }) })),
+          slider({ label: kt('Transparence des champs', 'Field transparency'), min: 0, max: 100, value: S.fieldOpacity, text: S.fieldOpacity + ' %', tap: (v) => commit({ fieldOpacity: v }) }),
+          slider({ label: kt('Transparence des menus', 'Menu transparency'), min: 0, max: 100, value: S.floatOpacity, text: S.floatOpacity + ' %', tap: (v) => commit({ floatOpacity: v }) }),
+          rowOf(kt('Ton de la barre latérale', 'Sidebar tone'), seg({ label: kt('Ton de la barre latérale', 'Sidebar tone'), kb: 'theme-adv-sidetone', pv: pvSeg('sideTone'), items: ENUMS.sideTone.map((t) => ({ id: t, label: { auto: kt('Auto', 'Auto'), darker: kt('Plus sombre', 'Darker'), lighter: kt('Plus clair', 'Lighter'), tinted: kt('Teintée', 'Tinted') }[t], on: S.sideTone === t, tap: () => commit({ sideTone: t }) })) })),
+          toggle(kt('Barres au survol', 'Bars on hover'), S.autoHideBars, () => commit({ autoHideBars: !S.autoHideBars }), kt('Le rail replié et la barre du haut du chat se cachent, et reviennent quand tu approches le bord de la fenêtre.', 'The collapsed rail and the chat’s top bar hide, and come back when you reach for the edge of the window.')),
+          sech(kt('Sous la zone de message', 'Under the message box'), kt('Ces pastilles sont dessinées par d’autres modules : ici tu les montres ou les caches.', 'Other modules draw these pills: here you show or hide them.')),
+          toggle(kt('Pastilles d’état', 'Status pills'), S.wgSessions, () => commit({ wgSessions: !S.wgSessions }), kt('Enregistré, synchro, revue, mémoire, leçons.', 'Saved, sync, review, memory, lessons.')),
+          toggle(kt('Changements', 'Changes'), S.wgChanges, () => commit({ wgChanges: !S.wgChanges }), kt('Où en est le travail de cette conversation.', 'Where the work of this chat stands.')),
+          toggle(kt('Usage', 'Usage'), S.wgUsage, () => commit({ wgUsage: !S.wgUsage }), kt('Quelle part de ton forfait est utilisée, ou ce que coûte la session.', 'How much of your plan is used, or what the session costs.')),
+          sech(kt('Notifications', 'Notifications'), kt('Les bannières du système et la fenêtre flottante ne changent pas : elles se règlent dans Réglages › Widget.', 'System banners and the floating window do not change: they are set in Settings › Widget.')),
+          toggle(kt('Compteurs de notifications', 'Notification counters'), S.notifCounters === 'shown', () => commit({ notifCounters: S.notifCounters === 'shown' ? 'hidden' : 'shown' }), kt('Le nombre entre parenthèses dans le titre de l’onglet, et le badge sur l’icône de l’appli (Dock).', 'The number in brackets in the tab title, and the badge on the app icon (Dock).')))
+
+        // Icons: one select; the nine entries drawn at rest and in colour.
+        const advIcones = h('div', { className: 'kbth-sec', 'data-kb': 'theme-icons' },
+          sech(kt('Icônes du menu', 'Menu icons'), kt('Le dessin des entrées de la barre latérale : gris au repos, en couleur sur la page ouverte. Un préréglage peut le retenir.', 'How the sidebar entries are drawn: grey at rest, in colour on the open page. A preset can keep it.')),
+          rowOf(kt('Jeu d’icônes', 'Icon set'), h(KbSelect, { id: 'adv-icons', kb: 'theme-adv-iconset', label: kt('Jeu d’icônes', 'Icon set'), value: S.iconSet, options: iconSetOptions(), onPick: (id) => commit({ iconSet: id }), onPreview: pvOf('iconSet') })),
+          h('div', { className: 'kbth-icsets-pv', 'data-kb': 'theme-icons-preview' }, iconeApercu(S.iconSet, false), iconeApercu(S.iconSet, true)),
+          h('div', { className: 'kbth-hint' }, ICON_SETS.length + kt(' jeux, dessinés par le code du plugin. Les entrées elles-mêmes (ordre, noms, afficher ou cacher) sont dans l’onglet Menu.', ' sets, drawn by the plugin’s own code. The entries themselves (order, names, show or hide) are in the Menu tab.')))
+
+        // Menu: the rows of the menu, with the same editor as the panel in the window.
+        const advMenu = h('div', { className: 'kbth-sec', 'data-kb': 'theme-tab-menu' },
+          sech('Menu', kt('Les entrées de la barre latérale : lesquelles, dans quel ordre, sous quel nom. Les Espaces de travail, les Réglages et le compte restent toujours affichés.', 'The entries of the sidebar: which ones, in which order, under which name. Workspaces, Settings and the account always stay shown.')),
+          h(MenuZones, { rows: rowsNow, doc: lib.menu, edit: editMenu, editSurface, showAll: menuShowEvery, setUnlisted, compact: false, icon: (e) => stIcon(S.iconSet, e, false, 16) }))
 
         // ── Accessibility tab ───────────────────────────────────────────
         const advAccessibilite = h('div', { className: 'kbth-sec' },
@@ -4601,120 +5702,79 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
             h('div', { className: 'kbth-sec-t' }, kt('Lisibilité', 'Legibility')),
             h('div', { className: 'kbth-sec-d' }, kt('Repères supplémentaires.', 'Extra aids.'))),
           toggle(kt('Cibles de 44 px', '44 px targets'), S.largeTargets, () => commit({ largeTargets: !S.largeTargets }), kt('Boutons et champs d’au moins 44 px de haut.', 'Buttons and fields at least 44 px tall.')),
+          toggle(kt('Confort au doigt', 'Touch comfort'), S.touch, () => commit({ touch: !S.touch }), kt('Sur un petit écran (480 px ou moins) : lignes et icônes plus grandes, menus sur toute la largeur, onglets en liste. Le Simple du téléphone l’a toujours.', 'On a small screen (480 px or less): bigger rows and icons, full-width menus, tabs as a list. The phone’s Simple always has it.')),
           toggle(kt('Soulignement des liens', 'Link underlining'), S.underlineLinks, () => commit({ underlineLinks: !S.underlineLinks })),
-          toggle(kt('Palette daltonisme', 'Color-blind palette'), S.cbSafe, () => commit({ cbSafe: !S.cbSafe }), kt('Succès en bleu, alertes en vert bleuté et erreurs en orange plutôt qu’en vert, ambre et rouge.', 'Success in blue, warnings in bluish green and errors in orange rather than green, amber and red.')))
+          toggle(kt('Palette daltonisme', 'Color-blind palette'), S.cbSafe, () => commit({ cbSafe: !S.cbSafe }), kt('Succès en bleu, alertes en vert bleuté et erreurs en orange plutôt qu’en vert, ambre et rouge.', 'Success in blue, warnings in bluish green and errors in orange rather than green, amber and red.')),
+          h('div', { style: { height: 16 } }),
+          h('div', { className: 'kbth-sec-h' },
+            h('div', { className: 'kbth-sec-t' }, kt('Pages sur petit écran', 'Pages on a small screen')),
+            h('div', { className: 'kbth-sec-d' }, kt('Sous 600 px : comment les pages de Réglages sont disposées. Le contenu ne change pas. Le Simple du téléphone choisit tout ce qui est à droite.', 'Under 600 px: how the Settings pages are laid out. The content does not change. The phone’s Simple picks everything on the right.'))),
+          ...[['tabsNav', kt('Onglets de Kaby', 'Kaby tabs'), [['tabs', kt('Barre', 'Bar')], ['list', kt('Menu', 'Menu')]]],
+            ['rowsLayout', kt('Rangées de réglage', 'Setting rows'), [['stacked', kt('Dessous', 'Under')], ['inline', kt('En ligne', 'Inline')]]],
+            ['rowsDescription', kt('Descriptions', 'Descriptions'), [['below', kt('Dessous', 'Below')], ['info', '« i »']]],
+            ['helpButton', kt('Bouton « ? »', 'The “?” button'), [['boxed', kt('Carré', 'Square')], ['bare', kt('Seul', 'Bare')], ['named', kt('Nommé', 'Named')]]],
+            ['cardsFrame', kt('Cartes', 'Cards'), [['boxed', kt('Cadre', 'Frame')], ['flat', kt('À plat', 'Flat')]]],
+            ['chipsStyle', kt('Pastilles', 'Chips'), [['pill', kt('Contour', 'Outlined')], ['plain', kt('Texte', 'Text')]]],
+            ['groupTitles', kt('Titres de groupes', 'Group titles'), [['shown', kt('Visibles', 'Shown')], ['hidden', kt('Cachés', 'Hidden')]]]].map((k) => h('div', { className: 'kbth-row', key: 'pres-' + k[0] },
+            h('span', { className: 'kbth-lb' }, k[1]),
+            seg({ label: k[1], kb: 'theme-pres-' + k[0], items: k[2].map((o) => ({ id: o[0], label: o[1], on: S[k[0]] === o[0], tap: () => commit({ [k[0]]: o[0] }) })) }))),
+          h('div', { style: { height: 16 } }),
+          h('div', { className: 'kbth-sec-h' },
+            h('div', { className: 'kbth-sec-t' }, kt('Menu et chat sur petit écran', 'Menu and chat on a small screen')),
+            h('div', { className: 'kbth-sec-d' }, kt('Sous 600 px : la taille du menu et de la zone de saisie, le chat vide, la note d’une réponse et la taille du texte des messages (en px). Le contenu ne change pas. Le Simple du téléphone choisit tout ce qui est à droite.', 'Under 600 px: the size of the menu and the message box, the empty chat, how an answer is rated and the size of the message text (in px). The content does not change. The phone’s Simple picks everything on the right.'))),
+          ...[['drawerSize', kt('Menu', 'Menu'), [['standard', kt('Normal', 'Usual')], ['large', kt('Grand', 'Large')]]],
+            ['drawerPanels', kt('Autres lignes du menu', 'Other menu rows'), [['shown', kt('Visibles', 'Shown')], ['hidden', kt('Cachées', 'Hidden')]]],
+            ['composerSize', kt('Zone de saisie', 'Message box'), [['standard', kt('Normale', 'Usual')], ['large', kt('Grande', 'Large')]]],
+            ['newChatCards', kt('Cartes du chat vide', 'Empty chat cards'), [['slider', kt('Slider', 'Slider')], ['grid', kt('Grille', 'Grid')], ['hidden', kt('Cachées', 'Hidden')]]],
+            ['rating', kt('Note d’une réponse', 'Rating an answer'), [['stars', kt('Étoiles', 'Stars')], ['thumbs', kt('Pouces', 'Thumbs')]]],
+            ['messageSize', kt('Texte des messages', 'Message text'), [['compact', '15'], ['standard', '17'], ['large', '19'], ['xlarge', '21']]]].map((k) => h('div', { className: 'kbth-row', key: 'pres-' + k[0] },
+            h('span', { className: 'kbth-lb' }, k[1]),
+            seg({ label: k[1], kb: 'theme-pres-' + k[0], items: k[2].map((o) => ({ id: o[0], label: o[1], on: S[k[0]] === o[0], tap: () => commit({ [k[0]]: o[0] }) })) }))))
 
-        // ── Sharing tab: your themes, import, and the file of the current look ───────────
+
+        // Import / Export: a preset file in, the current appearance out, and the resets.
         const importThemeFile = (file) => {
-          if (file.size > PRESET_FILE_MAX) { setLibNote({ ok: false, text: kt('Fichier trop gros : un thème fait quelques Ko. Rien n’a été modifié.', 'File too big: a theme is a few KB. Nothing was changed.') }); return }
+          if (file.size > PRESET_FILE_MAX) { say({ ok: false, text: kt('Fichier trop gros : un préréglage fait quelques Ko. Rien n’a été modifié.', 'File too big: a preset is a few KB. Nothing was changed.') }); return }
           const reader = new FileReader()
           reader.onload = () => {
             const r = presetFromFileText(String(reader.result))
-            if (r.ok !== true) { setLibNote({ ok: false, text: kt('Fichier non reconnu : seul un fichier de thème Kybernos (.json) est accepté. Rien n’a été modifié.', 'File not recognized: only a Kybernos theme file (.json) is accepted. Nothing was changed.') }); return }
-            const rec = libAdd(r.name, 'file', r.settings, r.author !== undefined ? { author: r.author } : undefined)
-            setLibNote(rec === null
-              ? { ok: false, text: kt('La bibliothèque est pleine (' + PRESET_LIMIT + ' thèmes). Supprime-en un d’abord.', 'The library is full (' + PRESET_LIMIT + ' themes). Delete one first.') }
-              : { ok: true, text: kt('« ' + rec.name + ' » est dans Mes thèmes', '“' + rec.name + '” is in My themes') + (r.legacy ? kt(' (ancien fichier : tout le réglage est repris)', ' (old file: the whole look is taken)') : '') + kt('. Il n’est pas appliqué.', '. It is not applied.') })
+            if (r.ok !== true) { say({ ok: false, text: kt('Fichier non reconnu : seul un fichier de préréglage Kybernos (.json) est accepté. Rien n’a été modifié.', 'File not recognized: only a Kybernos preset file (.json) is accepted. Nothing was changed.') }); return }
+            const rec = libAdd(r.name, 'file', r.settings, { author: r.author, menu: r.menu })
+            if (rec === null) { say({ ok: false, text: kt('La bibliothèque est pleine (' + PRESET_LIMIT + ' préréglages). Supprime-en un d’abord.', 'The library is full (' + PRESET_LIMIT + ' presets). Delete one first.') }); return }
+            say({ ok: true, text: kt('« ' + rec.name + ' » est dans Les miens. Rien n’est appliqué : choisis ce que tu veux en reprendre.', '“' + rec.name + '” is in Mine. Nothing is applied yet: choose what you want from it.') + (r.droppedA11y ? kt(' Ses réglages d’accessibilité ont été laissés de côté.', ' Its accessibility settings were left out.') : '') })
+            openSheet(presetRecItem(rec), { tA: rec.settings !== undefined, tM: false, tAcc: false })
           }
           reader.readAsText(file)
         }
-        const libRow = (rec) => {
-          const cur = S.skin === rec.id
-          const renaming = renameId === rec.id
-          const deleting = delId === rec.id
-          const showing = expId === rec.id
-          const sk = presetAsSkin(rec)
-          const doRename = () => {
-            const name = presetName(renameDraft)
-            if (name === '') { setLibNote({ ok: false, text: kt('Donne un nom au thème.', 'Give the theme a name.') }); return }
-            if (libNameTaken(name, rec.id)) { setLibNote({ ok: false, text: kt('Ce nom existe déjà. Choisis-en un autre.', 'That name already exists. Pick another one.') }); return }
-            libPatch(rec.id, { name }); setRenameId(null); setLibNote(null)
-          }
-          const acts = renaming
-            ? [h('button', { key: 'ok', type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-rename-ok', onClick: doRename }, 'OK'),
-              h('button', { key: 'no', type: 'button', className: 'kbth-btn', onClick: () => setRenameId(null) }, kt('Annuler', 'Cancel'))]
-            : (deleting
-              ? [h('span', { key: 'q', className: 'kbth-hint' }, kt('Supprimer « ' + rec.name + ' » ?', 'Delete “' + rec.name + '”?')),
-                h('button', { key: 'y', type: 'button', className: 'kbth-btn kbth-danger kbth-gr-err', 'data-kb': 'theme-delete-yes', onClick: () => { libRemove(rec.id); setDelId(null); setLibNote({ ok: true, text: kt('« ' + rec.name + ' » supprimé.', '“' + rec.name + '” deleted.') }) } }, kt('Supprimer', 'Delete')),
-                h('button', { key: 'n', type: 'button', className: 'kbth-btn', onClick: () => setDelId(null) }, kt('Garder', 'Keep'))]
-              : [cur ? null : h('button', { key: 'a', type: 'button', className: 'kbth-btn', 'data-kb': 'theme-apply', onClick: () => { setLibNote(null); applyMine(rec) } }, kt('Appliquer', 'Apply')),
-                h('button', { key: 'e', type: 'button', className: 'kbth-btn', 'data-kb': 'theme-export-one', 'aria-expanded': showing ? 'true' : 'false', onClick: () => setExpId(showing ? null : rec.id) }, kt('Exporter', 'Export')),
-                h('button', { key: 'r', type: 'button', className: 'kbth-btn', 'data-kb': 'theme-rename', onClick: () => { setRenameId(rec.id); setRenameDraft(rec.name); setDelId(null) } }, kt('Renommer', 'Rename')),
-                h('button', { key: 'd', type: 'button', className: 'kbth-btn kbth-danger kbth-gr-err', 'data-kb': 'theme-delete', onClick: () => { setDelId(rec.id); setRenameId(null) } }, kt('Supprimer', 'Delete'))])
-          const file = presetFile(rec)
-          return h(React.Fragment, { key: rec.id },
-            h('div', { className: 'kbth-trow', 'data-kb': 'theme-row', 'data-id': rec.id },
-              h('span', { className: 'kbth-skin-dot', style: { background: skinDot(sk) } }),
-              h('div', { className: 'kbth-trow-tx' },
-                h('div', { className: 'kbth-trow-n' },
-                  renaming
-                    ? h('input', { className: 'kbth-in', style: { width: 190 }, value: renameDraft, maxLength: PRESET_NAME_MAX, 'aria-label': kt('Nouveau nom', 'New name'), 'data-kb': 'theme-rename-in',
-                      onInput: (e) => setRenameDraft(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); doRename() } else if (e.key === 'Escape') { e.stopPropagation(); setRenameId(null) } } })
-                    : [h('span', { key: 'n' }, rec.name),
-                      cur ? h('span', { key: 'c', className: 'kbth-tone kbth-tone-on kbth-gr-ok' }, kt('appliqué', 'applied')) : null,
-                      h('span', { key: 's', className: 'kbth-pill' }, rec.source === 'gallery' ? kt('Galerie', 'Gallery') + (rec.author !== undefined ? ' · ' + rec.author : '') : (rec.source === 'file' ? kt('importé', 'imported') : kt('à toi', 'yours')))]),
-                h('div', { className: 'kbth-trow-m' }, skinMeta(sk) + kt(' · retient : ', ' · keeps: ') + Object.keys(PRESET_GROUPS).filter((g) => groupsOf(rec.settings)[g]).map((g) => groupLabel(g).toLowerCase()).join(', '))),
-              h('div', { className: 'kbth-trow-a' }, acts)),
-            showing ? h('div', { className: 'kbth-exp' },
-              h('div', { className: 'kbth-row', style: { justifyContent: 'space-between' } },
-                h('span', { className: 'kbth-hint' }, kt('theme-' + fileSlug(rec.name) + '.json · à partager ou à versionner', 'theme-' + fileSlug(rec.name) + '.json · to share or to version')),
-                h('div', { className: 'kbth-row', style: { gap: 6 } },
-                  h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-copy-one', onClick: () => { try { navigator.clipboard.writeText(file) } catch (e) { /* clipboard unavailable */ } } }, kt('Copier', 'Copy')),
-                  h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-download-one', onClick: () => { if (!downloadText('theme-' + fileSlug(rec.name) + '.json', file)) setLibNote({ ok: false, text: kt('Le téléchargement a échoué : utilise Copier.', 'The download failed: use Copy.') }) } }, kt('Télécharger', 'Download')))),
-              h('pre', { className: 'kbth-export-code', 'data-kb': 'theme-file' }, file)) : null)
-        }
-
         const exportFormats = [['yaml', 'YAML'], ['json', 'JSON'], ['css', 'CSS']]
         const exportBody = exportTexte(exportFmt, S)
-        const advPartage = h('div', { className: 'kbth-sec', style: { gap: 22 } },
+        const advPartage = h('div', { className: 'kbth-sec', style: { gap: 22 }, 'data-kb': 'theme-tab-partage' },
           h('div', { className: 'kbth-sec' },
-            h('div', { className: 'kbth-sec-h' },
-              h('div', { className: 'kbth-sec-t' }, kt('Mes thèmes', 'My themes')),
-              h('div', { className: 'kbth-sec-d' }, kt('Les thèmes que tu as enregistrés ou importés.', 'The themes you saved or imported.'))),
+            sech(kt('Importer', 'Import'), kt('Un fichier de préréglage (.json) s’ajoute à Les miens. Il ne change rien tant que tu n’as pas coché ce que tu en reprends. Il ne change jamais tes réglages d’accessibilité.', 'A preset file (.json) is added to Mine. It changes nothing until you tick what you take from it. It never changes your accessibility settings.')),
             libNote !== null ? h('div', { className: libNote.ok ? 'kbth-ok kbth-gr-ok' : 'kbth-bad kbth-gr-err', role: 'status', 'data-kb': 'theme-note' }, libNote.text) : null,
-            lib.presets.length > 0
-              ? h('div', { className: 'kbth-lib', 'data-kb': 'theme-lib' }, lib.presets.map(libRow))
-              : h('div', { className: 'kbth-state', 'data-kb': 'theme-lib-empty' },
-                h('div', { className: 'kbth-sec-t' }, kt('Aucun thème à toi', 'No theme of your own')),
-                h('div', { className: 'kbth-sec-d' }, kt('Règle l’apparence dans Essentiel puis enregistre-la, ou importe un fichier ci-dessous.', 'Set the look in Essentials, then save it, or import a file below.'))),
-            h('div', { className: 'kbth-row' },
-              h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-save-sharing', onClick: openSave }, kt('Enregistrer l’état actuel…', 'Save the current look…')),
-              lib.hostState === 'off' && ldHostOn() ? h('span', { className: 'kbth-hint' }, kt('Le disque de DSH ne répond pas : tes thèmes restent dans ce navigateur.', 'DSH’s disk does not answer: your themes stay in this browser.')) : null)),
-          h('div', { className: 'kbth-sec' },
-            h('div', { className: 'kbth-sec-h' },
-              h('div', { className: 'kbth-sec-t' }, kt('Importer', 'Import')),
-              h('div', { className: 'kbth-sec-d' }, kt('Un fichier de thème (.json) s’ajoute à Mes thèmes. Il ne change rien tant que tu ne cliques pas sur Appliquer. Un ancien fichier d’état complet devient lui aussi un thème.', 'A theme file (.json) is added to My themes. It changes nothing until you click Apply. An old file of the whole look becomes a theme too.'))),
             h('div', { className: 'kbth-row' },
               h('label', { className: 'kbth-btn', style: { cursor: 'pointer' } }, kt('Choisir un fichier .json', 'Choose a .json file'),
-                h('input', { type: 'file', accept: '.json,application/json', 'data-kb': 'theme-import', style: { display: 'none' }, onChange: (e) => {
-                  const input = e.target
-                  const file = input.files && input.files[0]
-                  if (!file) return
-                  importThemeFile(file)
-                  input.value = ''
-                } })))),
+                h('input', { type: 'file', accept: '.json,application/json', 'data-kb': 'theme-import-adv', style: { display: 'none' }, onChange: (e) => { const input = e.target; const file = input.files && input.files[0]; if (!file) return; importThemeFile(file); input.value = '' } })),
+              lib.hostState === 'off' && ldHostOn() ? h('span', { className: 'kbth-hint' }, kt('Le disque de Kybernos ne répond pas : tes préréglages restent dans ce navigateur.', 'Kybernos’s disk does not answer: your presets stay in this browser.')) : null)),
           h('details', { className: 'kbth-fold', 'data-kb': 'theme-export-fold' },
-            h('summary', null, kt('Exporter l’état actuel', 'Export the current look')),
+            h('summary', null, kt('Exporter l’apparence actuelle', 'Export the current appearance')),
             h('div', { className: 'kbth-sec', style: { marginTop: 10 } },
-              h('div', { className: 'kbth-sec-d' }, kt('Le réglage en cours, tel quel : un fichier à partager ou à versionner. Pour un thème enregistré, utilise « Exporter » sur sa ligne.', 'The current setting as it is: a file to share or to version. For a saved theme, use “Export” on its row.')),
+              h('div', { className: 'kbth-sec-d' }, kt('Le réglage en cours, tel quel : un fichier à partager ou à versionner. Pour un préréglage enregistré, utilise « Exporter en fichier » sur sa vignette.', 'The current setting as it is: a file to share or to version. For a saved preset, use “Export as a file” on its tile.')),
               h('div', { className: 'kbth-row' },
                 h('span', { className: 'kbth-lb' }, 'Format'),
-                seg({ items: exportFormats.map((f) => ({ id: f[0], label: f[1], on: exportFmt === f[0], tap: () => setExportFmt(f[0]) })) }),
-                h('button', { className: 'kbth-btn', type: 'button', 'data-kb': 'theme-copy', onClick: () => {
-                  try { navigator.clipboard.writeText(exportBody) } catch (e) { /* clipboard unavailable */ }
-                } }, kt('Copier', 'Copy'))),
+                seg({ label: 'Format', kb: 'theme-export-format', items: exportFormats.map((f) => ({ id: f[0], label: f[1], on: exportFmt === f[0], tap: () => setExportFmt(f[0]) })) }),
+                h('button', { className: 'kbth-btn', type: 'button', 'data-kb': 'theme-copy', onClick: () => { try { navigator.clipboard.writeText(exportBody) } catch (e) { /* clipboard unavailable */ } } }, kt('Copier', 'Copy'))),
               h('div', { className: 'kbth-export-preview' },
                 h('div', { className: 'kbth-export-bar' },
                   h('span', null, 'dsh-theme.' + (exportFmt === 'yaml' ? 'yml' : exportFmt)),
                   h('span', { 'data-kb': 'theme-export-lines' }, ((n) => n + (n === 1 ? kt(' ligne', ' line') : kt(' lignes', ' lines')))(exportBody.split('\n').length))),
                 h('pre', { className: 'kbth-export-code', 'data-kb': 'theme-export' }, exportBody)))),
           h('div', { className: 'kbth-sec' },
-            h('div', { className: 'kbth-sec-h' },
-              h('div', { className: 'kbth-sec-t' }, kt('Réinitialiser', 'Reset')),
-              h('div', { className: 'kbth-sec-d' }, kt('Revenir aux valeurs par défaut du harness. Tes thèmes enregistrés restent dans Mes thèmes.', 'Back to the harness defaults. Your saved themes stay in My themes.'))),
+            sech(kt('Réinitialiser', 'Reset'), kt('Revenir aux valeurs par défaut. Tes préréglages enregistrés restent dans Les miens.', 'Back to the defaults. Your saved presets stay in Mine.')),
             h('div', { className: 'kbth-row' },
-              h('span', { className: 'kbth-lb' }, kt('Tous les réglages de thème', 'All theme settings')),
-              h('button', { className: 'kbth-btn', type: 'button', onClick: () => { setHexDraft(null); commit({ ...DEF }, true) } }, kt('Réinitialiser', 'Reset')))))
+              h('button', { className: 'kbth-btn', type: 'button', 'data-kb': 'theme-reset-adv-a', onClick: () => doReset('appearance') }, kt('Apparence', 'Appearance')),
+              h('button', { className: 'kbth-btn', type: 'button', 'data-kb': 'theme-reset-adv-m', onClick: () => doReset('menu') }, kt('Menu', 'Menu')),
+              h('button', { className: 'kbth-btn', type: 'button', 'data-kb': 'theme-reset-adv-all', onClick: () => doReset('all') }, kt('Tout', 'Everything')))))
 
         // ── Gallery tab ───────────────────────────────────────────────────────────────────
         const lang = kbLang()
@@ -4730,7 +5790,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           if (rec === null) { setLibNote({ ok: false, text: kt('La bibliothèque est pleine (' + PRESET_LIMIT + ' thèmes). Supprime-en un dans Partage.', 'The library is full (' + PRESET_LIMIT + ' themes). Delete one in Sharing.') }); return }
           setHexDraft(null)
           commit({ skin: rec.id, ...rec.settings })
-          setLibNote({ ok: true, text: kt('« ' + rec.name + ' » est installé et appliqué. Il est dans Mes thèmes.', '“' + rec.name + '” is installed and applied. It is in My themes.') })
+          setLibNote({ ok: true, text: kt('« ' + rec.name + ' » est installé et appliqué. Il est dans Les miens.', '“' + rec.name + '” is installed and applied. It is in Mine.') })
         }
         const updateTheme = (t, rec) => {
           galUpdate(t, rec)
@@ -4786,7 +5846,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           if (gal.state === 'error' || gal.data === null) {
             return h('div', { className: 'kbth-state', role: 'alert', 'data-kb': 'theme-gal-error' },
               h('div', { className: 'kbth-sec-t' }, kt('Impossible de lire la galerie', 'Cannot read the gallery')),
-              h('div', { className: 'kbth-sec-d' }, kt('Elle est lue par DSH, pas par la page. Si le plugin vient d’être mis à jour, redémarre DSH. Tes thèmes restent disponibles dans Partage.', 'It is read by DSH, not by the page. If the plugin was just updated, restart DSH. Your themes remain available in Sharing.')),
+              h('div', { className: 'kbth-sec-d' }, kt('Elle est lue par Kybernos, pas par la page. Si le plugin vient d’être mis à jour, redémarre Kybernos. Tes thèmes restent disponibles dans Partage.', 'It is read by Kybernos, not by the page. If the plugin was just updated, restart Kybernos. Your themes remain available in Sharing.')),
               h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-gal-retry', onClick: () => { galLoad() } }, kt('Réessayer', 'Try again')))
           }
           const q = galQ.trim().toLowerCase()
@@ -4817,93 +5877,100 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           libNote !== null ? h('div', { className: libNote.ok ? 'kbth-ok kbth-gr-ok' : 'kbth-bad kbth-gr-err', role: 'status', 'data-kb': 'theme-note' }, libNote.text) : null,
           galBody())
 
-        // ── Advanced assembly with sub-tabs ────────────────────────────
+
+        // ── The advanced editor ─────────────────────────────────────────────────────────────────────────────────────
         const ADV_CONTENT = {
-          essentiel: advEssentiel,
-          animation: h(AnimationPane, { ctx: ctxRef }),
-          icones,
-          verre: advVerre,
-          couleurs: advCouleurs,
-          texte: advTexte,
-          accessibilite: advAccessibilite,
-          partage: advPartage,
-          galerie: advGalerie
+          couleurs: advCol, lettres: advLettres, formes: advFormes, fond: advFond, effets: advEffets, icones: advIcones, menu: advMenu,
+          animation: h(AnimationPane, { ctx: ctxRef }), accessibilite: advAccessibilite, partage: advPartage, galerie: advGalerie
         }
-        const groupToggle = (g, hint) => ldToggle(groupLabel(g), saveDlg.groups[g] === true, () => setSaveDlg({ ...saveDlg, groups: { ...saveDlg.groups, [g]: !saveDlg.groups[g] } }), hint)
-        const saveModal = saveDlg === null ? null : h(ThemeModal, { labelId: 'kbth-save-t', kb: 'theme-save-dlg', onClose: () => setSaveDlg(null) },
-          h('div', { className: 'kbth-mhd' },
-            h('h3', { id: 'kbth-save-t' }, kt('Enregistrer comme thème', 'Save as a theme')),
-            h('button', { type: 'button', className: 'kbth-mx', 'aria-label': kt('Fermer', 'Close'), onClick: () => setSaveDlg(null) }, '×')),
-          h('div', { className: 'kbth-mbody' },
-            h('div', { className: 'kbth-sec', style: { gap: 6 } },
-              h('label', { className: 'kbth-lb', htmlFor: 'kbth-save-name', style: { width: 'auto' } }, kt('Nom', 'Name')),
-              h('input', {
-                id: 'kbth-save-name', className: 'kbth-in' + (saveDlg.error !== '' ? ' bad' : ''), value: saveDlg.name, maxLength: PRESET_NAME_MAX, autoComplete: 'off', 'data-kb': 'theme-save-name',
-                'aria-invalid': saveDlg.error !== '' ? 'true' : 'false',
-                onInput: (e) => setSaveDlg({ ...saveDlg, name: e.target.value, error: '' }),
-                onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); doSave() } } }),
-              saveDlg.error !== '' ? h('div', { className: 'kbth-bad kbth-gr-err', role: 'alert', 'data-kb': 'theme-save-error' }, saveDlg.error) : null),
-            h('div', { className: 'kbth-sec', style: { gap: 4 } },
-              h('div', { className: 'kbth-sec-t' }, kt('Ce que le thème retient', 'What the theme keeps')),
-              h('div', { className: 'kbth-hint' }, kt('Les couleurs et l’accent sont toujours retenus.', 'Colors and accent are always kept.')),
-              groupToggle('font'), groupToggle('radius'), groupToggle('icons'), groupToggle('chat'), groupToggle('glass'),
-              groupToggle('a11y', kt('Contraste, palette daltonien, cibles larges : ce sont tes besoins, pas un style. Décoché, un thème ne les change jamais.', 'Contrast, color-blind palette, large targets: these are your needs, not a style. Switched off, a theme never changes them.')))),
-          h('div', { className: 'kbth-mft' },
-            h('button', { type: 'button', className: 'kbth-btn', onClick: () => setSaveDlg(null) }, kt('Annuler', 'Cancel')),
-            h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-save-ok', onClick: doSave }, kt('Enregistrer', 'Save'))))
-
-        // A single page: the nine tabs are always there, “Essentials” opens by default.
         const reglages = h('div', { className: 'kbth-sec' },
-          // Tabs stacked VERTICALLY on the left, content on the right.
           h('div', { className: 'kbth-adv-cols' },
-            h('div', { className: 'kbth-adv-tabs' },
+            h('div', {
+              className: 'kbth-adv-tabs', role: 'tablist', 'aria-label': kt('Éditeur avancé', 'Advanced editor'),
+              // The tabs pattern: ONE tab stop (the selected tab), the arrow keys, Home and End move to a tab, select it and focus it.
+              onKeyDown: (e) => {
+                const at = ADV_TABS.findIndex((t) => t.id === advTab)
+                const to = segNav(e.key, at < 0 ? 0 : at, ADV_TABS.length)
+                if (to === null || to === at) { if (to !== null) e.preventDefault(); return }
+                e.preventDefault()
+                setAdvTab(ADV_TABS[to].id)
+                const root = e.currentTarget
+                setTimeout(() => { try { const b = root.querySelector('[data-id="' + ADV_TABS[to].id + '"]'); if (b) b.focus() } catch (er) { /* the page was left */ } }, 0)
+              } },
               ADV_TABS.map((t) => h('button', {
-                key: t.id, type: 'button', className: 'kbth-adv-tab' + (advTab === t.id ? ' on' : ''),
-                'aria-pressed': advTab === t.id ? 'true' : 'false',
+                key: t.id, type: 'button', role: 'tab', id: 'kbth-tab-' + t.id, className: 'kbth-adv-tab' + (advTab === t.id ? ' on' : ''), 'aria-selected': advTab === t.id ? 'true' : 'false', 'aria-controls': 'kbth-tabpanel',
+                tabIndex: advTab === t.id ? 0 : -1, 'data-kb': 'theme-adv-tab', 'data-id': t.id,
                 onClick: () => setAdvTab(t.id) }, t.label))),
-            h('div', { className: 'kbth-adv-pane' },
+            h('div', { className: 'kbth-adv-pane', role: 'tabpanel', id: 'kbth-tabpanel', 'aria-labelledby': 'kbth-tab-' + advTab },
               trialBar,
-              ADV_CONTENT[advTab] || advCouleurs)))
+              ADV_CONTENT[advTab] || advCol)))
 
-        // ── The simple view: the studio, guarded (see StBoundary) ─────────────────
+        // ── The apply sheet and the save sheet (next to the window, so the result shows before it is applied) ───────
+        const setTicks = (patch) => setSheet({ ...sheet, ticks: { ...sheet.ticks, ...patch } })
+        const tickRow = (checked, onChange, title, lines, kb) => h('label', { className: 'kbth-sh-opt', 'data-kb': kb },
+          h('input', { type: 'checkbox', checked, onChange }), h('span', null, h('b', null, title), lines.filter((l) => l !== null && l !== '').map((l, i) => h('span', { key: i, className: 'kbth-sh-dl' }, l))))
+        const sheetEl = sheetItem === null ? null : (() => {
+          const tk = sheet.ticks
+          const mDoc = presetMenuOf(sheetItem)
+          const mLines = sheetItem.M ? menuLines(mDoc === null || mDoc === undefined ? null : mDoc, rowsNow) : []
+          const mNote = sheetItem.M ? (sheetItem.guarded ? kt('Ce menu vient de l’extérieur : il n’est appliqué que si tu coches cette case.', 'This menu comes from outside: it is applied only if you tick this box.') : '') : ''
+          const keepNote = sheetItem.M && tk.tM && sheetPlan !== null && sheetPlan.keep ? kt('Ton menu actuel est gardé dans Les miens avant, pour y revenir en un clic.', 'Your current menu is kept in Mine first, so one click goes back.') : ''
+          const none = !(tk.tA && sheetItem.A) && !(tk.tM && sheetItem.M)
+          return h('div', { className: 'kbth-sheet', role: 'group', 'aria-label': kt('Appliquer « ' + sheetItem.name + ' »', 'Apply “' + sheetItem.name + '”'), 'data-kb': 'theme-sheet' },
+            h('div', { className: 'kbth-sh-hd' }, h('h3', null, kt('Appliquer « ' + sheetItem.name + ' »', 'Apply “' + sheetItem.name + '”')), h('button', { type: 'button', className: 'kbth-mx', 'aria-label': kt('Fermer', 'Close'), 'data-kb': 'theme-sheet-close', onClick: () => setSheet(null) }, '×')),
+            sheetItem.A ? tickRow(tk.tA, () => setTicks({ tA: !tk.tA }), kt('Apparence', 'Appearance'), presetAppearanceLines(sheetItem), 'theme-sheet-a') : null,
+            sheetItem.M ? tickRow(tk.tM, () => setTicks({ tM: !tk.tM }), 'Menu', mLines.concat([mNote, keepNote]), 'theme-sheet-m') : null,
+            sheetItem.ACC ? tickRow(tk.tAcc, () => setTicks({ tAcc: !tk.tAcc }), kt('Accessibilité', 'Accessibility'), [kt('Contraste, mouvement, grandes cibles. C’est personnel : coché, ça reprend ce que tu avais enregistré.', 'Contrast, motion, large targets. This is personal: ticked, it takes what you had saved.')], 'theme-sheet-acc') : null,
+            h('p', { className: 'kbth-sh-fine' }, kt('La fenêtre montre le résultat avant d’appliquer. Tu peux annuler, ou utiliser « Tout réafficher » dans le menu, à tout moment. Un préréglage importé ne change jamais tes réglages d’accessibilité.', 'The window shows the result before you apply it. You can undo it, or use “Show every entry” in the menu, at any time. A preset you import never changes your accessibility settings.')),
+            h('div', { className: 'kbth-sh-btns' }, h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-sheet-apply', disabled: none, onClick: () => applyItem(sheetItem, tk) }, kt('Appliquer ce qui est coché', 'Apply what is ticked')), h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-sheet-cancel', onClick: () => setSheet(null) }, kt('Annuler', 'Cancel'))))
+        })()
+        const saveEl = saveSheet === null ? null : (() => {
+          const sv = saveSheet
+          const patchSv = (p) => setSaveSheet({ ...sv, ...p, error: '' })
+          const menuText2 = rowsNow.length === 0 ? kt('le menu n’est pas affiché ici', 'the menu is not drawn here') : menuLines(lib.menu, rowsNow)[0]
+          return h('div', { className: 'kbth-sheet', role: 'group', 'aria-label': kt('Enregistrer comme préréglage', 'Save as preset'), 'data-kb': 'theme-save-sheet' },
+            h('div', { className: 'kbth-sh-hd' }, h('h3', null, kt('Enregistrer comme préréglage', 'Save as preset')), h('button', { type: 'button', className: 'kbth-mx', 'aria-label': kt('Fermer', 'Close'), 'data-kb': 'theme-save-close', onClick: () => setSaveSheet(null) }, '×')),
+            h('input', { className: 'kbth-in' + (sv.error !== '' ? ' bad' : ''), value: sv.name, maxLength: PRESET_NAME_MAX, autoComplete: 'off', 'data-kb': 'theme-save-name', 'aria-label': kt('Nom du préréglage', 'Name of the preset'), 'aria-invalid': sv.error !== '' ? 'true' : 'false', onInput: (e) => patchSv({ name: e.target.value }), onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); doSave() } else if (e.key === 'Escape') { e.stopPropagation(); setSaveSheet(null) } } }),
+            sv.error !== '' ? h('div', { className: 'kbth-bad kbth-gr-err', role: 'alert', 'data-kb': 'theme-save-error' }, sv.error) : null,
+            tickRow(sv.tA, () => patchSv({ tA: !sv.tA }), kt('Apparence', 'Appearance'), [kt('Couleurs, lettres, formes, arrière-plan, effets et icônes.', 'Colors, letters, shapes, background, effects and icons.')], 'theme-save-a'),
+            tickRow(sv.tM, () => patchSv({ tM: !sv.tM }), 'Menu', [kt('Quelles entrées, leur ordre et leurs noms (', 'Which entries, their order and their names (') + menuText2 + ').'], 'theme-save-m'),
+            tickRow(sv.tAcc, () => patchSv({ tAcc: !sv.tAcc }), kt('Accessibilité', 'Accessibility'), [kt('Contraste, mouvement, grandes cibles. C’est personnel : laissé de côté sauf si tu le coches.', 'Contrast, motion, large targets. Personal: kept out unless you tick it.')], 'theme-save-acc'),
+            h('div', { className: 'kbth-sh-btns' }, h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-save-ok', disabled: !sv.tA && !sv.tM && !sv.tAcc, onClick: doSave }, kt('Enregistrer', 'Save')), h('button', { type: 'button', className: 'kbth-btn', onClick: () => setSaveSheet(null) }, kt('Annuler', 'Cancel'))))
+        })()
+
+        // ── The window (guarded: if it ever fails to draw, the advanced editor stays complete) ───────────────────────
         const studioProps = {
-          S, c, dark, commit: (patch, replace, transient) => { setHexDraft(null); commit(patch, replace, transient) },
-          applySkin: (sk) => { setLibNote(null); setHexDraft(null); commit(skinPatch(sk)) }, applyMine, skinMeta,
-          openClassic: (tab) => { setClassicOpen(true); setAdvTab(tab) }, importFile: importThemeFile, libNote, setLibNote,
-          canUndo: () => histRef.current.length > 0, pushHist: () => pushHist(S),
-          undo: () => {
-            const snap = histRef.current.pop()
-            if (snap === undefined) return
-            histAt.current = 0 // the next change is a new step, however soon it comes
-            try { const p = JSON.parse(snap); setHexDraft(null); commit(p.s, true, false, true); ldSet({ ...p.l }) } catch (e) { /* a damaged step is dropped */ }
-          },
-          reset: () => { setHexDraft(null); commit({ ...DEF }, true) }
+          S: Sv, c: cV, dark: darkV, commit: (patch, replace, transient) => { setHexDraft(null); commit(patch, replace, transient) }, preview,
+          applySkin: (sk) => { setLibNote(null); setHexDraft(null); commit(skinPatch(sk)) },
+          openClassic: (tab) => { setClassicOpen(true); setAdvTab(tab) }, pushHist: () => pushHist(S),
+          menu: { rows: rowsNow, doc: lib.menu, pvDoc: pvMenuDoc, edit: editMenu, editSurface, showAll: menuShowEvery, setUnlisted },
+          inspector: sheetEl !== null ? sheetEl : saveEl
         }
         const studioEl = StBoundary !== null ? h(StBoundary, { onFail: () => setClassicOpen(true) }, h(Studio, studioProps)) : h(Studio, studioProps)
+        const presetsEl = h(PresetsBlock, {
+          S, dark, rows: rowsNow, apply: applyItem, openSheet, openSave, preview, note: libNote, say, canUndo: () => histRef.current.length > 0, undo: undoStep, reset: doReset,
+          surprise: doSurprise, importFile: importThemeFile, openClassic: (tab) => { setClassicOpen(true); setAdvTab(tab) }
+        })
 
-        // ── assembly — a single column (the side preview has been removed) ────────
+        // ── assembly — a single column ────────────────────────────────────────────────────────────────────────────
         const pageTitle = kt('Thème', 'Theme')
-        const pageLead = kt('Personnalise l’apparence de Kybernos : clique sur ce que tu veux changer dans la fenêtre ci-dessous. Tous les réglages restent dans l’éditeur avancé.', 'Customize the look of Kybernos: click what you want to change in the window below. Every setting stays in the advanced editor.')
+        const pageLead = kt('Personnalise l’apparence de Kybernos : choisis un préréglage, ou clique sur ce que tu veux changer dans la fenêtre. Tous les réglages restent dans l’éditeur avancé.', 'Customize the appearance of Kybernos: pick a preset, or click what you want to change in the window. Every setting stays in the advanced editor.')
         return h(React.Fragment, null,
-          saveModal,
           h('div', { className: 'kbth-page' },
-            // Colonne principale
             h('div', { className: 'kbth-main' },
               h('div', { className: 'kbth-head' },
                 pageHead({ id: 'kybernos-theme', lead: pageLead, title: pageTitle, className: 'kbth-title' }),
                 subFallback(pageLead)),
               conflictNote,
+              presetsEl,
               studioEl,
               h('details', { className: 'kbth-st-classic', 'data-kb': 'theme-classic', open: classicOpen, onToggle: (e) => { const open = e.currentTarget.open; setClassicOpen((was) => (was === open ? was : open)) } },
-                h('summary', null, kt('Éditeur avancé', 'Advanced editor'), h('span', { className: 'kbth-hint' }, kt(' · toutes les options, les jetons, la galerie, le partage', ' · every option, the tokens, the gallery, sharing'))),
-                reglages),
-              h('div', { className: 'kbth-foot' },
-                h('span', { className: 'kbth-pill' }, estNaturel(S) ? kt('Couleurs de DSH — aucun thème posé', 'DSH colours — no theme applied') : kt('Thème posé · clair et sombre', 'Theme applied · light and dark')),
-                h('span', { className: 'kbth-pill' }, (jetonsRetouches(S.ov) === 1 ? kt('1 couleur retouchée', '1 colour adjusted') : kt(jetonsRetouches(S.ov) + ' couleurs retouchées', jetonsRetouches(S.ov) + ' colours adjusted'))),
-                h('button', { className: 'kbth-btn', type: 'button',
-                  onClick: () => { setHexDraft(null); commit({ ...DEF }, true) } }, kt('Tout rétablir', 'Reset all')),
-                h('button', { className: 'kbth-btn', type: 'button',
-                  onClick: () => setRevision((r) => r + 1) }, kt('Actualiser le mode', 'Refresh the mode'))))))
+                h('summary', null, kt('Éditeur avancé', 'Advanced editor'), h('span', { className: 'kbth-hint' }, kt(' · toutes les options, en onglets', ' · every option, in tabs'))),
+                h('div', { className: 'kbth-foot' },
+                  h('span', { className: 'kbth-pill' }, estNaturel(S) ? kt('Couleurs de Kybernos — aucun thème posé', 'Kybernos colours — no theme applied') : kt('Thème posé · clair et sombre', 'Theme applied · light and dark')),
+                  h('span', { className: 'kbth-pill' }, (jetonsRetouches(S.ov) === 1 ? kt('1 couleur retouchée', '1 colour adjusted') : kt(jetonsRetouches(S.ov) + ' couleurs retouchées', jetonsRetouches(S.ov) + ' colours adjusted'))),
+                  h('button', { className: 'kbth-btn', type: 'button', onClick: () => setRevision((r) => r + 1) }, kt('Actualiser le mode', 'Refresh the mode'))),
+                reglages))))
       }
 
       // ══════════════════════════════════════════════════════════════════════
@@ -4919,17 +5986,25 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
         // Read-only handles for test-client.mjs (same convention as kybernos-language).
         __test: {
           makeTheme, ratio, HEX, toHex, mix, SKINS, WPS, WPCATS, FONTS, ACCS, TOKMAP, DEF, STORE_KEY,
-          skinPatch, skinAccent, legacyAdopt, readState, writeState, estNaturel, accentsPropres, surprendre, sanitiserImport, schemeSombre, effetsCss, exportTexte, filtreFond, ajustementFond, avecAlpha, valeursValides, appliquerEffets, ENUMS, RANGES, BOOLS, RADIUS_DEF, jetonsRetouches, tailleNative, appliquerTaille,
+          skinPatch, skinAccent, legacyAdopt, readState, writeState, estNaturel, accentsPropres, surprendre, sanitiserImport, schemeSombre, effetsCss, touchCss, TOUCH_RULES, TOUCH_ATTR, TOUCH_MEDIA, TOUCH_TABS, presCss, presTokens, presSync, presWalk, PRES_RULES, PRES_TOKENS, PRES_ATTR, PRES_MEDIA, lockedOptions, lockedPresentation, peekBind, PEEK_ZONE, PEEK_LINGER, pinBind, PIN_KEY, PIN_ATTR, TAB_W, TAB_H, exportTexte, filtreFond, ajustementFond, avecAlpha, valeursValides, appliquerEffets, ENUMS, RANGES, BOOLS, RADIUS_DEF, jetonsRetouches, tailleNative, appliquerTaille,
           LD_PRESETS, LD_PACKS, LD_DEF, LD_SIZES, LD_KEY, ld, ldClean, ldRead, ldSet, ldHash, ldChoose, ldChooseWord, ldWordList, ldById, ldPackById, ldNode, ldDestroy, ldCleanSvg, ldImport,
-          knum, ldKo, ldDurText, ldDecorate, ldStart, ldStop, ldApplyText, ldPull, ldAddRecord, ldDelRecord, ldPutWords, ldCacheRead, AnimationPane, LdSummary, LdView,
+          knum, ldKo, ldDurText, ldDecorate, ldStart, ldStop, ldApplyText, ldPull, ldAddRecord, ldDelRecord, ldPutWords, ldCacheRead, AnimationPane, LdView,
           appliquerBoot, appliquerTout, appliquerJetons, appliquerFond, appliquerPolice, Page, bootSnapshot, posterBoot, retirerFeuilleBoot, jetonsDe, BOOT_ID,
           PRESET_FORMAT, PRESET_GROUPS, PRESET_KEYS, PRESET_LIMIT, PRESET_ID, LIB_KEY, lib, libClean, libRead, libWrite, libSet, libAdd, libPatch, libRemove, libPull, libFreeName, libNameTaken,
           gal, galTheme, galClean, galLoad, galRefresh, galInstalled, galInstall, galUpdate, galOnlineText, kbLang,
-          presetSettings, presetRecord, presetFromState, presetFile, presetFromFileText, settingsDirty, skinSettings, presetAsSkin, groupsOf, fileSlug, ThemeModal,
+          presetSettings, presetRecord, presetFromState, presetFile, presetFromFileText, settingsDirty, skinSettings, groupsOf, fileSlug,
           ICON_ENTRIES, ICON_HUES, ICON_SETS, ICON_SET_IDS, iconInner, iconSvg, iconRegistry, appliquerIcones,
           optsDe, bulleDe, encreSur, BUBBLE_CHOICES, HEX_KEYS, Studio, StBoundary, ST_VIBES, ST_FONTS, ST_SIZES, ST_SPEEDS, ST_INKS, ST_ZONES, ST_RAND, stVibePatch, stLookKeys, stSurprise, stDshBubble,
+          MENU_KEY, MENU_EVENT, MENU_SURFACES, menuSurfaceClean, menuHasContent, surfaceRows, surfaceView, surfaceEdit, menuSurfacesDefault, LOCKED_PRESETS, lockedMenu, menuClean, menuSame, menuUse, menuRegistry, menuRows, menuView, menuIsDefault, menuEdit, menuShowAll, menuFull, menuLines, menuLabelKey, MENU_BUILTINS, MENU_NEVER,
+          selNav, segNav, KbSelect, MenuRows, SurfaceRows, MenuZones, seg, fontOptions, wallOptions, iconSetOptions, PresetsBlock, presetItems, presetRecItem, presetPlan, presetTicks, presetMenuOf, presetBuiltin, presetSwatch, presetAppearanceLines,
+          seamTemplate, seamTemplateMenu, seamApplyInput,
         },
         apply(ctx) {
+          // Tag macOS Electron host so hiddenInset traffic lights get clean top-left sidebar clearance.
+          try {
+            const ua = typeof navigator !== 'undefined' ? String(navigator.userAgent || '') : ''
+            if (/Electron\//i.test(ua) && /Mac/i.test(ua)) document.documentElement.setAttribute('data-kb-electron', 'darwin')
+          } catch (e) { /* non-browser */ }
           // (01/10) Label according to the current language state. The language is
           // NO LONGER carried by this bundle since 01/10: it lives in
           // @local/kybernos-language, which sets `__KB_I18N_ACTIVE__` as soon as it
@@ -5011,7 +6086,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
             try { console.error('[kybernos-theme] initial apply failed', e) } catch (e2) { /* console indisponible */ }
           }
 
-          // “My themes”: the disk copy, once the page is up. Never a reason for DSH not to start.
+          // The presets of Mine: the disk copy, once the page is up. Never a reason for DSH not to start.
           try { setTimeout(() => { libPull(true) }, 900) } catch (e) { /* no timers */ }
 
           // The public seam of this bundle (A1-theme-seam): the wizard runs with Settings never opened, so a page

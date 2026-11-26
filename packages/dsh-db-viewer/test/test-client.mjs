@@ -187,5 +187,16 @@ if (typeof t.noteSql === 'function') {
   ok('the first page is 500 rows, the cap 5 000', t.PAGE_SQL === 500 && t.PAGE_SQL_MAX === 5000)
 } else ok('__test exposes noteSql', false)
 
+// ── a database tool is shown only in a chat that used one ───────────────────
+if (typeof t.dbUsed === 'function') {
+  const call = (id, name, args) => ({ kind: 'tool', callId: id, call: { name, args } })
+  ok('a Tables tool call counts (MCP prefix included)', t.dbUsed([call('a', 'mcp__kybernos-db__db_create', {})]) === true && t.dbUsed([call('a', 'records_list', {})]) === true)
+  ok('a .sqlite file named in a call counts', t.dbUsed([call('b', 'bash', { command: 'sqlite3 donnees.sqlite .tables' })]) === true)
+  ok('a call nested in a turn is found', t.dbUsed([{ kind: 'assistant', blocks: [{ items: [call('c', 'db_list', {})] }] }]) === true)
+  ok('a chat of other calls only does not count', t.dbUsed([call('d', 'bash', { command: 'ls' }), call('e', 'read', { file_path: '/x.md' })]) === false)
+  ok('a chat with no call does not count', t.dbUsed([{ kind: 'user', text: 'une base de données ?' }]) === false)
+  ok('nodes that were not read yet answer null, never false', t.dbUsed(null) === null && t.dbUsed(undefined) === null)
+} else ok('__test exposes dbUsed', false)
+
 console.log(ko === 0 ? `\nHARNAIS CLIENT dsh-db-viewer — 0 échec` : `\n✗ ${ko} échec(s)`)
 process.exit(ko === 0 ? 0 : 1)

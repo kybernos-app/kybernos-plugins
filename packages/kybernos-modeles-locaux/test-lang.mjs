@@ -37,7 +37,7 @@ check('the « loaded » line follows the language', en.m('kml.en.charge', { go: 
 
 console.log('\n── no French word in the English page (A3-36, A2-09) ──')
 check('« Detecting… » while the machine is measured', en.m('kml.detection') === 'Detecting…' && fr.m('kml.detection') === 'détection…')
-check('the trash button reads « Remove from DSH » / « Remove <id> »', en.m('kml.retirer') === 'Remove from DSH' && en.m('kml.retirer.id', { id: 'qwen3.5:9b' }) === 'Remove qwen3.5:9b' && fr.m('kml.retirer') === 'Retirer de DSH')
+check('the trash button reads « Remove from Kybernos » / « Remove <id> »', en.m('kml.retirer') === 'Remove from Kybernos' && en.m('kml.retirer.id', { id: 'qwen3.5:9b' }) === 'Remove qwen3.5:9b' && fr.m('kml.retirer') === 'Retirer de Kybernos')
 check('Cancel is a key', en.m('kml.annuler') === 'Cancel' && fr.m('kml.annuler') === 'Annuler')
 const keys = [...src.matchAll(/\bm\('(kml\.[A-Za-z0-9_.-]+)'/g)].map((x) => x[1]).filter((k) => !k.endsWith('.'))
 check('every m(\'kml.…\') key used by the page exists in the table (the two built with a suffix aside)', keys.every((k) => en.KB_M_T[k] !== undefined) && keys.length > 40, keys.filter((k) => en.KB_M_T[k] === undefined))

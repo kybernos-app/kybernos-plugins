@@ -85,7 +85,8 @@ export function sessionState (sessionId) {
     const rows = JSON.parse(readFileSync(file, 'utf8')).record.rows
     const open = rows.turnBoundary?.val?.openTurnStartSeq
     const steps = rows.sessionStats?.val?.steps ?? 0
-    return { closed: open === null && steps > 0, at: statSync(file).mtime.toISOString() }
+    // `turnOpen`: a turn is begun and not ended. A turn cut before its first step ends has `steps` 0 (not `closed`) and no open turn: that is how a stop is confirmed.
+    return { closed: open === null && steps > 0, turnOpen: open !== null && open !== undefined, at: statSync(file).mtime.toISOString() }
   } catch (e) { return null }
 }
 

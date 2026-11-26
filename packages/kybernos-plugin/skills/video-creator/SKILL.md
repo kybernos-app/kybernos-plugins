@@ -66,6 +66,8 @@ State the price of the clip as `usd` times the seconds, read from that answer, a
 
 ## 5. What you can do, honestly
 
+The one generation tool that exists today is `create_image`: it makes a picture from a description with the account's picture models and saves it in the working folder (the answer gives the path and the price). Use it for a first frame that is described in words (a scene, a product on a background, a poster frame). It cannot start from the person's own photo (try-on, restyle of their photo) and it makes no video: for those, say so and stay at the brief.
+
 Look at your tools. If none of them generates a video with the account's models, **the clip cannot be made yet**. Then:
 
 1. Write `video-brief.md` in the project: the example, the inputs (paths), the approved first frame, the shape, the length, the chosen model and the prompt.

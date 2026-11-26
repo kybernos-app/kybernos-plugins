@@ -30,7 +30,8 @@
   "permissions": [
     "ui.slot:settings.section",
     "host.routes:/kybernos-log:read",
-    "fs.write:dsh-home"
+    "fs.write:dsh-home",
+    "fs.read:dsh-home"
   ],
   "claims": {
     "routePrefixes": [

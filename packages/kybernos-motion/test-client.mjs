@@ -37,7 +37,7 @@ globalThis.window = win
 globalThis.document = doc
 globalThis.fetch = (...a) => { fetchCalls.push(a); return fetchImpl(...a) }
 new Function('window', 'document', src)(win, doc)
-ok('the bundle registers one module', definition && definition.id === '@local/kybernos-motion/client' && typeof definition.factory === 'function')
+ok('the bundle registers one module', definition && definition.id === '@local/kybernos-motion' && typeof definition.factory === 'function')
 const plugin = definition.factory((name) => (name === 'react' ? React : (() => { throw new Error('unexpected require ' + name) })()))
 ok('the factory returns a plugin object', plugin && typeof plugin.apply === 'function')
 ok('it declares the services it needs (slots and the right-sidebar tabs)', Array.isArray(plugin.inject) && plugin.inject.includes('slots') && plugin.inject.includes('sidebarRightTabs'), plugin.inject)
@@ -130,6 +130,55 @@ ok('q: builds a query string, skipping empties', T.q({ a: 'x y', b: '', c: null,
   for (const e of effects) { try { if (typeof e.cleanup === 'function') e.cleanup() } catch (x) { /* the intervals */ } }
 }
 
+// ── the probe follows the chat on screen, one memory per chat ──────────────────
+// The key was cached (refreshed every few seconds) and the probe had ONE memory: after a change of chat it asked about the previous chat, then
+// took the new chat's scene for an arrival and popped the panel open. Now it reads the key from the engine and remembers each chat on its own.
+{
+  const timers = []
+  const realSetInterval = globalThis.setInterval
+  let opened = 0
+  doc.querySelector = () => (opened > 0 ? { getClientRects: () => [1] } : null) // the panel is on screen once opened
+  globalThis.setInterval = (f) => { timers.push(f); return timers.length }
+  let screenKey = 'chat-A'
+  const sceneAt = { 'chat-A': Date.now() - 2000, 'chat-B': Date.now() - 3000 }
+  const asked = []
+  fetchImpl = async (url) => {
+    const m = /session=([^&]+)/.exec(String(url))
+    const sid = m ? decodeURIComponent(m[1]) : ''
+    asked.push(sid)
+    return { ok: true, status: 200, json: async () => ({ ok: true, current: sceneAt[sid] ? { at: sceneAt[sid], path: '/p/' + sid + '.motion.json' } : null }) }
+  }
+  const effects = []
+  const ctx = {
+    effect: (fn, label) => { try { effects.push({ label, cleanup: fn() }) } catch (e) { effects.push({ label, error: e }) } },
+    get: (k) => {
+      if (k === 'uiSession') return { adapter: { current: { getSnapshot: () => ({ key: screenKey }) } } }
+      if (k === 'sidebarRight') return { openTab: () => { opened += 1 } }
+      if (k === 'sidebarRightTabs') return { register: () => () => {} }
+      return undefined
+    },
+    slots: { inject: (name, f) => { f(); return () => {} }, register: () => () => {} },
+  }
+  plugin.apply(ctx)
+  const settle = () => new Promise((r) => setTimeout(r, 20))
+  const probe = timers[timers.length - 1] // the open-on-arrival probe is the last interval apply() sets
+  await settle()
+  ok('first sight of the page: a scene that just arrived opens the panel', opened === 1, String(opened))
+  screenKey = 'chat-B'
+  await probe(); await settle()
+  ok('the probe asks about the chat on screen (chat-B), not the one it started with', asked.includes('chat-B') && asked[asked.length - 1] === 'chat-B', asked.join(','))
+  ok('switching to a chat that already has a scene opens nothing by itself', opened === 1, String(opened))
+  screenKey = 'chat-A'
+  await probe(); await settle()
+  ok('switching back opens nothing either (each chat has its own memory)', opened === 1, String(opened))
+  sceneAt['chat-A'] = Date.now() - 100 // the agent writes a new scene in chat A
+  await probe(); await settle()
+  ok('a scene that really arrives in the chat on screen still opens the panel', opened === 2, String(opened))
+  for (const e of effects) { try { if (typeof e.cleanup === 'function') e.cleanup() } catch (x) { /* the intervals */ } }
+  globalThis.setInterval = realSetInterval
+  delete doc.querySelector
+}
+
 // ── the exporter the Mac app install uses ───────────────────────────────────
 {
   const root = { querySelector: (sel) => (sel === '[data-kb-path]' ? { getAttribute: () => '/p/artifacts/x.miniapp.json' } : null), getAttribute: () => null }
@@ -168,7 +217,9 @@ for (const act of ['play', 'export', 'export-go', 'download', 'revisions', 'rest
 ok('models are loaded through the safe loader only (a data file must not make the browser fetch anything)', !/new (window\.KbMotionThree|THREE)\.GLTFLoader\(/.test(body) && (body.match(/createModelLoader\(/g) || []).length === 2)
 ok('buttons are reset at zero specificity, so the component classes win', body.includes(':where(.kbmt-root) button{'))
 ok('colours come from DSH tokens with a fallback', body.includes('var(--dsw-alias-bg-layer-1,#fff)') && body.includes('var(--dsw-alias-label-primary,#0f1115)'))
-ok('only one style element, removed on cleanup', (body.match(/createElement\('style'\)/g) || []).length === 1 && body.includes('el.remove()'))
+// (the shared right-column gate, KB-TABGATE, keeps its own sheet for every tool of the suite: it is not this bundle's element)
+const ownBody = body.replace(/\/\/ KB-TABGATE-BEGIN[\s\S]*?\/\/ KB-TABGATE-END/, '')
+ok('only one style element, removed on cleanup', (ownBody.match(/createElement\('style'\)/g) || []).length === 1 && ownBody.includes('el.remove()'))
 ok('user-visible strings go through kt (no bare French titles in attributes)', !/title: '[A-Z][a-zé]+'/.test(body.replace(/title: 'Motion'/g, '')))
 ok('every route used is one the host mounts', [...body.matchAll(/api\('(?:GET|POST)', '([a-z]+)/g)].every((m) => ['state', 'scene', 'save', 'open', 'list', 'revisions', 'restore', 'export', 'frame'].includes(m[1])), [...body.matchAll(/api\('(?:GET|POST)', '([a-z]+)/g)].map((m) => m[1]))
 const host = readFileSync(new URL('./index.js', import.meta.url), 'utf8')

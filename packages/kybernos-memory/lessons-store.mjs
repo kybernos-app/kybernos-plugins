@@ -2,7 +2,8 @@
 // lessons-store — the lessons of each kyber, as files.
 //
 // A lesson is one JSON line in `<kybers>/<kyber>/memory/lessons.jsonl`:
-//   { ts, text (≤ 500 chars), tags (≤ 5), uses, lastUsed [, from] }
+//   { ts, text (≤ 500 chars), tags (≤ 5), uses, lastUsed [, from] [, title (≤ 60)] [, summary (≤ 140)] }
+// Every rewrite keeps the fields it does not know (the CLI rewrites whole objects too).
 // The file is written by `<DSH home>/kybers/memory.cjs` (the agent runs it through bash
 // after a contradicted expectation) AND, from now on, by this module. Both must
 // agree, so the rules below are the CLI's rules, not new ones:
@@ -29,6 +30,11 @@ export const LESSONS_MAX_COUNT = 50
 // cap never has to be dealt with by hand. 40 of 50 leaves room for ten more lessons between two looks.
 export const LESSONS_NEAR_COUNT = 40
 export const LESSON_TAGS_MAX = 5
+// A lesson may carry a short `title` and a one-line `summary` (the prompt block is an index of them, the full text is read on
+// demand with lesson_read). Lines written before they existed have neither: readers derive both from the text at read time
+// (`lessonHeads`) and never write the guess back.
+export const LESSON_TITLE_MAX = 60
+export const LESSON_SUMMARY_MAX = 140
 const ARCHIVE = 'lessons.archive.jsonl'
 
 /** Kyber ids and session ids end up in paths: only plain names get through. */
@@ -100,6 +106,48 @@ export const parseLessonId = (id) => {
   return isKyberId(kyber) && /^[0-9a-f]{12}$/.test(hash) ? { kyber, hash } : null
 }
 
+const oneLine = (text) => String(text).replace(/\s+/g, ' ').trim()
+
+/** At most `max` characters, cut at a word boundary and ended with an ellipsis when cut. */
+export const clipWords = (text, max) => {
+  const t = oneLine(text)
+  if (t.length <= max) return t
+  const room = t.slice(0, Math.max(1, max - 1))
+  const cut = room.lastIndexOf(' ')
+  const head = (cut >= Math.floor(max / 2) ? room.slice(0, cut) : room).replace(/[\s,;:.([-]+$/, '')
+  return head + '\u2026'
+}
+
+const firstSentence = (text) => { const m = /^(.+?[.!?])(?:\s|$)/.exec(text); return m === null ? text : m[1] }
+/** The first clause: up to a sentence end, a semicolon, a colon, a spaced dash or an opening bracket; a clause under 12 characters is too short to name anything. */
+const firstClause = (text) => {
+  const m = /^(.+?)(?:[.;!?](?:\s|$)|:\s|\s[-\u2013\u2014]\s|\s\()/.exec(text)
+  return m !== null && m[1].trim().length >= 12 ? m[1] : firstSentence(text)
+}
+
+/** A title or summary as given: one line, clipped, '' when there is nothing in it. */
+export const cleanHead = (value, max) => {
+  if (typeof value !== 'string') return ''
+  const t = oneLine(value)
+  return /[\p{L}\p{N}]/u.test(t) ? clipWords(t, max) : ''
+}
+
+/**
+ * What the index shows of a lesson: its own title and summary when it has them, else the ones derived from the text (the first
+ * clause, the first sentence), cut at a word boundary. `own` says whether the title was written (by a person, a tool or the tidy-up).
+ */
+export const lessonHeads = (lesson) => {
+  const text = oneLine(lesson !== null && typeof lesson === 'object' && typeof lesson.text === 'string' ? lesson.text : '')
+  const ownTitle = lesson !== null && typeof lesson === 'object' ? cleanHead(lesson.title, LESSON_TITLE_MAX) : ''
+  const ownSummary = lesson !== null && typeof lesson === 'object' ? cleanHead(lesson.summary, LESSON_SUMMARY_MAX) : ''
+  return {
+    title: ownTitle !== '' ? ownTitle : clipWords(firstClause(text), LESSON_TITLE_MAX),
+    summary: ownSummary !== '' ? ownSummary : clipWords(firstSentence(text), LESSON_SUMMARY_MAX),
+    own: ownTitle !== '',
+    ownSummary: ownSummary !== '',
+  }
+}
+
 const cleanRow = (row) => ({
   ...row,
   ts: typeof row.ts === 'string' ? row.ts : '',
@@ -129,8 +177,10 @@ export const listKybers = () => {
 
 const present = (kyber, lesson, now) => {
   const when = Date.parse(lesson.ts)
+  const heads = lessonHeads(lesson)
   return {
     id: lessonId(kyber, lesson), kyber, text: lesson.text, tags: lesson.tags, uses: lesson.uses, lastUsed: lesson.lastUsed, ts: lesson.ts,
+    title: heads.title, summary: heads.summary, titled: heads.own, summarized: heads.ownSummary,
     from: typeof lesson.from === 'string' ? lesson.from : null,
     ageMinutes: Number.isFinite(when) ? Math.max(0, Math.round((now - when) / 60000)) : null,
   }
@@ -184,6 +234,22 @@ const archive = (kyber, rows, reason) => {
   appendFileSync(join(memoryDir(kyber), ARCHIVE), rows.map((r) => JSON.stringify({ ...r, archivedAt: stamp, archivedBecause: reason })).join('\n') + '\n')
 }
 
+/** Copies lessons as they are into the agent team's `lessons.archive.jsonl` (the tidy-up's compaction keeps the original wording there). */
+export const archiveLessons = (kyber, rows, reason) => {
+  if (!isKyberId(kyber) || !Array.isArray(rows)) return { ok: false, error: 'kyber_inconnu' }
+  mkdirSync(memoryDir(kyber), { recursive: true })
+  archive(kyber, rows.filter((r) => r !== null && typeof r === 'object'), String(reason))
+  return { ok: true }
+}
+
+/** Sets or removes (null or '') one head field of a row, as given by a person or a tool: clipped, one line. */
+const setHead = (row, key, value, max) => {
+  if (value === undefined) return
+  const clean = cleanHead(value, max)
+  if (clean === '') delete row[key]
+  else row[key] = clean
+}
+
 /**
  * Does this kyber exist? Its folder must (a typo must not invent a kyber), with one exception: `default`, the team of every chat that has none (the agent's
  * `lesson_write` uses it when it is given no kyber). Nobody creates that folder, so on a fresh install the first lesson found no team and every lesson was refused;
@@ -209,6 +275,8 @@ export const addLesson = (kyber, input) => {
   if (same !== undefined) return { ok: true, duplicate: true, lesson: present(kyber, same, Date.now()), total: lessons.length, evicted: [] }
   const fresh = { ts: new Date().toISOString(), text: capText(text), tags: cleanTags(input.tags), uses: 0, lastUsed: null }
   if (typeof input.from === 'string' && input.from.trim() !== '') fresh.from = input.from.trim().slice(0, 80)
+  setHead(fresh, 'title', input.title, LESSON_TITLE_MAX)
+  setHead(fresh, 'summary', input.summary, LESSON_SUMMARY_MAX)
   let kept = lessons.concat([fresh])
   let evicted = []
   if (kept.length > LESSONS_MAX_COUNT) {
@@ -247,6 +315,8 @@ export const updateLesson = (id, patch) => {
     lesson.text = capText(text)
   }
   if (changes.tags !== undefined) lesson.tags = cleanTags(changes.tags)
+  if (changes.title !== undefined) setHead(lesson, 'title', changes.title === null ? '' : changes.title, LESSON_TITLE_MAX)
+  if (changes.summary !== undefined) setHead(lesson, 'summary', changes.summary === null ? '' : changes.summary, LESSON_SUMMARY_MAX)
   writeJsonlAtomic(lessonsFile(found.kyber), found.lessons)
   return { ok: true, lesson: present(found.kyber, lesson, Date.now()) }
 }
@@ -282,7 +352,7 @@ export const searchLessons = (q, options = {}) => {
   const kybers = isKyberId(options.kyber) ? [options.kyber] : listKybers()
   const docs = []
   for (const kyber of kybers) {
-    for (const lesson of readLessons(kyber)) docs.push({ content: lesson.text + ' ' + lesson.tags.join(' '), createdAt: lesson.ts, pinned: lesson.uses > 0, row: present(kyber, lesson, now) })
+    for (const lesson of readLessons(kyber)) docs.push({ content: lesson.text + ' ' + lesson.tags.join(' ') + (typeof lesson.title === 'string' ? ' ' + lesson.title : ''), createdAt: lesson.ts, pinned: lesson.uses > 0, row: present(kyber, lesson, now) })
   }
   const hits = rank(docs, q).map((r) => ({ ...r.doc.row, found: r.matched }))
   return hits.slice(0, Number.isFinite(options.limit) ? options.limit : 10)
@@ -343,6 +413,12 @@ export const retouchLesson = (id, fields) => {
   if (Array.isArray(f.tags)) lesson.tags = f.tags.filter((t) => typeof t === 'string').slice(0, LESSON_TAGS_MAX)
   if (Number.isFinite(f.uses)) lesson.uses = Math.max(0, f.uses)
   if (f.lastUsed === null || typeof f.lastUsed === 'string') lesson.lastUsed = f.lastUsed
+  // the head fields: a string sets, null removes (the Undo of a tidy-up that wrote a title puts back "no title")
+  for (const key of ['title', 'summary']) {
+    if (!(key in f)) continue
+    if (typeof f[key] === 'string' && f[key].trim() !== '') lesson[key] = f[key]
+    else if (f[key] === null) delete lesson[key]
+  }
   writeJsonlAtomic(lessonsFile(found.kyber), found.lessons)
   return { ok: true, id: lessonId(found.kyber, lesson), lesson: present(found.kyber, lesson, Date.now()) }
 }

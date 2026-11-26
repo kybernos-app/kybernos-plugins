@@ -66,11 +66,30 @@ const VOICE_TRAITS = [
 ]
 for (const [name, re] of VOICE_TRAITS) ok('voice: ' + name, re.test(NATIVE) && re.test(CLOUD), name)
 ok('the voice names the tool that puts a page online, and forbids detours', VOICE.some((l) => /site_publish/.test(l) && /<name>\.kaby\.app/.test(l) && /asked first/.test(l) && /Never use tunnels/.test(l)))
+ok('the voice says what to do with a missing app: make the link, put it first, never just point to a page (2026-11-20: Kaby sent the person to a page, or offered to make the link later)', VOICE.some((l) => /connections_connect/.test(l) && /put the link first/.test(l) && /never just point to a page/.test(l) && /if you have connections_connect/.test(l)))
 ok('the voice stays under the 1,650-character cap (1,500 until 2026-11-03: the line on putting a page online)', VOICE.join('\n').length <= 1650, VOICE.join('\n').length)
 
 // ── where and when ───────────────────────────────────────────────────────────
 ok('the channel line comes from the channel table', NATIVE.includes(CHANNELS.chat) && CLOUD.includes(CHANNELS.telegram))
+// A request an outside assistant relayed through the MCP door (Claude Code, a Slack bot...): its own channel line, and the rules and the voice above it exactly as for every other channel.
+{
+  const ASSISTANT = identityBlock({ channel: 'assistant', body: 'cloud', personName: 'Amina', nowText: 'Time: 2026-10-19T13:22Z (UTC).' })
+  ok('an outside assistant is a channel of its own, written once in the table', typeof CHANNELS.assistant === 'string' && ASSISTANT.includes(CHANNELS.assistant) && !ASSISTANT.includes(CHANNELS.phone) && !ASSISTANT.includes(CHANNELS.telegram), ASSISTANT)
+  ok('its line says what the answer looks like: plain text, structured, no chit-chat, no buttons', /outside assistant/.test(CHANNELS.assistant) && /plain text, structured, no chit-chat, no buttons/.test(CHANNELS.assistant) && /talking with Amina on an outside assistant relaying a request/.test(ASSISTANT))
+  ok('the core rules and the voice are the same block, byte for byte, as in every other channel', ASSISTANT.startsWith(CORE.join('\n') + '\n\n' + VOICE.join('\n') + '\n\nNow: ') && ASSISTANT.split('\n\n').slice(0, 2).join('\n\n') === CLOUD.split('\n\n').slice(0, 2).join('\n\n'))
+  ok('it stays within the budget of the text Kaby always carries', ASSISTANT.length <= CORE_BUDGET, ASSISTANT.length)
+  ok('a channel that is not in the table is still a phone, the assistant does not become the fallback', identityBlock({ channel: 'nope', body: 'cloud', nowText: 'x' }).includes(CHANNELS.phone) && !identityBlock({ channel: 'nope', body: 'cloud', nowText: 'x' }).includes(CHANNELS.assistant))
+}
 ok('the body line says where the turn runs', NATIVE.includes('the person\'s own computer') && CLOUD.includes('the person\'s cloud computer'))
+{
+  const PHONE = identityBlock({ channel: 'phone', body: 'phone', nowText: 'Time: 2026-10-19T13:22Z (UTC).' })
+  ok('the phone body explains that external programs cannot run here, points to a remote or cloud computer, and never promises automatic routing',
+    typeof BODIES.phone === 'string' && PHONE.includes(CHANNELS.phone) && PHONE.includes(BODIES.phone) &&
+    /cannot start external programs or subprocesses/i.test(BODIES.phone) && /Node/.test(BODIES.phone) &&
+    /remote or cloud computer/i.test(BODIES.phone) && /never promise automatic routing/i.test(BODIES.phone), BODIES.phone)
+  ok('the phone body stays within the identity budget and carries no forbidden words',
+    PHONE.length <= CORE_BUDGET && !/Second You|\bEcho\b|\bMira\b|\bAtlas\b|Kyby|Kyber/.test(PHONE), PHONE.length)
+}
 ok('the native time is a sentence with the zone', /^Local time: \d{4}-\d{2}-\d{2} \d{2}:\d{2} \(.+\)\.$/.test(nowSentence(new Date('2026-10-19T13:22:00Z'))), nowSentence(new Date('2026-10-19T13:22:00Z')))
 ok('the person is named when known and never invented', /talking with Amina on Telegram/.test(CLOUD) && /talking with the person on/.test(NATIVE))
 // A cloud computer sleeps when idle (measured: the Home is suspended by the platform). « Always available » was read by deepseek as « toujours allumé », a false claim.

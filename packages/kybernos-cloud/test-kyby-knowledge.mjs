@@ -182,6 +182,14 @@ ok('a path that is a folder, empty, or holds a NUL is nothing', resolveInside(ro
   ok('the tool is called kaby_knowledge, takes query, file, offset and max_chars, and has a render', tool.name === 'kaby_knowledge' && ['query', 'file', 'offset', 'max_chars'].every((k) => tool.parameters.properties[k] !== undefined) && typeof tool.output.render === 'function' && tool.parameters.additionalProperties === false)
   ok('with no argument it lists the folder', /documents:/.test((await tool.execute({})).text) && /review\.pdf/.test((await tool.execute({})).text))
   ok('with a query it searches, with a file it reads', /Search for/.test((await tool.execute({ query: 'budget' })).text) && /Quarterly budget review/.test((await tool.execute({ file: 'review.pdf' })).text))
+  // the engine refuses an output that carries a key its schema does not declare (« "value.terms" is not a declared property »), which failed every search on the phone: each way a call can end must fit
+  const declared = tool.output.schema
+  const fits = (v) => v !== null && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).every((k) => declared.properties[k] !== undefined) && declared.required.every((k) => k in v) && Object.entries(v).every(([k, x]) => {
+    const t = declared.properties[k].type
+    return t === 'array' ? Array.isArray(x) && x.every((i) => typeof i === declared.properties[k].items.type) : t === 'integer' ? Number.isInteger(x) : typeof x === t
+  })
+  const results = [await tool.execute({}), await tool.execute({ query: 'budget' }), await tool.execute({ query: 'zzzqqq nothing' }), await tool.execute({ query: '!!' }), await tool.execute({ file: 'review.pdf' }), await tool.execute({ file: 'nope.txt' }), await knowledgeTool({ dir: () => { throw new Error('gone') } }).execute({})]
+  ok('every way a call can end fits the declared output schema: a list, a search with and without a hit, a search with no words, a read, a missing file, an unreadable folder', results.every(fits) && results[1].terms.join() === 'budget' && Number.isInteger(results[1].count), results.map((r, i) => (fits(r) ? '' : String(i) + ':' + Object.keys(r).join('/'))).filter(Boolean).join(' '))
   ok('the file wins over the query when both are given', /Quarterly budget review/.test((await tool.execute({ file: 'review.pdf', query: 'xyz' })).text))
   ok('bad arguments never throw', (await tool.execute(null)).ok === true && (await tool.execute({ file: 42, query: {} })).ok === true && (await knowledgeTool({ dir: () => { throw new Error('home gone') } }).execute({})).ok === false)
   ok('the render gives the text as one block', tool.output.render({}, { ok: true, text: 'hello' })[0].text === 'hello')

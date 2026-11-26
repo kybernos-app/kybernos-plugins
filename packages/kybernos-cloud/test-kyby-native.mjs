@@ -3,7 +3,7 @@
 import { mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { contextLines, createKybyNative, isSessionId, kybyPrompt, lastTurn, readPointer, writePointer } from './kyby-native.mjs'
+import { contextLines, createKybyNative, isPhonePlatform, isSessionId, kybyPrompt, lastTurn, readPointer, writePointer } from './kyby-native.mjs'
 
 let fail = 0
 const ok = (name, cond, detail) => { console.log((cond ? 'ok   ' : 'FAIL ') + name + (cond ? '' : '  ' + JSON.stringify(detail))); if (!cond) fail++ }
@@ -74,6 +74,23 @@ ok('the prompt names Kaby, the shared memory and Telegram, and carries the lines
   const p = kybyPrompt(['Person: salut'])
   return p.startsWith('[KYBY]') && p.endsWith('[/KYBY]') && /Kaby/.test(p) && /Telegram/.test(p) && /Person: salut/.test(p)
 })())
+ok('isPhonePlatform matches ios and android only', isPhonePlatform('ios') && isPhonePlatform('android') && !isPhonePlatform('darwin') && !isPhonePlatform('linux') && !isPhonePlatform('win32'))
+ok('kybyPrompt with phone: true uses phone channel and phone body (never computer body)', (() => {
+  const p = kybyPrompt([], new Date('2026-10-19T13:22:00Z'), undefined, undefined, undefined, { phone: true })
+  return p.includes('a chat on the person\'s phone') && p.includes('the person\'s phone:') && !p.includes('the person\'s own computer') && /remote or cloud computer/i.test(p)
+})())
+{
+  const mkPlat = (platform) => createKybyNative({ pointerFile: file, readState: () => ({ token: TOKEN }), isConnected: () => true, apiCall: async () => ({ status: 404, body: {} }), platform })
+  const iosP = mkPlat('ios').promptFor(SID)
+  const androidP = mkPlat('android').promptFor(SID)
+  const macP = mkPlat('darwin').promptFor(SID)
+  const linP = mkPlat('linux').promptFor(SID)
+  ok('createKybyNative uses phone channel/body strictly on ios and android, and chat/computer on desktop',
+    iosP.includes('the person\'s phone:') && iosP.includes('a chat on the person\'s phone') &&
+    androidP.includes('the person\'s phone:') && androidP.includes('a chat on the person\'s phone') &&
+    macP.includes('the person\'s own computer') && macP.includes('Kaby\'s own chat in DSH') &&
+    linP.includes('the person\'s own computer') && !macP.includes('the person\'s phone:'))
+}
 
 // ── the hooks ────────────────────────────────────────────────────────────────
 const make = (answers, state = { token: TOKEN }, assistantName) => {
@@ -107,6 +124,14 @@ const SERVER = {
   const n = mk({ list: (sid) => (sid === SID ? LIST : 'elsewhere'), isUnattended: (sid) => sid === SID })
   ok('the list block is in Kaby\'s prompt only', n.promptFor(SID).includes(LIST) && n.promptFor(OTHER) === '')
   ok('a turn an automation started is not written on the shared thread', (await n.mirrorTurn(agent(SID, TURN))) === 'unattended' && calls.length === 0)
+  // A turn an outside assistant relayed (the platform's MCP door) is not what the person typed: it never goes on their shared thread, like a scheduled run's.
+  const outside = mk({ isOutside: (sid) => sid === SID })
+  ok('a turn an outside assistant relayed is not written on the shared thread', (await outside.mirrorTurn(agent(SID, TURN))) === 'outside' && calls.length === 0, calls)
+  const notOutside = mk({ isOutside: (sid) => sid === OTHER })
+  ok('a session that is not one of those is written as before (the guard is per session)', (await notOutside.mirrorTurn(agent(SID, TURN))) !== 'outside')
+  const brokenOutside = mk({ isOutside: () => { throw new Error('z') } })
+  ok('an outside-turn helper that throws never breaks the mirror, and what it cannot say is not « outside »', (await brokenOutside.mirrorTurn(agent(SID, TURN))) !== 'outside')
+  ok('a turn of another session is still not Kaby\'s, relayed or not', (await outside.mirrorTurn(agent(OTHER, TURN))) === 'not_kyby')
   const bad = mk({ list: () => { throw new Error('x') }, isUnattended: () => { throw new Error('y') } })
   ok('a helper that throws never breaks the prompt or the mirror', bad.promptFor(SID).startsWith('[KYBY]') && !bad.promptFor(SID).includes('[YOUR LIST]') && (await bad.mirrorTurn(agent(SID, TURN))) !== 'unattended')
 }

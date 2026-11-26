@@ -19,6 +19,11 @@ switch off, delete.
 - **Failures are shown as failures**: a rejected key (401), a rate limit (429), no answer in time or no network
   replace the "No app connected yet" message, with the same codes as the host.
 - **Connections page** (mounted by `@local/kybernos-plugin` in its Connectors page; three sub-tabs):
+  - Tab order (2026-11-24, list item 26): *Discover*, *Yours*, *MCP servers*. *Discover* opens by default; *Yours* opens by default when it holds something (a connected app,
+    from the last reading kept on the device, so there is no flash of the wrong tab) and the person's own tab choice is never overridden.
+  - The sign-in proposal card (list item 03): an app an automation needs and that is not connected comes first in *Yours*, in a dashed card that says **which automations ask for it**,
+    what a refusal costs, and has three answers: *Connect*, *Not now* (hidden for 7 days) and *Don't suggest again*. The refusal is kept on the device first
+    (`localStorage` `kybernos.composio.needDismissed`; the app stays connectable from *Discover*), so the dot of the menu and the card go quiet at once; apps are grouped, one card each.
   - *Yours* and *Discover*: search, category facets, 24 apps per page. Add an account through an authorization link
     opened in a new tab (polled up to 2.5 min until ACTIVE), remove one. The account label is its alias, else its
     type, else its id: the host never passes on the e-mail Composio holds.

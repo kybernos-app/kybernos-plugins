@@ -59,6 +59,61 @@ try {
   }
   ok('each CLI was started in the parent session folder, with the task last or after its flag', lances.every((l) => l.cwd === tmpdir() && l.argv.includes('task text')) && lances.length === 4)
   ok('and none of them was given a secret-looking variable of this process', lances.every((l) => !Object.keys(l.env).some((k) => /^(ANTHROPIC|OPENAI)_API_KEY$|^GITHUB_TOKEN$/.test(k))))
+
+  console.log('── credential precedence at boot vs per-run store (Phase 0) ──')
+  {
+    const prevGemini = process.env.GEMINI_API_KEY
+    const prevQwen = process.env.QWEN_TOKEN_PLAN_API_KEY
+    try {
+      process.env.GEMINI_API_KEY = 'boot-env-gemini-key'
+      process.env.QWEN_TOKEN_PLAN_API_KEY = 'boot-env-qwen-key'
+      const geminiMod = await import('./dsh-subagent-gemini/index.js')
+      const qwenMod = await import('./dsh-subagent-qwen/index.js')
+
+      // 1. Live credentials store overrides a stale boot-time process.env value on every run (no restart)
+      const storeValues = { GEMINI_API_KEY: 'live-store-gemini-key-v1', QWEN_TOKEN_PLAN_API_KEY: 'live-store-qwen-key-v1' }
+      const seenEnvs = []
+      const seenArgvs = []
+      const makeCtx = () => {
+        const ctx = {
+          effect: (fn) => { fn(); return () => {} },
+          logger: { warn: () => {} },
+          credentials: { resolve: async (nom) => (storeValues[nom] !== undefined ? { value: storeValues[nom], source: 'store' } : undefined) },
+          subagents: { registerProvider: (x) => { ctx.provider = x } },
+          subprocess: { spawn: (spec) => { seenEnvs.push(spec.env); seenArgvs.push(spec.argv); return sortie('ok\n', 0) } }
+        }
+        return ctx
+      }
+      const gCtx = makeCtx()
+      geminiMod.apply(gCtx, { model: '', env: {} })
+      const qCtx = makeCtx()
+      qwenMod.apply(qCtx, { model: '', env: {} })
+
+      const gRun1 = await gCtx.provider.start({ parent: { session: { header: { cwd: tmpdir() } } }, prompt: [{ type: 'text', text: 't1' }], signal: new AbortController().signal })
+      await gRun1.result; await gRun1.dispose()
+      const qRun1 = await qCtx.provider.start({ parent: { session: { header: { cwd: tmpdir() } } }, prompt: [{ type: 'text', text: 't2' }], signal: new AbortController().signal })
+      await qRun1.result; await qRun1.dispose()
+
+      // 2. Rotating the key in the store takes effect on the very next run without re-applying the plugin
+      storeValues.GEMINI_API_KEY = 'live-store-gemini-key-v2'
+      const gRun2 = await gCtx.provider.start({ parent: { session: { header: { cwd: tmpdir() } } }, prompt: [{ type: 'text', text: 't3' }], signal: new AbortController().signal })
+      await gRun2.result; await gRun2.dispose()
+
+      // 3. Clearing the store falls back to launch-time process.env
+      delete storeValues.GEMINI_API_KEY
+      const gRun3 = await gCtx.provider.start({ parent: { session: { header: { cwd: tmpdir() } } }, prompt: [{ type: 'text', text: 't4' }], signal: new AbortController().signal })
+      await gRun3.result; await gRun3.dispose()
+
+      ok('gemini: live credentials store wins over boot-time process.env', seenEnvs[0].GEMINI_API_KEY === 'live-store-gemini-key-v1', seenEnvs[0].GEMINI_API_KEY)
+      ok('qwen: live credentials store wins over boot-time process.env (forwarded via OPENAI_API_KEY)', seenEnvs[1].OPENAI_API_KEY === 'live-store-qwen-key-v1', seenEnvs[1].OPENAI_API_KEY)
+      ok('gemini: rotating the store key reaches the next run with no restart', seenEnvs[2].GEMINI_API_KEY === 'live-store-gemini-key-v2', seenEnvs[2].GEMINI_API_KEY)
+      ok('gemini: launch-time process.env remains the fallback when store is empty', seenEnvs[3].GEMINI_API_KEY === 'boot-env-gemini-key', seenEnvs[3].GEMINI_API_KEY)
+      ok('no resolved API key ever appears in argv', seenArgvs.every((a) => !a.join(' ').includes('live-store-') && !a.join(' ').includes('boot-env-')))
+    } finally {
+      if (prevGemini === undefined) delete process.env.GEMINI_API_KEY; else process.env.GEMINI_API_KEY = prevGemini
+      if (prevQwen === undefined) delete process.env.QWEN_TOKEN_PLAN_API_KEY; else process.env.QWEN_TOKEN_PLAN_API_KEY = prevQwen
+    }
+  }
 } catch (e) {
   echecs++
   console.log('  ✗ the test itself stopped — ' + String(e && e.stack ? e.stack : e).split('\n').slice(0, 4).join(' | '))

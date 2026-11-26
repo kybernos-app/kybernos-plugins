@@ -286,7 +286,7 @@ console.log('kybernos-call: the member\'s voice')
 
 console.log('kybernos-call: what goes wrong is said, never invented over')
 {
-  // A5-22: « relaunch DSH once » is only right when the routes are really absent (404). Every other failure of the status
+  // A5-22: « relaunch Kybernos once » is only right when the routes are really absent (404). Every other failure of the status
   // route (refused connection, a 500, a page that is not JSON, ok:false) is a service that cannot be reached: try again.
   const UNREACHABLE = /Cannot reach the call service — try again/
   const cases = [
@@ -294,7 +294,7 @@ console.log('kybernos-call: what goes wrong is said, never invented over')
     { name: 'status not ok', responses: [{ ok: false }], expect: UNREACHABLE, retry: true },
     { name: 'HTTP 500', responses: [{ __http: 500, __body: { ok: false, error: 'boom' } }], expect: UNREACHABLE, retry: true },
     { name: 'an HTML page instead of JSON', responses: [{ __http: 200, __html: true }], expect: UNREACHABLE, retry: true },
-    { name: 'HTTP 404: the routes are not mounted', responses: [{ __http: 404, __html: true }], expect: /Calls are not loaded yet: restart DSH once$/, retry: false },
+    { name: 'HTTP 404: the routes are not mounted', responses: [{ __http: 404, __html: true }], expect: /Calls are not loaded yet: restart Kybernos once$/, retry: false },
     { name: 'token refused', responses: [{ ok: true, secrets: 'posee' }, { ok: false, error: 'LiveKit secrets missing' }], expect: /LiveKit secrets missing/, retry: false },
     { name: 'token without an error text', responses: [{ ok: true, secrets: 'posee' }, new Error('network')], expect: /Cannot reach the call service/, retry: true }
   ]
@@ -306,10 +306,10 @@ console.log('kybernos-call: what goes wrong is said, never invented over')
     assert.equal(t.getState().phase, 'error', c.name)
     assert.match(t.getState().note, c.expect, c.name)
     assert.equal(t.getState().retry === true, c.retry, c.name + ': a retry is offered exactly when trying again can help')
-    if (c.retry) assert.doesNotMatch(t.getState().note, /relaunch/, c.name + ': a transient failure never says to relaunch DSH')
+    if (c.retry) assert.doesNotMatch(t.getState().note, /relaunch/, c.name + ': a transient failure never says to relaunch Kybernos')
     assert.equal(e.rooms.length, 0, c.name + ': no room is created')
   }
-  ok('a refused connection, a 500, an HTML page and ok:false say « Cannot reach the call service — try again » with a retry; only a 404 says « relaunch DSH once »; no room is created')
+  ok('a refused connection, a 500, an HTML page and ok:false say « Cannot reach the call service — try again » with a retry; only a 404 says « relaunch Kybernos once »; no room is created')
 
   {
     // The panel of a call that never started: « Close », not « Hang up », and a « Try again » that really tries again.

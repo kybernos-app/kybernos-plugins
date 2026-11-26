@@ -5,6 +5,7 @@
 //
 //   node packages/kybernos-plugin/test-business-menu.mjs
 import { readFileSync } from 'node:fs'
+import { entry, hasEntry } from './lib-i18n-test.mjs'
 
 let pass = 0
 let fail = 0
@@ -123,9 +124,11 @@ console.log('where the core reads the registry (source level)')
   const count = (re) => (SRC.match(re) || []).length
   check('the keyed child is declared once, in the registration of `main`, next to the three single ones', count(/'main\.kybernos-business': \{ kind: 'keyed', scope: 'root' \}/g) === 1 && /key: 'kybers', children: \{ 'main\.kybernos-skills'[^}]*\}, 'main\.kybernos-dashboards'[^}]*\}, 'main\.kybernos-kyber'[^}]*\}, 'main\.kybernos-business': \{ kind: 'keyed'/.test(SRC))
   const menu = SRC.slice(SRC.indexOf('const SalesMenu = '), SRC.indexOf("slots.inject('sidebar.panellist'"))
-  const at = (id) => menu.indexOf("row('" + id + "'")
-  const order = ['dashboards', 'tasks', 'connectors', 'skills', 'aiteams'].map(at)
-  check('the menu is fixed: Dashboards, Automations, Connectors, Skills, Agent Teams, the declared rows, then Creations', order.every((n) => n > 0) && order.every((n, k) => k === 0 || n > order[k - 1]) && count(/h\(KbMenuRows, \{ row, openPage, shown \}\)/g) === 1 && menu.indexOf('h(KbMenuRows') > order[4] && menu.indexOf('h(KbMenuRows') < at('deliverables') && at('deliverables') < menu.indexOf('h(KbProgressBar'), order)
+  const at = (id) => menu.search(new RegExp("\\b(?:rowOf|row)\\('" + id + "'"))
+  // The default order is the ONE table of the fixed rows (`<kb-menu-entries>`), the declared rows sitting right after Agent Teams: cut out and run.
+  const E = new Function('KB_DEFAULT_ICON', SRC.slice(SRC.indexOf('// <kb-menu-entries>'), SRC.indexOf('// </kb-menu-entries>')) + '\nreturn { kbMenuDefaultIds }')('waypoints')
+  check('the menu is fixed: Cloud computer, Kaby, Dashboards, Automations, Connectors, Skills, Agent Teams, the declared rows, then Creations and Documents', E.kbMenuDefaultIds({}, ['tables', 'front-desk']).join() === 'cloudcomputer,kyber,dashboards,tasks,connectors,skills,aiteams,tables,front-desk,deliverables,documents' && E.kbMenuDefaultIds({}, []).join() === 'cloudcomputer,kyber,dashboards,tasks,connectors,skills,aiteams,deliverables,documents', E.kbMenuDefaultIds({}, ['tables', 'front-desk']))
+  check('the menu draws the rows once, as one arranged list, between the new-chat button and the progress bar; no separate declared-rows component', count(/rowsShown\.map\(\(r\) => r\.node\)/g) === 1 && menu.indexOf('rowsShown.map') > menu.indexOf('kb4-ncwrap') && menu.indexOf('rowsShown.map') < menu.indexOf('h(KbProgressBar') && !/KbMenuRows/.test(SRC), menu.indexOf('rowsShown.map'))
   check('no Templates row and no group header any more', at('themes') < 0 && !/KbBusinessGroup|menu-business|toggle-business/.test(SRC))
   check('the pages the store can hold include the rows that are declared', /\.concat\(kbBizMenu\.ids\(\)\)/.test(SRC) && !/\.concat\(\['themes'\]\)/.test(SRC))
   const main = SRC.slice(SRC.indexOf('const KybersMain = '), SRC.indexOf('// ── colonne 1 : navigation Kybernos'))
@@ -135,11 +138,12 @@ console.log('where the core reads the registry (source level)')
   check('every view the core draws is an id a business row cannot take (found ' + coreViews.length + ')', coreViews.length >= 10 && coreViews.every((v) => fresh2.KB_BIZ_TAKEN.indexOf(v) >= 0), coreViews.filter((v) => fresh2.KB_BIZ_TAKEN.indexOf(v) < 0))
   const mount = SRC.slice(SRC.indexOf('const KbBusinessMount = '), SRC.indexOf('const KbBusinessView = '))
   check('the page of a row is the slot entry with the row\'s key, or an honest empty line', /slots\.subscribe\('main\.kybernos-business'/.test(mount) && /slots\.entriesOfSlot\('main\.kybernos-business'\)/.test(mount) && /e\.options\.key === props\.id/.test(mount) && /kbt\('kbui\.business\.off'\)/.test(mount))
-  const rows = SRC.slice(SRC.indexOf('const KbMenuRows = '), SRC.indexOf('const KbBusinessMount = '))
-  check('the declared rows draw nothing while none is declared, and no header', /kbBizMenu\.list\(\)\.filter\(\(r\) => kbCreationSources\.folds\(r\.id\) !== true\)\.map\(/.test(rows) && !/'kb4-grph'|aria-expanded|aria-controls/.test(rows))
-  check('the rows go through the menu\'s own row() (icon sets, selection) and the pack does not rename them (the menu is fixed)', /props\.row\(r\.id,/.test(rows) && /props\.openPage\(\{ view: r\.id \}\)/.test(rows) && /, true\)\)\)/.test(rows) && /fixed !== true && kbDomainLabel\(id\) !== null/.test(SRC))
-  check('the rows follow the registry and the rows\' state, so a row that comes or goes is drawn at once', /kbBizMenu\.subscribe\(/.test(rows) && /KB_MENU_STATE\.subscribe\(/.test(rows))
-  check('the words of the old group are gone', !/'kbui\.business': /.test(SRC) && /'kbui\.business\.off': \{ kybernos: '[^']+', en: '[^']+' \}/.test(SRC))
+  const declared = SRC.slice(SRC.indexOf('const kbMenuDeclared = '), SRC.indexOf('const kbMenuDefaultName = '))
+  check('the declared rows draw nothing while none is declared, and no header', /kbBizMenu\.list\(\)\.filter\(\(r\) => kbCreationSources\.folds\(r\.id\) !== true\)/.test(declared) && !/'kb4-grph'|aria-expanded|aria-controls/.test(declared + menu.slice(menu.indexOf('for (const r of declared)'), menu.indexOf('const rowsShown = '))))
+  const dflt = SRC.slice(SRC.indexOf('const kbMenuDefaultName = '), SRC.indexOf('const kbMenuEntries = '))
+  check('the declared rows go through the menu\'s own row() (icon sets, selection) and the pack does not rename them (the menu is fixed)', /for \(const r of declared\) built\[r\.id\] = \(\) => row\(r\.id, /.test(menu) && /openPage\(\{ view: r\.id \}\)/.test(menu) && dflt.indexOf('kbBizLabel(r, kbt, kbDomainLang())') > 0 && dflt.indexOf('kbBizLabel(r, kbt, kbDomainLang())') < dflt.indexOf('kbDomainLabel(id)'))
+  check('the rows follow the registry and the rows\' state, so a row that comes or goes is drawn at once', /React\.useEffect\(\(\) => kbBizMenu\.subscribe\(/.test(menu) && /kbCreationSources\.subscribe\(/.test(menu) && /KbRowState = /.test(SRC))
+  check('the words of the old group are gone', !/'kbui\.business': /.test(SRC) && entry('kbui.business') === null && hasEntry('kbui.business.off'))
   check('the briefcase is drawn by the core\'s own icon table', /^ {2}briefcase: \['M16 20V4/m.test(SRC))
 }
 

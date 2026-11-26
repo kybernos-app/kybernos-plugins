@@ -1,12 +1,13 @@
 // Tidy up, the shared half: settings, when a run is due, which groups may be merged without asking, and the Study
-// model's judgement of the pairs the word count cannot decide. Pure apart from `judgePairs`, which is given the `llm`
+// model's judgement of the pairs the word count cannot decide. Pure apart from `brainGroups`, which is given the `llm`
 // service. ONE module copied into kybernos-cloud (memories) and kybernos-memory (lessons) — bundles ship one by one and
 // cannot import each other; test-tidy.mjs fails if the two copies differ.
 import { randomUUID } from 'node:crypto'
-import { AUTO_MIN_SCORE, unclearPairs } from './dedupe.mjs'
+import { AUTO_MIN_SCORE, negationCount, numberSet, unclearPairs } from './dedupe.mjs'
 
 // ── Settings ─────────────────────────────────────────────────────────────────────────────────────────────
-// mode     'auto'  merge the groups that are at least AUTO_MIN_SCORE % alike by themselves, ask for the rest
+// mode     'auto'  merge by themselves the groups that are at least AUTO_MIN_SCORE % alike and the Study model's "same" verdicts whose
+//                 merged text passes the checks of a compaction (see unsafeMerge), ask for the rest
 //          'ask'   merge nothing without a click
 // schedule when a run starts by itself: never, at DSH start (if the last run is over 3 days old), daily, weekly,
 //          or once 50 more items than at the last run exist
@@ -80,20 +81,56 @@ export const tidyNext = ({ schedule, last, now, total, bootDone }) => {
 // ── Without asking ───────────────────────────────────────────────────────────────────────────────────────
 export const AUTO_MAX_REMOVALS = 100
 
-/** The groups a run may merge by itself: only the local ones at or above the line, never a Study-model verdict, at most `max` removals. */
-export const pickAuto = (groups, settings, max = AUTO_MAX_REMOVALS) => {
+// How many Study-model merges a run applies by itself: none (decided 2026-11-20, after his first review). A « same » verdict is shown as
+// a suggestion with its reason and the person decides; the model's wording never replaces a note's text without a click.
+export const AUTO_MAX_BRAIN_MERGES = 0
+
+/**
+ * Why a Study-model group may NOT be merged without asking, or null when it may. Only a "same" verdict (type 'merge') with a merged
+ * text, none of whose items is pinned (a pinned item is the person's own wording), and whose text passes the checks of a compaction
+ * against the originals: every number of the originals and no other ('number'), and "not" said at least as often as the most negative
+ * original and no more often than all of them together ('negation'). An 'outdated' verdict is never merged by itself ('type').
+ */
+export const unsafeMerge = (group) => {
+  if (group === null || typeof group !== 'object' || group.by !== 'brain' || group.type !== 'merge') return 'type'
+  if (!Array.isArray(group.items) || group.items.length < 2 || group.items.some((i) => i === null || typeof i !== 'object')) return 'items'
+  if (group.items.some((i) => i.pinned === true)) return 'pinned'
+  const merged = typeof group.merged === 'string' ? group.merged.trim() : ''
+  if (merged === '') return 'text'
+  const union = new Set()
+  for (const i of group.items) for (const n of numberSet(i.content)) union.add(n)
+  const mine = numberSet(merged)
+  if (mine.size !== union.size || [...union].some((n) => !mine.has(n))) return 'number'
+  const counts = group.items.map((i) => negationCount(i.content))
+  const nots = negationCount(merged)
+  if (nots < Math.max(...counts) || nots > counts.reduce((a, b) => a + b, 0)) return 'negation'
+  return null
+}
+
+/**
+ * The groups a run may merge by itself, in `auto` mode only: the local ones at or above the line, and the Study model's merges that
+ * `unsafeMerge` lets through (at most `maxBrain` of them); at most `max` removals in all. An 'outdated' verdict always waits for a click.
+ */
+export const pickAuto = (groups, settings, max = AUTO_MAX_REMOVALS, maxBrain = AUTO_MAX_BRAIN_MERGES) => {
   if (normalizeTidySettings(settings).mode !== 'auto') return []
   const out = []
   let removals = 0
+  let brain = 0
   for (const g of Array.isArray(groups) ? groups : []) {
-    if (g === null || typeof g !== 'object' || g.by === 'brain' || !(g.score >= AUTO_MIN_SCORE) || !Array.isArray(g.items) || g.items.length < 2) continue
+    if (g === null || typeof g !== 'object' || !Array.isArray(g.items) || g.items.length < 2) continue
+    if (g.by === 'brain') { if (brain >= maxBrain || unsafeMerge(g) !== null) continue }
+    else if (!(g.score >= AUTO_MIN_SCORE)) continue
     const r = g.items.length - 1
     if (removals + r > max) continue
     out.push(g)
     removals += r
+    if (g.by === 'brain') brain += 1
   }
   return out
 }
+
+/** What a run asks the apply path for one picked group: a Study-model merge keeps its keeper with the merged text. */
+export const autoRequest = (g) => (g.by === 'brain' ? { id: g.id, edit: g.merged } : { id: g.id })
 
 /** Groups cut into requests of at most `max` removals each (a host refuses more in one go); a group over the limit goes alone. */
 export const removalChunks = (groups, max = 50) => {
@@ -242,15 +279,28 @@ const askModelOnce = async (llm, model, prompt, { timeoutMs = BRAIN_TIMEOUT_MS, 
   return { text }
 }
 
+// a time stamp as dedupe.mjs reads it ("2026-11-01 10:00:00.123456+00:00" too), 0 when unreadable
+const stampOf = (d) => { const t = Date.parse(String(d.createdAt === undefined || d.createdAt === null ? '' : d.createdAt).replace(' ', 'T').replace(/(\.\d{3})\d+/, '$1')); return Number.isFinite(t) ? t : 0 }
+/** A local group of two as a pair for the Study model: [A] the older, [B] the newer, the group's id and score. */
+const reviewPair = (g) => {
+  const row = (i) => ({ id: i.id, content: String(i.content), createdAt: i.createdAt === undefined ? null : i.createdAt, pinned: i.pinned === true })
+  const [x, y] = g.items
+  const [older, newer] = stampOf(x) <= stampOf(y) ? [x, y] : [y, x]
+  return { id: g.id, a: row(older), b: row(newer), like: Number.isFinite(g.score) ? g.score : 0, why: 'below' }
+}
+
 /**
  * The Study model's part of a run. `items` as for dedupe; `taken` the ids already in a local group; `judged` the cache
  * ({ [pairKey]: { ha, hb, verdict, at } }, a pair is asked once unless a text changed); `dismissed` the pairs the user kept apart.
- * Returns { groups, judged, unclear, asked, error }: `groups` are suggestions to review (by: 'brain'), never to apply by themselves.
+ * `review` the local groups under the AUTO_MIN_SCORE line: a group of two is asked first, as a pair, and its verdict (same id as the
+ * group) takes its place, so a "same" can be merged by itself (pickAuto) and anything else waits for a click as before.
+ * Returns { groups, judged, unclear, asked, error }: `groups` (by: 'brain') are reviewed by pickAuto, which only lets safe merges through.
  */
-export const brainGroups = async ({ items, taken, judged, dismissed, llm, model, maxMerged, noun, now, signal, timeoutMs }) => {
+export const brainGroups = async ({ items, taken, judged, dismissed, llm, model, maxMerged, noun, now, signal, timeoutMs, review }) => {
   const cache = { ...(judged !== null && typeof judged === 'object' ? judged : {}) }
   const skip = new Set(Array.isArray(dismissed) ? dismissed : [])
-  const all = unclearPairs(items, { taken, max: BRAIN_MAX_PAIRS * 3 })
+  const below = (Array.isArray(review) ? review : []).filter((g) => g !== null && typeof g === 'object' && g.by !== 'brain' && !(g.score >= AUTO_MIN_SCORE) && Array.isArray(g.items) && g.items.length === 2)
+  const all = [...below.map(reviewPair), ...unclearPairs(items, { taken, max: BRAIN_MAX_PAIRS * 3 })]
   const fresh = []
   let known = 0
   const groups = []
@@ -272,7 +322,8 @@ export const brainGroups = async ({ items, taken, judged, dismissed, llm, model,
     }
     if (fresh.length < BRAIN_MAX_PAIRS) fresh.push(p)
   }
-  const unclear = all.filter((p) => !skip.has(p.id)).length
+  // a local group under the line is counted with the groups, not again as an unclear pair
+  const unclear = all.filter((p) => !skip.has(p.id) && p.why !== 'below').length
   let asked = 0
   let error = null
   let detail = null

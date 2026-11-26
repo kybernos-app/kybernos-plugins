@@ -25,4 +25,12 @@ assert.match(block, /\.kbs-root \.kbsub \.count\{display:none\}/, 'no counts on 
 const need = (56 + 36 + 54 + 30) + 22 + 8 * pad + 3 * 2 + 2 * 4 + 2
 assert.ok(need <= 332, 'the four tabs need about ' + need + ' px, the strip has 332 px at 390 px')
 console.log('  ✓ below 440 px the Skills tabs are tighter and drop their counts: about ' + need + ' px of the 332 px of the strip')
-console.log('\n1 check passed')
+
+// The Suggestions tab is a fifth tab while something waits (round 3, list items 04 and 19). Measured with the five tabs at 406 px: 363 px of tabs in a
+// 363 px strip (fits), at 390 px 15 px of sideways scroll, at 360 px 43 px: the tabs are a little tighter again, only while that tab is there.
+const five = /\.kbs-root \.kbsub \.kbsub-group:has\(\[data-kb="seg-suggestions"\]\) button\.kb-seg\{padding:0 (\d+)px;gap:(\d+)px\}/.exec(block)
+assert.ok(five !== null, 'a tighter rule for the strip while the Suggestions tab is there, inside the phone block')
+assert.ok(Number(five[1]) < pad, 'tighter than the four-tab tabs: ' + five[1] + ' px against ' + pad + ' px')
+assert.match(src, /'data-kb': 'seg-suggestions'/, 'the Suggestions tab carries its hook')
+console.log('  ✓ while the Suggestions tab is there the tabs take ' + five[1] + ' px of padding, so the five stay in the strip from 406 px up')
+console.log('\n2 checks passed')

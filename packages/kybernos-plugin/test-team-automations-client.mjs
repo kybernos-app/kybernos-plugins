@@ -4,7 +4,7 @@
  *  (Propose, Review, Install, Update) with every refusal ending on a button that works again.
  *
  *  No browser: the block is cut out of client.js and run against a few lines of React (function components, the hooks the block uses, effects, state, synchronous
- *  re-render), the page's own helpers (the translation table, the schedule words, the « Where it runs » rules, cut out too) and a fake `fetch` that plays the relay
+ *  re-render), the page's own helpers (the translation table, read from i18n/*.json, the schedule words, the « Where it runs » rules, cut out too) and a fake `fetch` that plays the relay
  *  (/kybernos-cloud/team/automations*) and the local half (/kybernos/automation/team-*). With jsdom (KYBERNOS_JSDOM=<path of jsdom/lib/api.js>) the sheet gets a real
  *  `document`: Escape is a real key event, and the CSS is parsed by a real engine. The same screens in a real page: scripts/check-automations-team-live.mjs.
  *
@@ -13,6 +13,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
+import { table } from './lib-i18n-test.mjs'
 
 let pass = 0
 let fail = 0
@@ -32,12 +33,8 @@ const CORE = between('\n    // <kbta-core>\n', '\n    // </kbta-core>\n')
 const TASKS = between('// KB-TASKS-CLIENT-BEGIN', '// KB-TASKS-CLIENT-END')
 const WHERE = between('// <kbwr-core>', '// </kbwr-core>')
 
-// ── the translation table of the page: every single-line entry of KB_T ──
-const TABLE = {}
-for (const line of SRC.split('\n')) {
-  const m = /^\s*'([A-Za-z0-9_.]+)':\s*(\{.*\}),?\s*$/.exec(line)
-  if (m !== null) { try { TABLE[m[1]] = (0, eval)('(' + m[2] + ')') } catch (e) { /* not a plain entry */ } }
-}
+// ── the translation table of the page: KB_T as the page builds it (i18n/fr.json + i18n/en.json, read through lib-i18n-test.mjs) ──
+const TABLE = table()
 let LANG = 'en'
 const kbt = (key) => { const e = TABLE[key]; return e === undefined ? key : (e[LANG] !== undefined ? e[LANG] : e.en) }
 
@@ -814,7 +811,7 @@ console.log('the sheets: Install')
   await click(root, btnIn(stockRow(), 'team-install'))
   await sleep(10); await root.settle()
   check('Install opens the sheet: the title, who proposed and approved, what it does, what the copy will be', kb(root, 'team-sheet')[0].props['data-sheet'] === 'install' && kb(root, 'team-sheet')[0].props['aria-label'] === 'Install “Daily stock check”' && page(root).includes('v1 · proposed by Karim Benali · approved by Julien Petit') && part(root, 'ti-what') === 'About Daily stock check' && page(root).includes('Every day, 08:00') && page(root).includes('in your time zone (' + vm.runInContext('kbMachineTz()', sandbox) + ')'), page(root).slice(0, 400))
-  check('it starts on this computer, on « Ask me first » (recommended), and the copy is not turned on', kb(root, 'ti-where-local')[0].props['aria-pressed'] === 'true' && kb(root, 'ti-ask')[0].props['aria-checked'] === 'true' && part(root, 'ti-ask').includes('recommended') && kb(root, 'ti-allow')[0].props['aria-checked'] === 'false' && kb(root, 'ti-turnon')[0].props['aria-checked'] === 'false' && part(root, 'ti-where-hint') === 'It runs only while DSH is open on this computer.' && part(root, 'team-sheet-go') === 'Install paused copy')
+  check('it starts on this computer, on « Ask me first » (recommended), and the copy is not turned on', kb(root, 'ti-where-local')[0].props['aria-pressed'] === 'true' && kb(root, 'ti-ask')[0].props['aria-checked'] === 'true' && part(root, 'ti-ask').includes('recommended') && kb(root, 'ti-allow')[0].props['aria-checked'] === 'false' && kb(root, 'ti-turnon')[0].props['aria-checked'] === 'false' && part(root, 'ti-where-hint') === 'It runs only while Kybernos is open on this computer.' && part(root, 'team-sheet-go') === 'Install paused copy')
   check('every app is connected: the switch is on offer, with the reason it is off by default', kb(root, 'ti-turnon')[0].props.disabled === false && part(root, 'ti-turnon-hint') === 'Off by default, so you can read the prompt first.' && kb(root, 'ti-missing').length === 0)
   const items = world.calls.filter((c) => c.path === '/kybernos-cloud/team/automations/item')
   check('the definition is downloaded when the sheet opens (and only then)', items.length === 1 && items[0].query === '?id=2', items)
@@ -936,7 +933,7 @@ console.log('the sheets: Install')
   check('the cloud computer refuses the copy: the link is undone (the copy stays here, paused) and the reason is shown', links.length === 2 && links[1][1] === null && part(root, 'ti-cloud-error').includes(kbt('kbwr.err.too_frequent')) && part(root, 'team-installed').startsWith('Installed, paused'), [links, part(root, 'ti-cloud-error'), part(root, 'team-installed')])
   // the host is not there
   w = base(); w.hostOld = true; root = await mountTeam(w)
-  check('a DSH that has not loaded the host half: the buttons are off, with the reason, and a note says restart', btnIn(rowNamed(root, 'Daily stock check'), 'team-install').props.disabled === true && part(root, 'team-host-old') === 'This DSH has not loaded the update yet. Restart it to propose or install.')
+  check('a DSH that has not loaded the host half: the buttons are off, with the reason, and a note says restart', btnIn(rowNamed(root, 'Daily stock check'), 'team-install').props.disabled === true && part(root, 'team-host-old') === 'This Kybernos has not loaded the update yet. Restart it to propose or install.')
   // keyboard and focus
   w = base(); root = await mountTeam(w)
   await click(root, btnIn(rowNamed(root, 'Daily stock check'), 'team-install'))
@@ -1068,7 +1065,7 @@ console.log('the page is wired to the tab')
   const hook = pageSrc.indexOf('const team = kbtaUseSummary(section)')
   const early = pageSrc.indexOf('if (t !== null) {')
   check('the summary is read with the other hooks of the page, before its early return for the page of one automation (a hook after a return breaks the page)', hook > 0 && early > hook)
-  check('the segment is drawn after Yours and Discover, and the tab is the body of the page when it is the section', /\.concat\(\[kbtaSegment\(team, section, \(\) => setSection\('team'\)\)\]\)/.test(pageSrc) && /\(section === 'team' \? h\(KbTeamAutomations, \{ sum: team, tasks, computers: computersPair\[0\]\.list, connected: computersPair\[0\]\.connected === true, req: proposeReq/.test(pageSrc))
+  check('the segment is drawn after Yours and Discover, and the tab is the body of the page when it is the section', /extra: \[kbtaSegment\(team, section, \(\) => setSection\('team'\)\)\]/.test(pageSrc) && /: section === 'team' \? h\(KbTeamAutomations, \{ sum: team, tasks, computers: computersPair\[0\]\.list, connected: computersPair\[0\]\.connected === true, req: proposeReq/.test(pageSrc))
   check('a row of Yours has « Propose to team… » (an icon with its name, hidden only when the Team routes are absent) and it goes through proposeTask', /\(team\.phase !== 'absent' \? h\('button', \{ type: 'button', className: 'kb-favbtn', 'data-kb': 'action-propose', title: kbt\('kbta\.propose\.menu'\), 'aria-label': kbt\('kbta\.propose\.row'\)[^\n]*proposeTask\(a\.id\)/.test(pageSrc))
   check('the menu of the page of an automation has the same entry', /\.\.\.\(team\.phase !== 'absent' \? \[\{ kb: 'detail-propose', icon: Icon\('users', 14\), label: kbt\('kbta\.propose\.menu'\), run: \(\) => proposeTask\(t\.id\) \}\] : \[\]\)/.test(pageSrc))
   check('proposeTask leaves the page of the automation, goes to the Team section and asks for the sheet', /const proposeTask = \(id\) => \{ setDetail\(null\); setNodeSel\(null\); setSection\('team'\); setProposeReq\(\{ taskId: id, n: Date\.now\(\) \}\) \}/.test(pageSrc))

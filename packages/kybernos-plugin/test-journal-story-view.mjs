@@ -138,6 +138,15 @@ assert.equal(Math.round(over.parts.reduce((x, p) => x + p.ms, 0)), 100)
 assert.equal(m.wvsSplit({ activeMs: 0, waitingMs: 5, crewMs: 5 }).total, 0)
 ok('the time split never exceeds the active time, even when waiting and crews overlap in the log')
 
+const spWk = m.wvsSplit({ activeMs: 100, waitingMs: 10, crewMs: 20, workerMs: 30 })
+assert.deepEqual(spWk.parts.map((p) => [p.key, Math.round(p.ms)]), [['crew', 20], ['wait', 10], ['worker', 30], ['chat', 40]])
+const wkMoments = [mk('worker', 1, { status: 'ok', worker: { id: 'codex', name: 'Codex Work' } }), mk('worker', 2, { status: 'error', worker: { id: 'claude-code', name: 'Claude Code' } })]
+assert.equal(m.wvsCounts(wkMoments).workers, 2)
+assert.equal(m.wvsCounts(wkMoments).errors, 1)
+assert.equal(m.wvsPass(wkMoments[0], 'workers'), true)
+assert.equal(m.wvsPass(wkMoments[0], 'connectors'), false)
+ok('worker moments filter cleanly under workers, count errors, and appear in time split only when workerMs > 0')
+
 assert.equal(m.wvsHost('https://www.github.com/a/b/pull/2'), 'github.com')
 assert.equal(m.wvsHost('nope'), null)
 ok('a link shows its host')

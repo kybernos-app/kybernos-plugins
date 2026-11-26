@@ -325,7 +325,7 @@ try {
     { name: 'Settings › Voice', pattern: '*kybernos/tts*', nav: 'Voice', row: '.kbt-row' },
     { name: 'Settings › Web Search', pattern: '*kybernos-websearch/state*', nav: 'Web Search', row: '.kwse-row' },
     { name: 'Settings › Free LLMs', pattern: '*free-llms/status*', nav: 'Free LLMs', row: '.kfl-mod' },
-    { name: 'Settings › Memory & Lessons', pattern: '*kybernos-cloud/memory*', nav: 'Memory & Lessons', row: '.kbmem-r', skipCompare: true },
+    { name: 'Settings › Memory & Lessons › Manage', pattern: '*kybernos-cloud/memory*', nav: 'Memory & Lessons', then: 'button[data-act=manage]', row: '.kbmem-r', skipCompare: true },
   ]
   for (const L of others) {
     await holdRoute(L.pattern)
@@ -334,10 +334,12 @@ try {
     const opened = await openSettings(page).catch(() => false)
     const clicked = opened === true && (await settingsCell(L.nav))
     await sleep(1500)
+    // Memory & Lessons opens on plain rows; its list of notes (Manage) is the part that waits for the account's answer.
+    if (L.then !== undefined) { await ev(`(() => { const b = document.querySelector(${JSON.stringify(L.then)}); if (b) b.click(); return !!b })()`); await sleep(1200) }
     const sk = await ev(`(() => { const w = document.querySelector('.kb-sk'); return w ? { bones: w.querySelectorAll('.kb-sk-bone').length, role: w.getAttribute('role'), label: w.getAttribute('aria-label') } : null })()`)
-    // The Memory page of a person who is not signed in is a panel (« Your memories start with your account ») that waits for nothing: it has no bones to look at.
-    if (sk === null && L.nav === 'Memory & Lessons' && (await ev(`/start with your account/i.test(document.body.innerText)`)) === true) {
-      console.log('SKIPPED: ' + L.name + ': bones while the answer is held — this instance is not signed in, so the page is the sign-in panel and waits for no answer (needs a connected account)')
+    // Without an account the Manage list says so (« Not connected ») and waits for nothing: it has no bones to look at.
+    if (sk === null && L.nav === 'Memory & Lessons' && (await ev(`/Not connected\./.test(document.body.innerText)`)) === true) {
+      console.log('SKIPPED: ' + L.name + ': bones while the answer is held — this instance is not signed in, so the page says so and waits for no answer (needs a connected account)')
       await releaseRoute(); await stopHolding(); continue
     }
     const during = await top(L.row + '.kb-sk-row')

@@ -18,7 +18,7 @@ import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, 
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { DEFAULT_URL, KIND, MAX_DOC_BYTES, SCHEMA, effective, evaluate, readDocument, sanitizeDocument, sanitizeModel } from './modeles-catalogue.mjs'
+import { DEFAULT_URL, KIND, MAX_DOC_BYTES, SCHEMA, effective, evaluate, isCloudId, readDocument, sanitizeDocument, sanitizeModel } from './modeles-catalogue.mjs'
 import { createCatalogue, download, forgetCatalogues, loadKeys, loadShipped, readCatalogueUrl, serveCatalogue, urlAllowed } from './modeles-distant.mjs'
 
 let pass = 0
@@ -61,6 +61,10 @@ try {
   {
     const ok = (id) => sanitizeModel(model(id)).ok === true
     check('a library id with a tag passes', ok('qwen3.5:9b') && ok('gemma4:e4b') && ok('qwen3-coder:30b') && ok('llama3.2:1b-instruct-q4_k_m'))
+    // `ollama pull name:cloud` (or `name:120b-cloud`) registers a model that runs on Ollama's servers: the prompts leave the machine while this
+    // page says "local". Such an id is never a local model, from the catalogue or from a typed request.
+    check('a cloud id is refused: the model would run on Ollama’s servers, not here', !ok('glm-5.3:cloud') && !ok('gpt-oss:120b-cloud') && !ok('deepseek-v4.1-flash:cloud') && ok('cloudy:7b') && ok('qwen3:8b-cloudless'))
+    check('isCloudId says the same thing for the host', isCloudId('glm-5.3:cloud') === true && isCloudId('gpt-oss:120b-cloud') === true && isCloudId('GLM-5.3:CLOUD') === true && isCloudId('qwen3.5:9b') === false && isCloudId('cloudy:7b') === false)
     check('no tag, a namespace, a path, a flag, a space, a second argument, a shell word are all refused',
       ['qwen3.5', 'hf.co/org/repo:Q4', 'user/model:7b', '../x:1b', '--help:1b', 'a b:7b', 'a:7b;rm -rf', 'a:7b && x', 'a:7b\nb', 'A:7B', ':7b', 'a:', 'x'.repeat(60) + ':1b'].every((id) => !ok(id)))
     check('an input or a badge nobody knows is refused (the page draws from a fixed set)', !sanitizeModel(model('a:1b', { input: ['text', 'video'] })).ok && !sanitizeModel(model('a:1b', { badges: ['Fast'] })).ok)

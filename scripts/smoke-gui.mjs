@@ -40,8 +40,6 @@ const ROUTES = [
   ['/kybernos-sessions/brain/health', [200], '"ok":true'],
   ['/kybernos-models/status', [200], '"ok":true'],
   ['/kybernos-cloud/status', [200], '"ok":true'],
-  ['/kybernos-computers/status', [200], '"ok":true'],
-  ['/kybernos-computers/sandboxes', [200], '"sandboxes"'],
   ['/kybernos-auto/state', [200], '"ok":true'],
   ['/kybernos-bricks/state', [200], '{'],
   ['/kybernos-slides/state', [200], '{'],

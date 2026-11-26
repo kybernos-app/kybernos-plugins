@@ -208,7 +208,36 @@ window.__ModuleLoader__.load({
         'host:fetch-refused': ['récupération refusée : {detail}', 'fetch refused: {detail}'],
         'host:merge-refused': ['fusion refusée : {detail}', 'merge refused: {detail}'],
         'host:gh-pr-create-refused': ['gh pr create a refusé : {detail}', 'gh pr create refused: {detail}'],
-        'host:gh-pr-merge-refused': ['gh pr merge a refusé : {detail}', 'gh pr merge refused: {detail}']
+        'host:gh-pr-merge-refused': ['gh pr merge a refusé : {detail}', 'gh pr merge refused: {detail}'],
+
+        // Turn rewind (git & non-git folders)
+        chipRewind: ['{n} points de retour', '{n} restore points'],
+        chipRewind1: ['1 point de retour', '1 restore point'],
+        tRewind: ['{n} tours annulables dans ce dossier', '{n} undoable turns in this folder'],
+        tRewind1: ['1 tour annulable dans ce dossier', '1 undoable turn in this folder'],
+        xRewind: ['Choisis un tour pour remettre les fichiers dans leur état précédent. Un point de secours est enregistré avant.', 'Pick a turn to restore files to how they were before. A rescue point is saved first.'],
+        rwSection: ['Annuler un tour ({n})', 'Undo a turn ({n})'],
+        rwTurnLabel: ['Tour #{n}', 'Turn #{n}'],
+        rwRescueTag: ['secours', 'rescue'],
+        rwFiles: ['{n} fichiers', '{n} files'],
+        rwFiles1: ['1 fichier', '1 file'],
+        rwUndoBtn: ['Restaurer', 'Restore'],
+        rwBefore: ['Avant de restaurer', 'Before restoring'],
+        rwRescueNote: ['Un point de secours est enregistré automatiquement avant, pour pouvoir annuler cette restauration.', 'A rescue point is saved automatically first so you can undo this restore.'],
+        rwConfirm: ['Confirmer la restauration', 'Confirm restore'],
+        rwActRestore: ['restaurer', 'restore'],
+        rwActDelete: ['supprimer', 'remove'],
+        rwActUnchanged: ['inchangé', 'unchanged'],
+        rwActSkipped: ['ignoré', 'skipped'],
+        'rw:missing-session': ['identifiant de session manquant', 'missing session identifier'],
+        'rw:turn-not-found': ['point de retour introuvable pour cette conversation', 'checkpoint not found for this chat'],
+        'rw:folder-not-found': ['dossier introuvable', 'folder not found'],
+        'rw:nothing-to-rewind': ['rien à restaurer — chaque fichier correspond déjà à ce point', 'nothing to restore — every file already matches that point'],
+        'rw:rewound': ['{n} fichiers restaurés (un point de secours a été enregistré avant)', '{n} files restored (a rescue point was saved first)'],
+        'rw:rewound1': ['1 fichier restauré (un point de secours a été enregistré avant)', '1 file restored (a rescue point was saved first)'],
+        'rw:rewind-partial': ['{n} fichiers restaurés, {skipped} ignorés (un point de secours a été enregistré avant)', '{n} files restored, {skipped} skipped (a rescue point was saved first)'],
+        'rw:rewind-partial1': ['1 fichier restauré, {skipped} ignorés (un point de secours a été enregistré avant)', '1 file restored, {skipped} skipped (a rescue point was saved first)'],
+        'rw:rewind-failed': ['restauration refusée : {detail}', 'restore refused: {detail}']
       }
       const L = (key, p) => {
         const pair = S[key]
@@ -241,14 +270,29 @@ window.__ModuleLoader__.load({
         const words = url !== '' && !text.includes(url) ? text + ' ' + url : text
         return words === '' ? '' : ' ' + words
       }
+      const rewindSays = (reply, fallback) => {
+        const r = reply !== null && typeof reply === 'object' ? reply : {}
+        const code = typeof r.code === 'string' ? r.code : ''
+        const key = 'rw:' + code
+        if (code !== '' && S[key] !== undefined) {
+          const p = { detail: typeof r.detail === 'string' ? r.detail : '', skipped: typeof r.skippedCount === 'number' ? String(r.skippedCount) : '0' }
+          return typeof r.count === 'number' ? Lp(key, r.count, p) : L(key, p)
+        }
+        const text = r.erreur || r.error || r.message || fallback
+        return String(text === undefined || text === null ? '' : text)
+      }
 
       // ── the pure part: what the facts mean ─────────────────────────────────────────────────────────────────
       // `f` comes from window.__KB_SESSIONS_VIEW__.read(): git, unsaved, files, ahead/behind, notMerged, pr,
       // conflicts, isolated, sharedWith and `actions` (by role). The result is a state, not text.
       const classify = (f) => {
-        if (f === null || f === undefined || f.git !== true) return null
-        const has = (r) => f.actions !== null && f.actions !== undefined && f.actions[r] !== undefined
+        if (f === null || f === undefined) return null
         const out = (o) => Object.assign({ tone: 'ok', reached: 3, done: false, wait: false, bad: false, primary: null, secondary: [] }, o)
+        if (f.git !== true) {
+          const hasRw = f.rewind !== null && f.rewind !== undefined && Array.isArray(f.rewind.turns) && f.rewind.turns.length > 0
+          return hasRw ? out({ key: 'rewindOnly', tone: 'info', reached: 0, done: false }) : null
+        }
+        const has = (r) => f.actions !== null && f.actions !== undefined && f.actions[r] !== undefined
         if (f.conflicts > 0) return out({ key: 'conflict', tone: 'err', reached: 1, bad: true })
         if (f.unsaved > 0) {
           const primary = has('save') ? 'save' : (has('saveLocal') ? 'saveLocal' : null)
@@ -289,6 +333,10 @@ window.__ModuleLoader__.load({
           case 'toFetch': return [L('chipFetch'), L('tFetch'), Lp('xFetch', f.behind)]
           case 'conflict': return [L('chipConflict'), L('tConflict'), L('xConflict')]
           case 'elsewhere': return [L('chipElsewhere'), L('tElsewhere'), Lp('xElsewhere', f.folderDirty)]
+          case 'rewindOnly': {
+            const rwN = f.rewind && Array.isArray(f.rewind.turns) ? f.rewind.turns.length : 0
+            return [Lp('chipRewind', rwN), Lp('tRewind', rwN), L('xRewind')]
+          }
           default: return [L('chipOk'), L('tOk'), L(f.isolated && f.actions && f.actions.closeCopy ? 'xOkCopy' : 'xOk')]
         }
       }
@@ -382,6 +430,16 @@ window.__ModuleLoader__.load({
 .kbch-seg button[aria-pressed="true"]{background:var(--dsw-alias-bg-layer-3,#353638);color:var(--dsw-alias-label-primary,#f9fafb);font-weight:600}
 .kbch-link{color:var(--dsw-alias-state-business-primary,#7aaaff);font-size:12.5px;text-decoration:none}
 .kbch-link:hover{text-decoration:underline}
+.kbch-rw{margin-top:12px;padding-top:10px;border-top:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.07));display:grid;gap:8px}
+.kbch-rw-toggle{appearance:none;display:flex;align-items:center;justify-content:space-between;width:100%;padding:4px 0;border:0;background:transparent;color:var(--dsw-alias-label-secondary,#cfd3d6);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;text-align:left}
+.kbch-rw-toggle:hover{color:var(--dsw-alias-label-primary,#f9fafb)}
+.kbch-rw-list{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.kbch-rw-row{display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.08));border-radius:10px;background:var(--dsw-alias-bg-layer-1,#232324)}
+.kbch-rw-meta{flex:1;min-width:0;display:grid;gap:2px}
+.kbch-rw-prompt{font-size:12.5px;color:var(--dsw-alias-label-primary,#f9fafb);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbch-rw-sub{font-size:11.5px;color:var(--dsw-alias-label-tertiary,#adb2b8);display:flex;align-items:center;gap:6px}
+.kbch-rw-tag{padding:1px 6px;border-radius:999px;font-size:10.5px;border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.14));color:var(--dsw-alias-state-business-primary,#7aaaff)}
+.kbch-rw-note{margin:0;font-size:12px;line-height:1.4;color:var(--dsw-alias-label-tertiary,#adb2b8)}
 html[dir="rtl"] .kbch-card{left:auto;right:0;text-align:right}
 @media (prefers-reduced-motion:reduce){.kbch-chip{transition:none}}
 `
@@ -427,6 +485,8 @@ html[dir="rtl"] .kbch-card{left:auto;right:0;text-align:right}
         const [mode, setMode] = React.useState(readMode)
         const [run, setRun] = React.useState(null) // { role, phase: plan|confirm|running|done|error, plan, error, message }
         const [msg, setMsg] = React.useState('')
+        const [rwOpen, setRwOpen] = React.useState(false)
+        const [rwRun, setRwRun] = React.useState(null) // { turnId, phase: plan|confirm|running|done|error, plan, reply, error }
         const [, setLangTick] = React.useState(0)
         const [shift, setShift] = React.useState(0) // how far the card is pulled left so that it stays inside the window
         const [off, setOff] = React.useState('') // why there are no facts: 'module' (no Sessions seam) · 'read' (it did not answer) · '' (nothing wrong)
@@ -561,7 +621,77 @@ html[dir="rtl"] .kbch-card{left:auto;right:0;text-align:right}
           secondary.map((role) => h('button', { key: role, className: 'kbch-btn quiet', type: 'button', 'data-act': 'secondary', 'data-role': role, title: L(ROLES[role][1]), onClick: () => begin(role) }, roleLabel(role))),
           facts.pr && facts.pr.url ? h('a', { key: 'pr', className: 'kbch-link', href: facts.pr.url, target: '_blank', rel: 'noreferrer' }, L('openPr')) : null)
 
-        const developer = !dev ? null : h('div', { className: 'kbch-dev', 'data-kb': 'changes-dev' },
+        const isGit = facts.git === true
+        const rw = facts.rewind !== null && facts.rewind !== undefined && Array.isArray(facts.rewind.turns) && facts.rewind.turns.length > 0 ? facts.rewind : null
+        const rwUrl = rw !== null && typeof rw.url === 'string' ? rw.url : ''
+        const rwSession = rw !== null && typeof rw.session === 'string' && rw.session !== '' ? rw.session : (sessionId || '')
+        const rwActLabel = (act) => (act === 'restore' ? L('rwActRestore') : act === 'delete' ? L('rwActDelete') : act === 'skipped' ? L('rwActSkipped') : L('rwActUnchanged'))
+        const beginRewind = async (turnId) => {
+          if (rwUrl === '') return
+          setRwRun({ turnId, phase: 'plan' })
+          try {
+            const plan = await post(rwUrl, { session: rwSession, turnId, exec: false })
+            if (plan !== null && typeof plan === 'object' && plan.ok === true) setRwRun({ turnId, phase: 'confirm', plan })
+            else setRwRun({ turnId, phase: 'error', reply: plan, error: String((plan && (plan.erreur || plan.error)) || 'refused') })
+          } catch (e) { setRwRun({ turnId, phase: 'error', error: String(e && e.message ? e.message : e) }) }
+        }
+        const confirmRewind = async () => {
+          if (rwRun === null || rwUrl === '') return
+          const turnId = rwRun.turnId
+          setRwRun({ turnId, phase: 'running', plan: rwRun.plan })
+          try {
+            const res = await post(rwUrl, { session: rwSession, turnId, exec: true })
+            if (res !== null && typeof res === 'object' && res.ok === true) {
+              setRwRun({ turnId, phase: 'done', reply: res })
+              load()
+              setTimeout(load, 1500)
+              setTimeout(() => { if (alive.current) setRwRun((r) => (r !== null && r.phase === 'done' ? null : r)) }, 6000)
+            } else setRwRun({ turnId, phase: 'error', reply: res, error: String((res && (res.erreur || res.error)) || 'refused') })
+          } catch (e) { setRwRun({ turnId, phase: 'error', error: String(e && e.message ? e.message : e) }) }
+        }
+
+        let rewindBlock = null
+        if (rw !== null) {
+          const rwTurns = rw.turns.slice(0, 8)
+          const showList = !isGit || rwOpen || rwRun !== null
+          let rwBody = null
+          if (rwRun !== null && (rwRun.phase === 'confirm' || rwRun.phase === 'running')) {
+            const changes = rwRun.plan && Array.isArray(rwRun.plan.changes) ? rwRun.plan.changes : []
+            const cmds = rwRun.plan && Array.isArray(rwRun.plan.commandes) ? rwRun.plan.commandes : []
+            rwBody = h('div', { className: 'kbch-box', 'data-kb': 'changes-rewind-confirm' },
+              h('b', { style: { fontWeight: 600 } }, L('rwBefore')),
+              h('p', { className: 'kbch-rw-note' }, L('rwRescueNote')),
+              changes.length > 0 ? h('ul', { className: 'kbch-files' },
+                changes.slice(0, 8).map((c) => h('li', { key: c.path },
+                  h('span', { className: 'kbch-fn' }, c.path),
+                  h('span', { className: 'kbch-fs' }, rwActLabel(c.action))))) : null,
+              dev && cmds.length > 0 ? h('div', { style: { display: 'grid', gap: 4 } }, h('span', { className: 'kbch-fs' }, L('commands')), cmds.slice(0, 8).map((c, i) => h('code', { key: i, className: 'kbch-cmd' }, c))) : null,
+              h('div', { className: 'kbch-row2', style: { margin: 0, justifyContent: 'flex-start' } },
+                h('button', { className: 'kbch-btn primary', type: 'button', 'data-act': 'rewind-confirm', disabled: rwRun.phase === 'running', onClick: confirmRewind }, rwRun.phase === 'running' ? L('running') : L('rwConfirm')),
+                h('button', { className: 'kbch-btn quiet', type: 'button', 'data-act': 'rewind-back', disabled: rwRun.phase === 'running', onClick: () => setRwRun(null) }, L('back'))))
+          } else if (rwRun !== null && rwRun.phase === 'plan') {
+            rwBody = h('p', { className: 'kbch-why' }, L('checking'))
+          } else {
+            rwBody = h('div', { style: { display: 'grid', gap: 6 } },
+              rwRun !== null && rwRun.phase === 'error' ? h('p', { className: 'kbch-err-t', role: 'alert', 'data-kb': 'changes-rewind-error' }, L('failed') + ' — ' + rewindSays(rwRun.reply, rwRun.error)) : null,
+              rwRun !== null && rwRun.phase === 'done' ? h('p', { className: 'kbch-ok-t', role: 'status', 'data-kb': 'changes-rewind-done' }, L('done') + ' ' + rewindSays(rwRun.reply, '')) : null,
+              h('ul', { className: 'kbch-rw-list', 'data-kb': 'changes-rewind-list' },
+                rwTurns.map((t) => h('li', { key: t.id, className: 'kbch-rw-row' },
+                  h('div', { className: 'kbch-rw-meta' },
+                    h('span', { className: 'kbch-rw-prompt', title: t.prompt || L('rwTurnLabel', { n: t.index }) }, t.prompt || L('rwTurnLabel', { n: t.index })),
+                    h('span', { className: 'kbch-rw-sub' },
+                      Lp('rwFiles', t.fileCount),
+                      t.kind === 'rescue' ? h('span', { className: 'kbch-rw-tag' }, L('rwRescueTag')) : null)),
+                  t.restorable !== false ? h('button', { className: 'kbch-btn', type: 'button', 'data-act': 'rewind-pick', 'data-turn': t.id, onClick: () => beginRewind(t.id) }, L('rwUndoBtn')) : null))))
+          }
+          rewindBlock = h('div', { className: 'kbch-rw', 'data-kb': 'changes-rewind' },
+            isGit ? h('button', { className: 'kbch-rw-toggle', type: 'button', 'data-act': 'rewind-toggle', 'aria-expanded': showList ? 'true' : 'false', onClick: () => setRwOpen((v) => !v) },
+              h('span', null, L('rwSection', { n: rw.turns.length })),
+              h('span', { 'aria-hidden': 'true' }, showList ? '▾' : '▸')) : null,
+            showList ? rwBody : null)
+        }
+
+        const developer = !dev || !isGit ? null : h('div', { className: 'kbch-dev', 'data-kb': 'changes-dev' },
           h('dl', { className: 'kbch-kv' },
             h('dt', null, L('branch')), h('dd', null, h('code', null, facts.branch || '—'), facts.base && facts.base !== facts.branch ? ' → ' : '', facts.base && facts.base !== facts.branch ? h('code', null, facts.base) : null),
             h('dt', null, L('gap')), h('dd', null, '↑' + facts.ahead + ' ↓' + facts.behind + ' ', h('span', { className: 'kbch-fs' }, L('gapNote'))),
@@ -582,22 +712,23 @@ html[dir="rtl"] .kbch-card{left:auto;right:0;text-align:right}
               h('button', { className: 'kbch-x', type: 'button', 'aria-label': L('close'), onClick: () => setOpen(false) }, cross)),
             h('h4', { className: 'kbch-h' }, words[1]),
             h('p', { className: 'kbch-p' }, words[2]),
-            h('div', { className: 'kbch-steps', role: 'list', 'aria-label': L('stepsAria') },
-              STEP_KEYS.map((k, i) => h('div', { key: k, className: 'kbch-stp ' + states[i], role: 'listitem', 'data-step': states[i] }, h('i', null, states[i] === 'done' ? tick : null), L(k)))),
-            filesBlock,
-            action,
-            extra,
+            isGit ? h('div', { className: 'kbch-steps', role: 'list', 'aria-label': L('stepsAria') },
+              STEP_KEYS.map((k, i) => h('div', { key: k, className: 'kbch-stp ' + states[i], role: 'listitem', 'data-step': states[i] }, h('i', null, states[i] === 'done' ? tick : null), L(k)))) : null,
+            isGit ? filesBlock : null,
+            isGit ? action : null,
+            isGit ? extra : null,
+            rewindBlock,
             developer,
-            h('div', { className: 'kbch-mode' }, h('span', null, L('view')), h('span', { className: 'sp' }),
+            isGit ? h('div', { className: 'kbch-mode' }, h('span', null, L('view')), h('span', { className: 'sp' }),
               h('div', { className: 'kbch-seg', role: 'group', 'aria-label': L('view') },
                 h('button', { type: 'button', 'data-act': 'mode-simple', 'aria-pressed': dev ? 'false' : 'true', onClick: () => setViewMode('simple') }, L('simple')),
-                h('button', { type: 'button', 'data-act': 'mode-dev', 'aria-pressed': dev ? 'true' : 'false', onClick: () => setViewMode('dev') }, L('developer'))))) : null)
+                h('button', { type: 'button', 'data-act': 'mode-dev', 'aria-pressed': dev ? 'true' : 'false', onClick: () => setViewMode('dev') }, L('developer')))) : null) : null)
       }
 
       return {
         name: 'kybernos-changes',
         inject: ['slots'],
-        __test: { classify, wording, stepStates, ROLES, S, L, Lp, kt, hostSays, doneWords, readMode, writeMode, CSS, STEP_KEYS },
+        __test: { classify, wording, stepStates, ROLES, S, L, Lp, kt, hostSays, doneWords, rewindSays, readMode, writeMode, CSS, STEP_KEYS },
         apply (ctx) {
           // Before the sessions pills (order 5): the chip is the first thing on the row.
           ctx.effect(() => ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register(

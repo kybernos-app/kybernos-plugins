@@ -3,11 +3,12 @@
 // approval" — and of its bounds, its i18n table and its source guards.
 //
 // It extracts, the house way, the three places of client.js the batch owns: the KB-AUTOBOARD block (the gate/queue pure functions),
-// the KB-AUTORUNS block (the proof), and the new `// <kbgate-ui>` region (the three components). It also parses KB_T line by line.
+// the KB-AUTORUNS block (the proof), and the new `// <kbgate-ui>` region (the three components). Its i18n table is KB_T as the page builds it, read from i18n/fr.json + i18n/en.json.
 // The client is a browser bundle with no exports, so the blocks are imported through a `data:` URL with an explicit name list.
 // Usage: node packages/kybernos-plugin/test-automation-gate-client.mjs   (exit 0 = everything passes)
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { table as kbTable, I18N_DIR } from './lib-i18n-test.mjs'
 
 const src = readFileSync(fileURLToPath(new URL('./client.js', import.meta.url)), 'utf8')
 
@@ -268,18 +269,17 @@ const KEYS = [
   'tasks.init.status.proposed', 'tasks.init.status.asked', 'tasks.init.status.added', 'tasks.init.status.dropped',
   'tasks.init.notdraft',
 ]
-// The table, parsed line by line: one object literal per line, as the page writes it. The count is kept before collapsing, so a
-// duplicate row (which would silently win in the object literal) fails here instead of hiding.
-const table = new Map()
+// The table as the page builds it. The files are flat, one `"key": "text",` per line, and the count is kept from the raw lines (the larger of the
+// two languages), so a duplicate row (which JSON.parse, like an object literal, lets silently win) fails here instead of hiding.
+const table = new Map(Object.entries(kbTable()))
 const counts = new Map()
-for (const line of src.split('\n')) {
-  const t = /^\s*'([A-Za-z0-9_.-]+)':\s*(\{.*\}),?\s*$/.exec(line)
-  if (t === null) continue
-  let row = null
-  try { row = (0, eval)('(' + t[2] + ')') } catch (e) { row = null }
-  if (row === null || typeof row !== 'object') continue
-  table.set(t[1], row)
-  counts.set(t[1], (counts.get(t[1]) || 0) + 1)
+for (const lang of ['fr', 'en']) {
+  const n = new Map()
+  for (const line of readFileSync(I18N_DIR + '/' + lang + '.json', 'utf8').split('\n')) {
+    const t = /^\s+("(?:[^"\\]|\\.)*"):/.exec(line)
+    if (t !== null) { const k = JSON.parse(t[1]); n.set(k, (n.get(k) || 0) + 1) }
+  }
+  for (const [k, c] of n) counts.set(k, Math.max(counts.get(k) || 0, c))
 }
 {
   eq('the declared list holds 97 keys', KEYS.length, 97)

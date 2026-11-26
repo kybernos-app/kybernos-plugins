@@ -69,6 +69,7 @@ const React = {
   useRef: (v) => ({ current: v === undefined ? null : v }),
   useState: (v) => [typeof v === 'function' ? v() : v, () => {}],
   useEffect: () => {},
+  useLayoutEffect: () => {},
 }
 
 // ── chargement ──────────────────────────────────────────────────────────────
@@ -77,7 +78,7 @@ const source = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
 new Function('window', 'document', 'React', source)(globalThis.window, globalThis.document, React)
 
 ok('le bundle se charge dans le format du ModuleLoader', typeof definition === 'object' && definition !== null)
-ok('identifiant du module', definition.id === '@local/kybernos-modeleur/client', definition.id)
+ok('identifiant du module', definition.id === '@local/kybernos-modeleur', definition.id)
 const plugin = definition.factory((nom) => { if (nom === 'react') return React; throw new Error('require inattendu : ' + nom) })
 ok('le plugin déclare `slots` en inject', Array.isArray(plugin.inject) && plugin.inject.includes('slots'))
 ok('le plugin attend `sidebarRightTabs` avant de s\'appliquer',
@@ -88,13 +89,14 @@ ok('la surface de test expose les deux moteurs',
   typeof T.normaliser2D === 'function' && typeof T.normaliser3D === 'function' && typeof T.construire === 'function')
 
 // ── câblage : apply sur un contexte factice ─────────────────────────────────
+let cleEcran = '' // the key the engine says is on screen
 const effets = []
 const slotsInj = []
 const contexte = {
   get (nom) {
     if (nom === 'sidebarRight') return { openTab: () => {} }
     if (nom === 'sidebarRightTabs') return { register: (r) => { slotsInj.push(r) } }
-    if (nom === 'uiSession') throw new Error('absent')
+    if (nom === 'uiSession') return { adapter: { current: { getSnapshot: () => ({ key: cleEcran }) } } }
     return undefined
   },
   effect (f, nom) { effets.push(nom); const d = f(); return typeof d === 'function' ? d : () => {} },
@@ -311,6 +313,35 @@ langue = 'kybernos'
   canvas().props.onPointerUp(evt('pointercancel'))
   ok('A4-07: a cancelled press opens nothing', T.pinceau.texte === null)
   T.pinceau.on = false; T.pinceau.outil = 'trait'
+}
+
+
+// ── another chat's model never stays on the panel ───────────────────────────
+// The poll kept asking for the previous chat's key (read once at start-up) and an empty answer for the new chat was ignored, so the right panel
+// showed another conversation's model. Now the key is read from the engine at every tick and what belongs to another chat is forgotten.
+{
+  const demandes = []
+  const fetchAvant = globalThis.fetch
+  globalThis.fetch = async (url) => { demandes.push(String(url)); return { ok: true, json: async () => ({ vide: true }) } }
+  const exemple = { espace: '3d', ops: [], objets: [], brut: [] }
+  T.poserVue(exemple, 'chat-A')
+  ok('a model of chat A is on screen', T.vue().modele !== null && T.vue().sessionVue === 'chat-A')
+  ok('the same chat keeps its model', T.oublierSiAutre('chat-A') === false && T.vue().modele !== null)
+  ok('an unknown key (empty) forgets nothing', T.oublierSiAutre('') === false && T.oublierSiAutre(undefined) === false && T.vue().modele !== null)
+  ok('another chat: the model is forgotten and the panel goes back to its empty state',
+    T.oublierSiAutre('chat-B') === true && T.vue().modele === null && T.vue().sessionVue === '' && T.vue().version === -1)
+  ok('...and nothing is left to forget twice', T.oublierSiAutre('chat-B') === false)
+  // the poll: the engine says chat B is on screen, the host has nothing for B
+  T.poserVue(exemple, 'chat-A')
+  cleEcran = 'chat-B'
+  await T.interroger()
+  ok('the poll asks about the chat on screen, not the one it started with', demandes.length === 1 && demandes[0].includes('session=chat-B'), demandes.join(' | '))
+  ok('an empty answer for chat B no longer leaves chat A\'s model on screen', T.vue().modele === null && T.vue().sessionId === 'chat-B')
+  // the same chat answering "empty" (host restarted) keeps what it shows: no flash of the empty state
+  T.poserVue(exemple, 'chat-B')
+  await T.interroger()
+  ok('the same chat answering empty keeps its own model', T.vue().modele !== null && T.vue().sessionVue === 'chat-B')
+  globalThis.fetch = fetchAvant
 }
 
 console.log(echecs === 0 ? '\nclient : tout est vert' : `\nclient : ${echecs} échec(s)`)

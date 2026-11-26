@@ -65,3 +65,10 @@ node packages/dsh-subagent-maison/test-integration.mjs   # against the REAL engi
 ```
 
 CI has no DSH: the first three run, the fourth skips. Run the fourth on a machine with DSH before changing `fabriquer-provider.mjs`.
+
+## Where a key comes from
+
+In this order: the provider's `apiKey` config, then DSH's credentials store (`ctx.credentials.resolve`, asked **per run**),
+then the launch environment. The store is the one the Workers screen writes to; DSH never copies it into its own
+environment, so a key saved while DSH runs used to be invisible until the next start. Asking the store per run removes
+that restart, and the environment stays as the fallback for a hand-made profile with no store.

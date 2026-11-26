@@ -27,8 +27,8 @@
     "page": true
   },
   "good": {
-    "fr": "Un skill vient d’un tiers ou d’un collègue : DSH ne le vérifie pas, lis ses fichiers et ses audits avant de l’installer ou de l’approuver.",
-    "en": "A skill comes from a third party or a colleague: DSH does not check it, so read its files and audits before you install or approve it."
+    "fr": "Un skill vient d’un tiers ou d’un collègue : Kybernos ne le vérifie pas, lis ses fichiers et ses audits avant de l’installer ou de l’approuver.",
+    "en": "A skill comes from a third party or a colleague: Kybernos does not check it, so read its files and audits before you install or approve it."
   },
   "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/",
   "pages": {
@@ -51,8 +51,8 @@
           "en": "“Install folders” shows where each skill is written; the skills list itself stays in the sidebar › Skills."
         },
         {
-          "fr": "Une skill importée n’est pas relue par DSH : ouvre ses fichiers avant de l’activer, et retire-la si elle ne te dit rien.",
-          "en": "DSH does not review an imported skill: open its files before switching it on, and remove it if it says nothing to you."
+          "fr": "Une skill importée n’est pas relue par Kybernos : ouvre ses fichiers avant de l’activer, et retire-la si elle ne te dit rien.",
+          "en": "Kybernos does not review an imported skill: open its files before switching it on, and remove it if it says nothing to you."
         }
       ],
       "where": {

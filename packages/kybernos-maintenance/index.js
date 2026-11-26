@@ -256,8 +256,8 @@ async function mesurerEtat () {
     (compat.dsh.min !== undefined && comparerVersions(global, compat.dsh.min) < 0) ||
     (compat.dsh.max !== undefined && comparerVersions(global, compat.dsh.max) > 0))
   const problemes = []
-  if (pinsDivergents.length === 1) problemes.push('A DSH package of the profile is pinned to a different version than the engine.')
-  else if (pinsDivergents.length > 1) problemes.push(`${pinsDivergents.length} DSH packages of the profile are pinned to a different version than the engine.`)
+  if (pinsDivergents.length === 1) problemes.push('A Kybernos package of the profile is pinned to a different version than the engine.')
+  else if (pinsDivergents.length > 1) problemes.push(`${pinsDivergents.length} Kybernos packages of the profile are pinned to a different version than the engine.`)
   for (const l of liensManquants) problemes.push(`Package ${l} is not linked to the profile.`)
   for (const b of bundlesManquants) problemes.push(`Bundle ${b} is not declared.`)
   if (horsZone) problemes.push(`Engine version (${global}) has never been tested with this plugin.`)
@@ -286,7 +286,7 @@ async function mesurerEtat () {
   const installation = dates.length === 0 ? null : Math.max(...dates)
   const serveurPerime = installation !== null && installation - demarrageServeur > 10000
   if (serveurPerime) {
-    problemes.push('The server started before the last update: it is still serving the old engine. Restart DSH.')
+    problemes.push('The server started before the last update: it is still serving the old engine. Restart Kybernos.')
   }
   // ── the engine SURFACES: what the installed version breaks or takes over ──
   // Same lesson as the 0.1.6 → 0.1.7 upgrade: "applied" patches do not say

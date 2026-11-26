@@ -89,7 +89,7 @@ const requete = (method, path, headers, corps) => ({
 })
 const reponse = () => { const r = { code: null, corps: null, writeHead (c) { r.code = c }, end (s) { try { r.corps = JSON.parse(s) } catch (e) { r.corps = s } } }; return r }
 // A read-only route answers a POST with 405 before doing anything: it cannot change state either way.
-const LECTURE_SEULE = ['/kybernos-sessions/state']
+const LECTURE_SEULE = ['/kybernos-sessions/state', '/kybernos-sessions/rewind/turns']
 const refuse = (chemin, r) => (LECTURE_SEULE.indexOf(chemin) !== -1 ? r.code === 405 : r.code === 403)
 for (const chemin of chemins) {
   const r = reponse()

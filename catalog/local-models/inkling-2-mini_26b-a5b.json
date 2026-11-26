@@ -1,0 +1,23 @@
+{
+  "id": "inkling-2-mini:26b-a5b",
+  "famille": "i",
+  "initiale": "In",
+  "tailleGo": 20,
+  "ramMin": 32,
+  "score": "Ollama library · 20 GB · 1M ctx",
+  "input": [
+    "text",
+    "image"
+  ],
+  "badges": [
+    "Vision",
+    "Tools",
+    "Thinking"
+  ],
+  "desc": {
+    "fr": "Inkling 2 Mini (Thinking Machines) : 26B dont 5,4B actifs, vision, outils et réflexion. Pour 32 Go.",
+    "en": "Inkling 2 Mini (Thinking Machines): 26B, 5.4B active, vision, tools and thinking. For 32 GB."
+  },
+  "ajoute": "2026-11-23",
+  "ordre": 71
+}

@@ -77,7 +77,9 @@ try {
   check('opening another group shuts the first (one at a time)', m.rows.filter((r) => r.head && r.open).map((r) => r.t).join() === 'System' && !m.rows.some((r) => r.t === 'Theme'), m.rows.filter((r) => r.head && r.open).map((r) => r.t))
   const sys = m.rows.findIndex((r) => r.head && r.t === 'System')
   const sysRows = m.rows.slice(sys + 1).map((r) => r.t)
-  check('System holds the Suite and Built-in plugins, and About closes the list', sysRows.includes('Kybernos Suite') && sysRows.includes('Built-in plugins') && sysRows.indexOf('Kybernos Suite') < sysRows.indexOf('Built-in plugins') && m.rows[m.rows.length - 1].t === 'About', m.rows.slice(sys).map((r) => r.t))
+  // DSH draws its plugins page « Built-in plugins » up to 0.2.2 and « Plugins » from 0.2.3-alpha.2: the cell is the same (its key is « plugins »).
+  const plug = sysRows.includes('Built-in plugins') ? 'Built-in plugins' : 'Plugins'
+  check('System holds the Suite and the plugins page, and About closes the list', sysRows.includes('Kybernos Suite') && sysRows.includes(plug) && sysRows.indexOf('Kybernos Suite') < sysRows.indexOf(plug) && m.rows[m.rows.length - 1].t === 'About', m.rows.slice(sys).map((r) => r.t))
   const gap = await ev(`(() => { const l = [...document.querySelectorAll('[class*="navList"]')].find((x) => x.querySelector('[class*="navCell"]')); let sc = l; while (sc && sc !== document.body) { const o = getComputedStyle(sc).overflowY; if ((o === 'auto' || o === 'scroll') && sc.scrollHeight > sc.clientHeight) break; sc = sc.parentElement } const last = [...l.querySelectorAll('[class*="navCell"]')].filter((c) => c.getBoundingClientRect().height > 0).reduce((a, c) => c.getBoundingClientRect().bottom > a.getBoundingClientRect().bottom ? c : a); if (sc) sc.scrollTop = sc.scrollHeight; return sc ? Math.round(sc.getBoundingClientRect().bottom - last.getBoundingClientRect().bottom) : 999 })()`)
   check('there is room under the last tab (24px or more)', Number(gap) >= 24, gap)
   await press('System', true)

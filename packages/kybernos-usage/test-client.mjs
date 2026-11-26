@@ -39,6 +39,18 @@ const T = plugin.__test
   ok('a limit strip in the composer dock, after the chip and the other bundles\' pills', strip !== undefined && strip.meta.name === 'conversation.composer.dock' && strip.meta.order > dock.meta.order && strip.meta.order >= 99)
   ok('the strip component never throws on odd props', (() => { try { strip.comp(null); strip.comp({}); return true } catch (e) { return false } })())
   ok('the dock component never throws on odd props', (() => { try { dock.comp(null); dock.comp({}); return true } catch (e) { return false } })())
+  ok('ContextInsightBlock renders breakdown, top tools, compactions and shell savings', (() => {
+    const empty = T.ContextInsightBlock({ insight: null })
+    const tree = T.ContextInsightBlock({
+      insight: {
+        active: { totalTokens: 10000, toolTokens: 7000, conversationTokens: 2000, injectedTokens: 600, systemTokens: 400, topTools: [{ name: 'bash', tokens: 5000, calls: 4 }] },
+        compactions: { count: 2, failures: 0 },
+        compression: { compressedCount: 1 }
+      }
+    })
+    const dump = JSON.stringify(tree)
+    return empty === null && tree !== null && tree.props['data-kb'] === 'kybernos-context-insight' && dump.includes('bash') && dump.includes('2 compactages') && dump.includes('1 sortie shell')
+  })())
 }
 
 // ── strings: both languages, same placeholders ─────────────────────────────────────────────────────────────────
@@ -231,7 +243,7 @@ ok('stable test hooks exist', ['kybernos-usage-pill', 'kybernos-usage-card', 'ky
   ok('the French twin says the same, with « console »', /tous les modèles/i.test(forFr) && /console Kybernos/i.test(forFr), forFr)
   ok('the page draws its head through the Suite’s Title, once, for this bundle', find(en, (n) => n.type === fake.Title).length === 1 && find(en, (n) => n.type === fake.Title)[0].props.id === 'kybernos-usage')
   ok('with the Suite the page passes both description paragraphs to Help as `lead` (the plan sentence first), and its name as `title`, in English and in French', Array.isArray(helpEn.props.lead) && helpEn.props.lead.length === 2 && helpEn.props.lead[0] === T.S.pageLead[1] && helpEn.props.lead[1] === T.S.pageFor[1] && helpEn.props.title === T.S.pageName[1] && helpFr.props.lead[0] === T.S.pageLead[0] && helpFr.props.lead[1] === T.S.pageFor[0] && helpFr.props.title === T.S.pageName[0], JSON.stringify(helpEn.props))
-  ok('the credits of the plan are grouped the French way for the built-in French as for the others (J18-11)', /Math\.round\(credits\)\.toLocaleString\(lang\(\)\.slice\(0, 2\) === 'fr' \|\| lang\(\) === 'kybernos' \? 'fr-FR' : 'en-US'\)/.test(src))
+  ok('the balance is drawn in dollars, formatted the French way for the built-in French as for the others (J18-11), and the unit « credits » is not shown any more', /new Intl\.NumberFormat\(lang\(\)\.slice\(0, 2\) === 'fr' \|\| lang\(\) === 'kybernos' \? 'fr-FR' : 'en-US', \{ style: 'currency', currency: 'USD'/.test(src) && /credit_balance_usd/.test(src) && !/creditsUnit/.test(src) && !/credit_balance_credits/.test(src))
   ok('the page title has no style of its own: it comes through the shared head, with no rule on the page heading or its row', /const pageHead = \(props\) => \{ try \{ if \(window\.__KB_HELP__ && window\.__KB_HELP__\.Title\) return h\(window\.__KB_HELP__\.Title, props\)/.test(src) && /pageHead\(\{ id: 'kybernos-usage'/.test(src) && !/\.kbus-page h2\{/.test(src) && !/kbus-titlerow/.test(src))
   ok('...and it no longer draws those paragraphs under the title', find(en, (n) => n.props && /\bkbus-lead\b/.test(n.props.className)).length === 0 && find(fr, (n) => n.props && /\bkbus-lead\b/.test(n.props.className)).length === 0)
   ok('without the Suite the two paragraphs are still drawn under the title, in this order', (() => { const t = find(draw('en'), (n) => n.props && /\bkbus-lead\b/.test(n.props.className)); return t.length === 2 && text(t[0]) === T.S.pageLead[1] && text(t[1]) === T.S.pageFor[1] && /\bkbus-for\b/.test(t[1].props.className) })())
@@ -276,7 +288,7 @@ ok('stable test hooks exist', ['kybernos-usage-pill', 'kybernos-usage-card', 'ky
   ok('binding: nothing to read', T.bindingWindow([]) === null && T.bindingWindow(null) === null)
 
   // the three states
-  const planOf = (windows, extra = {}) => ({ connected: true, name: 'Free', credits: null, blocked: false, noPlan: false, personal: true, role: 'owner', workspaceId: 'w1', spacePlan: { key: 'free', label: 'Free' }, windows, ...extra })
+  const planOf = (windows, extra = {}) => ({ connected: true, name: 'Free', usd: null, blocked: false, noPlan: false, personal: true, role: 'owner', workspaceId: 'w1', spacePlan: { key: 'free', label: 'Free' }, windows, ...extra })
   ok('state: under 75 % there is nothing to say', T.limitState(planOf([view(18000, 74)])) === 'ok')
   ok('state: 75 % is near, 99 % too', T.limitState(planOf([view(18000, 75)])) === 'near' && T.limitState(planOf([view(18000, 99)])) === 'near')
   ok('state: out only when the server says the window is used up (100 % that a top-up still lets through is near)', T.limitState(planOf([usedUp(18000, 3)])) === 'out' && T.limitState(planOf([view(18000, 100)])) === 'near')
@@ -371,5 +383,22 @@ ok('stable test hooks exist', ['kybernos-usage-pill', 'kybernos-usage-card', 'ky
   ok('the plan is read again when the footer or a refused call says so', /addEventListener\('kybernos-cloud:quota-read'/.test(src))
   ok('the buttons reach the Upgrade dialog and Settings through the seams the cloud bundle owns, with a fallback', /__KB_UPGRADE__/.test(src) && /u\.settings\(\)/.test(src) && /__kbOpenDshSettings/.test(src))
   ok('the strip takes a line of its own in the dock', /\[data-composer-dock\]:has\(\.kbus-strip\)\{flex-wrap:wrap\}/.test(T.CSS))
+}
+
+// ── external workers limits card (silent when empty, honest auth-required, rolling bars) ──
+{
+  const prevLang = globalThis.window.__KB_LANG_RESOLVE__
+  globalThis.window.__KB_LANG_RESOLVE__ = () => 'en'
+  const text = (n) => (n === null || n === undefined || n === false ? '' : typeof n !== 'object' ? String(n) : (n.kids || []).flat().map(text).join(' '))
+  ok('workers block renders nothing when no external worker quotas exist', T.WorkersBlock({ quotas: [] }) === null)
+  const el = T.WorkersBlock({
+    quotas: [
+      { workerId: 'codex-work', label: 'Codex Work', activeRuns: 1, coolingDown: false, authRequired: false, cacheStats: { cacheHitPct: 84 }, windows: [{ key: 'monthly', label: 'Monthly', remainingPct: 91, source: 'native' }] },
+      { workerId: 'ag-miled', label: 'Antigravity', activeRuns: 0, coolingDown: false, authRequired: true, authMessage: 'Sign in with Google to see Antigravity limits.', windows: [] },
+    ],
+  })
+  const txt = text(el).replace(/\u00a0/g, ' ')
+  ok('workers block renders worker limits, cache hit, active count, and explicit auth-required notice', el !== null && el.props['data-kb'] === 'kybernos-usage-workers' && txt.includes('Codex Work') && txt.includes('91 % left') && txt.includes('1 active') && txt.includes('cache 84 %') && txt.includes('Sign in with Google to see Antigravity limits.'), txt)
+  globalThis.window.__KB_LANG_RESOLVE__ = prevLang
 }
 process.exit(fail ? 1 : 0)

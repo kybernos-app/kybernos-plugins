@@ -1,7 +1,7 @@
 {
   "what": {
-    "fr": "Traduit l’interface de Kybernos et celle de DSH dans la langue de ton choix, avec un modèle déjà configuré. L’arabe ou l’hébreu inversent aussi le sens de lecture.",
-    "en": "Translates the Kybernos and DSH interface into the language you choose, using a model you already set up. Arabic or Hebrew also flip the reading direction."
+    "fr": "Traduit toute l’interface de Kybernos dans la langue de ton choix, avec un modèle déjà configuré. L’arabe ou l’hébreu inversent aussi le sens de lecture.",
+    "en": "Translates the whole Kybernos interface into the language you choose, using a model you already set up. Arabic or Hebrew also flip the reading direction."
   },
   "steps": [
     {

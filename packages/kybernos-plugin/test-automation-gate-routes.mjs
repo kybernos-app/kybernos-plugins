@@ -902,6 +902,55 @@ let healthyGateText = null
   naked.server.close()
 }
 
+// ── 19b. The « ask first » seam the local door (kybernos-door) uses: a task from an outside assistant never runs unasked ─────
+{
+  const SEAM = Symbol.for('kybernos.askSessions')
+  const door = await boot()
+  const seam = globalThis[SEAM]
+  ok('the seam is published, frozen and versioned', seam !== undefined && Object.isFrozen(seam) === true && seam.version === 1 && typeof seam.begin === 'function')
+  const sets = []
+  door.services.permissionPresets.set = (session, preset) => { sets.push([session.id, preset]) }
+  door.services.sessions.get = (id) => (id.indexOf('door-') === 0 || id.indexOf('auto-') === 0 || id.indexOf('kid-') === 0 || id === 'chat-by-hand' ? { id, header: id === 'kid-of-door' ? { parentSession: 'door-1' } : {} } : undefined)
+
+  const first = seam.begin('door-1', { door: true })
+  ok('a known session is put under the asking preset', first.ok === true && first.preset === 'workspace-write' && sets.length === 1 && sets[0][0] === 'door-1' && sets[0][1] === 'workspace-write', JSON.stringify([first, sets]))
+  eq('a session that does not exist is refused, and no preset is set', [seam.begin('ghost-1', { door: true }).error, sets.length], ['session_not_found', 1])
+  eq('an id that is not a session id is refused', [seam.begin(42).error, seam.begin('').error, seam.begin(undefined).error], ['bad_session', 'bad_session', 'bad_session'])
+  const saved = door.services.permissionPresets.names
+  door.services.permissionPresets.names = ['full', 'never-ask']
+  const table2 = { full: { approval: 'never' }, 'never-ask': { approval: 'never' } }
+  const savedResolve = door.services.permissionPresets.resolve
+  door.services.permissionPresets.resolve = (name) => table2[name]
+  eq('when no preset asks for approval the session is refused, never left on the profile default', [seam.begin('door-2', { door: true }).error, sets.length], ['no_asking_preset', 1])
+  door.services.permissionPresets.names = saved
+  door.services.permissionPresets.resolve = savedResolve
+  const keptPresets = door.services.permissionPresets
+  door.services.permissionPresets = undefined
+  eq('without the permission service the session is refused', seam.begin('door-3', { door: true }).error, 'permission_service_unavailable')
+  door.services.permissionPresets = keptPresets
+  door.services.permissionPresets.set = () => { throw new Error('boom') }
+  eq('a preset that cannot be set is a refusal, never an exception', seam.begin('door-4', { door: true }).error, 'failed')
+  door.services.permissionPresets.set = (session, preset) => { sets.push([session.id, preset]) }
+
+  // The by-name gate now covers that session and its sub-agents, worded for the door; another session is untouched.
+  const hook = door.handlers['tools/pre-execute'][0]
+  const run = (agentId, name) => hook({ name, arguments: {}, agent: { id: agentId } }, async () => 'next')
+  const asked = await run('door-1', 'mcp__gmail__send_email')
+  ok('an outside tool that may write waits for the person, worded as a task of an outside assistant', asked !== null && asked.kind === 'ask' && /^Task from an outside assistant: /.test(asked.reason) && /Tâche d’un assistant extérieur/.test(JSON.stringify(asked.displayReason)), JSON.stringify(asked))
+  eq('a read of an outside tool goes through', await run('door-1', 'mcp__gmail__list_threads'), 'next')
+  eq('a built-in tool is left to the sandbox preset', await run('door-1', 'bash'), 'next')
+  eq('a session nobody put under ask-first is untouched', await run('chat-by-hand', 'mcp__gmail__send_email'), 'next')
+  door.services.sessions.get = (id) => (id === 'kid-of-door' ? { id, header: { parentSession: 'door-1' } } : (id === 'door-1' ? { id, header: {} } : undefined))
+  const kid = await run('kid-of-door', 'mcp__gmail__send_email')
+  ok('a sub-agent of such a task is asked too', kid !== null && kid.kind === 'ask' && /outside assistant/.test(kid.reason))
+
+  // Without `options.door` the card keeps its automation wording.
+  door.services.sessions.get = (id) => (id === 'auto-1' ? { id, header: {} } : undefined)
+  ok('a session begun without the door option keeps the automation wording', seam.begin('auto-1').ok === true && /^Automation run: /.test((await run('auto-1', 'mcp__gmail__send_email')).reason))
+  note('ask-first-seam', 'seen')
+  door.server.close()
+}
+
 // ── 20. The plan/answer shapes the page depends on ─────────────────────────────────────────────────────────────────
 eq('an unknown action still answers as it always did', (await api({ action: 'nope' })).json.error, 'unknown action: nope')
 eq('a non-string id is refused on every new action', (await api({ action: 'gate-check', id: 42 })).json.error, 'id required')

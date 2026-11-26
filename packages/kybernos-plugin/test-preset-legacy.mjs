@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   DESCRIPTION_PRESET_LEGACY, ID_PRESET_KYBERNOS, ID_PRESET_STANDARD, NOM_PRESET_LEGACY, NS_REGLAGES_PRESET,
-  activerSubagentClaude, clonerPresetLegacy, poserPresetLegacy, replierSurStandard,
+  activerSubagentClaude, clonerPresetLegacy, hasExplicitWorkerPolicy, poserPresetLegacy, replierSurStandard,
 } from './preset-legacy.mjs'
 
 let failed = 0
@@ -68,11 +68,37 @@ console.log('the default of new chats')
   check('a refusing settings service is a reason, not a throw', (await replierSurStandard({ agentPresets: withDefault(ID_PRESET_KYBERNOS), settings: { update: async () => { throw new Error('read-only') } } })).ecrit === false)
 }
 
-console.log('the Claude Code sub-agent is still turned on everywhere')
+console.log('the Claude Code sub-agent yields to an explicit user policy')
 {
   const { service } = registry()
   const r = await activerSubagentClaude({ agentPresets: service })
-  check('the disabled row of every definition is switched', r.bascules === 1 && service.definitions.get('standard').config.plugins[1].disabled === false, JSON.stringify(r))
+  check('with no explicit policy, the disabled row of every definition is switched', r.bascules === 1 && r.skipped.length === 0 && service.definitions.get('standard').config.plugins[1].disabled === false, JSON.stringify(r))
+
+  const disabledPatch = [
+    '- insert:',
+    '    - id: kybernos-workers-claude-code',
+    "      name: '@deepseek-ai/dsh-tool-subagent'",
+    '      disabled: true',
+    '      config:',
+    '        provider: claude-code',
+    '        toolName: subagent_claude_code',
+  ].join('\n')
+  const { service: gatedByPatch } = registry()
+  const rp = await activerSubagentClaude({ agentPresets: gatedByPatch }, { patchText: disabledPatch })
+  check('when cordis.patch.yml explicitly disables claude-code, the legacy force-enable skips it', rp.bascules === 0 && rp.skipped.includes('standard') && gatedByPatch.definitions.get('standard').config.plugins[1].disabled === true, JSON.stringify(rp))
+
+  const enabledPatch = disabledPatch.replace('      disabled: true\n', '')
+  check('an enabled patch row is not treated as an explicit disable', hasExplicitWorkerPolicy('claude-code', { patchText: enabledPatch }) === false)
+
+  const harness = { agentPolicies: { 'preset:standard': { 'claude-code': { enabled: false } } } }
+  const { service: gatedByHarness } = registry([['other', { config: { id: 'other', plugins: [{ id: 'tool-subagent-claude-code', disabled: true, config: {} }] } }]])
+  const rh = await activerSubagentClaude({ agentPresets: gatedByHarness }, { harnessPolicy: harness })
+  check('harness.json preset policy gates only that preset while leaving ungated presets alone', rh.skipped.join(',') === 'standard' && rh.bascules === 1 && gatedByHarness.definitions.get('standard').config.plugins[1].disabled === true && gatedByHarness.definitions.get('other').config.plugins[0].disabled === false, JSON.stringify(rh))
+
+  const harnessDefault = { agentPolicies: { default: { 'claude-code': { enabled: false } } } }
+  const { service: gatedByDefault } = registry()
+  const rd = await activerSubagentClaude({ agentPresets: gatedByDefault }, { harnessPolicy: harnessDefault })
+  check('harness.json default policy gates all presets', rd.bascules === 0 && rd.skipped.includes('standard') && gatedByDefault.definitions.get('standard').config.plugins[1].disabled === true, JSON.stringify(rd))
 }
 
 console.log('the boot and the surface')

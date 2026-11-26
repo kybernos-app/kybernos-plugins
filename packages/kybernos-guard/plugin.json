@@ -1,0 +1,43 @@
+{
+  "contract": 1,
+  "id": "kybernos/guard",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Security guard",
+    "fr": "Garde-fou sécurité"
+  },
+  "description": {
+    "en": "Blocks secret leaks and catastrophic commands, asks confirmation on risky actions, and flags prompt injections in external outputs.",
+    "fr": "Bloque les fuites de secrets et commandes destructrices, demande confirmation sur les gestes risqués et signale les injections de prompt."
+  },
+  "icon": "shield",
+  "family": "base",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-guard",
+  "entry": {
+    "host": "index.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "host.routes:/kybernos-guard:write",
+    "fs.read:dsh-home",
+    "fs.write:dsh-home"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-guard"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "on"
+  }
+}

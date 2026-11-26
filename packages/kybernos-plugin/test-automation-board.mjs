@@ -4,7 +4,9 @@
 // checks, on the source, the contract of the page that draws it.
 // Usage: node packages/kybernos-plugin/test-automation-board.mjs   (exit 0 = everything passes)
 import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { I18N_DIR, entriesMatching } from './lib-i18n-test.mjs'
 
 const src = readFileSync(fileURLToPath(new URL('./client.js', import.meta.url)), 'utf8')
 const parts = src.split('// KB-AUTOBOARD-BEGIN')
@@ -242,7 +244,7 @@ eq('nothing at all is an empty string', [m.kbBoardReason(null, 'en'), m.kbBoardR
   eq('the board component exists, before the page', page.length > 1000, true)
   eq('the occurrences route is read with its own fetch: a 404 must not switch the other routes off', /fetch\(kbApiBase\(\) \+ '\/tasks\/occurrences\?from='/.test(src) && /res\.status === 404\) return \{ ok: false, error: 'unavailable' \}/.test(src), true)
   eq('the route is not in the host.call route map (a 404 there sets kbRemoteOk = false)', /'kybers\/tasks-occurrences'/.test(src), false)
-  eq('the engine session status is read lazily and guarded, never injected', /ctx\.get\('uiSession'\)/.test(page) && !/inject: \[[^\]]*uiSession/.test(src.slice(0, src.indexOf('const KbAutoBoard = '))), true)
+  eq('the engine session status is read lazily and guarded, through the shared source (the injected service since engine 0.2.2-rc.2), never in the module\'s own inject', /kbPinsStatusSource\(\)/.test(page) && !/ctx\.get\('uiSession'\)/.test(page) && !/inject: \[[^\]]*uiSession/.test(src.slice(0, src.indexOf('const KbAutoBoard = '))), true)
   eq('an approval is answered with the engine\'s own request, allowed once or rejected', /pending\.answer\(outcome\)/.test(page) && /answer\('allowed-once'\)|'allowed-once'/.test(page) && /'rejected'/.test(page), true)
   eq('Approve and Refuse exist only for an approval, never for a question', /waiting === 'approval'/.test(page), true)
   eq('what is answered is the request the card showed, never a newer one of the same session', /pending\.key !== shownKey/.test(page) && /answerOf\(sid, 'allowed-once', it\.live\.pending\.key\)/.test(page) && /answerOf\(sid, 'rejected', it\.live\.pending\.key\)/.test(page), true)
@@ -256,23 +258,22 @@ eq('nothing at all is an empty string', [m.kbBoardReason(null, 'en'), m.kbBoardR
 
 /* ── Every text of the board exists in French and English ─────────────────── */
 {
+  // The texts are in i18n/fr.json and en.json now: the table the page builds, restricted to the board's keys.
   const table = {}
-  for (const line of src.split('\n')) {
-    const t = /^\s*'((?:tasks\.board|tb\.view)\.[A-Za-z0-9_.]+)':\s*(\{.*\}),?\s*$/.exec(line)
-    if (t !== null) { try { table[t[1]] = (0, eval)('(' + t[2] + ')') } catch (e) { /* not a plain entry */ } }
-  }
+  for (const [k, fr, en] of entriesMatching(/^(?:tasks\.board|tb\.view)\./)) table[k] = { kybernos: fr, en }
   const region = src.slice(src.indexOf('const kbBoardLocale = '), src.indexOf('const ScheduledTasksPage = '))
   const used = new Set((region.match(/'tasks\.board\.[A-Za-z0-9_.]+'/g) || []).map((k) => k.slice(1, -1)))
   used.add('tb.view.columns')
   eq('the board uses its texts through translation keys (and uses a fair number of them)', used.size > 40, true)
   const missing = [...used].filter((k) => table[k] === undefined || typeof table[k].en !== 'string' || table[k].en === '' || typeof table[k].kybernos !== 'string' || table[k].kybernos === '')
   eq('every key the board uses exists in both languages', missing, [])
+  // A flat JSON object silently keeps the last of two equal keys: count them in the text of both files (one key per line), not in the parsed object.
   const dup = {}
-  for (const line of src.split('\n')) { const t = /^\s*'(tasks\.board\.[A-Za-z0-9_.]+)':\s*\{/.exec(line); if (t !== null) dup[t[1]] = (dup[t[1]] || 0) + 1 }
+  for (const f of ['fr.json', 'en.json']) for (const line of readFileSync(join(I18N_DIR, f), 'utf8').split('\n')) { const t = /^\s*"(tasks\.board\.[A-Za-z0-9_.]+)":/.exec(line); if (t !== null) dup[f + ' ' + t[1]] = (dup[f + ' ' + t[1]] || 0) + 1 }
   eq('no board key is defined twice', Object.keys(dup).filter((k) => dup[k] > 1), [])
   const unused = Object.keys(table).filter((k) => k.startsWith('tasks.board.') && used.has(k) !== true)
   eq('no board text is left unused', unused, [])
-  const placeholders = Object.keys(table).filter((k) => (table[k].en.match(/\{[a-z]+\}/g) || []).sort().join() !== (table[k].kybernos.match(/\{[a-z]+\}/g) || []).sort().join())
+  const placeholders = Object.keys(table).filter((k) => ((table[k].en || '').match(/\{[a-z]+\}/g) || []).sort().join() !== ((table[k].kybernos || '').match(/\{[a-z]+\}/g) || []).sort().join())
   eq('the two languages carry the same {placeholders}', placeholders, [])
 }
 

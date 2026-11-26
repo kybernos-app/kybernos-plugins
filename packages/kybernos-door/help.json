@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Branche l’assistant de ton choix, installé sur cet ordinateur (Claude Code, Codex…), à ton Kaby : il lui confie une tâche et lit sa réponse. Rien ne s’ouvre sans le jeton secret de ton profil.",
+    "en": "Connects the assistant of your choice on this computer (Claude Code, Codex…) to your Kaby: it gives Kaby a task and reads the answer. Nothing opens without the secret token from your profile."
+  },
+  "steps": [
+    {
+      "fr": "Allume ce module dans Suite › Plugins, puis relance Kybernos.",
+      "en": "Switch this module on in Suite › Plugins, then restart Kybernos."
+    },
+    {
+      "fr": "Ouvre Réglages › Kaby MCP, copie le message et colle-le dans ton assistant : il se branche tout seul.",
+      "en": "Open Settings › Kaby MCP, copy the message and paste it into your assistant: it connects itself."
+    },
+    {
+      "fr": "Demande ensuite à ton assistant de confier une tâche à Kaby.",
+      "en": "Then ask your assistant to give Kaby a task."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Kaby MCP",
+    "en": "Settings › Kaby MCP",
+    "page": true
+  },
+  "good": {
+    "fr": "Une étape qui demande ton accord attend sur l’écran de Kybernos : l’assistant ne peut jamais l’accepter à ta place. Les tâches qu’il donne apparaissent comme des conversations dans ta liste.",
+    "en": "A step that needs your approval waits on the Kybernos screen: the assistant can never accept it for you. The tasks it gives show up as conversations in your list."
+  }
+}

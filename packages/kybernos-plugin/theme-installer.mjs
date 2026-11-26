@@ -8,7 +8,8 @@
 //   verifyCatalogue  a catalogue document is signed AS A WHOLE: nothing is parsed before its signature verifies
 //   verifyEntry      one entry: the author's signature, the reviewer's countersignature, and the level they earn
 //   verifyArchive    the archived bytes: hashed, compared to the entry, then the same two signatures
-//   planTheme        the one plan screen: the style, the field (its words), the kit, each item citing its file
+//   planTheme        the one plan screen: the style, the Menu line (row names, never ticked by default), the field (its words),
+//                    the kit, each item citing its file
 //   dataPluginProblems  the pre-install pre-check, which must agree with the registry's own table (registry.mjs)
 //   readThemes / writeThemes   <DSH home>/kybernos/themes.json: one bounded file, atomic, 0600
 //   handleThemes     the body of /kybernos/themes: method, origin, session, then one action
@@ -227,9 +228,42 @@ const WHY_NOT_SKILL = 'a contributed skill folder has no install route yet (A2 r
 const WHY_NOT_AUTOMATION = 'an automation template carries steps, not the prompt a task needs'
 
 /**
- * The plan of one preview, as the one screen shows it: `{ ok, id, style, pack, kit: { skills, teams, automations },
+ * The Menu line of a plan: the row names the field's pack renames, `{ labels: { <rowId>: { en, fr, … } }, tick: false }`, or
+ * `null` when the pack renames nothing. The tick is ALWAYS false here: the person's own menu is theirs, a template changes it
+ * only after the person ticks the line (the Theme page then stores the names as ONE menu part of the template's record, and the
+ * installer never touches the person's menu on its own). Same shape rules as a menu entry of the Theme page: a row id of a menu
+ * row a person may hide (never `workspaces`, `projects`, `settings`, `account`), names of the four page languages, 1..40
+ * characters, no angle bracket, at most 24 rows. A bad item is dropped, never repaired.
+ */
+const MENU_ROW = /^[a-z][a-z0-9-]{1,23}$/
+const MENU_NEVER = ['workspaces', 'projects', 'settings', 'account']
+const MENU_ROWS_MAX = 24
+const MENU_NAME_MAX = 40
+function menuLineOf (menu) {
+  if (!plain(menu) || !plain(menu.labels)) return null
+  const labels = {}
+  let n = 0
+  for (const id of Object.keys(menu.labels)) {
+    if (n >= MENU_ROWS_MAX) break
+    const row = menu.labels[id]
+    if (MENU_ROW.test(id) === false || MENU_NEVER.indexOf(id) >= 0 || !plain(row)) continue
+    const names = {}
+    for (const lang of LANGS) {
+      const t = typeof row[lang] === 'string' ? row[lang].replace(/[\u0000-\u001f\u2028\u2029]+/g, ' ').replace(/ {2,}/g, ' ').trim() : ''
+      if (t !== '' && Array.from(t).length <= MENU_NAME_MAX && /[<>]/.test(t) === false) names[lang] = t
+    }
+    if (Object.keys(names).length === 0) continue
+    labels[id] = names
+    n++
+  }
+  return n === 0 ? null : { labels, tick: false }
+}
+
+/**
+ * The plan of one preview, as the one screen shows it: `{ ok, id, style, menu, pack, kit: { skills, teams, automations },
  * notInstallable, rejected }`, or `{ ok: false, error }` (`no-pack`, `ambiguous`, `style`, `schema`). Every item carries the
- * file it comes from; deterministic (same preview, same JSON); never invents a datum.
+ * file it comes from; deterministic (same preview, same JSON); never invents a datum. `menu` is the Menu line
+ * (`menuLineOf`), `null` when the pack renames no menu row.
  */
 export function planTheme (preview, pluginId = null) {
   try {
@@ -304,6 +338,7 @@ export function planTheme (preview, pluginId = null) {
       // preview) the plan can only name the field.
       id: typeof pluginId === 'string' && pluginId !== '' ? pluginId : pack.id,
       style,
+      menu: menuLineOf(pack.menu),
       pack: {
         id: pack.id,
         name: plain(pack.name) || text(pack.name) !== null ? pack.name : null,

@@ -178,7 +178,8 @@ try {
 
   // ── (e) switches ────────────────────────────────────────────────────────
   writeFileSync(process.env.KYBERNOS_MEMORY_SETTINGS, JSON.stringify({ lessons: true, context: false }) + '\n')
-  assert.equal(text(), '', '(e) context off: nothing is injected (an empty section)')
+  const doorOnly = text()
+  assert.ok(doorOnly.startsWith(MARK) && doorOnly.includes('lesson_write') && doorOnly.includes('confirm a finding twice') === false, '(e) context off: no lesson is injected, only the one-line door (2026-11-20)')
   writeFileSync(process.env.KYBERNOS_MEMORY_SETTINGS, JSON.stringify({ lessons: false, context: true }) + '\n')
   const recordingOff = text()
   assert.ok(recordingOff.startsWith(MARK) && recordingOff.includes('turned off by the user'), '(e) recording off: the directive line, and it leads with the marker')

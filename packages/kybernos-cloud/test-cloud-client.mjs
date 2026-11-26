@@ -95,6 +95,30 @@ assert.ok(clientSource.includes("onAccount: ouvrirAppli('overview')") && clientS
     clientSource.indexOf("'data-kb': 'menu-block-appearance'") < clientSource.indexOf("'data-kb': 'menu-block-console'") &&
     /'data-kb': 'menu-block-console'[\s\S]{0,900}?entree\('phone'[\s\S]{0,420}?entree\('settings'/.test(clientSource),
     'trois blocs (compte · apparence · console), « Phone and channels » juste avant Settings')
+  // Display (Auto · Simple · Complete): one row beside Appearance, in the signed-in menu and in the signed-out one, drawn only while kybernos-mobile's seam (`window.__KB_MODE__`) is there; it opens that bundle's sheet.
+  assert.ok(/h\(AppearanceRow, null\),\s*displayRow\(entree\),\s*entree\('settings'/.test(clientSource) && /'data-kb': 'menu-block-appearance' \}, h\(AppearanceRow, null\), displayRow\(entree\)\)/.test(clientSource), 'Display sits beside Appearance in both menus')
+  assert.ok(/menuDisplay: 'Affichage'/.test(clientSource) && /menuDisplay: 'Display'/.test(clientSource) && /displayComplete: 'Complet'/.test(clientSource) && /displayComplete: 'Complete'/.test(clientSource), 'fr/en')
+  {
+    const dm = clientSource.match(/const displayRow = \(entree\) => \{[\s\S]*?\n        \}\n/)
+    assert.ok(dm !== null, 'displayRow is where the test expects it')
+    const makeRow = (win) => new Function('window', 'h', 't', 'DisplayIcon', 'return ' + dm[0].replace('const displayRow = ', '').trim())(win, (...a) => ({ a }), (k) => k, () => null)
+    const seen = []
+    const entree = (...args) => { seen.push(args); return { row: args[0] } }
+    const opened = []
+    const seam = (pref) => ({ state: () => ({ pref }), openSheet: () => { opened.push(pref); return true } })
+    assert.equal(makeRow({})(entree), null, 'no seam (the Mobile bundle is off): no row')
+    assert.equal(makeRow({ __KB_MODE__: { state: () => ({ pref: 'auto' }) } })(entree), null, 'a seam that cannot open the sheet: no row')
+    assert.equal(makeRow({ __KB_MODE__: { openSheet () {}, state: () => { throw new Error('boom') } } })(entree), null, 'a seam that throws: no row, no error')
+    assert.deepEqual(seen, [], 'nothing was drawn by those')
+    const row = makeRow({ __KB_MODE__: seam('simple') })(entree)
+    assert.equal(row.row, 'display', 'the row is the entry « display » (the data-kb hook the menus\' arrangement knows)')
+    assert.equal(seen[0][2], 'menuDisplay', 'its label')
+    assert.equal(seen[0][4].tail, 'displaySimple', 'its tail says the choice')
+    seen[0][3]()
+    assert.deepEqual(opened, ['simple'], 'a tap opens the sheet')
+    makeRow({ __KB_MODE__: seam('complete') })(entree); makeRow({ __KB_MODE__: seam('auto') })(entree)
+    assert.deepEqual([seen[1][4].tail, seen[2][4].tail], ['displayComplete', 'displayAuto'], 'Complete and Auto too')
+  }
   assert.ok(/entree\('account'[^\n]*props\.onAccount, \{ ext: true \}\)/.test(clientSource) && /entree\('referral'[^\n]*props\.onReferral, \{ amber: true, ext: true \}\)/.test(clientSource) && /entree\('space-settings'[^\n]*props\.onSpace, \{ ext: true \}\)/.test(clientSource), 'les entrées qui ouvrent la console web portent la flèche, comme Upgrade (V1-07)')
   assert.ok(/menuPhone: 'Phone and channels'/.test(clientSource) && /menuPhone: 'Téléphone et canaux'/.test(clientSource), 'fr/en')
   assert.ok(!/MobilePanel|menuRemote|menu-remote|remoteOffer|kbf-qr|kbf-popcenter|mobTitle|mobScan|mobSoon|mobHelp|setMobileOpen|mobileOpen|\\bphoneOpen\\b|setPhoneOpen|phoneDialog/.test(clientSource), 'plus de panneau telephone, de faux QR code, de sondage du statut du lien, ni de fenetre montee dans le pied')
@@ -213,7 +237,13 @@ assert.ok(/const spaceRowOf = [\s\S]{0,400}const view = espaceVue\(w, t\)/.test(
 sok('selecteur d equipe : l espace personnel s y appelle Personal / Personnel, comme la pastille')
 // The footer chip re-reads the host's /status by itself: after the host signs the device out (a token revoked from the account page) it said
 // « Rita Rich · Solo Studio » until the card was opened.
-for (const key of ['teamDshStarting', 'teamDshFailed', 'teamDshReady', 'teamDshOpen']) assert.equal((clientSource.match(new RegExp('^\\s+' + key + ':', 'gm')) || []).length, 2, key + ' exists in both locale blocks (fr, en)')
+for (const key of ['teamDshStarting', 'teamDshFailed', 'teamDshReady', 'teamDshOpen', 'teamDshPhone']) assert.equal((clientSource.match(new RegExp('^\\s+' + key + ':', 'gm')) || []).length, 2, key + ' exists in both locale blocks (fr, en)')
+// A host with no DSH to start a team in (the phone's embedded engine answers `dsh_not_found`) says so in plain words, and every footer notice is also said by a toast of the page when the footer card is
+// not drawn (the phone): the sheet of the account menu has closed by then, so the notice used to be set where nobody could see it (owner, 2026-11-22: tapping a team showed nothing).
+assert.ok(/res\.error === 'dsh_not_found' \? t\('teamDshPhone'\)/.test(clientSource), 'dsh_not_found says « Teams are not available on the phone yet », not « try again »')
+assert.ok(/elementFromPoint\(cx, cy\)\)[^\n]*if \(on !== true\) pageToast\(flash\)/.test(clientSource) && /cy < window\.innerHeight/.test(clientSource), 'a notice of the footer that is not on the screen (a box with a size below the screen counts as not seen) is said by a toast of the page')
+assert.ok(/data-kb', 'kc-toast'/.test(clientSource) && /appendChild\(el\)/.test(clientSource), 'the toast is a node of <body>, not a part of the card')
+assert.match(clientSource.match(/teamDshPhone: '([^']+)'/g).join(' '), /Les équipes ne sont pas encore disponibles sur le téléphone\.[\s\S]*Teams are not available on the phone yet\./, 'the notice is in French and in English')
 for (const gone of ['space/busy', 'space/for-folder', 'space/applied', 'own_dsh', 'turn_running', 'follow-chat']) assert.equal(clientSource.includes(gone), false, 'the page no longer knows ' + gone + ': a team has a DSH of its own, nothing waits for a reply or follows a chat')
 assert.ok(/window\.setInterval\(again, 30000\)[\s\S]{0,200}visibilitychange[\s\S]{0,200}'focus'/.test(clientSource), 'le pied relit /status tout seul (toutes les 30 s, au retour de la fenetre)')
 sok('pied de sidebar : la pastille relit /status toute seule (30 s, retour de fenetre), elle ne reste plus connectee apres une revocation')
@@ -228,6 +258,42 @@ assert.ok(clientSource.includes('[data-composer-dock]:has([data-kb="connector-as
 const corePluginSource = readFileSync(new URL('../kybernos-plugin/client.js', import.meta.url), 'utf8')
 assert.ok(corePluginSource.includes('[data-slot="conversation.composer.dock"] > :not([data-kb="changes"]):not([data-kb="connector-ask"]){display:none!important}'), 'la vue simple du chat ne replie pas la carte d une application connectee')
 sok('application connectee en Full access : la carte du moteur dans le dock du composer, le choix part a l hote, une carte simple en repli')
+// ── Step 6 part 3: the signed-out phone. The shell's own sign-in door (`signin` in KybernosCaps) and the padlocks of the rows the locked Simple preset lists ──
+{
+  const a = clientSource.indexOf('    const inPhoneApp = ')
+  const b = clientSource.indexOf('\n    // Same local contract as kybernos-plugin: insert(css) → dispose.')
+  assert.ok(a > 0 && b > a, 'the phone helpers (inPhoneApp .. PADLOCK_CSS) are in the file, before the styles helper')
+  const helpers = clientSource.slice(a, b)
+  const load = (ua, kaby, locked) => new Function('navigator', 'document', 'window', helpers + '\nreturn { inPhoneApp, shellCan, padlockRows, PADLOCK_CSS }')(
+    { userAgent: ua }, { documentElement: { classList: { contains: (c) => kaby === true && c === 'kb-kaby' } } }, { __KB_THEME_LOCKED__: locked })
+  const APP = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) KybernosHost/0.1.0 (ios)'
+  const preset = (padlock) => ({ v: 1, options: (id) => (id === 'locked-simple' ? { touch: true, padlock } : {}) })
+  assert.equal(load(APP + ' KabyMode/1 KybernosCaps/account,plans,signin', true, preset([])).shellCan('signin'), true, 'listed: the shell has the door')
+  assert.equal(load(APP + ' KabyMode/1 KybernosCaps/account,plans', true, preset([])).shellCan('signin'), false, 'not listed: no door, the device-code card as ever')
+  assert.equal(load(APP + ' KabyMode/1', true, preset([])).shellCan('signin'), false, 'no list at all')
+  assert.equal(load('Mozilla/5.0 (Macintosh) KybernosCaps/signin', false, preset([])).shellCan('signin'), false, 'a browser that carries the words but not the app\'s own token is not the app')
+  assert.equal(load(APP + ' KybernosCaps/signin', false, preset([])).shellCan('signin'), true, 'the full app\'s WebView (no KabyMode token) too: the list is the same contract')
+  sok('the shell\'s sign-in door: `signin` in the user agent\'s KybernosCaps, only inside the app, and only when listed')
+  const rows = (kaby, locked) => load(APP + ' KabyMode/1', kaby, locked).padlockRows()
+  assert.deepEqual(rows(true, preset(['tasks', 'connectors'])), ['tasks', 'connectors'])
+  assert.deepEqual(rows(true, preset(['connectors', 'kyber', 'x', 'tasks'])), ['tasks', 'connectors'], 'only rows that have a sentence can be locked, whatever the preset lists')
+  assert.deepEqual(rows(true, preset(['tasks'])), ['tasks'])
+  assert.deepEqual(rows(false, preset(['tasks', 'connectors'])), [], 'not in Kaby mode (the full app): never a padlock')
+  assert.deepEqual(rows(true, undefined), [], 'no preset seam')
+  assert.deepEqual(rows(true, { v: 2 }), [], 'a seam of another version')
+  assert.deepEqual(rows(true, { options: () => { throw new Error('broken') } }), [], 'a preset that throws')
+  assert.deepEqual(rows(true, preset('tasks')), [], 'a list that is not a list')
+  assert.deepEqual(rows(true, preset(undefined)), [], 'a preset with no `padlock` word: the drawer is the full app\'s')
+  sok('the padlocks: the rows the locked preset lists (and that have a sentence), in Kaby mode only; no list, an unreadable preset or a throwing one = none')
+  const css = load(APP, true, preset([])).PADLOCK_CSS
+  for (const id of ['tasks', 'connectors']) assert.ok(css.includes('html[data-kb-padlock~="' + id + '"] [data-kb-row="' + id + '"]::after'), 'the padlock of ' + id + ' is drawn only while the html attribute names the row')
+  assert.ok(/pointer-events:none/.test(css) && /mask:url\("data:image\/svg\+xml,/.test(css.replace(/-webkit-mask:[^;]*;/, '')), 'a decorative padlock (a mask in the text colour) that never takes the tap')
+  assert.ok(/phase === 'disconnected' \|\| phase === 'pairing' \? padlockRows\(\) : \[\]/.test(clientSource), 'locked only while the footer knows nobody is signed in (not while it is still loading)')
+  assert.ok(/document\.addEventListener\('click', tap, true\)[\s\S]{0,160}removeEventListener\('click', tap, true\)[\s\S]{0,60}removeAttribute\('data-kb-padlock'\)/.test(clientSource), 'the tap is taken before the engine\'s own handler, and everything is given back when somebody signs in')
+  assert.ok(/const signInHere = \(\) => \{\s*if \(shellCan\('signin'\) === true\) \{ try \{ window\.location\.assign\('kybernos:\/\/signin'\); return \}/.test(clientSource) && /onConnect: pairing \? openCard : signInHere/.test(clientSource) && /onSignIn: \(\) => \{ setPadlockSheet\(null\); signInHere\(\) \}/.test(clientSource), 'the menu\'s « Sign in » and the sheet\'s both go through the one door: the shell\'s link when listed, else the card')
+  assert.ok(/'data-kb': 'padlock-later', onClick: props\.onClose/.test(clientSource), '« Not now » only closes')
+  sok('the padlock: drawn by a stylesheet keyed on the html attribute, taken at the capture phase, removed when somebody signs in; « Sign in » is the shell\'s door when listed, else the card')
+}
 console.log('  ' + staticPass + ' verifications statiques OK')
 
 let React = null
@@ -573,7 +639,7 @@ ok('carte : l espace personnel n a plus de jauge de quota (lu a l hote, mais jam
   const tag = (h, k) => { const i = h.indexOf('data-kb="' + k + '"'); return i < 0 ? '' : h.slice(h.lastIndexOf('<', i), h.indexOf('>', i)) }
   // N-07: the two developer actions (re-import the models, send the DSH chats) are not on the page a newcomer reads: they sit under a folded « Advanced ».
   assert.ok(/aria-expanded="false"/.test(tag(html, 'ky-adv-toggle')) && html.includes('>Advanced<'), 'the server actions are behind a folded Advanced')
-  assert.ok(!html.includes('data-kb="ky-models-run"') && !html.includes('data-kb="ky-chats-run"') && !html.includes('Send DSH chats') && !html.includes('Re-import') && !html.includes('Import models'), 'folded: neither Re-import nor Send DSH chats is on screen')
+  assert.ok(!html.includes('data-kb="ky-models-run"') && !html.includes('data-kb="ky-chats-run"') && !html.includes('Send Kybernos chats') && !html.includes('Re-import') && !html.includes('Import models'), 'folded: neither Re-import nor Send Kybernos chats is on screen')
   assert.ok(html.includes('The list updates by itself when your plan or your server changes.'), 'the models update by themselves, and the page says so')
   assert.equal(html.includes('Re-reads the active server'), false, 'the button\'s sentence is not on the page as it opens')
   assert.equal(html.includes('kybernos-account') || html.includes('Referral') || html.includes('Security'), false, 'rien du compte dans la section')
@@ -603,8 +669,8 @@ ok('carte : l espace personnel n a plus de jauge de quota (lu a l hote, mais jam
   assert.ok(/aria-expanded="true"/.test(tag(htmlAdv, 'ky-adv-toggle')), 'unfolded: the toggle says so')
   assert.ok(/disabled/.test(tag(htmlAdv, 'ky-models-run')) && /disabled/.test(tag(htmlAdv, 'ky-chats-run')), 'signed out: the server buttons are disabled')
   assert.ok(htmlAdv.includes('Re-reads the active server') && htmlAdv.includes('Import models'), 'unfolded: the models button and what it does')
-  assert.ok(htmlAdv.includes('Sends the title and date of your DSH chats (never what is said in them) to your Kybernos account, so they appear in the “DSH conversations” list of the web app. Nothing is sent until you confirm.'), 'unfolded: one sentence says what is sent, why, and that nothing goes without a yes')
-  assert.ok(htmlAdv.includes('Send DSH chats') && !htmlAdv.includes('data-kb="ky-chats-confirm"'), 'unfolded: the button is there, the confirmation is not open')
+  assert.ok(htmlAdv.includes('Sends the title and date of your Kybernos chats (never what is said in them) to your Kybernos account, so they appear in the “DSH conversations” list of the web app. Nothing is sent until you confirm.'), 'unfolded: one sentence says what is sent, why, and that nothing goes without a yes')
+  assert.ok(htmlAdv.includes('Send Kybernos chats') && !htmlAdv.includes('data-kb="ky-chats-confirm"'), 'unfolded: the button is there, the confirmation is not open')
   rAdv.unmount()
 
   // Signed in: what the last import and the last send did.
@@ -1042,7 +1108,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
   {
     const a = await draw({ node: node({ code: 'UNKNOWN', message: 'no adapter registered for provider "kybernos"' }), t: T }, { ok: false })
     assert.equal(seen.length, 1)
-    assert.equal(seen[0].node.data.message, 'This model comes from your Kybernos account, and this DSH is not signed in to it any more. Sign in again to use it.')
+    assert.equal(seen[0].node.data.message, 'This model comes from your Kybernos account, and this app is not signed in to it any more. Sign in again to use it.')
     assert.equal(seen[0].node.data.code, undefined, 'no engine code next to our sentence')
     assert.equal(seen[0].t, T, 'the shipped row gets its own translator, as it was handed it')
     assert.ok(a.html.includes('data-kb="turn-error-action"') && a.html.includes('>Sign in again<'), 'the action is beside it')
@@ -1110,13 +1176,13 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     events.length = 0
     const fresh = await draw({ node: node({ code: 'INVALID_REQUEST', message: raw, time: Date.now() }), t: T }, { ok: false }, fetchFn)
     const shown = seen[seen.length - 1].node.data
-    assert.equal(shown.message, 'You are no longer in the team this chat was billed to, so the message was not sent. DSH is now in Personal: send it again.', 'a sentence, naming where DSH is now')
+    assert.equal(shown.message, 'You are no longer in the team this chat was billed to, so the message was not sent. Kybernos is now in Personal: send it again.', 'a sentence, naming where DSH is now')
     assert.equal(shown.code, undefined, 'no INVALID_REQUEST badge next to it')
     assert.equal(fresh.html.includes('workspace_not_found') || fresh.html.includes('{"message"'), false, 'no raw JSON on screen')
     assert.ok(asked.includes('POST /refresh'), 'the host is asked to read the account at once')
     assert.ok(events.includes('kybernos-cloud:profile-changed'), 'and the footer is told')
     // Before the host has answered, the sentence is the one that names nobody.
-    assert.ok(seen.some((p) => p.node.data.message === 'You are no longer in the team this chat was billed to, so the message was not sent. DSH is updating your teams: send it again in a moment.'), 'the first draw has a sentence too')
+    assert.ok(seen.some((p) => p.node.data.message === 'You are no longer in the team this chat was billed to, so the message was not sent. Kybernos is updating your teams: send it again in a moment.'), 'the first draw has a sentence too')
     fresh.root.unmount()
     asked.length = 0
     const older = await draw({ node: node({ code: 'INVALID_REQUEST', message: raw, time: Date.now() - 3 * 60 * 60 * 1000 }), t: T }, { ok: false }, fetchFn)
@@ -1159,6 +1225,84 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     const near = await draw({ node: node({ code: 'UNKNOWN', message: 'Your messages would be billed to Acme. Try again. Please.' }), t: T }, { ok: false })
     assert.equal(seen[seen.length - 1].node.data.code, 'UNKNOWN', 'anything else that merely starts alike is the shipped row untouched')
     near.root.unmount()
+  }
+  // 4d. Phone runtime (no-process / EPERM): friendly message with no raw stack, and a « Connect a computer » button ONLY when a real `where` door is declared (never a dead button, never automatic routing).
+  {
+    const findKb = (n, name) => {
+      if (n.nodeType === 1 && n.attributes !== undefined && n.attributes['data-kb'] === name) return n
+      for (const c of (n.childNodes || [])) { const r = findKb(c, name); if (r !== null) return r }
+      return null
+    }
+    const clickNode = async (n) => {
+      const k = Object.keys(n).find((x) => x.indexOf('__reactProps$') === 0)
+      await act(async () => { n[k].onClick({ preventDefault () {}, stopPropagation () {}, target: n }); await new Promise((r) => setTimeout(r, 0)) })
+    }
+    const savedApp = globalThis.window.__KB_APP__
+    const savedLoc = globalThis.window.location
+    const savedWinNav = globalThis.window.navigator
+    const setUa = (ua) => { globalThis.window.navigator = { userAgent: ua } }
+    const rawStack = 'Error: spawn node EPERM: this device cannot create processes (kybernos-no-process)\n    at InProcessSubprocess.spawn (/app/index.js:71:34)'
+    try {
+      // (a) No door declared: friendly message, no stack, no dead button.
+      delete globalThis.window.__KB_APP__
+      setUa('Mozilla/5.0 (iPhone) KybernosHost/0.1.0 (ios) KabyMode/1 KybernosCaps/account,plans')
+      const noDoor = await draw({ node: node({ code: 'EPERM', message: rawStack }), t: T }, { ok: false })
+      const msgA = seen[seen.length - 1].node.data.message
+      assert.equal(msgA, 'This task needs an external program that cannot run on this phone. Connect or choose a remote or cloud Kybernos computer to run it.')
+      assert.equal(seen[seen.length - 1].node.data.code, undefined, 'no raw EPERM badge')
+      assert.ok(!noDoor.html.includes('turn-error-action') && !noDoor.html.includes('InProcessSubprocess') && !noDoor.html.includes('kybernos-no-process'), 'no dead button and no raw stack')
+      noDoor.root.unmount()
+
+      // (b) Bridge door: window.__KB_APP__.shell().screens contains 'where' and openSettings('where') is available.
+      const opened = []
+      globalThis.window.__KB_APP__ = { shell: () => ({ screens: ['account', 'where'] }), openSettings: (screen) => { opened.push(screen); return true } }
+      const viaBridge = await draw({ node: node({ code: 'UNKNOWN', message: 'node cannot run on this phone: this phone cannot start external programs' }), t: T }, { ok: false })
+      assert.equal(seen[seen.length - 1].node.data.message, msgA)
+      assert.ok(viaBridge.html.includes('data-kb="turn-error-action"') && viaBridge.html.includes('>Connect a computer<'), 'button offered via bridge door')
+      assert.deepEqual(opened, [], 'nothing is routed or opened automatically on render')
+      const btnB = findKb(viaBridge.el, 'turn-error-action')
+      assert.ok(btnB !== null, 'action button exists in DOM')
+      await clickNode(btnB)
+      assert.deepEqual(opened, ['where'], 'clicking opens the real where screen through openSettings')
+      viaBridge.root.unmount()
+
+      // (c) Bridge present WITHOUT 'where' in screens and NO KybernosCaps/where: no button.
+      globalThis.window.__KB_APP__ = { shell: () => ({ screens: ['account'] }), openSettings: (screen) => { opened.push(screen); return true } }
+      const noWhere = await draw({ node: node({ code: 'EPERM', message: 'spawn python EPERM' }), t: T }, { ok: false })
+      assert.ok(!noWhere.html.includes('turn-error-action'), 'bridge without where screen shows no button')
+      noWhere.root.unmount()
+
+      // (d) Deep link door: KybernosCaps includes 'where' and location.assign is usable.
+      delete globalThis.window.__KB_APP__
+      const assigned = []
+      globalThis.window.location = { assign: (u) => assigned.push(u) }
+      setUa('Mozilla/5.0 (iPhone) KybernosHost/0.1.0 (ios) KybernosCaps/account,where')
+      const viaDeepLink = await draw({ node: node({ code: 'EPERM', message: rawStack }), t: T }, { ok: false })
+      assert.ok(viaDeepLink.html.includes('data-kb="turn-error-action"') && viaDeepLink.html.includes('>Connect a computer<'), 'button offered via KybernosCaps/where deep link')
+      assert.deepEqual(assigned, [], 'nothing is opened automatically')
+      await clickNode(findKb(viaDeepLink.el, 'turn-error-action'))
+      assert.deepEqual(assigned, ['kybernos://where'], 'clicking opens kybernos://where')
+      viaDeepLink.root.unmount()
+
+      // (e) Browser spoofing KybernosCaps/where without KybernosHost: no button.
+      setUa('Mozilla/5.0 (Macintosh) Safari/605 KybernosCaps/where')
+      const spoof = await draw({ node: node({ code: 'EPERM', message: rawStack }), t: T }, { ok: false })
+      assert.ok(!spoof.html.includes('turn-error-action'), 'outside the phone app, KybernosCaps/where does not add a dead deep-link button')
+      spoof.root.unmount()
+      // (f) A generic desktop EPERM is an OS/filesystem/sandbox error, not a phone runtime error: keep the shipped row and its diagnostic.
+      delete globalThis.window.__KB_APP__
+      setUa('Mozilla/5.0 (Macintosh) Safari/605')
+      const desktopEperm = await draw({ node: node({ code: 'EPERM', message: 'Operation not permitted by the filesystem' }), t: T }, { ok: false })
+      assert.equal(seen[seen.length - 1].node.data.code, 'EPERM', 'desktop EPERM keeps its original code')
+      assert.equal(seen[seen.length - 1].node.data.message, 'Operation not permitted by the filesystem', 'desktop EPERM keeps its original message')
+      assert.ok(!desktopEperm.html.includes('turn-error-action') && !desktopEperm.html.includes('cannot run on this phone'), 'no phone wording on a desktop refusal')
+      desktopEperm.root.unmount()
+      ok('failure row: phone no-process/EPERM gets a clear sentence without stack, and « Connect a computer » only when a real `where` door is declared (bridge or KybernosCaps)')
+    } finally {
+      if (savedApp === undefined) delete globalThis.window.__KB_APP__; else globalThis.window.__KB_APP__ = savedApp
+      globalThis.window.location = savedLoc
+      if (savedWinNav === undefined) delete globalThis.window.navigator; else globalThis.window.navigator = savedWinNav
+    }
   }
   // 5. The slot's owner goes away (or the plugin is unloaded): the wrapper is withdrawn, the shipped row alone is left.
   assert.ok(typeof disposeInject === 'function', 'the registration is disposable')
@@ -1235,7 +1379,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     assert.deepEqual(asked, ['GET /quota'], 'one read of the host, no more')
     const last = seen[seen.length - 1]
     assert.equal(last.node, props.node, 'the same node')
-    assert.equal(last.t('message.retry.active'), 'The Kybernos server “Kybernos (local)” (localhost:8851) is not answering: DSH keeps retrying', 'the label of the active row')
+    assert.equal(last.t('message.retry.active'), 'The Kybernos server “Kybernos (local)” (localhost:8851) is not answering: the app keeps retrying', 'the label of the active row')
     assert.equal(last.t('message.retry.status', { retry: 5 }), 'engine:message.retry.status{"retry":5}', 'every other word is the engine\'s own (the count and the countdown are drawn by it)')
     assert.equal(last.t('message.retry.cancelled'), 'engine:message.retry.cancelled')
     assert.ok(a.html.includes('shipped-retry') && a.html.includes('data-kb="retry-kb"'), 'the shipped row, in our wrapper')

@@ -97,6 +97,8 @@
   function pill (cls, text, title) { var p = h('span', 'kj-pill ' + cls, text); if (title) p.setAttribute('title', title); return p }
   function stat (label, value, sub, cls) { return h('div', 'kj-stat' + (cls ? ' ' + cls : ''), h('div', 'kj-k', label), h('div', 'kj-v', value), sub ? h('div', 'kj-s', sub) : null) }
   function card (title, hint) { return h('section', 'kj-card', h('div', 'kj-ch', h('h2', '', title), hint ? h('span', 'kj-hint', hint) : null)) }
+  // The sub-agents of a chat are one crew whose name is data in English: the page words it in the page's language.
+  function crewName (c) { return c && c.id === 'subagents' ? word('subagents', 'Sub-agents') : (c && c.name ? c.name : word('crew', 'Crew')) }
   function crewOf (id) { var c = doc.crews || []; for (var i = 0; i < c.length; i += 1) if (c[i].id === id) return c[i]; return null }
 
   // ── charts ──────────────────────────────────────────────────────────────────────────
@@ -138,7 +140,7 @@
     return h('div', 'kj-bars', crews.map(function (c) {
       var left = ((c.startedAt - t0) / span) * 100
       var width = Math.max(2, (((num(c.endedAt) !== null ? c.endedAt : t1) - c.startedAt) / span) * 100)
-      return h('div', 'kj-bar', h('span', 'kj-bn', c.name || word('crew', 'Crew')),
+      return h('div', 'kj-bar', h('span', 'kj-bn', crewName(c)),
         s('svg', { viewBox: '0 0 100 6', preserveAspectRatio: 'none', class: 'kj-track', 'aria-hidden': 'true' }, s('rect', { x: 0, y: 0, width: 100, height: 6, rx: 3, class: 'kj-track-b' }), s('rect', { x: left.toFixed(2), y: 0, width: Math.min(width, 100 - left).toFixed(2), height: 6, rx: 3, class: 'kj-track-f ' + (c.state || 'done') })))
     }))
   }
@@ -194,7 +196,7 @@
   function words (m) {
     if (m.kind === 'message') return { actor: m.automation === true ? word('automation', 'Automation') : word('you', 'A person'), text: m.text, sub: '' }
     if (m.kind === 'reply') return { actor: word('reply', 'Reply'), text: m.text, sub: m.model || '' }
-    if (m.kind === 'crew') { var c = crewOf(m.crewId); return { actor: c && c.name ? c.name : word('crew', 'Crew'), text: m.status === 'running' ? word('isRunning', 'is running') : (m.status === 'failed' ? word('failed', 'failed') : word('finished', 'finished')), sub: c ? word('members', 'Members') + ' · ' + c.members.length : '' } }
+    if (m.kind === 'crew') { var c = crewOf(m.crewId); return { actor: crewName(c), text: m.status === 'running' ? word('isRunning', 'is running') : (m.status === 'failed' ? word('failed', 'failed') : word('finished', 'finished')), sub: c ? word('members', 'Members') + ' · ' + c.members.length : '' } }
     if (m.kind === 'connector') { var conn = connOf(m.connectorId); return { actor: nice(conn ? conn.name : m.connectorId), text: m.status === 'error' ? word('callFailed', 'call failed') + ' · ' + (m.action || '') : (m.action || ''), sub: m.status === 'error' && m.recovered === true ? word('recovered', 'Recovered on a later call') : '' } }
     if (m.kind === 'skill') return { actor: word('skill', 'Skill'), text: m.name || '', sub: '' }
     if (m.kind === 'memory') return { actor: word('memory', 'Memory'), text: m.op === 'write' ? word('savedNote', 'saved a note') : word('lookedUp', 'looked something up'), sub: m.text || '' }
@@ -278,9 +280,14 @@
     if (list.length === 0) return null
     return h('div', 'kj-crews', list.map(function (c) {
       var st = c.state === 'failed' ? ['err', word('failed', 'failed')] : (c.state === 'running' ? ['wait', word('running', 'Running')] : ['ok', word('finished', 'finished')])
-      return h('div', 'kj-crew', h('div', 'kj-crew-h', h('b', '', c.name || word('crew', 'Crew')), pill(st[0], st[1])),
+      return h('div', 'kj-crew', h('div', 'kj-crew-h', h('b', '', crewName(c)), pill(st[0], st[1])),
         h('div', 'kj-sub', word('members', 'Members') + ' · ' + (c.members || []).length + (inc.timing === true && num(c.durMs) !== null ? ' · ' + dur(c.durMs) : '') + (num(c.costEur) !== null && c.costEur > 0 ? ' · ' + eur(c.costEur) : '')),
-        h('ul', 'kj-members', (c.members || []).slice(0, 6).map(function (m) { return h('li', '', h('span', '', m.label || m.phase || ''), m.model ? h('em', '', m.model) : null) })))
+        h('ul', 'kj-members', (c.members || []).slice(0, 6).map(function (m) {
+          // What the member really used: its model, its tokens, what it cost (a field the log does not carry is left out, never faked).
+          var used = [m.model || null, num(m.tokens) !== null && m.tokens > 0 ? tok(m.tokens) + ' ' + word('tokens', 'tokens') : null, num(m.costEur) !== null && m.costEur > 0 ? eur(m.costEur) : null].filter(function (x) { return x !== null })
+          return h('li', '', h('span', '', m.label || m.phase || ''), used.length > 0 ? h('em', '', used.join(' · ')) : null)
+        })),
+        (c.members || []).length > 6 ? h('div', 'kj-sub', '+ ' + ((c.members || []).length - 6)) : null)
     }))
   }
   function connectors () {
@@ -352,6 +359,62 @@
     }
     return c
   }
+  // ── the flow: the same steps as the story, as a chain of cards ──────────────────────────
+  // The steps worth a card are the crews, the connector calls, the handovers, the deliverables, the skills and the memory; the plain work between them is not a step.
+  // Consecutive calls of one connector (or skill, or memory) fold into one card with a count, so a chat that called the same app forty times does not draw forty cards.
+  var FLOW_MAX = 30
+  function flowGraph () {
+    var moments = doc.moments || []
+    var first = null
+    for (var i = 0; i < moments.length; i += 1) if (moments[i].kind === 'message') { first = moments[i]; break }
+    var nodes = [{ kind: 'trigger', m: first, count: 1, at: first !== null ? first.at : (doc.chat ? num(doc.chat.startedAt) : null), durMs: 0, errors: 0, open: 0, status: 'ok', ckey: null }]
+    var KEY = { crew: 1, connector: 1, handover: 1, output: 1, skill: 1, memory: 1 }
+    var prev = null
+    var dropped = 0
+    for (var k = 0; k < moments.length; k += 1) {
+      var m = moments[k]
+      if (KEY[m.kind] !== 1) continue
+      var ck = m.kind === 'connector' ? 'c:' + m.connectorId : (m.kind === 'skill' || m.kind === 'memory' ? m.kind + ':' + m.op : null)
+      var bad = m.kind === 'connector' && m.status === 'error'
+      var live = isErr(m)
+      if (prev !== null && ck !== null && prev.ckey === ck) {
+        prev.count += 1
+        prev.durMs += num(m.durMs) || 0
+        if (bad) prev.errors += 1
+        if (live) prev.open += 1
+        prev.status = prev.open > 0 ? 'err' : 'ok'
+        continue
+      }
+      if (nodes.length >= FLOW_MAX) { dropped += 1; continue }
+      var wait = (m.kind === 'handover' && m.outcome === 'waiting') || (m.kind === 'crew' && m.status === 'running')
+      prev = { kind: m.kind, m: m, count: 1, at: m.at, durMs: num(m.durMs) || 0, errors: bad ? 1 : 0, open: live ? 1 : 0, status: live ? 'err' : (wait ? 'wait' : 'ok'), ckey: ck }
+      nodes.push(prev)
+    }
+    return { nodes: nodes, dropped: dropped }
+  }
+  function flowCard () {
+    var G = flowGraph()
+    var c = card(word('flowTitle', 'Flow of this chat'), G.nodes.length + ' ' + word('steps', 'steps'))
+    var list = h('ol', 'kj-flow')
+    G.nodes.forEach(function (n) {
+      var trigger = n.kind === 'trigger'
+      var auto = doc.trigger === 'automation'
+      var W = trigger ? { actor: auto ? word('automation', 'Automation') : word('you', 'A person'), text: n.m !== null && n.m.text ? clip(n.m.text, 60) : word('flowStart', 'Start'), sub: '' } : words(n.m)
+      var text = trigger ? W.text : (n.kind === 'connector' ? (n.m.action || W.text) : clip(W.text, 52))
+      var when = [n.at !== null && num(n.at) !== null ? time(n.at) : null, inc.timing === true && n.durMs > 0 ? dur(n.durMs) : null].filter(function (x) { return x })
+      var sub = n.count > 1 ? '× ' + n.count + (inc.timing === true && n.durMs > 0 ? ' · ' + dur(n.durMs) : '') : when.join(' · ')
+      var tile = n.kind === 'connector' ? connTile(connOf(n.m.connectorId), false) : h('span', 'kj-tile k-' + n.kind, icon(trigger ? (auto ? 'automation' : 'message') : n.kind, 16))
+      var chip = null
+      if (n.kind === 'handover') { var st = STATE[n.m.outcome] || STATE.answered; chip = pill(st[0], word(st[1], st[2])) }
+      else if (n.status === 'err') chip = pill('err', word('failedState', 'Failed'))
+      else if (n.status === 'wait') chip = pill('wait', word('running', 'Running'))
+      else if (n.errors > 0) chip = pill('ok', word('recovered', 'Recovered on a later call'))
+      list.appendChild(h('li', 'kj-fn ' + n.status, tile, h('div', 'kj-fb', h('div', 'kj-actor', W.actor), h('div', 'kj-text', text), sub ? h('div', 'kj-sub', sub) : null), chip))
+    })
+    c.appendChild(list)
+    if (G.dropped > 0) c.appendChild(h('p', 'kj-sub', word('flowCut', 'The flow shows the first steps. The rest is in the Story view.') + ' (+' + G.dropped + ')'))
+    return c
+  }
   function deliverables () {
     var list = doc.deliverables || []
     var c = card(word('deliverablesTitle', 'Deliverables and links'), list.length + '')
@@ -390,7 +453,29 @@
   function draw () {
     document.title = (doc.title || word('pageTitle', 'Chat journal'))
     var side = h('aside', 'kj-side', connectors(), deliverables())
-    root.appendChild(h('div', 'kj-wrap', hero(), kpis(), insights(), crews(), h('div', 'kj-cols', story(), side), footer()))
+    // Story or Flow in the same place: each is built once (the story keeps its page and its print hooks) and put back when the reader switches.
+    var views = { story: null, flow: null }
+    var cols = h('div', 'kj-cols')
+    var seg = h('div', 'kj-seg')
+    seg.setAttribute('role', 'group')
+    var buttons = {}
+    function showView (mode) {
+      if (views[mode] === null) views[mode] = mode === 'flow' ? flowCard() : story()
+      while (cols.firstChild) cols.removeChild(cols.firstChild)
+      cols.appendChild(views[mode])
+      cols.appendChild(side)
+      Object.keys(buttons).forEach(function (k) { buttons[k].setAttribute('aria-pressed', k === mode ? 'true' : 'false'); buttons[k].className = k === mode ? 'on' : '' })
+    }
+    ;[['story', word('viewStory', 'Story')], ['flow', word('viewFlow', 'Flow')]].forEach(function (d) {
+      var b = h('button', '', d[1])
+      b.setAttribute('type', 'button')
+      b.setAttribute('data-view', d[0])
+      b.addEventListener('click', function () { showView(d[0]) })
+      buttons[d[0]] = b
+      seg.appendChild(b)
+    })
+    root.appendChild(h('div', 'kj-wrap', hero(), kpis(), insights(), crews(), h('div', 'kj-viewbar', seg), cols, footer()))
+    showView('story')
     Promise.all(checks.map(function (c) { return verifyOne(c).then(function (state) { paint(c, state) }) })).then(function () {
       var ok = checks.filter(function (c) { return c.chip.className.indexOf('ok') >= 0 }).length
       var line = root.querySelector('.kj-foot .kj-sub')

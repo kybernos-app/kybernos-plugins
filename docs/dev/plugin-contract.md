@@ -101,7 +101,9 @@ a manifest with a `contract` the host does not know is listed as "needs a newer 
 | `claims` | code | the global names it takes: `cssPrefix` (3 to 5 letters), `routePrefixes`, `slotIds`. Collisions are the failure that `scripts/audit-css-prefixes.mjs` and the "slot ids and route paths are global" rule of the new-plugin skill already guard |
 | `help` | no | path of the `help.json` card (required for a plugin with a page) |
 | `update` | no | `{ catalogue: <https URL>, auth: none \| key \| account }`: where a newer version is announced (WordPress's `Update URI`) |
-| `suite` | first-party | `{ core?, default on/off, order?, replaces? }`: what `satellites.json` holds today. Absent for anyone else |
+| `suite` | first-party | `{ core?, default on/off, order?, replaces?, stage? }`: what `satellites.json` holds today. Absent for anyone else |
+
+`suite.stage` is how mature the module is: `"alpha"` (it may change or break, off the beaten path) or `"beta"` (it works, it is still being polished). **Absent means stable**, and a stable module carries no tag at all. It is decided by the owner, never read from a README (the words alpha and preview there mostly name DSH versions or a UI preview). `scripts/build-catalog.mjs` carries it into `catalog.json` as `maturite`, and the Suite page draws one chip next to the family chip on the card, the row and the module's page. It labels; it does not switch anything: whether a module is on is still `default`.
 
 Out of the manifest on purpose: the price (it lives in the catalogue or on the server, so it can change without a new version), the archive size
 (`poids_ko`, measured at build), the release notes (per version, in the catalogue).

@@ -80,7 +80,7 @@ const rule = (sel) => { const m = new RegExp('(?:^|\\n)' + esc(sel) + '\\{([^}]*
 // The sidebar rail (A5-29, A5-30): the goal-progress card is hidden in the 44 px icon rail, and each page icon names itself.
 {
   assert.ok(src.includes('[class*="collapsed"] .kbp-bar{display:none}'), 'the goal card is hidden in the rail')
-  assert.ok(src.includes("className: 'kb4-item' + (active === true ? ' on' : ''), 'aria-label': label, title: label, onClick }"), 'a page row carries its name as aria-label and title (in the rail its label is hidden)')
+  assert.ok(src.includes("className: 'kb4-item' + (active === true ? ' on' : ''), 'aria-label': label, title: label, 'data-kb-row': id, onClick }"), 'a page row carries its name as aria-label and title (in the rail its label is hidden)')
   ok('Sidebar rail: no clipped goal card; every page icon has a name')
 }
 

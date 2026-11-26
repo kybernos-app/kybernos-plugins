@@ -10,6 +10,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { entry } from './lib-i18n-test.mjs'
 
 let pass = 0
 let fail = 0
@@ -19,9 +20,10 @@ const check = (name, ok, detail) => {
 
 const here = dirname(fileURLToPath(import.meta.url))
 const SRC = readFileSync(join(here, 'client.js'), 'utf8')
+// The sentence of a key as { fr, en } (null when a language is missing); the texts are the real ones, read from i18n/*.json.
 const dict = (key) => {
-  const m = new RegExp("'" + key.replace(/\./g, '\\.') + "': \\{ kybernos: '((?:[^'\\\\]|\\\\.)*)', en: '((?:[^'\\\\]|\\\\.)*)' \\}").exec(SRC)
-  return m === null ? null : { fr: m[1], en: m[2] }
+  const e = entry(key)
+  return e !== null && typeof e.kybernos === 'string' && typeof e.en === 'string' ? { fr: e.kybernos, en: e.en } : null
 }
 
 const a = SRC.indexOf('// <kb-feedback-send>')

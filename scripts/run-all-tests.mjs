@@ -27,6 +27,8 @@ export function discover (root) {
   for (const d of ls(join(root, 'packages'))) {
     const dir = join(root, 'packages', d)
     for (const f of ls(dir)) if (/^test.*\.mjs$/.test(f)) out.push({ rel: 'packages/' + d + '/' + f, cwd: dir, args: [f] })
+    // A package may keep plain test scripts in a `test/` folder (dsh-db-viewer: its only read-only check ran in no gate until 2026-11-08); run from the package folder.
+    for (const f of ls(join(dir, 'test'))) if (/^test.*\.mjs$/.test(f)) out.push({ rel: 'packages/' + d + '/test/' + f, cwd: dir, args: [join('test', f)] })
   }
   // The standalone services (messaging, the sign-in gate, the public front desk) keep their tests in a `test/` folder, run by the node test runner (as CI does).
   for (const d of ['messaging', 'kybernos-gate', 'front-desk']) {
@@ -62,7 +64,7 @@ export function runOne (job, timeoutMs) {
         ok: code === 0,
         code: signal === 'SIGKILL' ? 'timeout' : code,
         ms: Date.now() - started,
-        tail: lines.filter((l) => l.trim() !== '').slice(-10),
+        tail: lines.filter((l) => l.trim() !== '').slice(-40),
         skips: lines.filter((l) => /^SKIPPED: /.test(l) || /SAUTÉE \(pas verte\)/.test(l))
       })
     })
@@ -86,17 +88,18 @@ export async function runAll ({ root = REPO, jobs = 4, timeoutMs = 240000, only 
   await Promise.all(Array.from({ length: Math.max(1, jobs) }, worker))
   const red = []
   const flaky = []
+  const flakyTails = {}
   for (const job of list) {
     const first = results.get(job.rel)
     if (first.ok) continue
     const again = await runOne(job, timeoutMs)   // alone, nothing else running
-    if (again.ok) flaky.push(job.rel)
+    if (again.ok) { flaky.push(job.rel); flakyTails[job.rel] = first.tail }   // what the parallel run said before it passed alone: the only trace of a flake
     else red.push({ rel: job.rel, code: again.code, tail: again.tail })
     results.set(job.rel, again)
   }
   const skips = new Map()
   for (const r of results.values()) for (const s of r.skips) skips.set(s, (skips.get(s) || 0) + 1)
-  return { total: list.length, red, flaky, skips, seconds: Math.round((Date.now() - started) / 1000) }
+  return { total: list.length, red, flaky, flakyTails, skips, seconds: Math.round((Date.now() - started) / 1000) }
 }
 
 const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(resolve(process.argv[1])).href
@@ -115,14 +118,18 @@ if (isMain) {
     onDone: (job, r) => { if (verbose) console.log((r.ok ? '  ✓ ' : '  ✗ ') + job.rel + '  (' + (r.ms / 1000).toFixed(1) + ' s)') }
   })
   console.log('\n' + res.total + ' test files in ' + res.seconds + ' s: ' + (res.total - res.red.length) + ' green, ' + res.red.length + ' RED' + (res.flaky.length > 0 ? ', ' + res.flaky.length + ' flaky (red in the parallel run, green alone)' : ''))
-  for (const rel of res.flaky) console.log('  flaky  ' + rel)
+  for (const rel of res.flaky) {
+    console.log('  flaky  ' + rel)
+    for (const l of (res.flakyTails[rel] || []).slice(-30)) console.log('           ' + l.slice(0, 200))
+  }
   for (const r of res.red) {
     console.log('  RED    ' + r.rel + '  (exit ' + r.code + ')')
     for (const l of r.tail.slice(-5)) console.log('           ' + l.slice(0, 200))
   }
   if (res.skips.size > 0) {
     console.log(res.skips.size + ' kind(s) of skip (a skip is not a pass):')
-    for (const [s, n] of [...res.skips].sort((a, b) => b[1] - a[1]).slice(0, 8)) console.log('  ' + n + ' × ' + s.slice(0, 160))
+    // Every kind is printed: a list cut at eight hid twenty kinds, and a new skip with them (2026-11-08).
+    for (const [s, n] of [...res.skips].sort((a, b) => b[1] - a[1])) console.log('  ' + n + ' × ' + s.slice(0, 160))
   }
   process.exit(res.red.length === 0 ? 0 : 1)
 }

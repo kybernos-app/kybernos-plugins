@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadCreationSources } from './lib-creation-sources-test.mjs'
+import { entry } from './lib-i18n-test.mjs'
 
 let failed = 0
 const check = (name, ok, detail) => {
@@ -100,15 +101,44 @@ console.log('the Creations page and the menu')
   check('the hooks sit above every early return of the page', page.indexOf('kbCreationSources.subscribe') < page.indexOf('const openPair = React.useState(null)') && page.indexOf('kbCreationSources.subscribe') < page.indexOf('if (openPath !== null && openPath !== undefined && real.length > 0) return'))
   check('a source is a tile of the row, selectable like a type, and shown by default', /\.concat\(srcIds\)/.test(page) && /\.concat\(sources\.map\(\(sx\) => \(\{ kind: 'source', id: sx\.id/.test(page) && /srcIds\.indexOf\(id\) >= 0\)/.test(page))
   check('its items show only when its tile is selected, follow the search and the period, and leave out the favourites filter', /const srcOn = sources\.filter\(\(sx\) => selTypes\.indexOf\(sx\.id\) >= 0\)/.test(page) && /\.filter\(\(c\) => tbArts\[0\]\.fav !== true\)/.test(page) && /kbArtInPeriod\(c\.it\.mtimeMs, tbArts\[0\]\.period, nowMs\)/.test(page))
-  check('the way into the plugin’s page is always there when a source is selected, even with no item', /srcOn\.filter\(\(sx\) => sx\.home !== null\)\.map/.test(page) && /'data-kb': 'src-home'/.test(page) && /'deliv\.src\.open': \{ kybernos: 'Ouvrir la page \{name\}', en: 'Open the \{name\} page' \}/.test(src))
+  check('the way into the plugin’s page is always there when a source is selected, even with no item', /srcOn\.filter\(\(sx\) => sx\.home !== null\)\.map/.test(page) && /'data-kb': 'src-home'/.test(page) && (entry('deliv.src.open') || {}).kybernos === 'Ouvrir la page {name}' && (entry('deliv.src.open') || {}).en === 'Open the {name} page')
   check('the list view and the grid both draw the items; the « no creation » line waits for them', /vp\.mode === 'list'\s*\? h\('div', \{ className: 'kb6-lrows', 'data-kb': 'src-list' \}/.test(page) && /shown\.length === 0 && srcShown\.length === 0/.test(page))
   check('the toolbar counts them', /typed\.length \+ srcAll\.length/.test(page) && /sorted\.length \+ srcShown\.length/.test(page))
   check('selecting one source says what it is under the tiles', /const selS = sources\.filter\(\(sx\) => sx\.id === filter\)\[0\] \|\| null/.test(page))
   const menu = src.slice(src.indexOf('const SalesMenu = (p0) => {'), src.indexOf('const SidebarUtils = () => {'))
-  check('the Dashboards row leaves the menu while its source is declared, and the menu redraws when one comes or goes', /KB_DB === true && kbCreationSources\.folds\('dashboards'\) !== true \? row\('dashboards'/.test(menu) && /React\.useEffect\(\(\) => kbCreationSources\.subscribe\(\(\) => icoSetter/.test(menu))
+  check('the Dashboards row leaves the menu while its source is declared, and the menu redraws when one comes or goes', /dashboards: KB_DB === true && kbCreationSources\.folds\('dashboards'\) !== true,/.test(src) && /dashboards: \(\) => rowOf\('dashboards'/.test(menu) && /React\.useEffect\(\(\) => kbCreationSources\.subscribe\(\(\) => icoSetter/.test(menu))
   check('the declared business rows do the same (Apps: row « tables »)', /kbBizMenu\.list\(\)\.filter\(\(r\) => kbCreationSources\.folds\(r\.id\) !== true\)/.test(src))
-  check('Creations carries the states of the rows it took over, and is selected while one of their pages is open', /kbCreationSources\.list\(\)\.filter\(\(sx\) => sx\.foldsRow !== null\)\.map\(\(sx\) => h\(KbRowState, \{ key: sx\.id, k: sx\.foldsRow \}\)\)/.test(menu) && /kbCreationSources\.folds\(shown\) === true/.test(menu))
+  check('Creations carries the states of the rows it took over, and is selected while one of their pages is open', /kbCreationSources\.list\(\)\.filter\(\(sx\) => sx\.foldsRow !== null\)\.map\(\(sx\) => h\(KbRowState, \{ key: sx\.id, k: sx\.foldsRow, source: sx, onOpen: \(view\) => openPage\(\{ view \}\) \}\)\)/.test(menu) && /kbCreationSources\.folds\(shown\) === true/.test(menu))
   check('no source id collides with a type of the core', !/\bid: 'dashboards'/.test(src.slice(src.indexOf('const KB_ART_TYPES = ['), src.indexOf('const KB_ART_TYPES = [') + 4000)) && !/\bid: 'apps'/.test(src.slice(src.indexOf('const KB_ART_FAMILIES = ['), src.indexOf('const KB_ART_FAMILIES = [') + 2000)))
+}
+
+console.log('the dot a folded source leaves on the Creations row names the source and the count')
+{
+  const a = src.indexOf('// <kb-folded-dot>')
+  const b = src.indexOf('// </kb-folded-dot>')
+  check('the pure helper is in client.js, between its markers', a > 0 && b > a)
+  const wordsOf = (lang) => (k) => entry(k)[lang === 'fr' ? 'kybernos' : 'en']
+  const srcWord = (o, l) => (o !== null && typeof o === 'object' ? (typeof o[l] === 'string' ? o[l] : o.en) : '')
+  const make = (lang) => new Function('kbt', 'kbSrcWord', src.slice(a, b) + '\nreturn kbFoldedDot')(wordsOf(lang), srcWord)
+  const dash = { id: 'dashboards', label: { en: 'Dashboards', fr: 'Tableaux de bord' }, foldsRow: 'dashboards' }
+  const en = make('en')
+  const fr = make('fr')
+  check('English, one: « 1 suggestion is waiting for you in Dashboards »', en(dash, 1, 'en').label === '1 suggestion is waiting for you in Dashboards', en(dash, 1, 'en'))
+  check('English, several: the count and the plural', en(dash, 3, 'en').label === '3 suggestions are waiting for you in Dashboards', en(dash, 3, 'en'))
+  check('French, one and several, with the French name of the source', fr(dash, 1, 'fr').label === '1 suggestion attend ta relecture dans Tableaux de bord' && fr(dash, 2, 'fr').label === '2 suggestions attendent ta relecture dans Tableaux de bord', [fr(dash, 1, 'fr'), fr(dash, 2, 'fr')])
+  check('a source with no word for the language is named in English', en({ id: 'apps', label: { en: 'Apps' }, foldsRow: 'tables' }, 2, 'es').label === '2 suggestions are waiting for you in Apps')
+  check('a tap on the dot goes to the row the source stands in for (the page that waits)', en(dash, 1, 'en').view === 'dashboards' && en({ id: 'apps', label: { en: 'Apps' }, foldsRow: 'tables' }, 1, 'en').view === 'tables')
+  check('a folded connection need names its source and count too', en({ id: 'apps', label: { en: 'Apps' }, foldsRow: 'tables' }, 1, 'en', 'need').label === '1 connection is waiting in Apps' && en({ id: 'apps', label: { en: 'Apps' }, foldsRow: 'tables' }, 3, 'en', 'need').label === '3 connections are waiting in Apps')
+  check('the connection need has its French words', fr({ id: 'apps', label: { en: 'Apps', fr: 'Applis' }, foldsRow: 'tables' }, 1, 'fr', 'need').label === '1 connexion attend dans Applis' && fr({ id: 'apps', label: { en: 'Apps', fr: 'Applis' }, foldsRow: 'tables' }, 2, 'fr', 'need').label === '2 connexions attendent dans Applis')
+  for (const k of ['menu.need.src', 'menu.need.src.1']) check('the dictionary has ' + k + ' in both languages, with the source name', entry(k).en.includes('{name}') && entry(k).kybernos.includes('{name}'))
+  for (const k of ['menu.review.src', 'menu.review.src.1']) check('the dictionary has ' + k + ' in both languages, with the name', entry(k).en.includes('{name}') && entry(k).kybernos.includes('{name}'))
+  check('the plural carries the count, the singular says « 1 » itself', entry('menu.review.src').en.includes('{n}') && entry('menu.review.src').kybernos.includes('{n}') && !entry('menu.review.src.1').en.includes('{n}') && !entry('menu.review.src.1').kybernos.includes('{n}'))
+  const rs = src.slice(src.indexOf('const KbRowState = (props) => {'), src.indexOf('// Watches the automations from the menu'))
+  check('the dot of a folded source gets that name as its aria-label and its tooltip, the dot of a row\'s own state keeps « To review »', /'aria-label': from !== null \? from\.label : kbt\('menu\.review'\), title: from !== null \? from\.label : undefined/.test(rs))
+  check('a tap on it opens the page that waits and does not also open Creations (it stops the click); without a source nothing is clickable', /\(e\) => \{ try \{ e\.stopPropagation\(\) \} catch \(x\) \{[^}]*\} props\.onOpen\(from\.view\) \}/.test(rs) && /const from = props\.source !== undefined && props\.source !== null && v\.review > 0 \? kbFoldedDot\(props\.source, v\.review, kbDomainLang\(\)\) : null/.test(rs) && /onClick: openFrom/.test(rs))
+  check('a folded connection need gets its own label, tooltip and click to the waiting page', /needFrom !== null \? needFrom\.label : kbt\('menu\.connect'\), title: needFrom !== null \? needFrom\.label : undefined, onClick: openNeed/.test(rs) && /props\.onOpen\(needFrom\.view\)/.test(rs) && /kbFoldedDot\(props\.source, v\.need, kbDomainLang\(\), 'need'\)/.test(rs))
+  const menuSrc = src.slice(src.indexOf('const SalesMenu = (p0) => {'), src.indexOf('const SidebarUtils = () => {'))
+  check('only the Creations row hands a source to the dots (the other rows\' dots are drawn as before)', (menuSrc.match(/source: sx/g) || []).length === 1 && /h\(KbRowState, \{ k: 'dashboards' \}\)/.test(menuSrc) && /onOpen: \(view\) => openPage\(\{ view \}\)/.test(menuSrc))
 }
 
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)

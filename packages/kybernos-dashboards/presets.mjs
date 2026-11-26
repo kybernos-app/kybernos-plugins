@@ -36,8 +36,8 @@ export const PRESETS = [
   },
   {
     id: 'agent-teams',
-    name: 'Agent Teams',
-    desc: 'Your Agent Teams, what they know and what they learned.',
+    name: 'AI Agent Teams',
+    desc: 'Your AI Agent Teams, what they know and what they learned.',
     widgets: [
       { type: 'card', title: 'Teams defined', source: { provider: 'teams.list' }, metric: { agg: 'count' }, sub: { template: '{v} declared skills', metric: { agg: 'sum', field: 'skills' } }, w: 3, h: 2 },
       { type: 'card', title: 'Lessons recorded', source: { provider: 'teams.lessons' }, metric: { agg: 'sum', field: 'lessons' }, sub: { template: '{v} runs in total', metric: { agg: 'sum', field: 'runs' } }, w: 3, h: 2 },
@@ -45,7 +45,7 @@ export const PRESETS = [
       { type: 'card', title: 'Roles', source: { provider: 'teams.list' }, metric: { agg: 'sum', field: 'roles' }, sub: { template: 'across all teams' }, w: 3, h: 2 },
       { type: 'chart', title: 'Lessons per team', kind: 'bars', x: 'team', y: 'lessons', agg: 'sum', source: { provider: 'teams.lessons' }, w: 6, h: 4 },
       { type: 'chart', title: 'Declared skills per team', kind: 'bars', x: 'team', y: 'skills', agg: 'sum', source: { provider: 'teams.list' }, w: 6, h: 4 },
-      { type: 'list', title: 'Agent Teams', label: 'team', sub: 'mission', source: { provider: 'teams.list' }, limit: 12, w: 12, h: 5 },
+      { type: 'list', title: 'AI Agent Teams', label: 'team', sub: 'mission', source: { provider: 'teams.list' }, limit: 12, w: 12, h: 5 },
     ],
   },
   {
@@ -90,17 +90,17 @@ export const PRESETS = [
   {
     id: 'work-pipeline',
     name: 'From skill to deliverable',
-    desc: 'How work travels through DSH: skills, Agent Teams, sessions and the files they leave, with a live count at each step.',
+    desc: 'How work travels through DSH: skills, AI Agent Teams, sessions and the files they leave, with a live count at each step.',
     widgets: [
       { type: 'card', title: 'Skills installed', source: { provider: 'skills.list' }, metric: { agg: 'count' }, sub: { template: '{v} switched off', metric: { agg: 'count', where: [{ field: 'active', op: '=', value: 'no' }] } }, w: 3, h: 2 },
-      { type: 'card', title: 'Agent Teams', source: { provider: 'teams.list' }, metric: { agg: 'count' }, sub: { template: '{v} roles in all', metric: { agg: 'sum', field: 'roles' } }, w: 3, h: 2 },
+      { type: 'card', title: 'AI Agent Teams', source: { provider: 'teams.list' }, metric: { agg: 'count' }, sub: { template: '{v} roles in all', metric: { agg: 'sum', field: 'roles' } }, w: 3, h: 2 },
       { type: 'card', title: 'Sessions with runs', source: { provider: 'sessions.runs', params: { limit: 100 } }, metric: { agg: 'count' }, sub: { template: '{v} runs', metric: { agg: 'sum', field: 'runs' } }, w: 3, h: 2 },
       { type: 'card', title: 'Creations', source: { provider: 'deliverables.list', params: { limit: 60 } }, metric: { agg: 'count' }, sub: { template: 'files made by your teams' }, w: 3, h: 2 },
       {
         type: 'flow', title: 'The path of a piece of work', w: 12, h: 4,
         nodes: [
           { id: 'skills', t: 'Skills', k: 'input', s: 'ok', x: 30, y: 20, bind: { source: { provider: 'skills.list' }, metric: { agg: 'count', where: [{ field: 'active', op: '=', value: 'yes' }] }, template: '{v} active' } },
-          { id: 'teams', t: 'Agent Teams', k: 'agents', s: 'ok', x: 270, y: 20, bind: { source: { provider: 'teams.list' }, metric: { agg: 'count' }, template: '{v} teams' } },
+          { id: 'teams', t: 'AI Agent Teams', k: 'agents', s: 'ok', x: 270, y: 20, bind: { source: { provider: 'teams.list' }, metric: { agg: 'count' }, template: '{v} teams' } },
           { id: 'runs', t: 'Sessions', k: 'work', s: 'ok', x: 510, y: 20, bind: { source: { provider: 'sessions.runs', params: { limit: 100 } }, metric: { agg: 'sum', field: 'runs' }, template: '{v} runs' } },
           { id: 'files', t: 'Creations', k: 'output', s: 'ok', x: 740, y: 20, bind: { source: { provider: 'deliverables.list', params: { limit: 60 } }, metric: { agg: 'count' }, template: '{v} files' } },
           { id: 'lessons', t: 'Lessons', k: 'memory', s: 'idle', x: 740, y: 110, bind: { source: { provider: 'teams.lessons' }, metric: { agg: 'sum', field: 'lessons' }, template: '{v} learned' } },

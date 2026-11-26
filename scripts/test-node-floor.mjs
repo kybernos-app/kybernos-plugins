@@ -8,6 +8,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { comparerVersions, noeudRepond } from './lifecycle-engine.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8')
@@ -20,6 +21,8 @@ const check = (name, ok, detail) => {
 const compat = JSON.parse(read('dsh-compat.json'))
 const floor = compat.dsh.node
 check('dsh-compat.json declares the floor: a version and the first engine it applies to', typeof floor?.min === 'string' && /^\d+\.\d+\.\d+$/.test(floor.min) && typeof floor.from === 'string', floor)
+// From DSH 0.2.3-alpha.1 the requirement is a RANGE, kept in `ranges`; the gate must be able to read every entry, or it would never block.
+check('every `ranges` entry of dsh-compat.json has a first engine at or above the floor\'s and a range the gate can read', (floor?.ranges ?? []).every((r) => typeof r.from === 'string' && comparerVersions(r.from, floor.from) >= 0 && noeudRepond('24.30.0', r.node) !== null), floor?.ranges)
 const [major, minor] = (floor?.min ?? '0.0.0').split('.')
 const short = major + '.' + minor // « 24.9 »
 

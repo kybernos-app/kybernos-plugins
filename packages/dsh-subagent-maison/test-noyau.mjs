@@ -7,7 +7,7 @@ import { mkdtempSync, writeFileSync, chmodSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawn as nodeSpawn } from 'node:child_process'
-import { runOneShot, texteTache, RunFailure, sonder, trouverBinaire, trouverModeleFree } from './noyau.mjs'
+import { runOneShot, texteTache, RunFailure, sonder, trouverBinaire, trouverModeleFree, cleDuRun } from './noyau.mjs'
 
 let echecs = 0
 let total = 0
@@ -48,7 +48,8 @@ try {
   {
     const { attempt, teardown } = runOneShot('Test', [process.execPath, '-e', 'process.exit(3)'], { spawn: fauxSpawn })
     let echoue = false
-    try { await attempt() } catch (e) { echoue = e instanceof RunFailure && e.fait.code === 3 }
+    try { await attempt()
+} catch (e) { echoue = e instanceof RunFailure && e.fait.code === 3 }
     ok('a non-zero exit code raises RunFailure with the code', echoue)
     await teardown()
   }
@@ -106,6 +107,18 @@ try {
     ok('a malformed answer → null', (await trouverModeleFree(bizarre.url)) === null)
     await bizarre.fermer()
   }
+
+console.log('-- the key of a run (config, credentials store, launch environment) --')
+{
+  const store = (valeurs) => ({ credentials: { resolve: async (nom) => (valeurs[nom] === undefined ? undefined : { value: valeurs[nom], source: 'store' }) } })
+  ok('a key in the config wins over everything', (await cleDuRun(store({ GEMINI_API_KEY: 'store' }), 'config', ['GEMINI_API_KEY'])) === 'config')
+  ok('a key saved by the Workers screen is read from the credentials store, with no restart', (await cleDuRun(store({ GEMINI_API_KEY: 'store' }), '', ['GEMINI_API_KEY'])) === 'store')
+  ok('the store is asked by variable name, in order', (await cleDuRun(store({ GOOGLE_API_KEY: 'second' }), '', ['GEMINI_API_KEY', 'GOOGLE_API_KEY'])) === 'second')
+  ok('no store means the launch environment, as before', (await cleDuRun(undefined, '', ['CODECLAUDE_TEST_KEY'])).length === 0 && (process.env.CODECLAUDE_TEST_KEY = 'env', (await cleDuRun(undefined, '', ['CODECLAUDE_TEST_KEY'])) === 'env'))
+  ok('a store that throws never breaks a run: it falls back', (await cleDuRun({ credentials: { resolve: async () => { throw new Error('locked') } } }, '', ['CODECLAUDE_TEST_KEY'])) === 'env')
+  ok('an empty value anywhere counts as absent', (await cleDuRun(store({ K: '' }), '', ['K'])) === '')
+  delete process.env.CODECLAUDE_TEST_KEY
+}
 } catch (e) {
   echecs++; total++
   console.log('  ✗ the test itself stopped — ' + String(e && e.stack ? e.stack : e).split('\n').slice(0, 4).join(' | '))

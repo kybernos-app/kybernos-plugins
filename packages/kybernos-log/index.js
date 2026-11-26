@@ -8,9 +8,11 @@
 // Storage is a bounded ring on disk (`<DSH home>/kybernos/log/events.jsonl`, rotated) plus the last few thousand
 // records in memory. Three read-only routes serve the page and anything else that wants to watch:
 //   GET  /kybernos-log/events?types=llm,websearch&session=&q=&since=&before=&limit=
-//   GET  /kybernos-log/stats?days=1
+//   GET  /kybernos-log/stats?days=1          (per day, and per hour of each day: the page's sparklines)
 //   GET  /kybernos-log/stream      (SSE, live)
-// Every route is fenced by Host and Origin: they are served BEFORE DSH's own authentication.
+//   GET  /kybernos-log/terminal?stream=out|err&before=&after=&limit=&q=&plugin=   (what DSH prints in its terminal)
+// Every route is fenced by Host and Origin: they are served BEFORE DSH's own authentication. The terminal route reads local text
+// that may hold paths, so it also needs DSH's signed session cookie (session-guard.mjs), and it masks secrets before it answers.
 //
 // Rules kept deliberately, all tested in test-host.mjs:
 //  - a bundle must never stop DSH from starting: `apply` is wrapped, every hook is wrapped;
@@ -19,9 +21,10 @@
 //  - nothing is stored that a person would not want in a log file they might share: no text, no arguments.
 
 import { dirname, join } from 'node:path'
-import { mkdirSync, appendFileSync, readFileSync, statSync, renameSync, existsSync } from 'node:fs'
+import { mkdirSync, appendFileSync, readFileSync, statSync, renameSync, existsSync, openSync, readSync, closeSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
+import { writeGuard, dshHome } from './session-guard.mjs'
 
 export const name = 'kybernos-log'
 
@@ -31,6 +34,7 @@ const MAX_BYTES = 8 * 1024 * 1024
 const MAX_LIMIT = 500
 const TITLE_MAX = 80
 const ERROR_MAX = 180
+const TITLES_MAX = 2000
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 const clampText = (v, max) => (typeof v === 'string' && v !== '' ? (v.length > max ? v.slice(0, max - 1) + '…' : v) : undefined)
@@ -203,7 +207,18 @@ export const filterEvents = (rows, query = {}) => {
   return out.reverse()
 }
 
-/** Calls and tokens per day, per type and per model — what the page's cards show. Pure. */
+/** A record that says something went wrong: a retry, a tool that answered with an error, a turn or a job that did not complete. */
+const FAILED_STATUS = new Set(['failed', 'killed', 'error', 'timeout'])
+export const isFailure = (r) => r !== null && typeof r === 'object' && (r.kind === 'retry' || r.ok === false || (typeof r.status === 'string' && FAILED_STATUS.has(r.status)))
+/** The calls nobody asked for: automatic titles, compactions, probes (one record per call). */
+const UNASKED = new Set(['title', 'compaction', 'probe'])
+export const isUnasked = (r) => r !== null && typeof r === 'object' && UNASKED.has(r.type)
+const emptyHour = () => ({ calls: 0, tokens: 0, failures: 0, unasked: 0 })
+
+/**
+ * Calls and tokens per day, per type and per model (what the page's cards show), and the same per local hour of each day
+ * (`hours`, 24 buckets: model calls, tokens, failures, unasked calls), which the cards draw as sparklines. Pure.
+ */
 export const aggregate = (rows, { days = 1, now = Date.now() } = {}) => {
   const keep = new Set()
   for (let i = 0; i < days; i += 1) keep.add(dayKey(now - i * 86400000))
@@ -212,10 +227,15 @@ export const aggregate = (rows, { days = 1, now = Date.now() } = {}) => {
     if (r === null || typeof r !== 'object') continue
     const day = dayKey(r.at)
     if (!keep.has(day)) continue
-    if (!byDay.has(day)) byDay.set(day, { day, calls: 0, tokens: 0, types: {}, models: {} })
+    if (!byDay.has(day)) byDay.set(day, { day, calls: 0, tokens: 0, failures: 0, unasked: 0, types: {}, models: {}, hours: Array.from({ length: 24 }, emptyHour) })
     const d = byDay.get(day)
+    const hour = d.hours[new Date(r.at).getHours()]
     const tokens = num(r.input) + num(r.output) + num(r.cache)
-    if (r.type === 'llm' && r.kind === 'answer') { d.calls += 1; d.tokens += tokens }
+    d.tokens += tokens
+    hour.tokens += tokens
+    if (r.type === 'llm' && r.kind === 'answer') { d.calls += 1; hour.calls += 1 }
+    if (isFailure(r)) { d.failures += 1; hour.failures += 1 }
+    if (isUnasked(r)) { d.unasked += 1; hour.unasked += 1 }
     const t = d.types[r.type] || { calls: 0, tokens: 0 }
     t.calls += r.kind === 'call' || r.kind === 'answer' ? 1 : 0
     t.tokens += tokens
@@ -236,6 +256,15 @@ export const createJournal = ({ file, maxBytes = MAX_BYTES, ring = MAX_RING, now
   let seq = 0
   let loaded = false
   let size = 0
+  // Each chat's last title, read from the WHOLE file (the ring keeps the last few thousand records, and a chat named long ago is still
+  // a chat the page should call by its name). Bounded: the oldest titles go first past TITLES_MAX.
+  const titles = new Map()
+  const remember = (r) => {
+    if (r.type !== 'session' || r.kind !== 'title' || typeof r.session !== 'string' || typeof r.title !== 'string') return
+    titles.delete(r.session)
+    titles.set(r.session, r.title)
+    if (titles.size > TITLES_MAX) titles.delete(titles.keys().next().value)
+  }
 
   const load = () => {
     if (loaded) return
@@ -247,7 +276,7 @@ export const createJournal = ({ file, maxBytes = MAX_BYTES, ring = MAX_RING, now
           if (line.length < 2) continue
           try {
             const r = JSON.parse(line)
-            if (isObj(r)) { rows.push(r); seq = Math.max(seq, Number(r.seq) || 0) }
+            if (isObj(r)) { rows.push(r); remember(r); seq = Math.max(seq, Number(r.seq) || 0) }
           } catch (e) { /* a torn tail line is normal after a crash */ }
         }
         if (rows.length > ring) rows.splice(0, rows.length - ring)
@@ -272,6 +301,7 @@ export const createJournal = ({ file, maxBytes = MAX_BYTES, ring = MAX_RING, now
       seq += 1
       const stored = { seq, ...rec, at: typeof rec.at === 'number' ? rec.at : now() }
       rows.push(stored)
+      remember(stored)
       if (rows.length > ring) rows.splice(0, rows.length - ring)
       try {
         if (typeof file === 'string') {
@@ -286,11 +316,149 @@ export const createJournal = ({ file, maxBytes = MAX_BYTES, ring = MAX_RING, now
     },
     list (query = {}) { load(); return filterEvents(rows, query) },
     stats (opts = {}) { load(); return aggregate(rows, { now: now(), ...opts }) },
-    size () { load(); return { rows: rows.length, seq, bytes: size } }
+    size () { load(); return { rows: rows.length, seq, bytes: size } },
+    /** The titles of the given chats (those the journal knows), as `{ session: title }`. */
+    titles (sessions) {
+      load()
+      const out = {}
+      for (const id of sessions) if (typeof id === 'string' && titles.has(id)) out[id] = titles.get(id)
+      return out
+    }
   }
 }
 
 // ── routes ───────────────────────────────────────────────────────────────────────────────────────────────────────
+// -- the terminal: what DSH prints ------------------------------------------------------------------------------------
+// DSH, started by the launcher, writes its terminal to <DSH home>/logs/dsh-web.out.log (standard output) and dsh-web.err.log
+// (errors). Those files have no timestamps, so the two streams are served apart and never merged. The reader is bounded: it reads
+// at most TAIL_BYTES from the end, whatever the size of the file, and counts the lines before that window once (append-only files:
+// the count is kept per file and only the new bytes are counted on the next call, so following the file every 2 s stays cheap).
+
+const TAIL_BYTES = 4 * 1024 * 1024
+const TERM_LIMIT = 500
+const TERM_LINE_MAX = 2000
+
+/** Where DSH's terminal is written. A DSH on another port than 3080 writes dsh-web-<port>.<stream>.log (scripts/dsh-relance.mjs). */
+export const terminalFile = (home, stream, port) => {
+  const which = stream === 'err' ? 'err' : 'out'
+  if (typeof port === 'number' && port !== 3080) {
+    const own = join(home, 'logs', 'dsh-web-' + port + '.' + which + '.log')
+    if (existsSync(own)) return own
+  }
+  return join(home, 'logs', 'dsh-web.' + which + '.log')
+}
+
+const HIDDEN = '[hidden]'
+// Each pattern keeps what names the secret and replaces only the value. Applied in this order, on every line, BEFORE it leaves the host.
+const SECRET_PATTERNS = [
+  // a JSON Web Token, wherever it stands
+  [/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{4,}/g, HIDDEN],
+  // the API keys whose shape is known: OpenAI/Anthropic-style sk-, GitHub, GitLab, Slack, AWS, Google
+  [/\bsk-[A-Za-z0-9_-]{12,}/g, 'sk-' + HIDDEN],
+  [/\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{16,}/g, HIDDEN],
+  [/\bgithub_pat_[A-Za-z0-9_]{16,}/g, HIDDEN],
+  [/\bglpat-[A-Za-z0-9_-]{12,}/g, HIDDEN],
+  [/\bxox[abposr]-[A-Za-z0-9-]{10,}/g, HIDDEN],
+  [/\bAKIA[0-9A-Z]{16}\b/g, HIDDEN],
+  [/\bAIza[0-9A-Za-z_-]{30,}/g, HIDDEN],
+  // an Authorization header and its scheme
+  [/\b(Bearer|Basic|Token)(\s+)[A-Za-z0-9._~+/=-]{6,}/g, '$1$2' + HIDDEN],
+  [/\b(authorization["']?\s*[:=]\s*["']?)(?!Bearer\b|Basic\b|Token\b|\[hidden\])[^\s"',;&]+/gi, '$1' + HIDDEN],
+  // name=value or "name": "value" for the names a secret goes under (token=..., access_token, api_key, key=, password=...)
+  [/(\b(?:access_token|refresh_token|id_token|token|api[_-]?key|apikey|key|secret|client_secret|password|passwd|pwd|auth|cookie)["']?\s*[=:]\s*["']?)(?!\[hidden\])[^\s"'&,;]+/gi, '$1' + HIDDEN],
+  // a long hex or base64 run right after the word secret or token ("secret abcd...", "token 9f8e...")
+  [/(\b(?:secrets?|tokens?)\b[^A-Za-z0-9\n]{1,4})(?!\[hidden\])[A-Za-z0-9+/_=-]{20,}/gi, '$1' + HIDDEN]
+]
+/** One line as the page may show it: colour codes gone, secrets hidden, a very long line cut. Pure. */
+export const maskSecrets = (line) => {
+  let t = String(line).replace(/\u001b\[[0-9;?]*[A-Za-z]/g, '').replace(/\r$/, '')
+  for (const [re, by] of SECRET_PATTERNS) t = t.replace(re, by)
+  return t.length > TERM_LINE_MAX ? t.slice(0, TERM_LINE_MAX - 1) + '\u2026' : t
+}
+/** The plugin a line comes from, when it starts with a tag such as "[kybernos-cloud]". */
+export const pluginTag = (line) => {
+  const m = /^\[([A-Za-z0-9@][\w.@/-]{0,40})\]/.exec(line)
+  return m === null ? null : m[1]
+}
+
+const lineCounts = new Map()
+const countNewlines = (fd, from, to) => {
+  const chunk = Buffer.alloc(1024 * 1024)
+  let n = 0
+  for (let at = from; at < to;) {
+    const got = readSync(fd, chunk, 0, Math.min(chunk.length, to - at), at)
+    if (got <= 0) break
+    for (let i = 0; i < got; i += 1) if (chunk[i] === 10) n += 1
+    at += got
+  }
+  return n
+}
+
+/**
+ * The end of one terminal file, numbered. Lines are 1-based, newest last; only complete lines are served (a line still being
+ * written waits for its newline). `before` asks for older lines, `after` for the ones that came since (follow), `q` and `plugin`
+ * filter on the MASKED text (so a search cannot find a secret by its value). Never throws: a missing file answers `exists: false`.
+ */
+export const readTerminal = (file, { before, after, limit = TERM_LIMIT, q, plugin, tailBytes = TAIL_BYTES } = {}) => {
+  let st = null
+  try { st = statSync(file) } catch (e) { st = null }
+  if (st === null || !st.isFile()) return { exists: false, total: 0, lines: [], hasOlder: false, truncated: false, plugins: [] }
+  let fd = null
+  try {
+    fd = openSync(file, 'r')
+    const size = st.size
+    const start = Math.max(0, size - tailBytes)
+    let c = lineCounts.get(file)
+    if (c === undefined || c.ino !== st.ino || c.bytes > start || c.size > size) c = { ino: st.ino, bytes: 0, lines: 0, size }
+    if (c.bytes < start) { c.lines += countNewlines(fd, c.bytes, start); c.bytes = start }
+    c.size = size
+    lineCounts.set(file, c)
+    const buf = Buffer.alloc(size - start)
+    if (buf.length > 0) readSync(fd, buf, 0, buf.length, start)
+    const pieces = buf.toString('utf8').split('\n')
+    const total = c.lines + pieces.length - 1
+    const first = start > 0 ? 1 : 0
+    const all = []
+    const tags = new Map()
+    for (let i = first; i < pieces.length - 1; i += 1) {
+      const text = maskSecrets(pieces[i])
+      const tag = pluginTag(text)
+      if (tag !== null) tags.set(tag, (tags.get(tag) || 0) + 1)
+      all.push({ n: c.lines + 1 + i, text, tag })
+    }
+    const needle = typeof q === 'string' && q.trim() !== '' ? q.trim().toLowerCase() : null
+    const only = typeof plugin === 'string' && plugin !== '' ? plugin : null
+    const max = Math.min(TERM_LIMIT, Math.max(1, Number(limit) || TERM_LIMIT))
+    const matched = all.filter((l) => (only === null || l.tag === only) && (needle === null || l.text.toLowerCase().includes(needle)))
+    let picked
+    let skipped = 0
+    if (typeof after === 'number' && Number.isFinite(after)) {
+      const since = matched.filter((l) => l.n > after)
+      skipped = Math.max(0, since.length - max)
+      picked = since.slice(since.length - max)
+    } else {
+      const older = typeof before === 'number' && Number.isFinite(before) ? matched.filter((l) => l.n < before) : matched
+      picked = older.slice(Math.max(0, older.length - max))
+    }
+    const oldest = picked.length > 0 ? picked[0].n : (typeof before === 'number' ? before : total + 1)
+    const hasOlder = matched.some((l) => l.n < oldest)
+    return {
+      exists: true,
+      total,
+      lines: picked.map((l) => ({ n: l.n, text: l.text })),
+      hasOlder,
+      // the window does not reach the start of the file: older lines exist but are not read here
+      truncated: start > 0 && !hasOlder,
+      skipped,
+      plugins: Array.from(tags.entries()).sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([tag, count]) => ({ tag, count }))
+    }
+  } catch (e) {
+    return { exists: true, total: 0, lines: [], hasOlder: false, truncated: false, plugins: [], error: 'unreadable' }
+  } finally {
+    if (fd !== null) { try { closeSync(fd) } catch (e) { /* already closed */ } }
+  }
+}
+
 const str = (v) => (typeof v === 'string' && v !== '' ? v : null)
 const localAuthority = (req) => {
   try {
@@ -316,8 +484,8 @@ const send = (res, status, body) => {
   } catch (e) { /* socket closed */ }
 }
 
-/** Mount the three routes on a webServer-like `{ register }`. Returns a function that unregisters them. */
-export const mountRoutes = (webServer, journal, { subscribe } = {}) => {
+/** Mount the four routes on a webServer-like `{ register }`. Returns a function that unregisters them. `home` is the DSH folder (a test gives a temp one). */
+export const mountRoutes = (webServer, journal, { subscribe, home } = {}) => {
   const withdrawals = []
   const register = (route) => {
     const off = webServer.register(route)
@@ -352,7 +520,8 @@ export const mountRoutes = (webServer, journal, { subscribe } = {}) => {
       // The page pages: a full page means there may be older rows, and the client asks for them with `before` (the seq of
       // its oldest row). `total` is what the ring holds, so the page can say « 300 of 12 000 » instead of guessing.
       const state = journal.size()
-      return send(res, 200, { ok: true, events, state, total: state.rows, hasMore: events.length >= limit })
+      // `titles` names the chats of these rows (from the whole file, not only the ring): the page shows a chat's title, not its id.
+      return send(res, 200, { ok: true, events, state, total: state.rows, hasMore: events.length >= limit, titles: journal.titles(new Set(events.map((e) => e.session))) })
     } })
     register({ kind: 'exact', path: '/kybernos-log/stats', handler: (req, res) => {
       if (!guard(res, req)) return
@@ -360,6 +529,23 @@ export const mountRoutes = (webServer, journal, { subscribe } = {}) => {
       let days = 1
       try { days = Math.min(30, Math.max(1, Number(new URL('http://x' + (req.url || '/')).searchParams.get('days')) || 1)) } catch (e) { days = 1 }
       return send(res, 200, { ok: true, days: journal.stats({ days }) })
+    } })
+    // What DSH prints in its terminal. Local text that may hold a path or an error message: a GET, but under DSH's signed session
+    // like a write (session-guard.mjs), and every line is masked before it leaves (maskSecrets). Read-only: no other method.
+    register({ kind: 'exact', path: '/kybernos-log/terminal', handler: (req, res) => {
+      if (!guard(res, req)) return
+      if (req.method !== 'GET') return send(res, 405, { ok: false, error: 'method-not-allowed' })
+      const refused = writeGuard(req)
+      if (refused !== null) return send(res, refused.status, { ok: false, error: refused.error })
+      let p
+      try { p = new URL('http://x' + (req.url || '/')).searchParams } catch (e) { return send(res, 400, { ok: false, error: 'bad-url' }) }
+      const stream = p.get('stream') === 'err' ? 'err' : 'out'
+      const at = (k) => { const v = p.get(k); return v === null || v === '' || !Number.isFinite(Number(v)) ? undefined : Number(v) }
+      const port = req && req.socket && typeof req.socket.localPort === 'number' ? req.socket.localPort : undefined
+      const file = terminalFile(typeof home === 'string' ? home : dshHome(), stream, port)
+      const got = readTerminal(file, { before: at('before'), after: at('after'), limit: at('limit'), q: p.get('q') || undefined, plugin: p.get('plugin') || undefined })
+      // The file's NAME only: its folder is a personal path.
+      return send(res, 200, { ok: true, stream, file: file.split(/[\\/]/).pop(), ...got })
     } })
     register({ kind: 'exact', path: '/kybernos-log/stream', handler: (req, res) => {
       if (!guard(res, req)) return

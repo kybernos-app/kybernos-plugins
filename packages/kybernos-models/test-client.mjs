@@ -163,7 +163,7 @@ console.log('\n── the actions, run against the REAL host routes and a fake s
 console.log('\n── provider writes: pure rules ──')
 {
   const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
-  const pv = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvKeyRef, kbPvKeyRefOf, kbPvKeyState, kbPvUrlOk, kbPvRows, kbPvMergeModels, kbPvDiffOps, kbPvEditProfile, kbPvNewProfile, kbPvAddBlock }')()
+  const pv = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvKeyRef, kbPvKeyRefOf, kbPvKeyState, kbPvUrlOk, kbPvRows, kbPvMergeModels, kbPvDiffOps, kbPvEditProfile, kbPvNewProfile, kbPvAddBlock, kbPvKeylessUrl, kbPvKeyToStore }')()
   ok('the key reference is <ROUTE>_API_KEY, like the native page', pv.kbPvKeyRef('zai-coding-cn') === 'ZAI_CODING_CN_API_KEY' && pv.kbPvKeyRef('groq') === 'GROQ_API_KEY')
   ok('a catalog provider added with the key left blank is « key missing », not a silent card (A3-32)', pv.kbPvKeyState({ baseURL: 'https://api.mistral.ai/v1' }, 'MISTRAL_API_KEY', { MISTRAL_API_KEY: false }) === 'missing' && pv.kbPvKeyState({}, 'MISTRAL_API_KEY', {}) === 'unknown')
   ok('the key dot follows the credential: the profile reference wins over the catalogue one, set is ok', pv.kbPvKeyState({ apiKeyEnv: 'MY_KEY' }, 'MISTRAL_API_KEY', { MY_KEY: true, MISTRAL_API_KEY: false }) === 'ok' && pv.kbPvKeyRefOf({ apiKeyEnv: 'MY_KEY' }, 'X') === 'MY_KEY' && pv.kbPvKeyRefOf({}, 'MISTRAL_API_KEY') === 'MISTRAL_API_KEY')
@@ -189,6 +189,16 @@ console.log('\n── provider writes: pure rules ──')
   ok('a new profile never carries the retryPolicy shape DSH 0.2.0-rc.2 rejects, nor an empty modelOverrides', !('retryPolicy' in np) && !('modelOverrides' in np))
   ok('a catalog route with no models declared writes no empty models list', !('models' in pv.kbPvNewProfile({ tab: 'catalog', prov: 'x', id: 'x', url: 'https://x/v1', key: '', models: [] })))
   ok('a new profile with no key records no reference (provider-native authentication)', !('apiKeyEnv' in pv.kbPvNewProfile({ tab: 'custom', id: 'a', url: 'https://a/v1', key: '', models: [{ id: 'x' }] })))
+  ok('a local or private server is told apart from a public one (localhost, 127.x, ::1, 10.x, 172.16-31.x, 192.168.x, *.local; a public address or name is not)',
+    ['http://localhost:11434/v1', 'http://127.0.0.1:1234/v1', 'http://[::1]:11434/v1', 'http://10.0.2.2:11434/v1', 'http://172.20.1.5/v1', 'http://192.168.1.20:11434/v1', 'http://my-mac.local:11434/v1', 'http://user@localhost/v1'].every((u) => pv.kbPvKeylessUrl(u) === true)
+    && ['https://gw.example/v1', 'http://8.8.8.8/v1', 'http://172.32.0.1/v1', 'http://192.169.0.1/v1', 'http://localhost.evil.com/v1', 'https://api.openai.com/v1', ''].every((u) => pv.kbPvKeylessUrl(u) === false))
+  ok('a custom provider on a local server with the key left blank gets a key reference and the neutral placeholder (the engine refuses a turn on a route with no key); a typed key wins; a public server or a catalog add gets nothing',
+    pv.kbPvKeyToStore({ tab: 'custom', url: 'http://localhost:11434/v1', key: '' }) === 'no-key-required'
+    && pv.kbPvKeyToStore({ tab: 'custom', url: 'http://localhost:11434/v1', key: ' sk ' }) === 'sk'
+    && pv.kbPvKeyToStore({ tab: 'custom', url: 'https://gw.example/v1', key: '' }) === ''
+    && pv.kbPvKeyToStore({ tab: 'catalog', url: 'http://localhost:11434/v1', key: '' }) === ''
+    && pv.kbPvNewProfile({ tab: 'custom', id: 'ollama-mac', url: 'http://localhost:11434/v1', key: '', models: [{ id: 'x' }] }).apiKeyEnv === 'OLLAMA_MAC_API_KEY'
+    && !('apiKeyEnv' in pv.kbPvNewProfile({ tab: 'custom', id: 'gw', url: 'https://gw.example/v1', key: '', models: [{ id: 'x' }] })))
   const blk = (d, taken) => pv.kbPvAddBlock(d, taken || [])
   ok('add rules: pick first, then slug, taken, models (custom), URL, template', blk({ tab: 'catalog', prov: '', id: 'a', url: 'https://a' }) === 'pick' && blk({ tab: 'custom', id: 'Bad Slug', url: 'https://a', models: [{ id: 'm' }] }) === 'slug' && blk({ tab: 'custom', id: 'a', url: 'https://a', models: [{ id: 'm' }] }, ['a']) === 'taken' && blk({ tab: 'custom', id: 'a', url: 'https://a', models: [] }) === 'models' && blk({ tab: 'custom', id: 'a', url: 'nope', models: [{ id: 'm' }] }) === 'url' && blk({ tab: 'catalog', prov: 'x', id: 'a', url: 'https://x.${ID}.example' }) === 'template' && blk({ tab: 'catalog', prov: 'x', id: 'a', url: 'https://ok/v1' }) === null)
 }
@@ -248,6 +258,12 @@ console.log('\n── provider writes: the actions, against a fake settings and 
   let r = await w.fns.kbPvCreate({ tab: 'custom', id: 'gw', name: 'Gateway', url: 'https://gw/v1', proto: 'anthropic-messages', key: 'sk-9', env: '', models: [{ id: 'm1', name: 'M1' }] })
   ok('create: the route is written, THEN the key, then the list reloads', /settings:set:providers\.gw > cred\.set:GW_API_KEY > load/.test(steps(w)), steps(w))
   ok('create: the profile holds the reference, the vault holds the key, settings never see it', w.settings.providers.gw.apiKeyEnv === 'GW_API_KEY' && w.creds.GW_API_KEY === 'sk-9' && JSON.stringify(w.settings).indexOf('sk-9') < 0 && r.keyOk === true)
+  w = world()
+  r = await w.fns.kbPvCreate({ tab: 'custom', id: 'ollama-mac', name: 'Ollama on my Mac', url: 'http://localhost:11434/v1', key: '', models: [{ id: 'qwen' }] })
+  ok('create: a local server with no key typed is saved with the placeholder in the vault, so a turn does not fail with « No API key for provider »', w.settings.providers['ollama-mac'].apiKeyEnv === 'OLLAMA_MAC_API_KEY' && w.creds.OLLAMA_MAC_API_KEY === 'no-key-required' && r.keyOk === true && JSON.stringify(w.settings).indexOf('no-key-required') < 0)
+  w = world()
+  r = await w.fns.kbPvCreate({ tab: 'custom', id: 'gw2', url: 'https://gw.example/v1', key: '', models: [{ id: 'm' }] })
+  ok('create: a public server with no key typed still stores nothing (the key is added later)', w.settings.providers.gw2.apiKeyEnv === undefined && w.creds.GW2_API_KEY === undefined && r.keyOk === null)
   w = world({ failCred: 'set' })
   r = await w.fns.kbPvCreate({ tab: 'custom', id: 'gw', url: 'https://gw/v1', key: 'sk', models: [{ id: 'm' }] })
   ok('create: a failed key save keeps the route and says so (keyOk=false)', w.settings.providers.gw !== undefined && r.keyOk === false)
@@ -368,7 +384,7 @@ ok('every row keeps its columns: model, provider, capabilities (list and matrix)
 ok('the override count is a line in the Source cell, not a pill on every row', has("className: 'kbmp-ovline', 'data-kbm': 'ovpill'") && !has("className: 'kbmp-ovpill'"))
 ok('row actions show on hover and focus, and stay visible on touch screens', has('opacity:0;transition:opacity .12s') && has('@media (hover:none){.kbmp-c.kbmp-cact{opacity:1}}') && has('.kbmp-lig:hover .kbmp-cact,.kbmp-lig:focus-within .kbmp-cact'))
 ok('the provider column and the matrix appear from 860 px, the compact layout below', has('@container (min-width: 860px)') && has('@container (min-width: 620px)'))
-ok('the capability chips are hidden by default from 860 px (the header filters), always shown below, and one menu item turns them on', has("const KB_CHIPS_PREF = 'kb.models.capChips'") && has('kbmp-capsbar-on') && has('.kbmp-capsbar:not(.kbmp-capsbar-on){display:none}') && has("'data-kbm': 'chips-toggle'"))
+ok('the capability pills under the search are gone: the Capability menu is the one place that filters by capability below 860 px, the column headers from there', !has('kbmp-capsbar') && !has('CapFiltre') && !has('kb.models.capChips') && !has('chips-toggle') && !has('kb.models.menu.chips') && has("id: 'cap', multi: true") && has("'data-kbm': 'mxfilter-' + k"))
 ok('Restore, Sync all, the chips and DSH’s native page live in one ⋯ menu on the tab bar', has("'data-kbm': 'models-more'") && has("'data-kbm': 'models-menu'") && has("'data-kbm': 'restore'") && has("'data-kbm': 'fetch'"))
 ok('the Cloud card is the first cell of the provider grid, a card of its own size (so it shows on the Providers tab only and the tab bar never moves), and the old header block (intro, Live data pill, two buttons) is gone from Models', has("h(KybernosHero, { key: 'kb-hero' })") && !has("UI.tab === 'providers' ? h(KybernosHero, null) : null") && has("className: 'kbpv-card kbmh-hero'") && !has('grid-column:1/-1') && !has("className: 'kbm-head'"))
 ok('the Cloud card IS the « kybernos » provider while the account is connected: its plain card is not drawn beside it (it is when the account is disconnected, and in a search result where the provider has to be findable)', has("cloud: route === 'kybernos'") && has('const listed = cards.filter((x) => !(x.cloud === true && KBM.cloud !== false))') && has('KBM.cloud = res !== null && typeof res === \'object\' && res.connected === true; kbmNotify()') && has('.catch(() => { if (mort !== true) { KBM.cloud = false; kbmNotify() } })') && has('const hits = searching ? kbPvSearch(cards, UI.pq) : listed') && has('(searching ? hits : (fold.fold ? ready : listed))'))
@@ -976,6 +992,34 @@ console.log('\n── a score on each model, a filter and a sort on it (V-37) �
     has("'data-kbm': 'scores-load'") && has('KBM.live === true && Object.keys(KBM.scoreOf).length === 0') && has('const started = await kbMScoresRefresh(true)') && has("fetch('/kybernos-models/scores/status')") && has('return kbMScoreListLoad(true)') && !/useEffect\([^\n]*kbMScoresStart/.test(src))
   ok('its two strings exist in French and English', ['kb.models.scores.load', 'kb.models.scores.loadHint'].every((k) => new RegExp("'" + k.replace(/\./g, '\\.') + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src)))
   ok('the score strings exist in French and English', ['kb.models.tri.score', 'kb.models.filter.score', 'kb.models.score.any', 'kb.models.score.min', 'kb.models.score.badge'].every((k) => new RegExp("'" + k.replace(/\./g, '\\.') + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src)))
+}
+
+console.log('\n── the filter bar: an icon on every filter, one Capability menu, models.dev read in the background ──')
+{
+  const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
+  const { KB_SYNC_PARALLEL, KB_SYNC_RETRY_MS, kbSyncTodo, kbSyncDue, kbSyncAge } = new Function(bl('KB-SYNCBG-PURE') + '\nreturn { KB_SYNC_PARALLEL, KB_SYNC_RETRY_MS, kbSyncTodo, kbSyncDue, kbSyncAge }')()
+  const has = (frag) => src.includes(frag)
+  const mo = (o) => Object.assign({ route: 'anthropic', id: 'claude-x', kind: 'declared', synced: false, loading: false }, o)
+  ok('a pass reads the models not read yet, not being read, not a creation model, with a route and an id', kbSyncTodo([mo({}), mo({ synced: true }), mo({ loading: true }), mo({ kind: 'creation' }), mo({ route: '' }), mo({ id: '' })]).length === 1 && kbSyncTodo(undefined).length === 0)
+  ok('a pass starts only when something is left, none is running, and the last failure is ten minutes old', kbSyncDue({ running: false, failedAt: null }, 3, 0) === true && kbSyncDue({ running: true, failedAt: null }, 3, 0) === false && kbSyncDue({ running: false, failedAt: null }, 0, 0) === false
+    && kbSyncDue({ running: false, failedAt: 1000 }, 3, 1000 + KB_SYNC_RETRY_MS - 1) === false && kbSyncDue({ running: false, failedAt: 1000 }, 3, 1000 + KB_SYNC_RETRY_MS) === true)
+  ok('the age reads « just now », minutes, then hours', JSON.stringify(kbSyncAge(0, 59000)) === JSON.stringify({ key: 'now', n: 0 }) && JSON.stringify(kbSyncAge(0, 4 * 60000 + 5)) === JSON.stringify({ key: 'min', n: 4 }) && JSON.stringify(kbSyncAge(0, 3 * 3600000 + 60000)) === JSON.stringify({ key: 'h', n: 3 }) && kbSyncAge(5000, 0).key === 'now')
+  ok('four models are read at a time', KB_SYNC_PARALLEL === 4)
+  ok('the pass starts by itself once the Models tab is up and the list is loaded, in live mode only', has("kbSyncDue({ running: KBM.syncRunning, failedAt: KBM.syncFailAt }, kbSyncTodo(KBM.models).length, Date.now())) kbMSyncBackground()") && has("UI.tab !== 'providers' && KBM.live === true && KBM.loading !== true"))
+  ok('it reads the host’s cached models.dev index and never asks for the two score sites', (() => { const a = src.indexOf('const kbMSyncBackground'); const b = src.indexOf('// ── OUR surface', a); const body = src.slice(a, b > a ? b : a + 1200); return a > 0 && body.includes('await kbMSyncLive(mo)') && !body.includes('kbMScoresRefresh') && !body.includes('kbMScoresStart') })())
+  ok('the last read that worked and the last one that failed are kept, and a read that worked clears the failure', has('KBM.syncAt = Date.now()') && has('KBM.syncFailAt = Date.now()') && has('KBM.syncFailAt = null'))
+  ok('the results bar says where models.dev stands (a status, no button), and « Sync all » stays in the ⋯ menu', has("'data-kbm': 'sync-state'") && has('KBM.live === true ? h(SyncChip, null) : null') && !has("'data-kbm': 'sync-list'") && has("'data-kbm': 'fetch'"))
+  ok('the status line moves its age once a minute on its own, and its spinner stops for reduced motion', has('setInterval(() => tick((n) => n + 1), 60000)') && has('@media (prefers-reduced-motion: reduce){.kbmp-spin{animation:none}}'))
+  ok('every filter has an icon of its own: provider, type, capability, status, score, sort', ['prov', 'type', 'cap', 'statut', 'score', 'tri'].every((id) => new RegExp("h\\(Menu, \\{ id: '" + id + "'[^\\n]*icon: Ic\\('[a-z]+', 14\\)").test(src)))
+  ok('and every option too: the provider’s logo, the type’s glyph in its colour, the capability icon, the models.dev and override dots', has('i: h(LogoProv, { route: r, taille: 14 })') && has('i: tinted(t, 14)') && has('i: tinted(c, 14)') && has("i: h('span', { className: 'kbmp-dot ov' })") && has("i: h('span', { className: 'kbmp-dot sync' })"))
+  ok('the button shows the chosen option’s own icon (a logo, a glyph) once a value is chosen, its generic icon at rest', has("className: 'kbmp-trigi' + (own === true ? '' : ' gen')") && has('own === true ? choix.i : props.icon'))
+  ok('Capability is one menu that picks several (the header icons and the chips edit the same selection), « All » clears it', has("h(Menu, { id: 'cap', multi: true, values: capValues, onToggle: uiCap, onAll: () => { UI.caps = {}; UI.page = 1 }") && has("if (multi && o.v !== 'all') { props.onToggle(o.v); return }") && has("'aria-multiselectable': multi ? 'true' : undefined"))
+  ok('its options are the nine slots of the table header, in the same order', has('const optsCap = [{ v: \'all\'') && has('.map((k) => CAPS.filter((c) => c.k === k)[0])') && has("const capValues = KB_MATRIX.filter((k) => UI.caps[k] === true)"))
+  ok('the arrow keys move through a menu and the open menu puts the keyboard on the chosen option', has("ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp'") && has("listRef.current.querySelector('[aria-selected=\"true\"]')"))
+  ok('the search has its own line, and below 620 px the filters are a two-column grid whose menus open inside the panel', has('.kbmp-search{flex:1 1 100%;min-width:200px}') && has('@container not (min-width: 620px){.kbmp-menus{display:grid;grid-template-columns:1fr 1fr') && has('.kbmp-pop{max-width:calc(100cqw - 24px)}'))
+  ok('the icons of the bar are in the icon table', ['filter', 'sort', 'az', 'cube', 'tag', 'link', 'bars', 'layers', 'clock', 'alert'].every((k) => new RegExp('^\\s+' + k + ': \\[', 'm').test(src)))
+  ok('the status strings exist in French and English', ['kb.models.filter.cap', 'kb.models.opt.allcaps', 'kb.models.cap.n', 'kb.models.syncbg.running', 'kb.models.syncbg.count', 'kb.models.syncbg.done', 'kb.models.syncbg.now', 'kb.models.syncbg.min', 'kb.models.syncbg.h', 'kb.models.syncbg.fail', 'kb.models.syncbg.idle', 'kb.models.syncbg.tip'].every((k) => new RegExp("'" + k.replace(/\./g, '\\.') + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src)))
+  ok('the old « Sync N from models.dev » string is gone', !has("'kb.models.syncN'"))
 }
 
 console.log('\n── strings: every new key in French and English ──')

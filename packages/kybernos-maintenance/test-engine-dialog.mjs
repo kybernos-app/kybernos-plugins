@@ -26,15 +26,15 @@ assert.equal(typeof T.motMaj, 'function', 'motMaj is exposed to the tests')
 {
   const w = (etat, extra) => T.motMaj({ etat, version: '0.2.1-alpha.2', moteur: true, ...extra })
   lang = 'en'
-  assert.match(w('installation'), /Putting DSH back on the tested version/)
-  assert.match(w('relance'), /^✓ DSH 0\.2\.1-alpha\.2 is in place\. DSH is restarting/)
-  assert.match(w('termine'), /Restart DSH to finish/)
+  assert.match(w('installation'), /Putting the engine back on the tested version/)
+  assert.match(w('relance'), /^✓ Engine 0\.2\.1-alpha\.2 is in place\. The app is restarting/)
+  assert.match(w('termine'), /Restart the app to finish/)
   assert.match(w('echec', { erreur: 'engine-update-failed' }), /nothing changed/)
   assert.ok(!/Kybernos/.test(w('relance')), 'an engine job never says « Kybernos is installed »')
   lang = 'fr'
-  assert.match(w('installation'), /Remise de DSH sur la version testée/)
-  assert.match(w('relance'), /DSH 0\.2\.1-alpha\.2 est en place/)
-  assert.equal(T.motMaj({ etat: 'installation', version: '1.1.0' }).includes('DSH'), false, 'a Suite update keeps its own words')
+  assert.match(w('installation'), /Remise du moteur sur la version testée/)
+  assert.match(w('relance'), /Moteur 0\.2\.1-alpha\.2 est en place/)
+  assert.equal(T.motMaj({ etat: 'installation', version: '1.1.0' }).includes('Engine'), false, 'a Suite update keeps its own words')
   ok('the engine job has its own words in both languages and never claims a Kybernos install')
 }
 
@@ -45,7 +45,7 @@ assert.equal(typeof T.motMaj, 'function', 'motMaj is exposed to the tests')
   assert.ok(/viaMoteur === true \? kt\('Corriger automatiquement', 'Fix automatically'\)/.test(SOURCE), 'the primary button says what it does')
   assert.ok(/updRun\(go, statutMaj, fin, viaMoteur === true \? p\.cible : undefined\)/.test(SOURCE), 'the target is the one the host announced (p.cible), not typed anywhere')
   assert.ok(/upEl\('details', 'kbmu-dev'\)/.test(SOURCE) && /Pour les développeurs/.test(SOURCE), 'the terminal command is kept, folded, for developers')
-  assert.ok(/if \(viaSuite !== true && viaMoteur !== true\) dlg\.appendChild\(steps\)/.test(SOURCE), 'the numbered terminal steps are not shown on the automatic path')
+  assert.ok(/if \(viaSuite !== true && viaMoteur !== true && viaOrdinateur !== true\) dlg\.appendChild\(steps\)/.test(SOURCE), 'the numbered terminal steps are not shown on the automatic path')
   assert.ok(/motMaj\(\{ etat: 'relance', version: t\.version, moteur: t\.moteur === true \}\)/.test(SOURCE), 'the restart message keeps the engine flag')
   ok('the dialog: one automatic button, the command folded for developers, same polling and restart as the Suite update')
 }

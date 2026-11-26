@@ -12,7 +12,7 @@
 //   - what a switch changes and what stays is said before it happens.
 
 window.__ModuleLoader__.load({
-  id: '@local/kybernos-servers/client',
+  id: '@local/kybernos-servers',
   factory (require) {
     try {
       const React = require('react')
@@ -124,11 +124,11 @@ body:not([data-ds-dark-theme]) .kbsv-ent-kick{color:var(--kybernos-brand-ink,#35
         unreachable: ['Le serveur ne répond pas.', 'The server does not answer.'],
         redirect: ['Le serveur redirige ailleurs : saisissez son adresse finale.', 'The server redirects elsewhere: type its final address.'],
         no_profile: ['Ce serveur ne publie pas de profil Kybernos.', 'This server does not publish a Kybernos profile.'],
-        incompatible: ['Ce serveur demande une version plus récente de DSH.', 'This server needs a newer version of DSH.'],
+        incompatible: ['Ce serveur demande une version plus récente de Kybernos.', 'This server needs a newer version of Kybernos.'],
         already_listed: ['Ce serveur est déjà dans ta liste.', 'This server is already in your list.'],
         profile_refused: ['Le profil publié par ce serveur est refusé (adresse invalide).', 'The profile this server publishes is refused (invalid address).'],
         registry_unreadable: ['Le fichier des serveurs est illisible : corrige-le à la main, rien n’a été modifié.', 'The servers file is unreadable: fix it by hand, nothing was changed.'],
-        cloud_plugin_missing: ['Le module Cloud ne répond pas : redémarre DSH.', 'The Cloud module does not answer: restart DSH.'],
+        cloud_plugin_missing: ['Le module Cloud ne répond pas : redémarre Kybernos.', 'The Cloud module does not answer: restart Kybernos.'],
         apply_failed: ['Le changement a échoué et a été annulé.', 'The change failed and was undone.'],
         unknown_server: ['Serveur inconnu.', 'Unknown server.'],
         bad_name: ['Ce nom n’est pas utilisable.', 'This name cannot be used.'],
@@ -139,13 +139,13 @@ body:not([data-ds-dark-theme]) .kbsv-ent-kick{color:var(--kybernos-brand-ink,#35
       // What the person is told once a switch or a removal went through. Removing the ACTIVE server switches back to Kybernos Cloud first (the host does it), so the
       // account, the models and the team change: it says so and asks for the reload, as « Switch to this server » does (it used to say only « X was removed »).
       const doneMessage = (kind, server) => (kind === 'switch'
-        ? kt('Tu es sur ', 'You are on ') + server.name + '. ' + kt('Recharge DSH pour rafraîchir la liste des modèles.', 'Reload DSH to refresh the model list.')
-        : server.name + kt(' a été retiré.', ' was removed.') + (server.active === true ? ' ' + kt('Tu es revenu sur Kybernos Cloud. Recharge DSH pour rafraîchir la liste des modèles.', 'You are back on Kybernos Cloud. Reload DSH to refresh the model list.') : ''))
+        ? kt('Tu es sur ', 'You are on ') + server.name + '. ' + kt('Recharge Kybernos pour rafraîchir la liste des modèles.', 'Reload Kybernos to refresh the model list.')
+        : server.name + kt(' a été retiré.', ' was removed.') + (server.active === true ? ' ' + kt('Tu es revenu sur Kybernos Cloud. Recharge Kybernos pour rafraîchir la liste des modèles.', 'You are back on Kybernos Cloud. Reload Kybernos to refresh the model list.') : ''))
       const say = (code) => { const e = ERR[code]; return e === undefined ? kt('Une erreur est survenue.', 'Something went wrong.') : kt(e[0], e[1]) }
       const STEP = {
         reach: ['Le serveur répond', 'The server answers'],
         wellknown: ['Il publie un profil Kybernos', 'It publishes a Kybernos profile'],
-        compat: ['Il est compatible avec cette version de DSH', 'It is compatible with this version of DSH'],
+        compat: ['Il est compatible avec cette version de Kybernos', 'It is compatible with this version of Kybernos'],
       }
 
       const hostOf = (u) => { try { return new URL(u).host } catch (e) { return String(u || '') } }
@@ -266,7 +266,7 @@ body:not([data-ds-dark-theme]) .kbsv-ent-kick{color:var(--kybernos-brand-ink,#35
                 h('button', { type: 'button', className: 'kbsv-link', 'data-kb': 'servers-see-addresses', 'aria-expanded': String(add.showAddr || addr.differs), onClick: act.toggleAddr }, kt('Voir les adresses', 'See the addresses'))),
               add.showAddr || addr.differs ? h(Adresses, { rows: addr.rows }) : null,
               h('p', { style: { margin: 0, fontSize: '13px' } }, kt('Tu te connecteras avec ', 'You will sign in with '), h('b', null, kt('ton compte sur ce serveur', 'your account on this server')), kt(' : un code s’affiche, tu le confirmes dans le navigateur.', ': a code appears, you confirm it in your browser.')),
-              h('p', { className: 'kbsv-note' }, kt('DSH passera sur ce serveur : le compte, les modèles et l’équipe viendront d’ici. Tes conversations, fichiers et mémoire restent.', 'DSH will switch to this server: the account, models and team will come from it. Your chats, files and memory stay.'))) : null,
+              h('p', { className: 'kbsv-note' }, kt('Kybernos passera sur ce serveur : le compte, les modèles et l’équipe viendront d’ici. Tes conversations, fichiers et mémoire restent.', 'Kybernos will switch to this server: the account, models and team will come from it. Your chats, files and memory stay.'))) : null,
             add.error !== null ? h('p', { className: 'kbsv-error', role: 'alert', 'data-kb': 'servers-add-failed' }, add.error) : null,
             h('div', { className: 'kbsv-foot' },
               h('button', { type: 'button', className: 'kbsv-btn', 'data-kb': 'servers-add-cancel', onClick: act.closeAdd }, kt('Annuler', 'Cancel')),

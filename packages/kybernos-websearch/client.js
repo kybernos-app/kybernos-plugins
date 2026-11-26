@@ -34,7 +34,7 @@ window.__ModuleLoader__.load({
         'google-pse': { name: 'Google Programmable Search', fr: 'Google, limité aux sites que tu choisis.', en: 'Google, limited to the sites you choose.' },
         jina: { name: 'Jina Search', fr: 'Recherche avec contenu des pages.', en: 'Search with page content.' },
         perplexity: { name: 'Perplexity Search', fr: 'API de recherche de Perplexity.', en: 'Perplexity’s search API.' },
-        deepseek: { name: { fr: 'Recherche native DeepSeek', en: 'DeepSeek native search' }, fr: 'Le moteur d’origine de DSH : un tour de modèle par recherche.', en: 'DSH’s own default: one model turn per search.' },
+        deepseek: { name: { fr: 'Recherche native DeepSeek', en: 'DeepSeek native search' }, fr: 'Le moteur d’origine de Kybernos : un tour de modèle par recherche.', en: 'Kybernos’s own default: one model turn per search.' },
         'brave-web': { name: 'Brave Search', fr: 'La page de résultats de Brave, sans clé. Peut demander un captcha.', en: 'Brave’s results page, no key. May ask for a captcha.' },
         'exa-free': { name: 'Exa', fr: 'Quota gratuit d’Exa, sans clé.', en: 'Exa’s free quota, no key.' },
         duckduckgo: { name: 'DuckDuckGo', fr: 'Sans clé. Se ferme parfois à un client qu’il prend pour un robot.', en: 'No key. Sometimes closes to a client it takes for a bot.' },
@@ -58,8 +58,8 @@ window.__ModuleLoader__.load({
       // Every way the host half can fail to answer (refused connection, 404 because DSH was not restarted after an update, a 500,
       // an HTML page instead of JSON) is told the same way: a sentence, never the browser's « Failed to fetch ».
       const hostDown = () => Object.assign(new Error(kt(
-        'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarre DSH, puis appuie sur Réessayer.',
-        'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.')), { kbDown: true })
+        'L’assistant de cette page ne répond pas. Si l’appli vient d’être mise à jour, redémarre-la, puis appuie sur Réessayer.',
+        'This page’s helper is not answering. If the app was just updated, restart it, then press Retry.')), { kbDown: true })
       const api = (path, body) => fetch(path, body === undefined
         ? { headers: { Accept: 'application/json' } }
         : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -315,13 +315,13 @@ window.__ModuleLoader__.load({
             : kt('Moteur par défaut : ', 'Default engine: ') + nameOf(defaultId) + kt(' — les agents l’essaient en premier.', ' — agents try it first.')),
           wrongPin
             ? h('p', { className: 'kwse-banner', 'data-kb': 'websearch-banner' }, kt(
-              'DSH est réglé sur un autre fournisseur (« ' + state.pinned + ' ») : cette liste n’est pas utilisée tant que la ligne « web » du profil n’est pas revenue à « ' + state.provider + ' ».' +
-                (/^deepseek/.test(state.pinned) ? ' Le réglage « Use the new Web Search API » de DSH (page DeepSeek) écrit ce choix, même quand on le remet sur off.' : ''),
-              'DSH is set to another provider (“' + state.pinned + '”): this list is not used until the profile’s “web” row is back to “' + state.provider + '”.' +
-                (/^deepseek/.test(state.pinned) ? ' DSH’s “Use the new Web Search API” switch (DeepSeek page) writes this choice, even when it is put back off.' : '')))
+              'Kybernos est réglé sur un autre fournisseur (« ' + state.pinned + ' ») : cette liste n’est pas utilisée tant que la ligne « web » du profil n’est pas revenue à « ' + state.provider + ' ».' +
+                (/^deepseek/.test(state.pinned) ? ' Le réglage « Use the new Web Search API » de Kybernos (page DeepSeek) écrit ce choix, même quand on le remet sur off.' : ''),
+              'Kybernos is set to another provider (“' + state.pinned + '”): this list is not used until the profile’s “web” row is back to “' + state.provider + '”.' +
+                (/^deepseek/.test(state.pinned) ? ' Kybernos’s “Use the new Web Search API” switch (DeepSeek page) writes this choice, even when it is put back off.' : '')))
             : null,
           state.registered !== true
-            ? h('p', { className: 'kwse-banner', 'data-kb': 'websearch-banner' }, kt('Le fournisseur n’est pas enregistré auprès de DSH : redémarre DSH pour l’activer.', 'The provider is not registered with DSH: restart DSH to activate it.'))
+            ? h('p', { className: 'kwse-banner', 'data-kb': 'websearch-banner' }, kt('Le fournisseur n’est pas enregistré auprès de Kybernos : redémarre Kybernos pour l’activer.', 'The provider is not registered with Kybernos: restart Kybernos to activate it.'))
             : null,
           h('div', { className: 'kwse-list', 'data-kb': 'websearch-list' }, used.map((e, i) => rowOf(e, i, used, false))),
           more.length > 0
@@ -345,7 +345,7 @@ window.__ModuleLoader__.load({
               h('label', null, kt('Délai par moteur (secondes)', 'Timeout per engine (seconds)'),
                 h('input', { className: 'kwse-num', type: 'number', min: 3, max: 60, value: s.timeoutS, 'data-kb': 'websearch-timeout', onChange: (ev) => patch({ timeoutS: Number(ev.target.value) }) })))),
           h('p', { className: 'kwse-last', 'data-kb': 'websearch-last' }, last === null || last === undefined
-            ? kt('Aucune recherche depuis le démarrage.', 'No search since DSH started.')
+            ? kt('Aucune recherche depuis le démarrage.', 'No search since Kybernos started.')
             : (last.engine !== null
               ? kt('Dernière recherche : ', 'Last search: ') + nameOf(last.engine) + ' · ' + last.count + kt(' résultats · ', ' results · ') + secs(last.ms) + ' · ' + hhmm(last.at)
               : kt('Dernière recherche : aucun moteur n’a répondu (', 'Last search: no engine answered (') + last.trace.map((t) => nameOf(t.id) + ' ' + kindTxt(t.result)).join(', ') + ') · ' + hhmm(last.at))),

@@ -7,18 +7,22 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { inactifsParDefaut } from './lifecycle-engine.mjs'
+import { inactifsParDefaut, activesResolues } from './lifecycle-engine.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 let fails = 0
 const check = (name, ok, detail = '') => { if (!ok) fails += 1; console.log(`${ok ? '✓' : '✗'} ${name}${detail ? ' — ' + detail : ''}`) }
 
 check('a satellite marked inactif is named, the others are not', JSON.stringify([...inactifsParDefaut([{ nom: 'a', defaut: 'inactif' }, { nom: 'b', defaut: 'actif' }, { nom: 'c' }])]) === '["a"]')
+// Marking a module inactif must not switch it off where it already runs: the activation file lists the active ones, and `activesResolues` keeps them; only a satellite that is absent from the file and not `actif` stays off.
+const SAT = [{ nom: '@local/kybernos-bricks', defaut: 'inactif' }, { nom: '@local/kybernos-door', defaut: 'inactif' }, { nom: '@local/kybernos-log', defaut: 'actif' }]
+const gardee = activesResolues({ brut: { actives: ['@local/kybernos-bricks'], desactives: [] }, satellites: SAT, socle: [] })
+check('a profile that already lists a module keeps it when the manifest turns it inactif, and does not gain the other', gardee.includes('@local/kybernos-bricks') && !gardee.includes('@local/kybernos-door') && gardee.includes('@local/kybernos-log'), gardee)
 check('no list, or an odd entry, gives an empty set', inactifsParDefaut(undefined).size === 0 && inactifsParDefaut([null, 3]).size === 0)
 
 const manifest = JSON.parse(readFileSync(join(REPO, 'docs', 'beta', 'satellites.json'), 'utf8'))
 const inactive = manifest.satellites.bundles.filter((s) => s.defaut === 'inactif').map((s) => s.dir)
-check('the manifest marks exactly the phone-only bundle inactif', JSON.stringify(inactive) === '["kybernos-no-process"]', inactive.join(','))
+check('the manifest marks exactly the bundles that start off inactif (the phone-only ones: the launcher swap and the small model of the phone; the local door, which opens a way into Kaby and is switched on by the person; and, since 2026-11-23, the Bricks POC, little used: a fresh profile does not switch it on, a profile that already has it keeps it)', JSON.stringify([...inactive].sort()) === '["kybernos-bricks","kybernos-door","kybernos-no-process","kybernos-phone-model"]', inactive.join(','))
 
 const home = mkdtempSync(join(tmpdir(), 'kb-fresh-profile-'))
 try {

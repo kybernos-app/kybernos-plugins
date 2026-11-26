@@ -15,6 +15,7 @@ import { join } from 'node:path'
 import {
   CONNECTION_TOOLS, MAX_RESULT_CHARS, STATUSES, asApp, asAppList, asConnection, asConnectionList, asLinked, connectionsFailure, connectionsPaths, isConnectionId, isToolkit,
   linkBody, rpcCall, rpcOutcome, safeLogo, safeRedirect,
+  BRIDGE_MAX_TOOLS, asToolList, bridgeKind, cleanSchema, isActionSlug, readOnlyOf, rpcList,
 } from './connections.mjs'
 
 let pass = 0
@@ -441,6 +442,10 @@ try {
     assert.deepEqual(d.output.schema.required, ['ok'])
     assert.equal(/[éèàçôù]/.test(d.description), false, 'English, like all new code')
   }
+  // An empty list is the moment a model gives up or sends the person to a page (2026-11-20): the description says what to do instead, and the page stays the way when the tool is not there.
+  assert.match(defs[0].description, /call connections_connect with its slug/)
+  assert.match(defs[0].description, /link it answers with, on its own line at the top of your answer/)
+  assert.match(defs[0].description, /otherwise the person connects it on the Connectors page/)
   assert.deepEqual(defs[1].parameters.required, ['toolkit'])
   assert.deepEqual(defs[2].parameters.required, ['tool_slug'])
   ok('three tools, each with a description, a closed parameter schema, an output schema and a render')
@@ -620,6 +625,198 @@ try {
   assert.equal(registered.size, 0, 'when the plugin goes, so do its tools and its timer')
   ok('mounted on the plugin: registered when the tools service arrives, removed with the plugin, the timer never keeps the process alive')
 
+
+  // ── the bridge: the tools the server publishes (2026-11-20) ──
+  {
+    // the pure half
+    assert.deepEqual(rpcList(4), { jsonrpc: '2.0', id: 4, method: 'tools/list' })
+    assert.equal(bridgeKind({ readOnlyHint: true }), 'read')
+    assert.equal(bridgeKind({ readOnlyHint: true, destructiveHint: true }), 'read', 'a read is a read')
+    assert.equal(bridgeKind({ readOnlyHint: false, destructiveHint: false, openWorldHint: false }), 'own')
+    assert.equal(bridgeKind({ readOnlyHint: false, destructiveHint: false }), 'ask', 'closed only when the server says so')
+    assert.equal(bridgeKind({ readOnlyHint: false, destructiveHint: true, openWorldHint: true }), 'ask')
+    for (const none of [undefined, null, {}, 'read', [], { readOnlyHint: 'true' }]) assert.equal(bridgeKind(none), 'ask', 'no annotation: it asks (' + JSON.stringify(none) + ')')
+    const messy = { type: 'object', description: 'A\u0007 tool\nwith control characters', properties: { toolkit: { type: 'string', description: 'x'.repeat(900), format: 'uuid', minLength: 2 }, limit: { type: 'integer', minimum: 1, maximum: 50, default: 10 }, mode: { type: 'string', enum: ['a', 'b'] }, bad: { type: 'string', enum: [1, 2] }, params: { type: 'object', description: 'free' }, list: { type: 'array', items: { type: 'string', pattern: '^x' } }, 'not a name': { type: 'string' }, odd: { oneOf: [{ type: 'string' }] } }, required: ['toolkit', 'ghost'], additionalProperties: false, $schema: 'x' }
+    const cleaned = cleanSchema(messy)
+    assert.deepEqual(Object.keys(cleaned).sort(), ['additionalProperties', 'description', 'properties', 'required', 'type'])
+    assert.equal(cleaned.description, 'A  tool with control characters')
+    assert.deepEqual(cleaned.required, ['toolkit'], 'a required name that is not a property goes')
+    assert.equal(cleaned.properties.toolkit.description.length, 300)
+    assert.deepEqual(cleaned.properties.toolkit, { type: 'string', description: 'x'.repeat(300) })
+    assert.deepEqual(cleaned.properties.limit, { type: 'integer' }, 'a bound is the server\'s to check')
+    assert.deepEqual(cleaned.properties.mode, { type: 'string', enum: ['a', 'b'] })
+    assert.deepEqual(cleaned.properties.bad, { type: 'string' }, 'an enum of the wrong type is dropped')
+    assert.deepEqual(cleaned.properties.params, { type: 'object', description: 'free' }, 'a free-form object stays free')
+    assert.deepEqual(cleaned.properties.list, { type: 'array', items: { type: 'string' } })
+    assert.deepEqual(cleaned.properties.odd, {}, 'what the engine does not enforce is open')
+    assert.equal(Object.hasOwn(cleaned.properties, 'not a name'), false)
+    const tool = (name, extra = {}) => ({ name, description: 'Does ' + name + '.', inputSchema: { type: 'object', properties: {} , additionalProperties: false }, ...extra })
+    const list = (...tools) => ({ jsonrpc: '2.0', id: 1, result: { tools } })
+    assert.equal(asToolList(500, list(tool('connections_a'))), null)
+    assert.equal(asToolList(200, { jsonrpc: '2.0', id: 1, error: { code: -32601 } }), null)
+    assert.equal(asToolList(200, null), null)
+    assert.equal(asToolList(200, { result: { tools: 'x' } }), null)
+    const got = asToolList(200, list(tool('connections_a', { annotations: { readOnlyHint: true } }), tool('bash'), tool('connections_'), tool('Connections_b'), tool('connections_a'), tool('connections_noway', { description: '' }), tool('connections_c')))
+    assert.deepEqual(got.map((t) => [t.name, t.kind]), [['connections_a', 'read'], ['connections_c', 'ask']], 'only this family\'s names, once each, with a description; no annotation asks')
+    assert.equal(asToolList(200, list(...Array.from({ length: 40 }, (_, i) => tool('connections_t' + i)))).length, BRIDGE_MAX_TOOLS)
+    assert.deepEqual(asToolList(200, list({ name: 'connections_n', description: 'd', inputSchema: 'nope' }))[0].parameters, { type: 'object', properties: {}, additionalProperties: false }, 'an input schema that is not an object becomes an empty one')
+    ok('the bridge, pure half: what a published tool does to the world (read / own / ask, none asks), its schema cut to what the engine enforces, only this endpoint\'s own names, never more than ' + String(BRIDGE_MAX_TOOLS))
+
+    // the host: the tools beyond its own three are registered, dropped, classified
+    const THREE = defs.map((d) => d.name)
+    const published = list(
+      tool('connections_list', { annotations: { readOnlyHint: true } }),
+      tool('connections_search_tools', { annotations: { readOnlyHint: true } }),
+      tool('connections_execute'),
+      { name: 'connections_connect', description: 'Starts connecting an app.', inputSchema: { type: 'object', properties: { toolkit: { type: 'string', description: 'The app.' } }, required: ['toolkit'], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false } },
+      tool('connections_peek', { annotations: { readOnlyHint: true } }),
+      tool('connections_pay', { annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true } }),
+      tool('connections_unmarked'),
+      tool('bash'),
+    )
+    let answerList = { status: 200, body: published }
+    const asked = []
+    const apiBridge = async (path, o = {}) => {
+      if (o.body && o.body.method === 'tools/list') { asked.push({ path, token: o.token, base: o.base, body: o.body }); return typeof answerList === 'function' ? answerList() : answerList }
+      return { status: 200, body: { jsonrpc: '2.0', id: 1, result: { content: [{ type: 'text', text: 'ran ' + String(o.body && o.body.params && o.body.params.name) }] } } }
+    }
+    const reg = new Map()
+    const bridgeTools = { register: (def) => { reg.set(def.name, def); return () => reg.delete(def.name) } }
+    const bLogs = []
+    state = { token: TOKEN }
+    profile = profileWith(MCP)
+    const tb = createConnections({ apiCall: apiBridge, readState: () => state, isConnected: (st) => st !== null && typeof st.token === 'string' && st.token !== '', server: () => ({ profile }), log: (m) => bLogs.push(m) })
+    tb.sync()
+    await tb.refreshBridge()
+    assert.deepEqual([...reg.keys()], [], 'no tools service yet: nothing is asked of the server and nothing registered')
+    assert.equal(asked.length, 0)
+    tb.attach(bridgeTools)
+    await tb.refreshBridge()
+    assert.deepEqual([...reg.keys()], [...THREE, 'connections_connect', 'connections_peek', 'connections_pay', 'connections_unmarked'], 'its own three at once, then what the server publishes beyond them; a name of another family is never taken')
+    assert.equal(asked.length >= 1, true)
+    assert.deepEqual([asked[0].path, asked[0].base, asked[0].token, asked[0].body.method], [MCP, '', TOKEN, 'tools/list'])
+    assert.deepEqual(THREE.map((n) => tb.bridgedKind(n)), [null, null, null], 'its own three are classified by the gate\'s lists, not by the bridge')
+    assert.deepEqual(['connections_connect', 'connections_peek', 'connections_pay', 'connections_unmarked', 'bash', 'read'].map((n) => tb.bridgedKind(n)), ['own', 'read', 'ask', 'ask', null, null])
+    // a published tool runs through the same door as the others, by name, with the arguments it was given and nothing else
+    const before = asked.length
+    const ran = await reg.get('connections_connect').execute({ toolkit: 'gmail' })
+    assert.deepEqual(ran, { ok: true, text: 'ran connections_connect' })
+    assert.equal(asked.length, before, 'a call is not a list')
+    assert.equal(reg.get('connections_connect').output.render({}, ran)[0].text, 'ran connections_connect')
+    assert.deepEqual(reg.get('connections_connect').parameters.required, ['toolkit'])
+    // the engine takes the schemas it makes
+    for (const path of toolsPaths) {
+      const { assertSupportedJsonSchema } = await import(path)
+      for (const def of reg.values()) assert.doesNotThrow(() => assertSupportedJsonSchema(def.parameters), def.name + ' ' + path)
+    }
+    // asked again: nothing twice; a changed class is followed; a tool the server stops listing goes; an answer that is not a list changes nothing
+    await tb.refreshBridge(); await tb.refreshBridge()
+    assert.equal(reg.size, 7)
+    answerList = { status: 200, body: list(tool('connections_connect', { annotations: { readOnlyHint: true } }), tool('connections_pay', { annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true } })) }
+    await tb.refreshBridge()
+    assert.deepEqual([...reg.keys()], [...THREE, 'connections_connect', 'connections_pay'], 'a tool the server no longer lists is dropped')
+    assert.equal(tb.bridgedKind('connections_connect'), 'read', 'the class follows the server')
+    assert.equal(tb.bridgedKind('connections_peek'), null)
+    for (const bad of [{ status: 500, body: {} }, { status: 0 }, { status: 200, body: { jsonrpc: '2.0', id: 1, error: { code: -32601, message: 'x' } } }, { status: 200, body: 'garbage' }]) {
+      answerList = bad
+      await tb.refreshBridge()
+      assert.deepEqual([...reg.keys()], [...THREE, 'connections_connect', 'connections_pay'], 'a server that cannot list leaves the tools as they are: ' + JSON.stringify(bad))
+    }
+    answerList = () => { throw new Error('boom') }
+    await tb.refreshBridge()
+    assert.equal(reg.size, 5, 'a throw is swallowed')
+    answerList = { status: 200, body: published }
+    // the periodic call comes from sync(), at most once a minute, and never while another one is running
+    const n0 = asked.length
+    tb.sync(); tb.sync(); tb.sync()
+    await new Promise((r) => setTimeout(r, 20))
+    assert.equal(asked.length, n0, 'asked again only after a minute')
+    // a disconnect takes every one of them away and forgets the classes; the next connection asks again at once
+    state = null
+    tb.sync()
+    assert.equal(reg.size, 0)
+    assert.equal(tb.bridgedKind('connections_pay'), null)
+    state = { token: TOKEN }
+    tb.sync()
+    await new Promise((r) => setTimeout(r, 20))
+    assert.equal(reg.has('connections_peek'), true, 'connected again: the list is asked at once')
+    // a name that is already taken is logged once, never thrown
+    reg.clear()
+    tb.detach()
+    const tb2 = createConnections({ apiCall: apiBridge, readState: () => state, isConnected: (st) => st !== null && typeof st.token === 'string' && st.token !== '', server: () => ({ profile }), log: (m) => bLogs.push(m) })
+    const taken = { register: (def) => { if (def.name === 'connections_peek') throw new Error('tool "connections_peek" is already registered'); reg.set(def.name, def); return () => reg.delete(def.name) } }
+    tb2.attach(taken)
+    await tb2.refreshBridge(); await tb2.refreshBridge()
+    assert.equal(reg.has('connections_peek'), false)
+    assert.equal(tb2.bridgedKind('connections_peek'), null, 'a tool that did not register is not classified')
+    assert.equal(bLogs.filter((m) => m.includes('connections_peek')).length, 1)
+    assert.equal(reg.has('connections_pay'), true)
+    tb2.detach()
+    ok('the bridge, host half: the tools the server publishes beyond its own three are registered (never one of another family), carry their class to the gate, follow the server when it changes or drops one, stay as they are when it cannot answer, go with the connection and come back at once, and a taken name never throws')
+  }
+
+  // is this action a read? (the door's gate, 2026-11-20): what the server says through `connections_describe_tool`, asked once per action
+  {
+    assert.equal(readOnlyOf(JSON.stringify({ slug: 'GMAIL_FETCH_EMAILS', read_only: true })), true)
+    assert.equal(readOnlyOf(JSON.stringify({ read_only: false })), false)
+    for (const none of ['{}', '{"read_only":"true"}', '{"read_only":1}', 'not json', '', '[]', 'null', '"read_only"']) assert.equal(readOnlyOf(none), null, 'no clear answer: ' + none)
+    assert.equal(isActionSlug('GMAIL_FETCH_EMAILS'), true)
+    for (const bad of [undefined, null, '', 'a b', '../x', 'X'.repeat(121), 5, {}]) assert.equal(isActionSlug(bad), false, 'not a slug: ' + JSON.stringify(bad))
+
+    const rpcText = (text, isError = false) => ({ status: 200, body: { jsonrpc: '2.0', id: 1, result: { content: [{ type: 'text', text }], ...(isError ? { isError: true } : {}) } } })
+    const described = []
+    let answerDescribe = (slug) => (slug === 'GMAIL_FETCH_EMAILS' ? rpcText(JSON.stringify({ slug, toolkit: 'gmail', read_only: true })) : rpcText(JSON.stringify({ slug, toolkit: 'gmail', read_only: false })))
+    const apiRead = async (path, o = {}) => {
+      const b = o.body || {}
+      if (b.method === 'tools/call' && b.params && b.params.name === 'connections_describe_tool') { described.push({ path, token: o.token, args: b.params.arguments }); return answerDescribe(b.params.arguments.tool_slug) }
+      return rpcText('ran')
+    }
+    state = { token: TOKEN }
+    profile = profileWith(MCP)
+    const tr = createConnections({ apiCall: apiRead, readState: () => state, isConnected: (st) => st !== null && typeof st.token === 'string' && st.token !== '', server: () => ({ profile }), log: () => {} })
+    assert.equal(typeof tr.readAction, 'function')
+    // a read passes, a write does not; each is asked of the server once, with the account's token, and kept
+    assert.equal(await tr.readAction('GMAIL_FETCH_EMAILS'), true)
+    assert.deepEqual([described[0].path, described[0].token, described[0].args], [MCP, TOKEN, { tool_slug: 'GMAIL_FETCH_EMAILS' }])
+    assert.equal(await tr.readAction('GMAIL_FETCH_EMAILS'), true)
+    assert.equal(await tr.readAction('GMAIL_SEND_EMAIL'), false)
+    assert.equal(await tr.readAction(' GMAIL_SEND_EMAIL '), false, 'a space around the slug is the same action')
+    assert.equal(described.length, 2, 'two actions, asked once each')
+    // what is not a clear answer is not a read, and is not kept: the next call asks the server again
+    for (const [why, answer] of [['a failure of the tool', () => rpcText(JSON.stringify({ code: 'invalid_params', retryable: false }), true)], ['no network', () => ({ status: 0 })], ['an unreadable answer', () => ({ status: 200, body: 'garbage' })], ['a server without the tool', () => ({ status: 200, body: { jsonrpc: '2.0', id: 1, error: { code: -32602, message: 'x' } } })], ['a reply that is not JSON', () => rpcText('plain words')], ['no field', () => rpcText('{}')], ['a throw', () => { throw new Error('boom') }]]) {
+      answerDescribe = answer
+      const n = described.length
+      assert.equal(await tr.readAction('NOTION_FETCH_PAGE'), false, why)
+      assert.equal(await tr.readAction('NOTION_FETCH_PAGE'), false, why + ', again')
+      assert.equal(described.length, n + 2, why + ': not kept')
+    }
+    // a slug that is not one is never sent anywhere
+    const n1 = described.length
+    for (const bad of [undefined, null, '', 'a b', '../x', 'X'.repeat(121), 7]) assert.equal(await tr.readAction(bad), false)
+    assert.equal(described.length, n1)
+    // not connected: nothing is asked, and it is not a read
+    state = null
+    assert.equal(await tr.readAction('GITHUB_LIST_ISSUES'), false)
+    assert.equal(described.length, n1)
+    state = { token: TOKEN }
+    // a disconnect forgets what was kept (the server may have changed): the next call asks again
+    answerDescribe = (slug) => rpcText(JSON.stringify({ slug, read_only: true }))
+    assert.equal(await tr.readAction('GITHUB_LIST_ISSUES'), true)
+    const n2 = described.length
+    assert.equal(await tr.readAction('GITHUB_LIST_ISSUES'), true)
+    assert.equal(described.length, n2)
+    tr.detach()
+    assert.equal(await tr.readAction('GITHUB_LIST_ISSUES'), true)
+    assert.equal(described.length, n2 + 1, 'forgotten with the connection')
+    // what is kept is bounded: the oldest goes first
+    for (let i = 0; i < 520; i += 1) await tr.readAction('APP_ACTION_' + i)
+    const n3 = described.length
+    await tr.readAction('APP_ACTION_519')
+    assert.equal(described.length, n3, 'the newest is kept')
+    await tr.readAction('APP_ACTION_0')
+    assert.equal(described.length, n3 + 1, 'the oldest was let go')
+    ok('is this action a read: only a clear « read_only: true » from the server counts, once per action and kept, a failure or a silence or a malformed answer is not a read (and not kept), nothing is sent for a bad slug or without a connection, a disconnect forgets, the memory is bounded')
+  }
 
   // the background load: the whole catalogue and every logo kept on disk, renewed once a day
   {

@@ -125,7 +125,7 @@ each bundle to the active team by hand; a second instance per team separates eve
 The phone (`kybernos-mobile`, `PLAN.md`) embeds one Node engine in the app, started once per process ("a crash needs a relaunch"), about 200 to
 460 MB resident: it cannot hold several DSH. Later, and not yet checked on a device: one home at a time, a team switch relaunching the app on
 the other `DSH_HOME` (step 0 is what makes that possible). The other road is the phone as a remote of the DSH running on the computer, one
-connection per team (`PLAN.md` section 9, a proposal, nothing built).
+connection per team (`PLAN.md` section 9, a proposal, nothing built). Until a road is chosen, a tap on a team on the phone is answered by the phone's engine with `dsh_not_found` (`team-instances.mjs`, no `dsh` to start), and the page says it out loud: a toast « Teams are not available on the phone yet. » (`teamDshPhone` in `kybernos-cloud/client.js`, FR + EN), because the account sheet has already closed when the answer comes and the footer card is not drawn on the phone. Since 2026-11-23 the locked Simple preset (`spaces` hidden in `locked-simple`, `packages/kybernos-theme/client.js`) draws no team path on the phone at all (the switcher, the team rows with Personal, the rule above the plan card, Create a team, Join, Team settings, Upgrade): the toast is only the fallback for a path a build forgot.
 
 ## Step 6 result (2026-11-02): two accounts, the real engine, the server replica
 

@@ -32,7 +32,7 @@ window.__ModuleLoader__.load({
         'kfl.liste': { fr: 'Modèles gratuits disponibles', en: 'Available free models' },
         'kfl.vide': { fr: 'Aucun modèle gratuit détecté pour l’instant.', en: 'No free model detected right now.' },
         'kfl.catalogue.err': { fr: 'Catalogue injoignable : {err}', en: 'Catalog unreachable: {err}' },
-        'kfl.connecter': { fr: 'Brancher sur DSH', en: 'Connect to DSH' },
+        'kfl.connecter': { fr: 'Brancher sur Kybernos', en: 'Connect to Kybernos' },
         'kfl.connecte': { fr: 'Branché', en: 'Connected' },
         'kfl.deconnecter': { fr: 'Retirer', en: 'Remove' },
         'kfl.encours': { fr: 'Connexion…', en: 'Connecting…' },
@@ -47,12 +47,12 @@ window.__ModuleLoader__.load({
         'kfl.tier.rate': { fr: 'Le palier gratuit est saturé pour le moment. Réessaie dans un instant.', en: 'The free tier is busy right now. Try again in a moment.' },
         'kfl.tier.network': { fr: 'OpenCode est injoignable. Vérifie la connexion.', en: 'OpenCode cannot be reached. Check the connection.' },
         'kfl.tier.model': { fr: 'Le modèle testé n’est plus proposé par le palier gratuit.', en: 'The tested model is no longer offered by the free tier.' },
-        'kfl.relance': { fr: 'Si un modèle n’apparaît pas dans le sélecteur : relance DSH.', en: 'If a model does not show in the picker: restart DSH.' },
+        'kfl.relance': { fr: 'Si un modèle n’apparaît pas dans le sélecteur : relance Kybernos.', en: 'If a model does not show in the picker: restart Kybernos.' },
         'kfl.auto': { fr: 'Activé automatiquement au premier lancement.', en: 'Enabled automatically at first run.' },
         'kfl.erreur': { fr: 'Erreur', en: 'Error' },
         'kfl.nonsauve': { fr: 'Ton choix n’a pas pu être enregistré sur ce disque. Réessaie, ou vérifie qu’il reste de la place.', en: 'Your choice could not be saved on this disk. Try again, or check that there is room left.' },
         // The page's host half does not answer (DSH not restarted after an update, a failing route): the same sentence as the other settings pages.
-        'kfl.hote': { fr: 'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarre DSH, puis appuie sur Réessayer.', en: 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.' },
+        'kfl.hote': { fr: 'L’assistant de cette page ne répond pas. Si l’appli vient d’être mise à jour, redémarre-la, puis appuie sur Réessayer.', en: 'This page’s helper is not answering. If the app was just updated, restart it, then press Retry.' },
         'kfl.reessayer': { fr: 'Réessayer', en: 'Retry' },
         'kfl.page.titre': { fr: 'Free LLMs', en: 'Free LLMs' },
       }

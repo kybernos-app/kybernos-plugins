@@ -1,98 +1,112 @@
-# Kybernos — la carte (maquette interactive d'architecture)
+# Kybernos — the platform story
 
-Une page autonome (un seul fichier, aucune ressource réseau) qui explique **où tourne quoi** :
-ce qui tourne chez toi, ce qui tourne sans toi, et ce qui sort de la machine.
+One self-contained page (one file, one language, no network) that tells how the bricks of Kybernos fit together, and how far
+each one is from built. Open `index.html` (double-click). Nothing to install, nothing to run.
 
-Ouvrir `index.html` (double-clic). Rien à installer, rien à lancer.
+## The story it tells
 
-## Versions
+Kybernos is an open source AI agent platform: an **engine with plugins**. It is installed as a desktop app, opened in a browser,
+hosted by yourself or carried on a phone, always with the same plugin set. Only the plugins that link to another service are drawn:
+coding agents, local models, models, apps through Composio, any MCP server, remote control, voice, Kaby. Next to them, the plugins
+that do the work: agent teams, skills, automations, the apps builder and the customer agent (the public assistant of one shop).
 
-| Dossier | Quoi |
+An optional **Kybernos Server**, shared or white-label, has two sides. The **admin side** is what a company's IT looks at: the team
+console (members and roles, usage and audit trail, shared skills, company sign-in) and the owner's admin page (audit and Journal,
+plans, the switches). The **user side** is the account page, the relay and the **cloud computers**: each one is a hosted Kybernos
+install, metered by the hour, that takes Kaby's tasks. Below them, one **task queue** that the doors feed: Kaby link (messengers),
+Kaby MCP (AI tools), the API (developers, a target) and two more targets, triggers (an event from an app starts a task) and the Kybernos
+model (a team that answers as a model), next to the services the engine reaches (the models and the connections). **Outside** are the
+providers, the apps, the messengers, the AI tools, the developers and model marketplaces, the customers of a business that runs Kybernos,
+the phone and e-mail provider and the app stores.
+
+| Frame | What it holds |
 |---|---|
-| `index.html` | la carte d'origine : 26 briques, 4 lieux, 8 parcours |
-| `light-en.html` | la même carte en lecture claire et en anglais |
-| `v2/index.html` | **v2** : deux lectures (couches *ce que c'est* / lieux *où ça tourne*), sections repliables, icônes, filtres par couche, fiche pontante |
-| `v2/index-en.html` | la v2 en anglais (bouton `FR` / `EN` dans l'en-tête, la vue est conservée) |
+| **Kybernos** (purple) | the four ways to install it, the plugins that link out, the plugins that do the work (the customer agent included) |
+| **Kybernos Server** (grey) | admin side (team console, owner page), user side (account, relay, cloud computers, a local install as a target), the task queue, the doors into it, the services the engine reaches |
+| **Outside** (dashed) | AI models, apps, messengers, AI tools, developers and model marketplaces, your customers, phone and e-mail provider, app stores |
 
-La v2 est décrite dans [`v2/NOTES.md`](v2/NOTES.md) : modèle, gestes, ce qui a été
-mesuré, limites et décisions ouvertes. Les preuves d'écran sont dans
-`v2/captures/` (dossier local, non versionné).
+Kaby is drawn in coral wherever it appears: the assistant, its local door, the bot in the messengers, the door for AI tools.
+Purple on a brick means "a Kybernos install" (a cloud computer, or your own as a target).
 
-## Comment on s'en sert
+## Reading and using it
 
-| Geste | Ce que ça fait |
+| Control | What it does |
 |---|---|
-| Un **parcours** dans la colonne de gauche | allume son chemin : une brique = un état, une ligne = un flux |
-| Les **étapes numérotées** sous le parcours | sautent directement à l'étape ; `→` / `←` au clavier aussi |
-| **Espace** | lecture automatique (3,6 s par étape), re-appuyer pour arrêter |
-| **1 … 8** | sélectionne le parcours |
-| **Clic sur une brique** | fiche : rôle, ce qui la traverse, ce qu'elle ne fait pas, où ça se règle, source |
-| **Sombre / Clair** | bascule de thème (les deux sont réglés) |
-| **Vue d'ensemble** | tout rallumé, aucun parcours |
+| **Tell the story** | nine steps, one per idea; each lights its bricks and links and dims the rest (`←` `→`, `Esc` closes) |
+| Hover a brick or a link | a tooltip, and the bricks it links to stay lit |
+| Click a brick, a link or a frame | its sheet: what it is, what is inside, what crosses it, its limits, where it is set, its source |
+| **Where** chips, or the eye on a frame | hide or show a frame; the others close up (Shift-click: only this one) |
+| **How far** chips | keep built, partly built or not built bricks |
+| **When** chips | only with the private overlay (below): keep the bricks of one horizon, Now, Next or Later (Shift-click: only this one) |
+| **Focus › Kaby** | light only what belongs to Kaby |
+| **Search** (`/`) | a word in a brick's name, description or contents, and in its private notes when the overlay is loaded: the hits are listed under the chips and the first one is brought into view |
 
-## Ce que la carte contient
+A **blue dot** next to a brick's mark says that its sheet has a **Planned** list: small items that are not a brick of their own (a worker picker,
+WhatsApp out of beta, a phone number…). The last step, **Where we go next**, lights what is not fully built and what has something planned.
 
-- **26 briques** dans 4 zones : *Chez toi* (7), *Ton serveur Kybernos* (8), *Les machines qui tournent sans toi* (7), *Le reste du monde* (4).
-- **8 parcours** : automation locale · automation sur l'ordinateur cloud · Kaby depuis Telegram · télécommande téléphone · accès à l'ordinateur cloud · appel vocal · ajout d'un serveur custom · ce que le serveur voit de toi.
-- **5 types de flux** : reste sur la machine (teal), parle au serveur (violet), chiffré de bout en bout (bleu), sortie fournisseur (ambre), webhook entrant (rose).
+A mark on the corner of each brick says how far it is: ● built, ◐ partly built, ○ not built. A dashed outline means not fully built.
+**Built means merged into dev and exercised; it does not mean live in production.** A dashed arrow is a target, not built; a dotted
+one is the direct road with your own keys. On a phone the diagram becomes a list of the same bricks, and a sheet opens from the bottom.
 
-La carte est **honnête par construction** : chaque brique porte sa source et ses limites, reprises des documents du dépôt, et les pastilles disent ce qui n'est pas construit ou pas déployé (WhatsApp, relais télécommande, chat → ordinateur cloud, switch des tours Telegram).
+## One source
 
-## Identité visuelle
+Everything the page says lives once, in the `RAW` object between `/*DATA:START*/` and `/*DATA:END*/` in `index.html`:
+`FRAMES` (with their groups, notes and bands), `NODES` (the bricks, with their place in the drawing), `LINKS` and `STORY`. The same data
+draws the diagram and the phone list. There is no second file and no second language.
 
-- **Logo** : un carré arrondi en dégradé (teal → bleu → violet) au « K » sombre, avec un nœud : dessiné en SVG inline, aucune image, aucune police d'icônes. Décliné en favicon (data URI) sur les deux pages.
-- **Icônes** : 28 pictogrammes maison sur une grille 24×24, trait 1,7, bouts ronds (téléphone, terminal, Kaby, horloge, workers, micro, cloud, éclair, clé, volume, bouclier, webhook, graphe MCP, serveur, compte, étincelle, avion, bulle, onde, cube, prise, livre, relais, bouton, bulle-flèche). Sur la carte, l'icône **remplace la barrette de couleur** à gauche de la carte : la couleur reste réservée aux flux.
+A brick whose title is too long for its box keeps the full title in `t` and is drawn on its own `lines` (the first one bold). `planned` is a list of
+`{ id, t, d }`: the small items of the roadmap, each with a stable `id` (the private overlay speaks of it). `tag: 'kaby'` puts a brick in the Kaby focus.
 
-## Sources (état au 20/10/2026)
+A brick carries its own **status** (`st`: `done`, `half`, `todo`) and **why** (`stNote`); a brick that is not built must say why. The marks,
+the counts, the filters and the tooltips all read that one field. `inside` lists what a brick holds, each entry with its own status and
+source. A link says what it crosses; one that is not built yet is a `target` and is dashed.
 
-| Brique | Document |
-|---|---|
-| DSH local, Kaby, workers, mémoire | `README.md`, `packages/kybernos-kyber/README.md`, `packages/kybernos-workers/README.md` |
-| Serveur, custom server, compte/quota, apps connectées | `docs/dev/servers.md`, `docs/dev/servers-page-spec.md` |
-| Ordinateur cloud, automations, accès, volume, egress | `docs/dev/computers.md`, `docs/dev/cloud-computer-run-on.md` |
-| Télécommande | `docs/dev/mobile-remote.md`, `docs/etudes/2026-10-19-deux-pwa-telecommande-et-kaby.md` |
-| Canaux (Telegram, WhatsApp) | `packages/messaging/README.md`, `docs/dev/whatsapp-door-study-2026-10-19.md` |
-| Appels | `packages/kybernos-call/README.md` |
-| Webhooks, dispatch des tours | `docs/dev/cloud-computer-run-on.md` |
-| Sandboxes E2B | `packages/kybernos-computers/README.md` |
-| Porte d'hébergement | `packages/kybernos-gate/README.md`, `docs/dev/hosted-instances.md` |
+## Keeping it true
 
-## Ce qui a été vérifié (et comment)
+- A change in the platform: edit the brick (status, note, limits, `source`) and `RAW.asof`, which names the commits the page was read at.
+- A new brick: give it a frame, a group and a place (`x`, `y`, `w`, `h`), a title and a subtitle that fit its box, and a step of the story that tells it.
+- A new link: `v` joins a brick above another (`rev` puts the arrow toward the one above), `h` two bricks in a row, `frames` the frames
+  themselves, `elbow` runs from a frame's edge (`a` a frame, with `ay`) or from a brick (`a` a brick), along a margin (`side: 'right'`, a `lane` of its own) into a brick.
+  The frames are placed by hand (`h` of each frame in `FRAMES`): a second row in a frame means shifting the frames below it.
+- A server brick belongs to the admin side (groups `team`, `owner`), the user side (`user`), the queue or the doors, and sits inside its band.
+- Every document a brick cites must exist in this repository; the server's own documents are named in words (for example "Server ADR 0052"), not by path.
+- A claim that the page relies on carries **evidence**: `evidence: [{ repo, path, has | absent }]` on the brick. `has` is a text the file
+  holds; `absent` is a text no file under `path` holds, which is how a "not built" claim is proved. `repo: 'server'` is read at the
+  commit `RAW.serverRef` names, in the server repository beside this one (or `KYBERNOS_SERVER_REPO`); where that repository is not there,
+  those items are skipped and counted. When someone builds a thing the page calls "not built", its evidence fails and the page is updated.
+- `node scripts/test-architecture-map.mjs` checks all of this offline: one file only, no URL, the script parses, English only, the frames and
+  their order, the server's two sides and the one queue the three doors feed, bricks inside their frame and band and never on each other,
+  text that fits its box, links that can be drawn and no vertical line that crosses a brick, a story that tells every brick, cited documents, evidence, the seven bricks of
+  the roadmap, no private word in the public file, and the overlay's behaviour with none, a broken one and a good one. It runs in `node scripts/run-all-tests.mjs`.
 
-Mesuré avec Chrome (Playwright) sur la page réelle, captures dans `captures/` :
+## The roadmap, and the private overlay
 
-- 8/8 parcours joués : 4, 5, 5, 3, 4, 5, 4, 4 étapes, aucun parcours vide, aucune erreur console (sauf `favicon.ico`, absent par choix d'autonomie).
-- Compteur d'étapes, désactivation de `Précédent/Suivant` aux bornes, `Vue d'ensemble` qui éteint tout.
-- Clic brique → fiche complète (rôle, traversée, limites, où, source, parcours liés) ; `Échap` et clic hors fiche ferment.
-- Clavier : `→` passe 1/4 → 2/4 ; `1…8` changent de parcours.
-- Thème clair capturé (`captures/arch-11.png`), pas de valeur en dur hors jetons.
-- Téléphone 390 px et 480 px : zones empilées, tiroir « Parcours », barre d'étapes compacte, aucun débordement horizontal de page.
-- Aucune ressource réseau : polices système, CSS local, données dans le fichier.
+The roadmap is drawn **into** the schema, not in a separate panel: bricks only where a new place exists (Kybernos model, Triggers, Customer agent, Your
+customers, Phone and e-mail provider, App stores, Referral commissions), a **Planned** list and a dot on the existing bricks for the small items, a story
+step at the end. The public page says what a thing **is**, in neutral words: no price, no amount, no percentage, no vendor of the roadmap, no commercial
+term. `scripts/test-architecture-map.mjs` fails when one of them (a vendor name, a currency, a percentage) enters the file.
 
-**Ce qui n'est pas vérifié** : rien de ce schéma n'est une mesure du système en marche — c'est une lecture des contrats et des mesures déjà consignées dans les documents ci-dessus. Les chiffres cités (réveil 3,0–3,7 s, sommeil 0,5–0,7 s, image 563 Mo, 4 sandboxes) viennent de ces documents, pas d'une nouvelle campagne.
+The **horizons** (Now / Next / Later), the blockers, the vendor names and the commercial detail live in an optional sibling script, **`roadmap.private.js`**,
+which is listed in `.gitignore` and never committed (the folder is on the public repository). The page loads it with an optional `<script src>`; when the
+file is not there the tag fails quietly (one 404 in the console) and the page is the public one: no When tag, no When chips. When it is there, the page shows a
+**Private view** badge, the When tags in the sheets and tooltips, the When chips, the private notes in a dashed box marked *Private overlay* and a private
+paragraph under a story step. The search reads those notes too, so a vendor name typed in the box lands on its brick. **Do not publish that view** (a screenshot included).
 
-## Limites connues de la maquette
+The overlay sets `window.KB_PRIVATE = { asof, home, story: { <step id>: text }, nodes: { <brick id>: { when, planned: { <item id>: { when, note } }, notes: [{ t, d }] } } }`
+(the header of the file says the same). A brick's horizon is its own `when`, else the earliest of its planned items. A broken or partial overlay is ignored
+piece by piece, never fatal. The master copy is kept outside the repository, in `~/kybernos-archive/architecture-roadmap/roadmap.private.js`; to open the page
+with it, put it beside `index.html` (a link is enough) and serve or open the folder:
 
-- Le routage des lignes est orthogonal (gouttières + bus au-dessus de la bande du bas) ; pour les briques de la colonne de droite, le conduit longe le panneau et peut se lire comme un cadre.
-- Sur téléphone, les lignes sont masquées (les zones s'empilent) : le parcours se lit dans la liste d'étapes et la barre du bas.
-- Les libellés sont en français ; la version anglaise serait une traduction à faire, pas un changement de structure.
-- `captures/` est un dossier de preuve, à ne pas committer (règle dépôt : pas de médias).
+```bash
+ln -s ~/kybernos-archive/architecture-roadmap/roadmap.private.js demo/kybernos-architecture/roadmap.private.js
+```
 
-## Revues
+Without a server, double-clicking `index.html` also works (a classic script loads over `file://`). When the overlay is present, the test checks it against the
+bricks too (every brick and planned item it names exists, every horizon is valid).
 
-### Claude Opus 5.5 — 20/10/2026
+## What this is not
 
-Critique adversariale des deux pages (fichiers + docs sources). Verdict rendu : **exactitude 5/10, clarté 4/10**. Six erreurs factuelles relevées, vérifiées une par une contre les documents :
-
-| Constat d'Opus | Vérification | Correction |
-|---|---|---|
-| WhatsApp « étude seule » alors que la décision est un pont Baileys beta | vrai (décision 19/10 ; numéro relié sur dev le 20/10) | carte + page light : « beta, dev seulement » |
-| Accès « un mot de passe » alors que la production passe par un ticket | vrai (`computers.md` : mot de passe = machine de dev) | « ticket à usage unique (mot de passe en dev) » |
-| Réveil et sommeil inversés | vrai (`suspend 3,0–3,7 s / resume 0,5–0,7 s`) | chronos remis dans le bon sens |
-| Kaby « choisit où il travaille » | partiellement vrai : le sélecteur règle les canaux (Telegram) ; le chat local reste ici | reformulé + limite ajoutée |
-| Approbations « trois boutons » sur un tour d'ordinateur | vrai : la machine tourne en `danger-full-access`, approbations `never`, et les approbations de canal ne sont pas construites | croix + limite corrigées |
-| Appels « construits » alors qu'aucun appel réel n'a été joué | vrai (`kybernos-call` § Known limits) | badge « jamais joué en direct » |
-
-Défauts d'interface corrigés : échelle plancher 0,9 et tiroir dès 1240 px (lisibilité), **couleurs réservées aux flux** (cartes neutres, la zone porte son teint), **flèches** sur les tracés, suppression du bouton « Statuts réels » (la vérité n'est plus une option), carte centrée et agrandie jusqu'à 1,12.
-
-Laissé de côté, assumé : une seule source de données pour les deux pages ; le **chemin par défaut d'un tour Telegram** (runner de la plateforme quand le switch est fermé) n'est pas dessiné ; la distinction des jetons (appareil, ordinateur restreint, billet du relais) n'est pas montrée ; le conduit des sorties longe encore le panneau de droite.
+It is a reading of this repository's documents and code, and of the server repository's `origin/dev`, not a measure of a running
+system. The admin side in particular is read from the server's routes and documents; no running console was opened. It was last looked at
+in a browser on 2026-11-23 (wide and phone widths, light and dark, with and without the private overlay). No media, no font, no network: the logo is drawn in the file from the
+brand mark's own shapes (repo rule 4).

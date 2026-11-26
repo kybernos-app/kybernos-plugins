@@ -83,6 +83,8 @@ const WRITES = [
   ['/kybernos/create', { id: 'write-guard-test', name: 'Write guard test' }],
   ['/kybernos/workspace-ui-save', { workspaceId: 'w-write-guard', name: 'Write guard' }],
   ['/kybernos/workspace-delete', { workspaceId: 'w-write-guard' }],
+  // Removing an Agent Team (the folder is moved to a trash folder): the id names no team of this throw-away home, so the real pair reaches the handler and it stops at « not in your DSH home », moving nothing.
+  ['/kybernos/kyber-delete', { rootId: 'installed', kyberId: 'write-guard-nobody' }],
   ['/kybernos/pins', { kind: 'workspace', op: 'add', id: 'w-write-guard' }],
   ['/kybernos/share', { kind: 'artifact', id: 'a-write-guard', access: 'link', role: 'view' }],
   ['/kybernos/active-set', { kyberId: 'write-guard-test' }],

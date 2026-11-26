@@ -15,7 +15,7 @@ It is a satellite: switch it off in the Suite and Create goes back to DSH's nati
   folder, or the path; the folder is fixed at creation: another folder means another workspace).
 - **Devices tab.** What exists today for the phone (a live window on the computer, not a copy; every workspace; the computer
   must be on; no queue), then two greyed cards side by side that preview the next versions: *Execution* (this computer,
-  E2B sandbox, Kybernos hosted) and *Devices* (which device sees a workspace, and may send). Nothing in them changes
+  Kybernos hosted) and *Devices* (which device sees a workspace, and may send). Nothing in them changes
   anything. The core bundle draws the tab only when this bundle is there.
 
 ## How it works

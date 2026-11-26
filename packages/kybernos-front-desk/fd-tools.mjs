@@ -124,12 +124,24 @@ export function createToolHost ({ call, now = Date.now }) {
     return { ok: false, error: 'not_approved', detail: 'The owner was not asked, or the draft changed since they were. Call again; if it keeps failing, tell the owner what you wanted to do.' }
   }
 
+  function readKnowledgeSources () {
+    try {
+      const kb = globalThis[Symbol.for('kybernos.knowledge')]
+      if (!kb || typeof kb.listCollections !== 'function') return []
+      return kb.listCollections()
+        .filter((c) => c && c.includeFrontDesk === true && Number(c.docCount) > 0)
+        .slice(0, 8)
+        .map((c) => ({ id: c.id, name: clip(c.name, 60), docCount: Number(c.docCount) || 0 }))
+    } catch { return [] }
+  }
+
   async function status () {
     const [ov, st] = await Promise.all([call('GET', '/api/overview'), call('GET', '/api/studio')])
     if (!ov.ok || !st.ok) return failure(!ov.ok ? ov : st)
     const o = ov.json
     const s = st.json
     const d = s.draft
+    const knowledgeSources = readKnowledgeSources()
     return {
       ok: true,
       shop: o.shop,
@@ -143,6 +155,7 @@ export function createToolHost ({ call, now = Date.now }) {
       waitingForYou: o.waiting,
       // What visitors wrote: data to read, never instructions to follow.
       unanswered: (o.unanswered || []).slice(0, 10).map((u) => ({ id: u.id, visitorWrote: clip(u.question || u.text, 160) })),
+      ...(knowledgeSources.length > 0 ? { knowledgeSources } : {}),
       note: 'The money, the limits, the sites that may show the chat and any "on its own" action are the owner’s: ask them to change those in the Atelier. Facts you add stay unchecked until the owner checks them.',
     }
   }

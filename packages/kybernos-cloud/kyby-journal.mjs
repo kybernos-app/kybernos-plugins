@@ -9,7 +9,7 @@ export const KEEP_DAYS = 30
 export const ASKED_CHARS = 100
 const MAX_LINES = 60
 const DAY_MS = 86_400_000
-const CHANNELS = new Set(['chat', 'telegram', 'phone', 'whatsapp', 'wake'])
+const CHANNELS = new Set(['chat', 'telegram', 'phone', 'whatsapp', 'wake', 'assistant'])
 const BODIES = new Set(['computer', 'cloud'])
 const TOOL_NAME = /^[A-Za-z0-9_.:-]{1,64}$/
 

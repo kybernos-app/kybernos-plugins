@@ -96,8 +96,7 @@ try {
   await clearBox()
   await type('clé api')
   names = await resultNames()
-  const sandboxPage = args.indexOf('--frozen') < 0 || (await ev(`[...document.querySelectorAll('[class*="navList"] [data-kb-t]')].some((x) => x.dataset.kbT === 'kybernos-computers' || /code sandbox/i.test(x.textContent || ''))`)) === true
-  check('« clé api » finds every place an API key goes (providers, connectors, the web search engines' + (sandboxPage ? ', the code sandbox' : '') + ')', ['Add provider', 'Composio key', 'Default engine'].concat(sandboxPage ? ['API key'] : []).every((n) => names.indexOf(n) >= 0), names)
+  check('« clé api » finds every place an API key goes (providers, connectors, the web search engines)', ['Add provider', 'Composio key', 'Default engine'].every((n) => names.indexOf(n) >= 0), names)
   if (shotsDir !== null) await page.shot(shotsDir + '/search-2-apikey.png')
   await clearBox()
   await type('themme')

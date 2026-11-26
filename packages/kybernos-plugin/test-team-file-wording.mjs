@@ -7,13 +7,17 @@
 // interface that says Agent Team. The exact name stays where it is the thing itself: the code that reads the file, the path shown
 // on the technical page, the Atlas definition column, the raw-text view.
 import { readFileSync } from 'node:fs'
+import { entriesMatching } from './lib-i18n-test.mjs'
 
 let fail = 0
 const check = (name, ok, detail) => {
   if (ok === true) console.log('  ✓ ' + name)
   else { fail += 1; console.log('  ✗ ' + name + (detail === undefined ? '' : ' — ' + JSON.stringify(detail))) }
 }
-const SRC = readFileSync(new URL('./client.js', import.meta.url), 'utf8').split('\n')
+// The texts a person reads are in i18n/fr.json and en.json, not in client.js any more: each entry is added after the code as the one line it used to be
+// (`'key': { kybernos: 'fr', en: 'en' },`), so the scans below read the code AND the dictionary the same way as before.
+const DICT_LINES = entriesMatching(/./).map(([k, fr, en]) => "'" + k + "': { kybernos: '" + fr + "', en: '" + en + "' },")
+const SRC = readFileSync(new URL('./client.js', import.meta.url), 'utf8').split('\n').concat(DICT_LINES)
 const mentions = SRC.map((l, i) => [i + 1, l.trim()]).filter(([, t]) => t.includes('kyber.yml') && !/^(\/\/|\*|\/\*)/.test(t))
 const ALLOWED = [
   ["'kbat.col.def'", 'the Atlas definition column names the file it reads'],

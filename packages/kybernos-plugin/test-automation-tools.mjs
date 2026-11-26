@@ -36,15 +36,17 @@ eq('the prompt names the tool, the refusal of schedule_create, and the one short
 // the two suggestion tools need the ledger
 eq('without a ledger there are only the three automation tools', toolDefinitions(deps).length, 3)
 const ledgerCalls = []
-const withLedger = toolDefinitions(Object.assign({}, deps, { ledger: { add: async (kind, raw) => { ledgerCalls.push([kind, raw]); return raw.text.includes('@') ? { ok: false, error: 'personal data' } : { ok: true, item: { id: 's1' } } } } }))
+const withLedger = toolDefinitions(Object.assign({}, deps, { ledger: { add: async (kind, raw) => { ledgerCalls.push([kind, raw]); return raw.text.includes('@') ? { ok: false, error: 'personal data' } : { ok: true, item: { id: 's1', text: raw.text } } } } }))
 eq('with it there are five', withLedger.map((t) => t.name), ['automation_suggest', 'automation_home', 'automation_remind', 'memory_suggest', 'instructions_suggest'])
 const [, , , memory, instr] = withLedger
 const m = await memory.execute({ text: 'Clients are private individuals', n: 14, span: '60 days', where: 'Gmail' }, {})
 eq('memory_suggest hands the text and its proof to the ledger as a memory', JSON.stringify(ledgerCalls[0]), JSON.stringify(['memory', { text: 'Clients are private individuals', n: 14, span: '60 days', where: 'Gmail' }]))
-eq('...and says it waits in Memory, not saved', memory.output.render({}, m)[0].text, 'Suggested: it waits for the person\'s Add in Memory. It is NOT saved yet.')
+eq('...and says what was suggested and that it waits in Memory for the person\'s answer, in words that can be said as they are', memory.output.render({}, m)[0].text, 'Suggested for Memory: “Clients are private individuals”. It waits for your answer there.')
+eq('...a long fact is cut and the answer still says it waits', memory.output.render({}, { ok: true, item: { text: 'x'.repeat(400) } })[0].text, 'Suggested for Memory: “' + 'x'.repeat(160) + '”. It waits for your answer there.')
+eq('...a ledger that returns no item still gets the sentence that it waits', memory.output.render({}, { ok: true })[0].text, 'Suggested for Memory. It waits for your answer there.')
 await instr.execute({ text: 'Write in French' }, {})
 eq('instructions_suggest sends the text as an instructions suggestion', JSON.stringify(ledgerCalls[1]), JSON.stringify(['instructions', { text: 'Write in French' }]))
-eq('...and says it waits in Custom instructions', instr.output.render({}, { ok: true })[0].text, 'Suggested: it waits for the person\'s Add in Custom instructions. It is NOT saved yet.')
+eq('...and says it waits in Custom instructions', instr.output.render({}, { ok: true })[0].text, 'Suggested for Custom instructions. It waits for your answer there.')
 eq('a text with an address is refused in words the agent can act on', memory.output.render({}, await memory.execute({ text: 'writes to a@b.co' }, {}))[0].text, 'Not done: the text contains an address, a phone number or a secret: write patterns, not people.')
 eq('the prompt names both tools and the no-personal-data rule', PROMPT.includes('memory_suggest') && PROMPT.includes('instructions_suggest') && PROMPT.includes('Never put in a suggestion a name'), true)
 

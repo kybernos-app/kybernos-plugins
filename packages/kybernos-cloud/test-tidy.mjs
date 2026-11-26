@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 import {
   TIDY_DEFAULTS, normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, AUTO_MAX_REMOVALS, readStudyChoice, publishedStudyModel, textHash,
   removalChunks, brainPrompt, parseVerdicts, askModel, brainGroups, BRAIN_BATCH, BRAIN_MAX_PAIRS, TIDY_N_NEW, AUTO_MIN_SCORE,
+  unsafeMerge, autoRequest, AUTO_MAX_BRAIN_MERGES,
 } from './tidy.mjs'
 
 let pass = 0
@@ -74,7 +75,34 @@ assert.equal(AUTO_MIN_SCORE, 80)
 const huge = [G('h1', 100, 60), G('h2', 100, 60), G('h3', 100, 3)]
 assert.deepEqual(pickAuto(huge, { mode: 'auto' }, 100).map((g) => g.id), ['h1', 'h3'], 'a run removes at most ' + String(AUTO_MAX_REMOVALS) + ' by itself; what does not fit waits')
 for (const bad of [null, undefined, 'x', [null, 3, {}], [{ items: 'no' }]]) assert.doesNotThrow(() => pickAuto(bad, { mode: 'auto' }))
-ok('auto picks the local groups at 80 % and over, within the cap; ask mode, brain verdicts and weaker groups wait for a click')
+ok('auto picks the local groups at 80 % and over, within the cap; ask mode, brain verdicts without a merged text and weaker groups wait for a click')
+
+// Decided 2026-11-08: a Study-model "same" whose merged text passes the checks of a compaction is merged by itself, every one undoable.
+const BM = (id, a, b, merged, extra = {}) => ({ id, type: 'merge', by: 'brain', score: null, keeperId: id + '-b', merged, items: [{ id: id + '-b', content: b, keep: true }, { id: id + '-a', content: a, keep: false }], ...extra })
+const safe = BM('s', 'Deploys go out on Friday at 16:00', 'Deploys happen Fridays, 16:00', 'Deploys go out on Fridays at 16:00.')
+assert.equal(unsafeMerge(safe), null, 'every number kept, none added, no negation either side')
+assert.equal(unsafeMerge(BM('n1', 'Deploy on port 3000', 'Deploy on port 3000 or 3001', 'Deploy on port 3000.')), 'number', 'a number of an original lost')
+assert.equal(unsafeMerge(BM('n2', 'Deploy on Friday', 'Deploys are on Fridays', 'Deploy on Friday at 16:00.')), 'number', 'a number added')
+assert.equal(unsafeMerge(BM('g1', 'Never deploy on Friday', 'Do not deploy on Fridays', 'Deploy on Fridays.')), 'negation', 'a negation lost')
+assert.equal(unsafeMerge(BM('g2', 'Deploy on Friday', 'Deploys are on Fridays', 'Never deploy on Friday.')), 'negation', 'a negation added')
+assert.equal(unsafeMerge(BM('g3', 'Never deploy on Friday', 'Do not deploy on Fridays', 'Never deploy on Fridays.')), null, 'one "not" for two that say it once each')
+assert.equal(unsafeMerge({ ...safe, type: 'outdated' }), 'type', 'an outdated verdict never goes by itself')
+assert.equal(unsafeMerge({ ...safe, merged: null }), 'text', 'a "same" without a usable merged text waits')
+assert.equal(unsafeMerge({ ...safe, items: [{ ...safe.items[0], pinned: true }, safe.items[1]] }), 'pinned', 'a pinned note keeps the person\'s own words')
+assert.equal(unsafeMerge({ ...safe, by: 'local' }), 'type')
+for (const bad of [null, undefined, 'x', {}, { by: 'brain', type: 'merge', items: [null, 3] }]) assert.doesNotThrow(() => unsafeMerge(bad))
+const outdatedG = { ...BM('o', 'Port 3000', 'Port 3080', null), type: 'outdated' }
+const mixed = [G('a', 100, 3), safe, outdatedG, BM('bad', 'Deploy on port 3000', 'Deploy on port 3000 or 3001', 'Deploy on port 3000.'), G('c', 79, 2)]
+assert.deepEqual(pickAuto(mixed, { mode: 'auto' }).map((g) => g.id), ['a'], 'auto: the 80 %+ group only; a Study-model verdict, even a safe one, waits for a click (decided 2026-11-20)')
+assert.deepEqual(pickAuto(mixed, { mode: 'auto' }, 100, 10).map((g) => g.id), ['a', 's'], 'the checks still hold if the limit is ever raised: the safe merge passes, the outdated verdict, the unsafe merge and the weaker group wait')
+assert.deepEqual(pickAuto(mixed, { mode: 'ask' }), [], 'ask first: not even a safe merge')
+const manyBrain = Array.from({ length: 14 }, (_, i) => BM('m' + String(i), 'Deploys go out on Friday at 16:00', 'Deploys happen Fridays, 16:00', 'Deploys go out on Fridays at 16:00.'))
+assert.equal(AUTO_MAX_BRAIN_MERGES, 0, 'the Study model merges nothing by itself')
+assert.equal(pickAuto([...manyBrain, G('z', 100, 2)], { mode: 'auto' }).length, 1, 'only the local group is merged by itself')
+assert.equal(pickAuto([...manyBrain, G('z', 100, 2)], { mode: 'auto' }, 100, 10).length, 11, 'a raised limit still caps the Study-model merges a run; the local ones are not counted against it')
+assert.deepEqual(autoRequest(safe), { id: 's', edit: 'Deploys go out on Fridays at 16:00.' }, 'a Study-model merge keeps its merged text')
+assert.deepEqual(autoRequest(G('a', 100, 3)), { id: 'a' }, 'a local merge keeps the keeper\'s words')
+ok('a Study-model merge goes by itself only with a merged text that keeps every number and negation, no pinned note, 10 a run; never an outdated one')
 
 const sizes = (chunks) => chunks.map((c) => c.reduce((n, g) => n + g.items.length - 1, 0))
 const rc = removalChunks([G('a', 100, 31), G('b', 100, 21), G('c', 100, 11), G('d', 100, 11), G('e', 100, 3)], 50)
@@ -272,6 +300,23 @@ assert.equal(noModel.asked, 0)
 const garbage = await brainGroups({ ...base, llm: fakeLlm(() => 'I cannot do that') })
 assert.deepEqual([garbage.groups.length, garbage.asked, garbage.error], [0, 3, null], 'an unreadable answer suggests nothing')
 ok('a failure keeps what was judged, no model asks nothing, a garbled answer suggests nothing')
+
+// Decided 2026-11-08: a local group of two under the line is asked first; its verdict takes the group's id (and place).
+calls.length = 0
+const lowA = mk('la', 'Expo start with CI=1 serves a frozen bundle', { createdAt: '2026-08-01 10:00:00+00:00' })
+const lowB = mk('lb', 'Expo start with CI=1 serves a frozen bundle: the Metro watcher never recompiles edited files after a change', { createdAt: '2026-09-01 10:00:00+00:00' })
+const lowGroup = { id: 'grp-low', keeperId: 'lb', score: 60, saves: 1, items: [{ ...lowB, keep: true, like: 1 }, { ...lowA, keep: false, like: 0.6 }] }
+const highGroup = { id: 'grp-high', keeperId: 'x1', score: 90, saves: 1, items: [{ id: 'x1', content: 'a b c d', keep: true }, { id: 'x2', content: 'a b c d e', keep: false }] }
+const sameLow = (prompt) => JSON.stringify({ verdicts: prompt.split('\n\n').slice(1).map((b, i) => (/Expo start/.test(b) ? { n: i + 1, verdict: 'same', why: 'one fact', merged: 'Expo start with CI=1 serves a frozen bundle: the Metro watcher never recompiles edited files.' } : { n: i + 1, verdict: 'unsure' })) })
+const reviewed = await brainGroups({ ...base, items: [lowA, lowB], taken: new Set(['la', 'lb']), review: [lowGroup, highGroup], llm: fakeLlm(sameLow) })
+assert.equal(calls.length, 1)
+assert.ok(/\[A\] Expo start with CI=1 serves a frozen bundle\n\[B\] Expo start/.test(calls[0]), 'the pair goes first, the older as [A]')
+assert.deepEqual(reviewed.groups.map((g) => [g.id, g.type, g.keeperId]), [['grp-low', 'merge', 'lb']], 'its verdict carries the local group\'s id; a group at or over the line is not asked')
+assert.equal(reviewed.unclear, 0, 'a group under the line is counted with the groups, not again as an unclear pair')
+assert.equal(unsafeMerge(reviewed.groups[0]), null, 'and this merge may go by itself')
+const differentLow = await brainGroups({ ...base, items: [lowA, lowB], taken: new Set(['la', 'lb']), review: [lowGroup], llm: fakeLlm(() => JSON.stringify({ verdicts: [{ n: 1, verdict: 'different', why: 'two facts' }] })) })
+assert.deepEqual(differentLow.groups, [], '"different": no verdict group, the local group stays for a click')
+ok('a local group of two under the line goes to the Study model first, and only its "same" can be merged by itself')
 
 const big = {}
 for (let i = 0; i < 600; i++) big['k' + String(i)] = { ha: 'a', hb: 'b', verdict: 'different', why: '', merged: null, at: new Date(NOW - i * 1000).toISOString() }

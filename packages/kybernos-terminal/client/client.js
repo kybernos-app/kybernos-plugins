@@ -48,7 +48,7 @@ window.__ModuleLoader__.load({
         ['le dossier où exécuter n’existe plus', 'the folder to run in does not exist any more'],
         ['origine refusée', 'origin refused'],
         ['POST attendu', 'POST expected'],
-        ['le secret de session de DSH est illisible, le terminal reste donc fermé', 'the DSH session secret cannot be read, so the terminal stays closed'],
+        ['le secret de session de Kybernos est illisible, le terminal reste donc fermé', 'the Kybernos session secret cannot be read, so the terminal stays closed'],
         ['connexion requise', 'sign-in required'],
         ['corps de requête trop grand', 'request body too large'],
         ['le dossier de cette session est introuvable : rien n’a été exécuté', 'the folder of this session cannot be found: nothing was run'],

@@ -78,6 +78,7 @@ const React = {
   },
   useState: (v) => [typeof v === 'function' ? v() : v, () => {}],
   useEffect: () => {},
+  useLayoutEffect: (f) => { f() }, // runs at once: the panel's first job is to take its chat from its props
 }
 
 // ── chargement ──────────────────────────────────────────────────────────────
@@ -86,7 +87,7 @@ const source = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
 new Function('window', 'document', 'React', source)(globalThis.window, globalThis.document, React)
 
 ok('le bundle se charge dans le format du ModuleLoader', typeof definition === 'object' && definition !== null)
-ok('identifiant du module', definition.id === '@local/kybernos-slides/client', definition.id)
+ok('identifiant du module', definition.id === '@local/kybernos-slides', definition.id)
 const plugin = definition.factory((nom) => { if (nom === 'react') return React; throw new Error('require inattendu : ' + nom) })
 ok('le plugin déclare `slots` et `sidebarRightTabs` en inject',
   Array.isArray(plugin.inject) && plugin.inject.includes('slots') && plugin.inject.includes('sidebarRightTabs'))
@@ -298,6 +299,22 @@ ok('in the default state the bar is dimmed, not hidden', barre !== null && barre
   ok('L4-02: the URL carries the session once it is known',
     T.urlEtat('session-1') === '/kybernos-slides/state?session=session-1'
     && T.urlEtat('a b') === '/kybernos-slides/state?session=a%20b')
+}
+
+// ── the panel belongs to the chat the engine gave it ─────────────────────────
+// The key the panel read was a cached one, refreshed every few seconds: right after a change of chat it still named the previous chat, and that
+// chat's deck showed up in the new one (and stayed there while the new chat had none).
+{
+  ok('the session the engine gives the panel is read from its props',
+    T.cleDeProps({ sessionId: 'session-9' }) === 'session-9' && T.cleDeProps(undefined) === '' && T.cleDeProps({}) === '' && T.cleDeProps({ sessionId: 5 }) === '')
+  deckPourTest = { version: 1, t0: Date.now() - 999_999, dureeMs: 10, titre: 'Deck of the OTHER chat', theme: 'sombre', mode: 'nouveau', slides: T.normaliserDeck(T.DEMOS[0].slides) }
+  const arbreB = panneau({ sessionId: 'session-B' })
+  deckPourTest = null
+  ok('the panel takes its chat from its props at once (before any read of the host)', T.sessionCourante() === 'session-B', T.sessionCourante())
+  ok('a deck carried over from another chat is dropped: the panel shows its own empty state',
+    !JSON.stringify(arbreB).includes('Deck of the OTHER chat') && classes(arbreB).some((c) => c.includes('kbsd-empty')))
+  panneau({ sessionId: 'session-C' })
+  ok('and follows the next chat it is given', T.sessionCourante() === 'session-C', T.sessionCourante())
 }
 
 // ── the build and the demo ──────────────────────────────────────────────────

@@ -50,6 +50,33 @@ the pack's `name`, `tagline` (200), `accent`, `icon` and the word of `menu.label
 `why.json` gives each plugin the theme needs (the Dashboards too) one line (`{ "kybernos/db": { "en": …, "fr": … }, … }`, 160 characters at most) that says what it does
 for this trade: « Orders from new to delivered. » The gallery draws a cover itself: **no picture is shipped**, a `cover.jpg` is refused by `garde-depot`.
 
+## The install plan and its Menu line
+
+The plan screen (Settings › Templates, `planTheme` in `theme-installer.mjs`, drawn by `planDialog` in `client.js`) lists what the install adds, one tile with a
+switch each. The **Menu line** is the tile for the names the pack gives to menu rows (`domains/<id>.json`, `menu.labels`: `{ <rowId>: { en, fr, … } }`).
+
+- `planTheme(...).menu` is `{ labels, tick: false }`, or `null` when the pack renames nothing. The bounds are those of a menu entry of the Theme page (a row id of
+  a row a person may hide, never `workspaces`, `projects`, `settings`, `account`; names of the four page languages, 1..40 characters, no `<` or `>`, 24 rows at most);
+  a bad item is dropped, never repaired.
+- **It is never ticked for the person** (`kbThDefaultTicks`: `menu: false`): the person's own menu names and order are theirs. The tile says what it does, in the page's
+  words: « Renames Agent Teams → Shop team and Automations → Customer follow-ups. Replaces your menu names and order: your own names would be replaced. Not ticked: your
+  menu stays as it is. You can apply it later from Theme › Presets. » The current names come from the menu's registry (`window.__KB_MENU_ENTRIES__.list()`); without it
+  the dictionary's words (or the row id) stand in and every row is taken as present. A label for a row this menu does not have (Dashboards lives inside Creations, a plugin's
+  row may be off) is listed apart: « … will show when that row does ». Only the label of the page's own language counts (never one of another language), and a label equal to
+  the name already shown is not a rename. A page language the pack does not speak draws no Menu line. A full before / after of every row is not drawn: the names that change are listed.
+- **One record.** On Install the template goes to the Theme page as ONE library record (`source: 'template'`) holding its appearance (the style's settings) and its menu part
+  (the names above), through the seam's third form, `window.__KB_THEME_APPLY__({ preset: { name, settings?, menuLabels?, gid? }, apply: { appearance, menu } })`, read only through
+  `kbObThemeSeam` (`kbThPorts().preset`). Only the ticked parts apply: `apply.appearance` is the Style tick, `apply.menu` the Menu tick; the record is kept either way, so the
+  template can be applied later from Theme › Presets (`ticks.record`, set by the plan screen). The name is the template's name in the page's language, cut to 40 characters;
+  `gid` is the plugin id as a slug (`acme/vet-clinic` → `acme-vet-clinic`), which the Theme page uses to find the record again on a replay. `v` and `author` are not sent: the plan
+  does not carry them.
+- **Degrades, never fails the install.** A seam without that form (an older theme bundle) or one that refuses or throws: the look goes the old way (by id, then by its settings
+  bag) and the report says the menu was `unavailable`. A style with no settings of its own keeps the old door for the look and still stores the menu names.
+- **A replay** with the Menu tick on applies the menu again and writes nothing else; with it off it is the no-op it was.
+- **Remove** gives back the look and the field as before; the menu is not restored by the installer: applying a template's menu first keeps the person's current menu in Mine on
+  the Theme page (Theme › Presets), so one click goes back.
+- The Apps page's template add (`__KB_TEMPLATES__.add`) is unchanged: its ticks carry neither `menu` nor `record`, so it never touches the look, the menu or the library.
+
 ## The sample rows
 
 `demo/db-sample.json` is the `sample` argument of the Tables seam (`install({ template, sample, lang, photo })`, `packages/kybernos-db/README.md`, « Templates »): `{ rows: { <object key>: [{ ref?, values }] } }`.

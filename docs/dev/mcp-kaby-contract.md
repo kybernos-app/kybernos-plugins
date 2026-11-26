@@ -172,3 +172,16 @@ the optional line and ids above.
 
 Creating, editing or deleting an automation from an assistant; reading any session's content; a result longer than one line; pushing
 to a host (Slack, HubSpot...) other than through the person's own connectors inside the run.
+
+## The local door (2026-11-21)
+
+Everything above is the cloud door: an assistant reaches the person's **cloud computer** through the server. On a laptop with no computer token the
+`automation_run` job does nothing (point 7 of C4), and the engine has no MCP server of its own (checked on 0.2.2-rc.5: it ships MCP clients, an ACP
+server and an SDK JSON-RPC server over stdio, which Claude Code does not speak). The community plugins that expose DSH over MCP hand a code task to a
+fresh DSH worker: none opens the person's own Kaby, connections or approvals.
+
+`packages/kybernos-door` is the small local counterpart: `POST /kybernos-door/mcp` (Streamable HTTP, stateless, JSON in and out) on DSH's own web
+server, for an MCP client on the same machine. It offers `kaby_do { task | task_id }`, `list_tasks` and `kaby_stop { task_id }` (a real stop: the session and its sub-agents are cancelled, docs/dev/task-contract.md § 8) only, runs the task as a new conversation of
+this DSH put under « ask first » before anything is sent (the core plugin's `kybernos.askSessions` seam: the asking permission preset plus the by-name gate on outside tools; without the seam the task is not started), and cannot approve anything (a step that needs a yes waits on the Kybernos screen). Its fence is a
+loopback `Host`, no `Origin`, and a bearer token from the profile. Automations (`run_automation`, `get_run`) wait for the `kybernos.automations`
+seam of C2; they are not part of the local door yet. See [`packages/kybernos-door/README.md`](../../packages/kybernos-door/README.md).

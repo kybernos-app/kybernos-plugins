@@ -15,6 +15,9 @@ const dshHome = mkdtempSync(join(tmpdir(), 'kb-tasks-team-'))
 process.env.HOME = dshHome
 process.env.DSH_HOME = dshHome
 mkdirSync(join(dshHome, 'kybernos'), { recursive: true })
+// The core automation (packages/kybernos-plugin/automation-core.mjs) is made at boot in an empty store. This file counts tasks, so its home
+// says the person deleted it once; scripts/test-core-automation.mjs proves the core automation itself.
+writeFileSync(join(dshHome, 'kybernos', 'core-automations.json'), JSON.stringify({ 'memory-tidy': { deletedAt: '2026-01-01T00:00:00.000Z' } }))
 const b64u = (b) => b.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 const writeSecret = (secret) => writeFileSync(join(dshHome, '.credentials.yaml'), 'credentials:\n  - name: client-connection/browser-session\n    secret: ' + b64u(secret) + '\n')
 const cookieFor = (secret) => {

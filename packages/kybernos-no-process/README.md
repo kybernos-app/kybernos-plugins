@@ -4,7 +4,7 @@ For the Kybernos phone app (`kybernos-host/app`) only. A phone cannot launch pro
 
 It replaces two engine services through the bundle patch (`cordis.patch.yml`: `subprocess` and `sandbox` are switched off and ours inserted, no engine file is touched):
 
-- `subprocess-inproc`: a command runner where `rg` is a JavaScript search (`rg.mjs`) and the shell is `just-bash` (`just-shell.mjs`, over a filesystem that is read-only outside the workspace) or a small built-in one (`mini-shell.mjs`); `curl` and the other common programs are answered in the process; anything that really needs another program fails with an `EPERM` the model can read.
+- `subprocess-inproc`: a command runner where `rg` is a JavaScript search (`rg.mjs`) and the shell is `just-bash` (`just-shell.mjs`, over a filesystem that is read-only outside the workspace) or a small built-in one (`mini-shell.mjs`); `curl` and the other common programs are answered in the process; anything that really needs another program fails with an `EPERM` (`code: 'EPERM'`, `errno: -1`, `syscall: 'spawn'`, wording in `phone-errors.mjs`) that explains plainly to the model that this phone cannot start external programs such as Node, not to retry, and that a remote or cloud Kybernos computer is needed (never promising automatic routing), while logging the refusal for diagnostics.
 - `sandbox-inproc`: the engine's confinement, as a wrapper that names what it refuses.
 - `inproc-mcp-door`: MCP servers that are programs cannot start; remote ones (HTTP) go through the door unchanged.
 

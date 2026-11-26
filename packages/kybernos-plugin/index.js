@@ -1,5 +1,5 @@
 // ── small helpers ───────────────────────────────────────────────────────────
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, mkdirSync, rmSync, unlinkSync, copyFileSync, renameSync, chmodSync, realpathSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, mkdirSync, rmSync, unlinkSync, copyFileSync, renameSync, chmodSync, realpathSync, cpSync } from 'node:fs'
 import { execFile } from 'node:child_process'
 import { realpath } from 'node:fs/promises'
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
@@ -8,7 +8,11 @@ import { zstdDecompressSync } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import { dirname, normalize as nodePathNormalize, isAbsolute as nodePathIsAbsolute, join as nodePathJoin } from 'node:path'
 import { dshHomeSync } from './dsh-home.mjs'
+import { i18nAnswer } from './i18n-files.mjs'
 import { kyberTarget } from './kyber-root.mjs'
+import { readTeamCap as readTeamCapFrom } from './team-cap.mjs'
+import { chatRoute, defaultRoute, kyberRoles } from './kyber-roles.mjs'
+import { planTrash, moveToTrash } from './kyber-trash.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
 import { TEAMS_CHUNK_NAME, TEAMS_CHUNK_ORDER, createAgentTeamsPrompt } from './agent-teams-prompt.mjs'
 import { workspaceHealthRows, requestedWorkspaceId } from './workspace-health.mjs'
@@ -28,6 +32,7 @@ import { createRecorder, readDecisions } from './journal-decisions.mjs'
 import { loadSealKey, sealEvidence, verifyDecisions } from './journal-seal.mjs'
 import { journalDocument, journalPageHtml, pageFileName } from './journal-page.mjs'
 import { createJournalLinks } from './journal-link.mjs'
+import { childStory, findSubagentChildren, subagentRun } from './journal-subagents.mjs'
 import { sendUserFile } from './serve-user-file.mjs'
 import { kbArtKeepExt, kbArtNameOk } from './art-names.mjs'
 import { kbArtifactsCut } from './art-limit.mjs'
@@ -36,7 +41,8 @@ import { defaultState as onboardingDefault, publicView as onboardingView, comple
 import { isSuggested as autoIsSuggested, suggestedTask as autoSuggestedTask, acceptedTask as autoAcceptedTask, refusalFor as autoSuggestRefusal, HOME_ID_RE as AUTO_HOME_ID_RE, runFrame as autoRunFrame } from './automation-suggest.mjs'
 import { learnTask as autoLearnTask, isLearnName as autoIsLearnName, LEARN_ID as AUTO_LEARN_ID } from './learn-business.mjs'
 import { mountAutomationTools } from './automation-tools.mjs'
-import { reminderInput as autoRemindInput, reminderRefusal as autoRemindRefusal, sameReminder as autoRemindSame, mountNativeReminderDenial, REMIND_RECIPE as AUTO_REMIND_RECIPE } from './automation-remind.mjs'
+import { CORE_IDS as AUTO_CORE_IDS, CORE_LEDGER_FILE as AUTO_CORE_LEDGER_FILE, coreTaskInput as autoCoreTaskInput, coreOf as autoCoreOf, coreLedgerParse as autoCoreLedgerParse, corePlan as autoCorePlan, coreLedgerWith as autoCoreLedgerWith } from './automation-core.mjs'
+import { reminderInput as autoRemindInput, reminderRefusal as autoRemindRefusal, sameReminder as autoRemindSame, mountNativeReminderDenial, mountReminderAsk, REMIND_RECIPE as AUTO_REMIND_RECIPE } from './automation-remind.mjs'
 // Three modules of other batches (the static gate, the trial and its proof, the initiative queue). NAMESPACE imports and
 // guarded accessors on purpose: a named import of an export an installed copy of one of them does not carry is a
 // link-time error that takes the whole bundle down, while a namespace read is just `undefined` — the action then answers
@@ -61,7 +67,8 @@ const pluginDir = dirname(fileURLToPath(import.meta.url))
 // le modèle de session — c'est là que le compactage meurt.)
 import { poserPresetLegacy, replierSurStandard, activerSubagentClaude } from './preset-legacy.mjs'
 import { poserEconomieContexte } from './economie-contexte.mjs'
-import { mountToolProfiles } from './tool-profiles.mjs'
+import { mountShellCompressor } from './shell-compress.mjs'
+import { mountToolProfiles, mountWorkerExecutionGuard, readHarnessWorkerPolicy } from './tool-profiles.mjs'
 import { setSwitch as toolsSetSwitch, switchOf as toolsSwitchOf } from './tools-patch.mjs'
 import { poserForceProposition } from './agents-proposition.mjs'
 import { translateBatch as i18nTranslateBatch, modelList as i18nModelList } from './i18n-translate.mjs'
@@ -2910,12 +2917,20 @@ function boot(ctx) {
           if (r.pose === true) console.log('[kybers] legacy preset registered: ' + r.id + ' (a plain copy of standard)')
           else if (r.deja === true) console.log('[kybers] legacy preset already in place')
           else console.log('[kybers] legacy preset not registered — ' + r.raison)
-          // Migration du patch moteur subagent-claude-code (04/10) : la rangée
-          // `subagent_claude_code` est activée dans TOUTES les définitions du
-          // registre — plus aucune écriture dans les presets du moteur.
+          // Legacy Claude Code sub-agent boot switch (migrated from engine patch, 04/10):
+          // yields automatically when an explicit user policy exists in cordis.patch.yml or harness.json.
           try {
-            const sa = await activerSubagentClaude({ agentPresets: service })
+            let patchText = null
+            let harnessPolicy = null
+            try {
+              const home = dshHomeSync()
+              const prof = (typeof process.env.DSH_PROFILE === 'string' && /^[A-Za-z0-9_-]+$/.test(process.env.DSH_PROFILE)) ? process.env.DSH_PROFILE : 'web'
+              try { patchText = readFileSync(nodePathJoin(home, 'profiles', prof, 'cordis.patch.yml'), 'utf8') } catch (e) { patchText = null }
+              try { harnessPolicy = JSON.parse(readFileSync(nodePathJoin(home, 'kybernos-workers', 'harness.json'), 'utf8')) } catch (e) { harnessPolicy = null }
+            } catch (e) { /* unreadable files: fall back to no explicit policy */ }
+            const sa = await activerSubagentClaude({ agentPresets: service }, { patchText, harnessPolicy })
             if (sa.bascules > 0) console.log('[kybers] claude-code subagent turned on in ' + sa.bascules + ' row(s) (' + sa.presets.join(', ') + ')')
+            else if (Array.isArray(sa.skipped) && sa.skipped.length > 0) console.log('[kybers] claude-code subagent left under explicit user policy (' + sa.skipped.join(', ') + ')')
             else if (sa.raison !== undefined) console.log('[kybers] subagent claude-code — ' + sa.raison)
             else console.log('[kybers] claude-code subagent already on everywhere')
           } catch (e) { console.log('[kybers] claude-code subagent: failed — ' + errText(e)) }
@@ -2930,8 +2945,11 @@ function boot(ctx) {
           try {
             const economie = await poserEconomieContexte({ agentPresets: service })
             if (economie.rows > 0) console.log('[kybers] compaction economy: ratio ' + economie.ratio + ' on ' + economie.rows + ' row(s) (' + economie.presets.join(', ') + ')')
-            else if (economie.raison !== undefined) console.log('[kybers] compaction economy — ' + economie.raison)
-            else console.log('[kybers] compaction economy already in place')
+            // The model-free half: a preset without a tool-result pruner sends its whole history to the summarizer, and
+            // that call is the one that dies on a quota or a payload limit. Mounted before any session reads it.
+            if (economie.pruneurs > 0) console.log('[kybers] compaction pruner: mounted in ' + economie.pruneurs + ' preset(s) (' + economie.presetsPruneur.join(', ') + ')')
+            if (economie.raison !== undefined) console.log('[kybers] compaction economy — ' + economie.raison)
+            else if (economie.rows === 0 && economie.pruneurs === 0) console.log('[kybers] compaction economy already in place')
           } catch (e) { console.log('[kybers] compaction economy: failed — ' + errText(e)) }
         })
         .catch((e) => console.log('[kybers] legacy preset: failed — ' + errText(e)))
@@ -2940,6 +2958,14 @@ function boot(ctx) {
     else {
       try { ctx.inject(['agentPresets'], (c) => poserPresetCompactage(c.agentPresets)) } catch (e) { /* service absent : rien à poser */ }
     }
+    // Preventive shell output compression (tools/post-execute): trims noisy terminal dumps
+    // before they enter session history while preserving error lines and tail summaries.
+    try {
+      const mountComp = () => mountShellCompressor(ctx)
+      if (typeof ctx.effect === 'function') ctx.effect(mountComp, 'kybernos-plugin: shell output compressor')
+      else mountComp()
+      console.log('[kybers] shell output compressor: active (KYBERNOS_SHELL_COMPRESS=0 to disable)')
+    } catch (e) { console.log('[kybers] shell output compressor: failed — ' + errText(e)) }
     // Le plafond de retries : même moule que le preset de compactage — la pose
     // est un confort, le boot n'en dépend jamais, et `settings` peut se
     // résoudre après nous (inject tardif).
@@ -3319,32 +3345,67 @@ function boot(ctx) {
     // Kept in memory: a run does not outlive a restart. Capped so a long-lived host cannot grow it without end.
     const kbAskSessions = new Set()
     const kbRememberAskSession = (id) => { kbAskSessions.add(id); if (kbAskSessions.size > 500) kbAskSessions.delete(kbAskSessions.values().next().value) }
-    const kbIsAskAgent = (agent) => {
-      if (agent === undefined || agent === null) return false
+    // The ask-first session an agent belongs to (itself, or the session it was started under): its id, or null.
+    const kbAskRoot = (agent) => {
+      if (agent === undefined || agent === null) return null
       const store = ctx.get('sessions')
       let id = agent.id
       for (let i = 0; i < 8 && typeof id === 'string'; i += 1) {
-        if (kbAskSessions.has(id) === true) return true
+        if (kbAskSessions.has(id) === true) return id
         const session = store !== undefined && store !== null && typeof store.get === 'function' ? store.get(id) : undefined
         id = session !== undefined && session !== null && session.header !== undefined && session.header !== null ? session.header.parentSession : undefined
       }
-      return false
+      return null
     }
+    // The sessions the local door (kybernos-door) started for an outside assistant on this computer: the card says whose task it is, not « automation ».
+    const kbDoorSessions = new Set()
     try {
       if (typeof ctx.on === 'function') {
         ctx.on('tools/pre-execute', async (exec, next) => {
           let gate = null
-          try { gate = kbAskSessions.size > 0 && exec !== null && typeof exec === 'object' && kbIsAskAgent(exec.agent) === true ? kbMcpGate(exec.name, exec.arguments) : null } catch (e) { gate = null }
+          let door = false
+          try {
+            if (kbAskSessions.size > 0 && exec !== null && typeof exec === 'object') {
+              const root = kbAskRoot(exec.agent)
+              if (root !== null) { gate = kbMcpGate(exec.name, exec.arguments); door = kbDoorSessions.has(root) }
+            }
+          } catch (e) { gate = null }
           if (gate === null) return next()
+          const who = door === true ? 'Task from an outside assistant' : 'Automation run'
           return {
             kind: 'ask',
-            reason: 'Automation run: ' + gate.what + ' may change something outside this session (send, write, delete, pay). Allow it?',
-            displayReason: kbPair('Automatisation : ' + gate.what + ' peut modifier quelque chose en dehors de cette session (envoyer, écrire, supprimer, payer). Autoriser ?',
-              'Automation run: ' + gate.what + ' may change something outside this session (send, write, delete, pay). Allow it?'),
+            reason: who + ': ' + gate.what + ' may change something outside this session (send, write, delete, pay). Allow it?',
+            displayReason: kbPair((door === true ? 'Tâche d’un assistant extérieur' : 'Automatisation') + ' : ' + gate.what + ' peut modifier quelque chose en dehors de cette session (envoyer, écrire, supprimer, payer). Autoriser ?',
+              who + ': ' + gate.what + ' may change something outside this session (send, write, delete, pay). Allow it?'),
           }
         })
       }
     } catch (e) { console.error('[kybers] automations: MCP approval gate not installed (' + String((e && e.message) || e) + ')') }
+    // « Ask first » for a session another plugin starts on behalf of an outside assistant (kybernos-door): the same two things an automation set to `ask` gets, the asking preset for the engine's
+    // own tools and the by-name gate above for MCP tools. The profile's default permission may be one that never asks (`danger-full-access` on this machine), so a task that came in through the
+    // door must not be left on it: `begin` answers `{ ok: false, error }` when it cannot apply the preset, and the caller then does not start the task.
+    try {
+      globalThis[Symbol.for('kybernos.askSessions')] = Object.freeze({
+        version: 1,
+        /** Puts the session under « ask first »; `{ ok: true, preset }` or `{ ok: false, error }` with a code. `options.door` words the approval card as a task of an outside assistant. */
+        begin: (sessionId, options) => {
+          try {
+            if (typeof sessionId !== 'string' || sessionId === '') return { ok: false, error: 'bad_session' }
+            const presetsSvc = ctx.get('permissionPresets')
+            const sessionsSvc = ctx.get('sessions')
+            if (presetsSvc === undefined || presetsSvc === null || typeof presetsSvc.set !== 'function' || sessionsSvc === undefined || sessionsSvc === null || typeof sessionsSvc.get !== 'function') return { ok: false, error: 'permission_service_unavailable' }
+            const askPreset = kbPickAskPreset(presetsSvc)
+            if (askPreset === null) return { ok: false, error: 'no_asking_preset' }
+            const liveSession = sessionsSvc.get(sessionId)
+            if (liveSession === undefined || liveSession === null) return { ok: false, error: 'session_not_found' }
+            presetsSvc.set(liveSession, askPreset)
+            kbRememberAskSession(sessionId)
+            if (options !== null && typeof options === 'object' && options.door === true) { kbDoorSessions.add(sessionId); if (kbDoorSessions.size > 500) kbDoorSessions.delete(kbDoorSessions.values().next().value) }
+            return { ok: true, preset: askPreset }
+          } catch (e) { return { ok: false, error: 'failed' } }
+        },
+      })
+    } catch (e) { console.error('[kybers] ask-first seam not published (' + String((e && e.message) || e) + ')') }
     // ── Machine load and the cap on automation runs (rules: automation-load.mjs) ──────────────────────────────────────────────
     // The tick asks how loaded the machine is and how many automation runs are going; only that many due runs start. The runs going
     // are the sessions this host created for a task (a webhook and "Run now" are counted, not capped), followed through the engine's
@@ -3586,16 +3647,26 @@ function boot(ctx) {
       })
     }
     // How a watched run was cut short (`time` = the time box, `person` = their message came first, `stopped` = the Stop button) is kept on the run's line in the history, so the
-    // page can say it. A run that ended by itself leaves nothing. The newest line of that session is the run: a home chat holds one line per run.
-    const kbNoteRunStop = async (taskId, sessionId, why) => {
+    // page can say it. A run that ended by itself leaves nothing. A home chat holds one line per run: the line is the one of that session nearest the time the run's
+    // request was made (its id ends with that time), else the newest of that session.
+    const kbNoteRunStop = async (taskId, sessionId, why, requestId) => {
       if (why !== 'time' && why !== 'person' && why !== 'stopped') return
+      const tail = typeof requestId === 'string' ? requestId.slice(requestId.lastIndexOf('-') + 1) : ''
+      const firedAt = /^[0-9a-z]+$/.test(tail) ? parseInt(tail, 36) : NaN
       await kbTasksMutate(async (tasks) => {
         for (const t of tasks) {
           if (t === null || typeof t !== 'object' || t.id !== taskId || Array.isArray(t.history) !== true) continue
+          let best = -1
+          let gap = Infinity
           for (let i = t.history.length - 1; i >= 0; i -= 1) {
             const h = t.history[i]
-            if (h !== null && typeof h === 'object' && h.sessionId === sessionId) { h.stop = why; break }
+            if (h === null || typeof h !== 'object' || h.sessionId !== sessionId) continue
+            if (Number.isFinite(firedAt) !== true) { best = i; break }
+            const d = Math.abs(Date.parse(h.at) - firedAt)
+            if (Number.isFinite(d) && d < gap) { gap = d; best = i }
+            if (best < 0) best = i
           }
+          if (best >= 0) t.history[best].stop = why
         }
       }).catch(() => null)
     }
@@ -3731,7 +3802,7 @@ function boot(ctx) {
       const boxMin = Number.isInteger(task.maxMinutes) === true && task.maxMinutes > 0 ? task.maxMinutes : 0
       if (trialRun !== true && (boxMin > 0 || task.onPersonWrites === 'stop')) {
         kbRunGuard.begin({ sessionId, taskId: String(task.id), requestId, maxMinutes: boxMin, stopOnPerson: task.onPersonWrites === 'stop' })
-          .then((why) => kbNoteRunStop(String(task.id), sessionId, why)).catch(() => null)
+          .then((why) => kbNoteRunStop(String(task.id), sessionId, why, requestId)).catch(() => null)
       }
       return { sessionId }
     }
@@ -4123,12 +4194,26 @@ function boot(ctx) {
         const id = str(body.id)
         if (id === null) return { ok: false, error: 'id required' }
         let removed = false
+        let tombstone = null
         await kbTasksMutate(async (tasks) => {
           for (let i = 0; i < tasks.length; i += 1) {
             const t = tasks[i]
-            if (t !== null && typeof t === 'object' && t.id === id) { tasks.splice(i, 1); removed = true; break }
+            if (t !== null && typeof t === 'object' && t.id === id) {
+              // A core automation the person deletes never comes back: the ledger says so BEFORE the task goes, and a
+              // ledger that cannot say so refuses the deletion (the next start would make it again).
+              const core = autoCoreOf(t)
+              if (core !== null) {
+                try {
+                  const lg = await kbCoreLedgerRead()
+                  if (lg.ok !== true) throw new Error(AUTO_CORE_LEDGER_FILE + ' unreadable')
+                  await kbCoreLedgerWrite(autoCoreLedgerWith(lg.ledger, core, 'deletedAt', new Date().toISOString()))
+                } catch (e) { tombstone = 'the deletion of a core automation could not be recorded: ' + errText(e); break }
+              }
+              tasks.splice(i, 1); removed = true; break
+            }
           }
         })
+        if (tombstone !== null) return { ok: false, error: tombstone }
         if (removed === true) {
           // The gate record goes with its automation (the store stays bounded by the number of automations), and a trial
           // guard still held for it is released: there is nothing left to report that trial to.
@@ -4213,8 +4298,8 @@ function boot(ctx) {
         if (going.length === 0) return { ok: false, error: 'not running' }
         let stopped = 0
         for (const sid of going) {
-          const r = await kbRunGuard.stop(sid)
-          if (r.ok === true) { stopped += 1; await kbNoteRunStop(id, sid, 'stopped') }
+          const r = await kbRunGuard.stop(sid, id)
+          if (r.ok === true) { stopped += 1; await kbNoteRunStop(id, sid, 'stopped', r.requestId) }
         }
         return stopped > 0 ? { ok: true, stopped } : { ok: false, error: 'could not stop' }
       }
@@ -4644,9 +4729,66 @@ function boot(ctx) {
     // Minuterie du tick : 30 s. setTimeout suffit (le host tourne en continu
     // tant que DSH vit) ; rattrapage naturel au redémarrage : nextRun échu est
     // déclenché dès le premier tick.
+    // Core automations (automation-core.mjs): made once, the first time the host starts with a readable store, and never
+    // again once the ledger next to tasks.json says it was made or deleted. Every read and write of that ledger happens
+    // inside a tasks.json mutation, so it is serialized with the store and shares its lock: two starts never make two.
+    const kbCoreLedgerFileOf = async () => joinPath(dirname(await kbTasksFileOf()), AUTO_CORE_LEDGER_FILE)
+    const kbCoreLedgerRead = async () => {
+      let text = null
+      try { text = readFileSync(await kbCoreLedgerFileOf(), 'utf8') } catch (e) {
+        if (e === null || typeof e !== 'object' || e.code !== 'ENOENT') return { ok: false }
+      }
+      return autoCoreLedgerParse(text)
+    }
+    const kbCoreLedgerWrite = async (ledger) => {
+      const p = await kbCoreLedgerFileOf()
+      try { mkdirSync(dirname(p), { recursive: true }) } catch (e) { /* the write will say */ }
+      const temp = p + '.tmp-' + String(process.pid) + '-' + Date.now().toString(36)
+      try {
+        writeFileSync(temp, JSON.stringify(ledger, null, 2), { encoding: 'utf8', mode: 0o600 })
+        renameSync(temp, p)
+      } catch (e) {
+        try { unlinkSync(temp) } catch (e2) { /* nothing to clean */ }
+        throw e
+      }
+    }
+    const kbCoreEnsure = async () => {
+      const made = []
+      for (const core of AUTO_CORE_IDS) {
+        let mark = false
+        await kbTasksMutate(async (tasks) => {
+          const lg = await kbCoreLedgerRead()
+          if (lg.ok !== true) { try { console.error('[kybers] core automation ' + core + ': ' + AUTO_CORE_LEDGER_FILE + ' unreadable, nothing made') } catch (e) { /* console */ } return }
+          const plan = autoCorePlan(tasks, lg.ledger, core, process.platform)
+          if (plan === 'exists') { mark = lg.ledger[core] === undefined || typeof lg.ledger[core].seededAt !== 'string'; return }
+          if (plan !== 'create') return
+          const clean = kbSanitizeTaskInput(autoCoreTaskInput(core))
+          if (clean.ok !== true) return
+          const now = new Date().toISOString()
+          const task = Object.assign({ id: kbTaskId(), createdAt: now, updatedAt: now, history: [], lastRun: null }, clean.task, { core, origin: { by: 'kaby', recipe: core, at: now } })
+          const nx = kbComputeNextRun(task, Date.now())
+          if (kbNeverRuns(task, nx) === true) return
+          task.nextRun = nx === null ? null : new Date(nx).toISOString()
+          tasks.push(task)
+          made.push(core)
+          mark = true
+        })
+        // tasks.json holds the task now: only then the ledger says it was made (a crash in between makes it again, never loses a deletion).
+        if (mark === true) {
+          await kbTasksMutate(async () => {
+            const lg = await kbCoreLedgerRead()
+            if (lg.ok === true) await kbCoreLedgerWrite(autoCoreLedgerWith(lg.ledger, core, 'seededAt', new Date().toISOString()))
+          })
+        }
+      }
+      return made
+    }
     let kbTasksTimer = null
     const kbTasksStart = () => {
       if (kbTasksTimer !== null) return
+      kbCoreEnsure().then((made) => {
+        if (made.length > 0) { try { console.log('[kybers] core automation made: ' + made.join(', ')) } catch (e) { /* console */ } }
+      }).catch((e) => { try { console.error('[kybers] core automations not checked: ' + errText(e)) } catch (e2) { /* console */ } })
       const loop = () => {
         kbTasksTimer = kbUnref(setTimeout(() => {
           kbTasksTick().then((r) => {
@@ -4687,6 +4829,9 @@ function boot(ctx) {
     try { mountAutomationTools(ctx, Object.assign({ tasks: kbTasksHandle, ledger: { add: async (kind, raw) => (await kbSugg()).add(kind, raw) } }, kbInitiativeDeps), (m) => { try { console.error('[kybernos] ' + m) } catch (e) { /* console */ } }) } catch (e) { /* never stop DSH from starting */ }
     // DSH's own `schedule_create` is refused with the way to automation_remind (before any approval card), unless the person turned DSH's native tasks back on.
     try { mountNativeReminderDenial(ctx, async () => (await kbAutoSettingsRead()).showNativeTasks === true, (m) => { try { console.error('[kybernos] ' + m) } catch (e) { /* console */ } }) } catch (e) { /* never stop DSH from starting */ }
+    // A reminder is asked before it is stored (the engine's own card, in plain words with the day and the time). Not for a run of an automation (the automation was approved as a whole) or a cloud
+    // computer's turn (nobody sees an engine card there: the cloud bundle's gates ask). The phone's Light agent chat answers first with its own card (its scope listens with `prepend`).
+    try { mountReminderAsk(ctx, { skip: (exec) => kbRunDepth(exec.agent) > 0 || kbComputerGateOn() }, (m) => { try { console.error('[kybernos] ' + m) } catch (e) { /* console */ } }) } catch (e) { /* never stop DSH from starting */ }
 
     // ── lire un namespace de réglages, 0.1.6 ET 0.1.7 ────────────────────────
     // 0.1.6 : `settings.get(ns)` rendait le document du namespace.
@@ -5098,6 +5243,40 @@ function boot(ctx) {
       if (fromLog !== null) return fromLog
       return fromCache
     }
+    // The sub-agents of a chat as ONE run (journal-subagents.mjs). A sub-agent is a session of its own whose header names the chat as its parent; the chat's
+    // own log only says « started subagent <name> », so before this the models, tokens and cost of a team of sub-agents were missing from the Journal.
+    // `knownIds` are the children a workflow run already counted. Never throws: a log that cannot be read leaves that sub-agent out.
+    const subagentRunOf = async (sessionId, events, knownIds, notes) => {
+      try {
+        const home = await dshHome()
+        const dsh = home !== null && home !== undefined && home.length > 0 ? home : (typeof process !== 'undefined' && process.env !== undefined && typeof process.env.HOME === 'string' && process.env.HOME.length > 0 ? joinPath(process.env.HOME, '.dsh') : null)
+        if (dsh === null) return null
+        let since = null
+        for (let i = 0; i < events.length; i += 1) {
+          const t = events[i] !== null && typeof events[i] === 'object' && typeof events[i].time === 'number' ? events[i].time : null
+          if (t !== null) { since = t; break }
+        }
+        const kids = findSubagentChildren(joinPath(dsh, 'sessions'), sessionId, { since: since, exclude: knownIds })
+        if (kids.length === 0) return null
+        try { await refreshPrices() } catch (e) { /* tarifs indisponibles: coûts laissés nuls */ }
+        const rows = []
+        for (let i = 0; i < kids.length; i += 1) {
+          try {
+            const text = decodeZstdFrames(readFileSync(kids[i].file))
+            if (text === null) continue
+            const evs = eventsFromLogText(text)
+            const fact = routeFactFromEvents(evs)
+            if (fact !== null) fact.costEur = costEurOfFact(fact)
+            rows.push({ id: kids[i].id, depth: kids[i].depth, story: childStory(evs), fact: fact })
+          } catch (e) { /* journal illisible: ce sous-agent est laissé de côté */ }
+        }
+        if (rows.length < kids.length && Array.isArray(notes) === true) notes.push('sub-agents: ' + rows.length + '/' + kids.length + ' readable')
+        return subagentRun(rows, Date.now())
+      } catch (e) {
+        if (Array.isArray(notes) === true) notes.push('sub-agents: ' + errText(e))
+        return null
+      }
+    }
     // ── GET /kybernos/runs: derived runs of one session (never invents) ─────
     const readRuns = async (args) => {
       const query = args !== null && args !== undefined && typeof args === 'object' ? args : {}
@@ -5187,6 +5366,8 @@ function boot(ctx) {
       try { runs = deriveRuns(events, snapshotsById) } catch (e) { out.notes.push('deriveRuns: ' + errText(e)) }
       if (Array.isArray(runs) === false) runs = []
       if (runs.length > limit) runs = runs.slice(runs.length - limit)
+      const subs = await subagentRunOf(sessionId, events, needed, out.notes)
+      if (subs !== null) runs.push(subs)
       out.pricing = {
         source: 'https://models.dev/api.json',
         fetchedAt: priceFetchedAt === null ? null : new Date(priceFetchedAt).toISOString(),
@@ -5277,7 +5458,16 @@ function boot(ctx) {
       out.seal = sealKey === null ? null : { alg: 'ed25519', keyId: sealKey.keyId, publicKey: sealKey.publicKey }
       // The page that is shared asks for what a reader needs to check the seals alone; the Journal itself does not.
       if (query.evidence === true) { try { out.evidence = sealEvidence(events, decisions, sessionId, sealKey) } catch (e) { out.notes.push('evidence: ' + errText(e)) } }
-      try { out.story = deriveStory(events, { sessionId: sessionId, runs: runs, costOf: costOf, decisions: decisions, seals: seals }) } catch (e) {
+      // Optional metadata-only RunBinding records from kybernos-workers (degrades silently if absent).
+      let workerRuns = []
+      try {
+        const runsFile = nodePathJoin(dshHomeSync(), 'kybernos-workers', 'runs.json')
+        const rawRuns = JSON.parse(readFileSync(runsFile, 'utf8'))
+        if (rawRuns && Array.isArray(rawRuns.runs)) {
+          workerRuns = rawRuns.runs.filter((r) => r && r.sessionId === sessionId)
+        }
+      } catch (e) { /* kybernos-workers optional */ }
+      try { out.story = deriveStory(events, { sessionId: sessionId, runs: runs, workerRuns: workerRuns, costOf: costOf, decisions: decisions, seals: seals }) } catch (e) {
         out.ok = false
         out.notes.push('deriveStory: ' + errText(e))
       }
@@ -5563,7 +5753,7 @@ function boot(ctx) {
           if (existsSync(joinPath(joinPath(roots[i].path, kyberId), 'kyber.yml')) === true) { rootPath = roots[i].path; resolvedRootId = roots[i].id; break }
         }
       }
-      if (rootPath === null) return { ok: false, error: 'Agent Team not found in the known roots' }
+      if (rootPath === null) return { ok: false, error: 'AI Agent Team not found in the known roots' }
       const dir = joinPath(rootPath, kyberId)
       if (existsSync(joinPath(dir, 'kyber.yml')) === false) return { ok: false, error: 'kyber.yml missing: ' + dir }
       const to = Date.now()
@@ -5572,7 +5762,7 @@ function boot(ctx) {
       // 1. ledger (une ligne = une exécution de rôle)
       let ledgerText = null
       try { ledgerText = readFileSync(joinPath(joinPath(dir, 'memory'), 'ledger.jsonl'), 'utf8') } catch (e) { ledgerText = null }
-      if (ledgerText === null) notes.push('no ledger for this Agent Team (memory/ledger.jsonl is missing): “runs” then comes only from the workflows traced in the journals')
+      if (ledgerText === null) notes.push('no ledger for this AI Agent Team (memory/ledger.jsonl is missing): “runs” then comes only from the workflows traced in the journals')
       const ledger = kbInsightLedger(ledgerText, from, to)
       if (ledger.unreadable > 0) notes.push(ledger.unreadable + ' unreadable ledger line(s), ignored')
       if (ledger.undated > 0) notes.push(ledger.undated + ' ledger line(s) without a valid date, left out of the period')
@@ -5694,7 +5884,7 @@ function boot(ctx) {
         runNames: roll.runNames,
         top: { skills: roll.skills, connectors: roll.connectors, tools: roll.tools },
         methods: {
-          runs: ledgerRuns > 0 ? 'the Agent Team\'s ledger: one line = one role execution' : 'workflow runs with an agent tagged ' + kyberId + '-<role>',
+          runs: ledgerRuns > 0 ? 'the AI Agent Team\'s ledger: one line = one role execution' : 'workflow runs with an agent tagged ' + kyberId + '-<role>',
           uniqueUsers: 'distinct DSH sessions that either carried a run tagged “' + kyberId + '-<role>”, or turned this team on during the period (registry ~/.dsh/kybers/.active, stamped at the last activation; local install: one session = one person at the keyboard)',
           versions: 'current version + kyber.yml.bak-* backups written by the host',
           engagement: 'journal messages, inside the [run-start, run-end] window of the attributed runs; the Sessions card counts the sessions that turned the team on or carried a run',
@@ -5721,7 +5911,7 @@ function boot(ctx) {
         const rootId = str(req.rootId)
         const kyberId = str(req.kyberId)
         if (rootId === null || kyberId === null) return { ok: false, error: 'rootId and kyberId required' }
-        if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid Agent Team id' }
+        if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid AI Agent Team id' }
         const roots = await rootsFor(str(req.sessionId))
         let rootPath = null
         for (let i = 0; i < roots.length; i += 1) if (roots[i].id === rootId) rootPath = roots[i].path
@@ -6700,51 +6890,8 @@ function boot(ctx) {
       if (unreadable > 0) notes.push(unreadable + (unreadable === 1 ? ' unreadable journal ignored' : ' unreadable journals ignored'))
       return { ok: true, query: q, sessions: sessions, total: sessions.length, truncated: sessions.length >= limit, notes: notes }
     }
-    // ── GET /kybernos/team-cap: plafond reel de membres (reglage, pas constante) ──
-    // Le plafond est un reglage du service agentTeams (config.maxMembers, expose aussi par
-    // roster.maxMembers), releve a 16 par ~/.dsh/profiles/web/cordis.patch.yml. Lecture
-    // DEFENSIVE: service absent, config remplacee ou valeur non numerique -> null. On
-    // n'invente JAMAIS de plafond: l'UI ne doit alors afficher aucun denominateur.
-    const capFromValue = (value) => {
-      if (typeof value === 'number' && Number.isFinite(value) === true && value >= 1) return Math.floor(value)
-      if (typeof value === 'string' && /^[0-9]+$/.test(value) === true) {
-        const n = Number(value)
-        if (Number.isFinite(n) === true && n >= 1) return Math.floor(n)
-      }
-      return null
-    }
-    const capFromService = (svc) => {
-      if (svc === null || svc === undefined || typeof svc !== 'object') return null
-      const roster = svc.roster !== null && svc.roster !== undefined && typeof svc.roster === 'object' ? svc.roster : null
-      const config = svc.config !== null && svc.config !== undefined && typeof svc.config === 'object' ? svc.config : null
-      const rosterConfig = roster !== null && roster.config !== null && roster.config !== undefined && typeof roster.config === 'object' ? roster.config : null
-      const candidates = [
-        roster === null ? null : roster.maxMembers,
-        config === null ? null : config.maxMembers,
-        svc.maxMembers,
-        rosterConfig === null ? null : rosterConfig.maxMembers,
-      ]
-      for (let i = 0; i < candidates.length; i += 1) {
-        const cap = capFromValue(candidates[i])
-        if (cap !== null) return cap
-      }
-      return null
-    }
-    const readTeamCap = () => {
-      try {
-        const live = ctx.get('agentTeams')
-        const cap = capFromService(live)
-        if (cap !== null) return cap
-      } catch (e) { /* service injete indisponible: on tente les replis */ }
-      try {
-        const bound = capFromService(teamsSvc)
-        if (bound !== null) return bound
-      } catch (e) { /* binding de boot inutilisable: dernier repli */ }
-      try {
-        // Repli: certaines compositions enregistrent le service sous l'id du plugin.
-        return capFromService(ctx.get('agent-team'))
-      } catch (e) { return null }
-    }
+    // ── GET /kybernos/team-cap: the real member cap (a setting, not a constant) — read by team-cap.mjs, on either engine ──
+    const readTeamCap = () => readTeamCapFrom({ get: (name) => ctx.get(name), bound: teamsSvc })
     // ── team resolution: lead agent, members, children ──────────────────────
     const resolveLeadAgent = async (sessionId) => {
       if (agentsSvc === undefined || agentsSvc === null) return null
@@ -7235,13 +7382,13 @@ function boot(ctx) {
           }
         } catch (e) { warnings.push('agentPresets.list: ' + errText(e)) }
       }
-      if (home === null) warnings.push('DSH home not found: the Agent Teams installed outside the repository are not listed')
+      if (home === null) warnings.push('DSH home not found: the AI Agent Teams installed outside the repository are not listed')
 
       const roots = []
       // Libelles affiches par la galerie (le client affiche aussi le chemin) :
       // en anglais depuis que la page l'est, et sans l'ambiguite « workspace »
       // pour la racine installee.
-      if (home !== null) roots.push({ id: 'installed', label: 'Installed · DSH home', path: joinPath(home, 'kybers') })
+      if (home !== null) roots.push({ id: 'installed', label: 'Installed · your own folder', path: joinPath(home, 'kybers') })
       if (workspaceRoot !== null) roots.push({ id: 'workspace', label: 'Repository · workspace', path: joinPath(workspaceRoot, 'kybers') })
 
       const out = {
@@ -7955,8 +8102,8 @@ function boot(ctx) {
       for (const r of spec.roles) {
         lines.push('  - id: ' + yamlScalar(r.id))
         if (typeof r.kind === 'string' && r.kind.length > 0) lines.push('    kind: ' + yamlScalar(r.kind))
-        lines.push('    provider: ' + yamlScalar(r.provider))
-        lines.push('    model: ' + yamlScalar(r.model))
+        if (typeof r.provider === 'string' && r.provider.length > 0) lines.push('    provider: ' + yamlScalar(r.provider))
+        if (typeof r.model === 'string' && r.model.length > 0) lines.push('    model: ' + yamlScalar(r.model))
         const prompt = typeof r.prompt === 'string' ? r.prompt.replace(/\r/g, '').trim() : ''
         if (prompt.length > 0) {
           if (prompt.indexOf('\n') >= 0) {
@@ -8113,6 +8260,22 @@ function boot(ctx) {
     // CONSERVANT le dossier sur disque et les journaux de sessions — aucun
     // fichier n'est détruit. On purge aussi l'entrée UI (nom/icône/couleur/
     // desc/skills) du magasin `.kyber-workspaces.json`.
+    // Removing an Agent Team the person installed in their own DSH home: the folder is MOVED to `~/.dsh/agent-teams-trash/<id>-<time>/` (kyber-trash.mjs), never deleted. The client names a root and an id, not a path.
+    const deleteKyber = async (args) => {
+      try {
+        const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
+        const roots = await rootsFor()
+        const installed = roots.find((r) => r.id === 'installed')
+        const plan = planTrash({ rootId: str(req.rootId), kyberId: str(req.kyberId), installedRoot: installed === undefined ? null : installed.path, now: new Date() })
+        return moveToTrash(plan, {
+          exists: (p) => existsSync(p),
+          mkdirp: (p) => { mkdirSync(p, { recursive: true }) },
+          rename: (a, b) => renameSync(a, b),
+          copyDir: (a, b) => { cpSync(a, b, { recursive: true }) },
+          removeDir: (p) => { rmSync(p, { recursive: true, force: true }) },
+        })
+      } catch (e) { return { ok: false, code: 'io', error: errText(e) } }
+    }
     const deleteWorkspace = async (args) => {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
@@ -9102,7 +9265,7 @@ function boot(ctx) {
         const rootId = str(req.rootId)
         const kyberId = str(req.kyberId)
         if (rootId === null || kyberId === null) return { ok: false, error: 'rootId and kyberId required' }
-        if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid Agent Team id' }
+        if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid AI Agent Team id' }
         const rootsUi = await rootsFor()
         let rootPath = null
         for (const r of rootsUi) { if (r.id === rootId) rootPath = r.path }
@@ -9292,20 +9455,10 @@ function boot(ctx) {
         const target = kyberTarget(rootsAll, { home: req.home === true })
         const targetRoot = target === null ? null : target.path
         if (targetRoot === null) return { ok: false, error: 'no kybers root available' }
-        const rolesRaw = Array.isArray(req.roles) === true ? req.roles : []
-        const roles = []
-        for (const r of rolesRaw) {
-          if (r === null || r === undefined || typeof r !== 'object') continue
-          const id = slugify(typeof r.id === 'string' && r.id.trim().length > 0 ? r.id : (typeof r.role === 'string' ? r.role : 'agent'))
-          roles.push({
-            id: id,
-            kind: typeof r.role === 'string' && r.role.trim().length > 0 ? r.role.trim().slice(0, 40) : undefined,
-            provider: typeof r.provider === 'string' && r.provider.trim().length > 0 ? r.provider.trim() : 'ollama-cloud',
-            model: typeof r.model === 'string' && r.model.trim().length > 0 ? r.model.trim() : 'glm-5.3',
-            prompt: typeof r.prompt === 'string' ? r.prompt.trim().slice(0, KB_CREATE_PROMPT_MAX) : undefined,
-          })
-        }
-        if (roles.length === 0) roles.push({ id: 'lead', kind: 'lead', provider: 'ollama-cloud', model: 'glm-5.3' })
+        // A role the request gives no model for takes the model the person chose (the engine's `agent-default-model`), not one built in here;
+        // without such a model the role is written undeclared (kyber-roles.mjs).
+        const catalogNow = readCatalog()
+        const roles = kyberRoles(req.roles, defaultRoute(catalogNow.default), slugify, KB_CREATE_PROMPT_MAX)
         const skills = Array.isArray(req.skills) === true
           ? req.skills.filter((s) => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim().slice(0, 80)).slice(0, 24)
           : []
@@ -9420,7 +9573,7 @@ function boot(ctx) {
         const rootId = str(req.rootId)
         const kyberId = str(req.kyberId)
         if (rootId === null || kyberId === null) return { ok: false, error: 'rootId and kyberId required' }
-        if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid Agent Team id' }
+        if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid AI Agent Team id' }
         const dataUrl = str(req.dataUrl)
         if (dataUrl === null || dataUrl.length < 32) return { ok: false, error: 'image required' }
         const m = /^data:([^;,]+);base64,([A-Za-z0-9+/=\s]+)$/.exec(dataUrl)
@@ -9535,7 +9688,7 @@ function boot(ctx) {
         const rootPath = await kbSampleRoot(req.rootId)
         if (rootPath === null) return { ok: false, error: 'unknown root' }
         const kyberId = str(req.kyberId)
-        if (kyberId === null || /^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid Agent Team id' }
+        if (kyberId === null || /^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid AI Agent Team id' }
         const name = String(str(req.name) !== null ? req.name : '').trim()
         if (name.length < 1 || name.length > 40) return { ok: false, error: 'voice name required (1 to 40 characters)' }
         if (req.consent !== true) return { ok: false, error: 'explicit consent required' }
@@ -9711,7 +9864,7 @@ function boot(ctx) {
       const rootId = str(req.rootId)
       const kyberId = str(req.kyberId)
       if (rootId === null || kyberId === null) return { ok: false, error: 'rootId and kyberId required' }
-      if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid Agent Team id' }
+      if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid AI Agent Team id' }
       const rootsUi = await rootsFor()
       let rootPath = null
       for (const r of rootsUi) { if (r.id === rootId) rootPath = r.path }
@@ -9759,7 +9912,7 @@ function boot(ctx) {
         mkdirSync(workDir, { recursive: true })
         if (recrop === true) {
           const rel = memo !== null ? str(memo.rel) : null
-          if (rel === null || rel.indexOf('.kyber-avatars/') !== 0 || rel.indexOf('..') >= 0) return { ok: false, error: 'no saved sheet for this Agent Team' }
+          if (rel === null || rel.indexOf('.kyber-avatars/') !== 0 || rel.indexOf('..') >= 0) return { ok: false, error: 'no saved sheet for this AI Agent Team' }
           const t = await fs.resolve(joinPath(rootPath, rel))
           const info = await fs.stat(t).catch(() => null)
           if (isFile(info) !== true) return { ok: false, error: 'saved sheet not found' }
@@ -11049,6 +11202,14 @@ function boot(ctx) {
         if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await createKyber(await readJsonBody(req)))
       } }), 'kybernos: route create')
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/kyber-delete', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // A write to the person's files: DSH's signed session too (the page sends it), not only a strict Origin.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
+        sendJson(res, 200, await deleteKyber(await readJsonBody(req)))
+      } }), 'kybernos: route kyber-delete')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/ui-save', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
@@ -12321,6 +12482,14 @@ function boot(ctx) {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         sendJson(res, 200, { ok: iconTags !== null, tags: iconTags === null ? {} : iconTags, concepts: iconConcepts })
       } }), 'kybernos: route icon-tags')
+      // The texts of the core's pages (client.js `kbDictLoad`): ./i18n/fr.json and ./i18n/en.json, asked once while the page boots. Public static strings, GET and HEAD
+      // only, no guard (the same as icon-tags above, and the page asks with no Origin). A file that cannot be read is left out of the answer, not turned into an error.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n', handler: (req, res) => {
+        if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        const a = i18nAnswer(pluginDir + '/i18n', queryOf(req).get('lang'), typeof req.headers['if-none-match'] === 'string' ? req.headers['if-none-match'] : null)
+        res.writeHead(a.status, a.headers)
+        res.end(req.method === 'HEAD' ? '' : a.body)
+      } }), 'kybernos: route i18n')
       // ── static libraries served as they are (no bundler, no node_modules) ──────────────────
       const serveVendor = (file, mime) => (req, res) => {
         // m6 : ces routes ne lisaient pas la methode — un PUT ou un DELETE
@@ -12766,17 +12935,23 @@ function boot(ctx) {
         if (texte.length < 4) return { ok: false, error: 'description too short' }
         if (texte.length > 4000) return { ok: false, error: 'description too long (max 4000 characters)' }
         if (typeof fetch !== 'function') return { ok: false, error: 'global fetch unavailable' }
-        const prof = kbVoiceProfile()
-        const cred = await kbVoiceKey(prof.ref)
-        if (cred.key === null) return { ok: false, error: cred.error, needsKey: true, ref: prof.ref }
-        const modele = (str(req.model) !== null && str(req.model).length > 0) ? str(req.model) : 'deepseek-v4.1-flash'
-        // deepseek-v4.1-flash raisonne AVANT de répondre : si max_tokens est
-        // épuisé par le raisonnement, `content` revient VIDE (mesuré ~1 fois
-        // sur 3 à 2048). On monte le plafond et on retente UNE fois.
+        // The model the person chose (or the one the request names), on its own provider: no model of ours is written here.
+        const pick = chatRoute(req, defaultRoute(readCatalog().default), kbModelsProviders())
+        if (pick.ok !== true) return pick
+        let cle = null
+        if (pick.ref !== '') {
+          const cred = await kbVoiceKey(pick.ref)
+          if (cred.key === null) return { ok: false, error: cred.error, needsKey: true, ref: pick.ref }
+          cle = cred.key
+        }
+        const modele = pick.model
+        // A reasoning model thinks BEFORE it answers: when max_tokens is used up by the
+        // reasoning, `content` comes back EMPTY (measured about 1 time in 3 at 2048). The
+        // ceiling is raised and ONE retry is made.
         const unEssai = async () => {
-          const res = await fetch(prof.baseUrl + '/chat/completions', {
+          const res = await fetch(pick.baseUrl + '/chat/completions', {
             method: 'POST',
-            headers: { 'content-type': 'application/json', authorization: 'Bearer ' + cred.key },
+            headers: cle === null ? { 'content-type': 'application/json' } : { 'content-type': 'application/json', authorization: 'Bearer ' + cle },
             body: JSON.stringify({ model: modele, temperature: 0.2, max_tokens: 4096, messages: [
               { role: 'system', content: kbYmlSystem() },
               { role: 'user', content: texte },
@@ -12803,7 +12978,7 @@ function boot(ctx) {
         const req = (args !== null && args !== undefined && typeof args === 'object') ? args : {}
         const kyberId = str(req.kyberId).trim()
         const yml = str(req.yml)
-        if (/^[a-z0-9][a-z0-9-]{1,62}$/.test(kyberId) === false) return { ok: false, error: 'invalid Agent Team id (lowercase letters, digits, dashes)' }
+        if (/^[a-z0-9][a-z0-9-]{1,62}$/.test(kyberId) === false) return { ok: false, error: 'invalid AI Agent Team id (lowercase letters, digits, dashes)' }
         if (yml.length === 0 || yml.length > 60000) return { ok: false, error: 'yml missing or too long' }
         if (yml.indexOf('topology:') !== 0) return { ok: false, error: 'yml refused: must start with topology:' }
         try {
@@ -13346,11 +13521,13 @@ function boot(ctx) {
         { id: 'browser-use', group: 'exp', label: 'Browser Use',
           registry: { id: 'browser-use', name: '@deepseek-ai/dsh-browser-use' },
           slot: 'browserUse', prefix: 'mcp__playwright-mcp__', toolCount: 24,
-          needs: 'Nothing at the system level — the browser is launched by the driver, in a temporary profile.',
+          needs: 'Dedicated agent browser profile (~/.dsh/kybernos/browser-profile) guarded by kybernos-guard.',
+          profileDir: nodePathJoin(dshHomeSync(), 'kybernos', 'browser-profile'),
           drivers: [
             { id: 'browser-use-playwright', name: '@deepseek-ai/dsh-experimental-browser-use-playwright-mcp', label: 'Playwright MCP', def: true,
-              config: { mode: 'launch', headless: false, executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' } },
-            { id: 'browser-use-devtools', name: '@deepseek-ai/dsh-experimental-browser-use-chrome-devtools-mcp', label: 'Chrome DevTools MCP' },
+              config: { mode: 'launch', headless: false, userDataDir: nodePathJoin(dshHomeSync(), 'kybernos', 'browser-profile'), executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' } },
+            { id: 'browser-use-devtools', name: '@deepseek-ai/dsh-experimental-browser-use-chrome-devtools-mcp', label: 'Chrome DevTools MCP',
+              config: { userDataDir: nodePathJoin(dshHomeSync(), 'kybernos', 'browser-profile') } },
             { id: 'browser-use-stagehand', name: '@deepseek-ai/dsh-experimental-browser-use-stagehand-native', label: 'Stagehand' } ] },
         { id: 'computer-use', group: 'exp', label: 'Computer Use',
           registry: { id: 'computer-use', name: '@deepseek-ai/dsh-computer-use' },
@@ -14400,8 +14577,8 @@ const KB_FEEDBACK_REASONS = {
   trop_de_demandes: 'Too many reports were sent in the last hour.',
   envoi_indisponible: 'This machine could not reach the Kybernos service.',
   reseau_indisponible: 'This machine could not reach the Kybernos service.',
-  non_connecte: 'This DSH is not connected to a Kybernos account: connect it from the account card in the sidebar.',
-  reconnexion_requise: 'The Kybernos session of this DSH expired or was revoked: reconnect it from the account card in the sidebar.',
+  non_connecte: 'This app is not connected to a Kybernos account: connect it from the account card in the sidebar.',
+  reconnexion_requise: 'The Kybernos session of this app expired or was revoked: reconnect it from the account card in the sidebar.',
   corps_trop_volumineux: 'The service found the report too large.',
 }
 
@@ -14665,7 +14842,9 @@ export function apply(ctx) {
     // whose profile cannot be applied keeps every tool. Rollback: delete this call
     // (or set KYBERNOS_TOOL_PROFILES=full) — nothing else depends on it.
     try {
-        const profils = mountToolProfiles(ctx)
+        const workerPolicyFor = (_agent, scopeInfo) => readHarnessWorkerPolicy(scopeInfo)
+        const profils = mountToolProfiles(ctx, { workerPolicyFor })
+        mountWorkerExecutionGuard(ctx, { workerPolicyFor })
         if (profils.mode === 'auto') console.log('[kybers] tool profiles: on (auto, full fallback)')
         else if (profils.mode === 'off') console.log('[kybers] tool profiles: off (KYBERNOS_TOOL_PROFILES)')
     } catch (kbProfilsError) {

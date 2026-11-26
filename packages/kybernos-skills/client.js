@@ -272,6 +272,7 @@ window.__ModuleLoader__.load({
       }
       const STR = {
         // ── skills learned from experience (docs/dev/learned-skills.md) ──
+        'tab.suggestions': { fr: 'Suggestions', en: 'Suggestions' },
         'ln.cap': { fr: '{n} suggérés par Kaby', en: '{n} suggested by Kaby' },
         'ln.cap.1': { fr: '1 suggéré par Kaby', en: '1 suggested by Kaby' },
         'ln.b.local': { fr: 'Local, aucun contenu envoyé', en: 'Local, nothing sent' },
@@ -492,7 +493,14 @@ window.__ModuleLoader__.load({
         'ls.audit.sure': { fr: 'Oui, arrêter et annuler', en: 'Yes, stop and undo' },
         'ls.audit.done': { fr: 'Arrêté. {n} changement(s) annulé(s), les versions précédentes sont revenues.', en: 'Stopped. {n} change(s) undone, the previous versions are back.' },
         'ls.saved': { fr: 'Enregistré.', en: 'Saved.' },
-        'ls.absent': { fr: 'Ces réglages ne sont pas disponibles : redémarre DSH pour charger la nouvelle version de Skills.', en: 'These settings are not available: restart DSH to load the new version of Skills.' },
+        'ls.absent': { fr: 'Ces réglages ne sont pas disponibles : redémarre Kybernos pour charger la nouvelle version de Skills.', en: 'These settings are not available: restart Kybernos to load the new version of Skills.' },
+        'ls.tab.settings': { fr: 'Réglages', en: 'Settings' },
+        'ls.tab.learned': { fr: 'Appris', en: 'Learned' },
+        'ls.learned.h': { fr: 'Compétences apprises', en: 'Learned skills' },
+        'ls.learned.sub': { fr: 'Les compétences créées ou améliorées à partir de ton travail et déjà actives dans ton profil.', en: 'Skills created or improved from your work and already active in your profile.' },
+        'ls.learned.empty': { fr: 'Aucune compétence apprise pour l’instant. Quand tu acceptes une suggestion de Kaby (ou qu’il en applique une selon tes réglages), elle apparaît ici.', en: 'No learned skills yet. When you accept a suggestion from Kaby (or it applies one under your settings), it appears here.' },
+        'ls.learned.uses': { fr: '{n}× utilisée', en: 'used {n}×' },
+        'ls.learned.open': { fr: 'Voir dans Skills', en: 'Open in Skills' },
         'ln.c.name': { fr: 'Nom valide', en: 'Valid name' },
         'ln.c.use_when': { fr: 'Une description « À utiliser quand… »', en: 'A “Use when…” description' },
         'ln.c.rules': { fr: 'Brouillons seulement, rien d’inventé, la vérification est à toi', en: 'Drafts only, nothing invented, verification is yours' },
@@ -552,13 +560,13 @@ window.__ModuleLoader__.load({
         'he.edited_since': { fr: 'Ce skill a été modifié depuis : il est à toi, supprime-le toi-même si tu n’en veux plus.', en: 'This skill was edited since: it is yours, delete it yourself if you no longer want it.' },
         'he.not_undoable': { fr: 'Ce skill existait avant les suggestions : il ne peut pas être repris ici.', en: 'This skill existed before suggestions: it cannot be taken back here.' },
         'err.unreadable': { fr: 'réponse illisible du serveur', en: 'unreadable server response' },
-        'err.noroute': { fr: 'indisponible (HTTP {s}) : relance DSH une fois', en: 'unavailable (HTTP {s}): restart DSH once' },
+        'err.noroute': { fr: 'indisponible (HTTP {s}) : relance Kybernos une fois', en: 'unavailable (HTTP {s}): restart Kybernos once' },
         'err.unexpected': { fr: 'réponse inattendue du serveur', en: 'unexpected server response' },
-        'err.unavail': { fr: 'indisponible : relance DSH une fois', en: 'unavailable: restart DSH once' },
+        'err.unavail': { fr: 'indisponible : relance Kybernos une fois', en: 'unavailable: restart Kybernos once' },
         'err.preview': { fr: 'Aperçu impossible.', en: 'Preview failed.' },
         'err.feat': { fr: 'mise en avant impossible', en: 'could not update Featured' },
         'err.index': { fr: 'index indisponible', en: 'index unavailable' },
-        'err.noanswer': { fr: 'le serveur ne répond pas : relance DSH une fois', en: 'the server does not answer: restart DSH once' },
+        'err.noanswer': { fr: 'le serveur ne répond pas : relance Kybernos une fois', en: 'the server does not answer: restart Kybernos once' },
         'err.audit': { fr: 'audit indisponible', en: 'audit unavailable' },
         'err.create': { fr: 'création impossible', en: 'creation failed' },
         'err.install': { fr: 'installation impossible', en: 'installation failed' },
@@ -586,11 +594,11 @@ window.__ModuleLoader__.load({
         'he.bad_id': { fr: 'Cette proposition n’est plus valide : recharge la liste.', en: 'That find is no longer valid: reload the list.' },
         'he.not_writable': { fr: 'Ce skill n\'est pas dans l\'un de tes dossiers de skills modifiables : il n\'est pas supprimé.', en: 'That skill is not in one of your writable skills folders: it is not deleted.' },
         'he.not_a_folder': { fr: 'Ce skill n\'est pas un dossier (un simple fichier .md) : cette action ne s\'applique pas.', en: 'That skill is not a folder (a single .md file): this action does not apply.' },
-        'he.is_link': { fr: 'Ce dossier est un lien : le registre de DSH ignore les liens, et rien n\'est touché.', en: 'That folder is a link: the DSH registry ignores links, and nothing was touched.' },
+        'he.is_link': { fr: 'Ce dossier est un lien : le registre de Kybernos ignore les liens, et rien n\'est touché.', en: 'That folder is a link: the Kybernos registry ignores links, and nothing was touched.' },
         'he.delete_failed': { fr: 'Le dossier n\'a pas pu être supprimé (droits ?).', en: 'The folder could not be deleted (permissions?).' },
         'he.no_copy_name': { fr: 'Il y a déjà trop de copies de ce skill : supprime-en une.', en: 'There are already too many copies of that skill: delete one.' },
         'he.opener_unavailable': { fr: 'Aucun programme pour l\'ouvrir sur cet ordinateur.', en: 'No program to open it with on this computer.' },
-        'he.not_local': { fr: 'DSH tourne sur une autre machine : rien ne s\'ouvre ici.', en: 'DSH runs on another machine: nothing opens here.' },
+        'he.not_local': { fr: 'Kybernos tourne sur une autre machine : rien ne s\'ouvre ici.', en: 'Kybernos runs on another machine: nothing opens here.' },
         'he.already_installed': { fr: 'Un skill de ce nom est déjà installé dans ce dossier.', en: 'A skill with this name is already installed in this folder.' },
         'he.repo_not_found': { fr: 'Dépôt introuvable : {source}.', en: 'Repository not found: {source}.' },
         'he.download_failed': { fr: 'Téléchargement impossible (HTTP {http}).', en: 'Download failed (HTTP {http}).' },
@@ -788,14 +796,14 @@ window.__ModuleLoader__.load({
         'set.h1': { fr: 'Compétences', en: 'Skills' },
         'set.lead': { fr: 'D’où viennent les skills de ce profil : la source de l’index (Discover) et les dossiers dans lesquels les installations sont écrites.', en: 'Where this profile’s skills come from: the index source (Discover) and the folders installs are written to.' },
         'set.srcH': { fr: 'Source de l’index', en: 'Index source' },
-        'set.srcMissing': { fr: 'Les sources des skills ne répondent pas : relance DSH une fois.', en: 'The skill sources do not answer: restart DSH once.' },
+        'set.srcMissing': { fr: 'Les sources des skills ne répondent pas : relance Kybernos une fois.', en: 'The skill sources do not answer: restart Kybernos once.' },
         'set.rootsH': { fr: 'Dossiers modifiables', en: 'Writable folders' },
         'set.rootsSub': { fr: 'La création et l’installation de skills s’écrivent uniquement dans ces dossiers.', en: 'Skill creation and installs are written only to these folders.' },
         'set.rootExists': { fr: 'présent', en: 'present' },
         'set.rootMissing': { fr: 'à créer', en: 'will be created' },
         'set.rootWrite': { fr: 'écriture', en: 'write' },
         'set.rootRead': { fr: 'lecture seule', en: 'read-only' },
-        'set.rootsMissing': { fr: 'Les dossiers de skills ne répondent pas : relance DSH une fois.', en: 'The skill folders do not answer: restart DSH once.' },
+        'set.rootsMissing': { fr: 'Les dossiers de skills ne répondent pas : relance Kybernos une fois.', en: 'The skill folders do not answer: restart Kybernos once.' },
         'set.countsH': { fr: 'Aperçu du profil', en: 'Profile at a glance' },
         'set.installed': { fr: 'skills installés', en: 'skills installed' },
         'set.active': { fr: 'actifs', en: 'active' },
@@ -807,7 +815,7 @@ window.__ModuleLoader__.load({
         'd.empty.page': { fr: 'Cette page est vide.', en: 'This page is empty.' },
         'btn.install': { fr: 'Installer', en: 'Install' },
         'det.unknownSrc': { fr: 'source inconnue', en: 'unknown source' },
-        'det.whatBody': { fr: 'Installer télécharge l\'archive du dépôt {source} depuis GitHub, y trouve le dossier du skill « {name} » (son frontmatter porte name et description), puis le COPIE dans ton dossier de skills ({dest}). Le skill y est actif au prochain tour de tes agents. Aucun lien symbolique : le registre de DSH ignore les liens, un skill lié serait installé sans jamais apparaître. Rien d\'autre n\'est écrit.', en: 'Installing downloads the archive of the {source} repository from GitHub, finds the “{name}” skill folder inside it (its frontmatter carries name and description), then COPIES it into your skills folder ({dest}). The skill is available to your agents on their next turn. No symlinks: the DSH registry ignores links, so a linked skill would be installed without ever showing up. Nothing else is written.' },
+        'det.whatBody': { fr: 'Installer télécharge l\'archive du dépôt {source} depuis GitHub, y trouve le dossier du skill « {name} » (son frontmatter porte name et description), puis le COPIE dans ton dossier de skills ({dest}). Le skill y est actif au prochain tour de tes agents. Aucun lien symbolique : le registre de Kybernos ignore les liens, un skill lié serait installé sans jamais apparaître. Rien d\'autre n\'est écrit.', en: 'Installing downloads the archive of the {source} repository from GitHub, finds the “{name}” skill folder inside it (its frontmatter carries name and description), then COPIES it into your skills folder ({dest}). The skill is available to your agents on their next turn. No symlinks: the Kybernos registry ignores links, so a linked skill would be installed without ever showing up. Nothing else is written.' },
         'det.installTip': { fr: 'Télécharge {source} depuis GitHub et copie le skill « {name} » dans ton dossier de skills ({dest}) : disponible pour tes agents au prochain tour.', en: 'Downloads {source} from GitHub and copies the “{name}” skill into your skills folder ({dest}): available to your agents on their next turn.' },
         'det.installHelp': { fr: 'Ce bouton télécharge le dépôt {source} depuis GitHub, y trouve le skill « {name} » puis le copie dans ton dossier de skills ({dest}) — disponible pour tes agents au prochain tour.', en: 'This button downloads the {source} repository from GitHub, finds the “{name}” skill inside it and copies it into your skills folder ({dest}) — available to your agents on their next turn.' },
         'det.row.owner': { fr: 'Publié par', en: 'Published by' },
@@ -826,7 +834,7 @@ window.__ModuleLoader__.load({
         'det.root': { fr: 'Dossier', en: 'Folder' },
         'det.modified': { fr: 'Modifié', en: 'Modified' },
         'det.unknownDate': { fr: 'date inconnue', en: 'unknown date' },
-        'det.thirdParty': { fr: 'Le contenu vient d\'un dépôt tiers : DSH ne l\'audite pas ; ces verdicts sont ceux publiés par skills.sh.', en: 'The content comes from a third-party repo: DSH does not audit it; these verdicts are the ones published by skills.sh.' },
+        'det.thirdParty': { fr: 'Le contenu vient d\'un dépôt tiers : Kybernos ne l\'audite pas ; ces verdicts sont ceux publiés par skills.sh.', en: 'The content comes from a third-party repo: Kybernos does not audit it; these verdicts are the ones published by skills.sh.' },
         'panel.close': { fr: 'Fermer', en: 'Close' },
         'panel.copyPath': { fr: 'Copier le chemin', en: 'Copy the path' },
         'panel.truncated': { fr: 'Fichier long : seul le début est affiché.', en: 'Long file: only the start is shown.' },
@@ -1085,18 +1093,31 @@ window.__ModuleLoader__.load({
       // Kaby's suggestions wait on the host, in a ledger and not in the skills folder: nothing is active before Accept. The sidebar dot needs their
       // count whatever page is open, so a light poll starts with the bundle and publishes `window.__KB_LEARNED__` ({ count, subscribe, refresh }),
       // which the menu (kybernos-plugin) and the lessons page (kybernos-memory) read. A host without the route leaves it at 0.
-      const kbLearnedStore = { n: 0, subs: new Set() }
-      const kbLearnedSet = (n) => {
+      // `n` is what is NEW since the person last had the Suggestions tab on screen (the number the dot of the menu row follows); `keys` is everything that waits (the count of the tab).
+      const kbLearnedStore = { n: 0, keys: [], subs: new Set() }
+      const KB_LEARNED_SEEN_KEY = 'kybernos.skills.learned-seen'
+      const kbLearnedSeenRead = () => {
+        try { const j = JSON.parse(window.localStorage.getItem(KB_LEARNED_SEEN_KEY)); return Array.isArray(j) ? j.filter((x) => typeof x === 'string') : [] } catch (e) { return [] }
+      }
+      const kbLearnedSet = (keys) => {
+        kbLearnedStore.keys = keys
+        const seen = new Set(kbLearnedSeenRead())
+        const n = keys.filter((k) => !seen.has(k)).length
         if (kbLearnedStore.n === n) return
         kbLearnedStore.n = n
         kbLearnedStore.subs.forEach((f) => { try { f(n) } catch (e) { /* a listener must not break the others */ } })
       }
-      // What waits for the person: the suggestions, and the changes Kaby made on its own that are not reviewed yet (Keep or Undo).
-      const kbLearnedCount = (j) => j.proposals.length + (Array.isArray(j.learned) ? j.learned.filter((l) => l.auto === true && l.reviewed === false).length : 0)
+      // The Suggestions tab was on screen: what waits now has been looked at (a later suggestion lights the dot again).
+      const kbLearnedMarkSeen = () => {
+        try { window.localStorage.setItem(KB_LEARNED_SEEN_KEY, JSON.stringify(kbLearnedStore.keys.slice(-200))) } catch (e) { /* a convenience only */ }
+        kbLearnedSet(kbLearnedStore.keys)
+      }
+      // What waits for the person: the suggestions (by id), and the changes Kaby made on its own that are not reviewed yet, Keep or Undo (by name and version).
+      const kbLearnedKeys = (j) => j.proposals.map((p) => 'p:' + String(p.id)).concat(Array.isArray(j.learned) ? j.learned.filter((l) => l.auto === true && l.reviewed === false).map((l) => 'a:' + String(l.name) + ':' + String(l.ver)) : [])
       const kbLearnedPoll = () => fetch('/kybernos-skills/learned', { headers: { accept: 'application/json' } }).then((r) => r.json())
-        .then((j) => { if (j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.proposals)) kbLearnedSet(kbLearnedCount(j)) }).catch(() => null)
+        .then((j) => { if (j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.proposals)) kbLearnedSet(kbLearnedKeys(j)) }).catch(() => null)
       try {
-        window.__KB_LEARNED__ = { count: () => kbLearnedStore.n, subscribe: (fn) => { kbLearnedStore.subs.add(fn); return () => { kbLearnedStore.subs.delete(fn) } }, refresh: kbLearnedPoll }
+        window.__KB_LEARNED__ = { count: () => kbLearnedStore.n, waiting: () => kbLearnedStore.keys.length, markSeen: kbLearnedMarkSeen, subscribe: (fn) => { kbLearnedStore.subs.add(fn); return () => { kbLearnedStore.subs.delete(fn) } }, refresh: kbLearnedPoll }
         setTimeout(kbLearnedPoll, 3000)
         setInterval(kbLearnedPoll, 300000)
         window.addEventListener('focus', kbLearnedPoll)
@@ -1204,6 +1225,8 @@ window.__ModuleLoader__.load({
 @media (max-width:440px){
 .kbs-root .kbsub button.kb-seg{padding:0 10px;gap:6px}
 .kbs-root .kbsub .count{display:none}
+/* The Suggestions tab is a fifth one while something waits: a little tighter again so the five stay in the strip at 390 to 412 px. */
+.kbs-root .kbsub .kbsub-group:has([data-kb="seg-suggestions"]) button.kb-seg{padding:0 7px;gap:4px}
 }
 .kbs-root .kbsub .kb8-mono{flex:1 1 0;min-width:0;text-align:end;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* The panel body is injected INSIDE .kbg-root, which already carries the page
@@ -1434,6 +1457,14 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-win .kbsf-dpic{min-height:300px}
 .kbs-root .kbs-win .kbsf-dtx{padding:24px 28px}
 .kbs-root .kbs-win .kbsf-dacts{margin:0}
+/* A phone folds the sections of an opened skill (SkillSheet draws <details> there only): the row is the title and a chevron, 48 px high, the content opens under it. */
+.kbs-root .kbsf-fold>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;margin:-6px 0;cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent}
+.kbs-root .kbsf-fold>summary::-webkit-details-marker{display:none}
+.kbs-root .kbsf-fold>summary::after{content:"";flex:0 0 auto;width:8px;height:8px;margin-inline-end:4px;border-right:2px solid var(--dsw-alias-label-secondary);border-bottom:2px solid var(--dsw-alias-label-secondary);transform:rotate(45deg);transition:transform .15s ease}
+.kbs-root .kbsf-fold[open]>summary::after{transform:rotate(-135deg)}
+.kbs-root .kbsf-fold[open]>summary{margin-bottom:6px}
+.kbs-root details.kbsf-fold{display:block}
+.kbs-root details.kbsf-fold>:not(summary){margin-top:8px}
 .kbs-root .kbsf-dcols.one{grid-template-columns:minmax(0,1fr)}
 .kbs-root .kbs-panel-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .kbs-root .kbs-panel-top .kb-tool{width:30px;height:30px;border-radius:9px;flex:0 0 auto}
@@ -1810,6 +1841,41 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
 .kbss-page .kbl-pt+.kbl-pt{border-top:1px solid var(--dsw-alias-border-l1)}
 .kbss-page .kbl-pt b{font-weight:500;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (max-width:520px){.kbss-page .kbl-pt{grid-template-columns:minmax(0,1fr) auto}}
+/* Settings › Learned skills tabs (shares the .kba-sub capsule with Automations, with a standalone fallback) and inline Learned/Journal views */
+.kbss-page .kbss-tabs{align-self:flex-start;display:inline-flex;align-items:center;gap:2px;padding:4px;margin:0;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);max-width:100%;overflow-x:auto;scrollbar-width:none}
+.kbss-page .kbss-tabs::-webkit-scrollbar{display:none}
+.kbss-page .kbss-tabs button{display:inline-flex;align-items:center;gap:8px;height:34px;border:0;border-radius:999px;padding:0 16px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none;white-space:nowrap}
+.kbss-page .kbss-tabs button:hover{color:var(--dsw-alias-label-primary)}
+.kbss-page .kbss-tabs button.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(20,20,19,.14)}
+.kbss-page .kbl-tlab{display:inline-flex;align-items:center;gap:6px}
+.kbss-page .kbl-tlab.hot{color:var(--dsw-alias-brand-primary)}
+.kbss-page .kbl-tdot{width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-brand-primary);display:inline-block;flex:none}
+.kbss-page .kbl-tcnt{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 6px;border-radius:999px;font-size:11px;font-weight:650;font-variant-numeric:tabular-nums;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l1)}
+.kbss-page .kbl-tcnt.hot{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground)}
+.kbss-page .kbl-lrow{display:flex;flex-direction:column;gap:6px;padding:11px 12px;border-top:1px solid var(--dsw-alias-border-l1)}
+.kbss-page .kbl-lrow:first-child{border-top:0}
+.kbss-page .kbl-ltop{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kbss-page .kbl-ltop b{font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}
+.kbss-page .kbl-jwrap .kbs-panel{position:static;max-height:none;overflow:visible;border:0;border-radius:0;background:transparent;padding:0;display:flex;flex-direction:column;gap:12px}
+.kbss-page .kbl-jwrap .kbs-panel-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.kbss-page .kbl-jwrap .kb8-mono{font-family:ui-monospace,monospace;font-size:11px;color:var(--dsw-alias-label-caption,var(--dsw-alias-label-secondary))}
+.kbss-page .kbl-jwrap .kb8-pills{display:flex;flex-wrap:wrap;gap:6px}
+.kbss-page .kbl-jwrap .kb8-pill{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:11px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);font-size:11.5px;color:var(--dsw-alias-label-secondary);white-space:nowrap}
+.kbss-page .kbl-jwrap .kb8-pill.ok{color:var(--dsw-alias-state-success-primary)}
+body:not([data-ds-dark-theme]) .kbss-page .kbl-jwrap .kb8-pill.ok{color:var(--kybernos-ok-ink,#166534)}
+.kbss-page .kbl-jwrap .kb8-pill.warn{color:var(--dsw-alias-state-warn-primary)}
+.kbss-page .kbl-jwrap .kb8-ghost{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:12.5px;font-weight:500;cursor:pointer;white-space:nowrap}
+.kbss-page .kbl-jwrap .kb8-ghost:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.kbss-page .kbl-jwrap .kbl-jr{border-top:1px solid var(--dsw-alias-border-l1)}
+.kbss-page .kbl-jwrap .kbl-jr>button{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:flex-start;border:0;background:none;text-align:start;padding:10px 0;font:inherit;color:inherit;cursor:pointer}
+.kbss-page .kbl-jwrap .kbl-jt{font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}
+.kbss-page .kbl-jwrap .kbl-jt small{display:block;font-size:12px;color:var(--dsw-alias-label-caption,var(--dsw-alias-label-secondary))}
+.kbss-page .kbl-jwrap .kbl-jb{padding:0 0 12px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
+.kbss-page .kbl-jwrap .kbl-diff{border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);padding:8px 10px;font:12.5px/1.5 ui-monospace,monospace;overflow-wrap:anywhere}
+.kbss-page .kbl-jwrap .kbl-diff .ad{color:var(--dsw-alias-state-success-primary);white-space:pre-wrap}
+.kbss-page .kbl-jwrap .kbl-sg{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:baseline;font-size:12.5px;line-height:1.4;color:var(--dsw-alias-label-secondary)}
+.kbss-page .kbl-jwrap .kbl-p{margin:0;font-size:13px;line-height:1.55;color:var(--dsw-alias-label-secondary)}
+.kbss-page .kbl-jwrap .kbs-err{font-size:13px;color:var(--dsw-alias-state-error-primary)}
 `
 
       // ── route access ────────────────────────────────────────────────────
@@ -1990,7 +2056,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           if (alive.current !== true) return
           if (j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.proposals)) {
             setLearned({ phase: 'ready', proposals: j.proposals, learned: Array.isArray(j.learned) ? j.learned : [], sensitive: j.sensitive === true, rules: Array.isArray(j.rules) ? j.rules : [], settings: j.settings !== undefined && j.settings !== null ? j.settings : null, week: j.week !== undefined && j.week !== null ? j.week : null, limits: j.limits || { maxPending: 5, pendingDays: 30, discardedDays: 30 } })
-            kbLearnedSet(kbLearnedCount(j))
+            kbLearnedSet(kbLearnedKeys(j))
             setLTick((n) => n + 1)
           } else setLearned((p) => ({ ...p, phase: 'absent' }))
         }).catch(() => { if (alive.current === true) setLearned((p) => ({ ...p, phase: 'absent' })) }), [])
@@ -2059,6 +2125,14 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
             if (window.sessionStorage.getItem('kybernos.skills.journal') === '1') {
               window.sessionStorage.removeItem('kybernos.skills.journal')
               setMode('yours'); setReview(null); setLocal(null); setDetail(null); setJournalOpen(true)
+            }
+            if (window.sessionStorage.getItem('kybernos.skills.suggestions') === '1') {
+              window.sessionStorage.removeItem('kybernos.skills.suggestions')
+              setMode('yours'); setOriginFilter('kaby'); setReview(null); setLocal(null); setDetail(null); setJournalOpen(false)
+            }
+            if (window.sessionStorage.getItem('kybernos.skills.learned') === '1') {
+              window.sessionStorage.removeItem('kybernos.skills.learned')
+              setMode('yours'); setOriginFilter('learned'); setReview(null); setLocal(null); setDetail(null); setJournalOpen(false)
             }
           } catch (e) { /* no storage: the page opens without the hint */ }
         }, [learned.phase, learned.proposals])
@@ -2496,6 +2570,11 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         }
 
         const count = catPhase === 'ready' ? String(skills.length) : '0'
+        // What waits for the person (the Suggestions tab): the suggestions of Kaby and the changes it made on its own that nobody has read. The tab is the Yours list seen through Kaby's origin.
+        const sugWaiting = learned.proposals.length + (Array.isArray(learned.learned) ? learned.learned.filter((l) => l.auto === true && l.reviewed === false).length : 0)
+        const onSug = mode === 'yours' && originFilter === 'kaby'
+        // Having that tab on screen is the look that clears the dot of the menu row.
+        React.useEffect(() => { if (mode === 'yours' && originFilter === 'kaby' && learned.phase === 'ready') kbLearnedMarkSeen() }, [mode, originFilter, learned.phase, learned.proposals, learned.learned])
         const shownYours = filtered.slice(0, page.yours * PAGE)
 
         // Opening a modal starts from a clean screen: without this, the error of the previous
@@ -3432,10 +3511,15 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
             plain: coverBg === 'plain', art: pickCover(p), making: coverBusy(p), cat: p.category, tag: t('pcat.' + p.category),
             title, meta: [pickBy(p), pickCnt(p), h('span', { key: 'n', className: 'kb8-mono' }, '/' + p.id)], outcome: pickText(p.outcome),
             pills: pickPills(p, isIn),
-            aside: h('div', { className: 'kbsf-try' },
-              h('span', { className: 'kb-section-label' }, t('pick.try')),
-              h('span', { className: 'kbsf-trytxt' }, pickText(p.prompt)),
-              h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'pick-copyprompt', onClick: () => copy('/' + p.id + ' ' + pickText(p.prompt)) }, icon('code', 13), ' ' + t('pick.copyPrompt'))),
+            aside: onPhone()
+              ? h('details', { className: 'kbsf-try kbsf-fold', 'data-kb': 'pick-try' },
+                h('summary', null, h('span', { className: 'kb-section-label' }, t('pick.try'))),
+                h('span', { className: 'kbsf-trytxt' }, pickText(p.prompt)),
+                h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'pick-copyprompt', onClick: () => copy('/' + p.id + ' ' + pickText(p.prompt)) }, icon('code', 13), ' ' + t('pick.copyPrompt')))
+              : h('div', { className: 'kbsf-try' },
+                h('span', { className: 'kb-section-label' }, t('pick.try')),
+                h('span', { className: 'kbsf-trytxt' }, pickText(p.prompt)),
+                h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'pick-copyprompt', onClick: () => copy('/' + p.id + ' ' + pickText(p.prompt)) }, icon('code', 13), ' ' + t('pick.copyPrompt'))),
             factsTitle: t('pick.facts'),
             lead: pv !== null && pv.description !== '' ? h('p', { className: 'kbs-desc', 'data-kb': 'preview-desc' }, pv.description) : null,
             facts: [
@@ -3720,9 +3804,12 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
             h('nav', { className: 'kbsub' },
               // Same capsule as the "Connections" sub-tabs (Your connections / Discover): one single language.
               h('div', { className: 'kbsub-group', role: 'tablist' },
+                // Suggestions (list items 04 and 19): the place of what Kaby proposes, with its count, first while something waits. It is the Yours list seen through Kaby's origin: the suggestions, then the changes Kaby made on its own.
+                sugWaiting > 0 ? h('button', { type: 'button', role: 'tab', 'aria-selected': onSug ? 'true' : 'false', className: 'kb-seg' + (onSug ? ' on' : ''), 'data-kb': 'seg-suggestions', onClick: () => { setMode('yours'); setOriginFilter('kaby'); setDetail(null); setLocal(null) } },
+                  t('tab.suggestions') + ' ', h('span', { className: 'count' }, String(sugWaiting))) : null,
                 picks.phase !== 'absent' ? h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'featured' ? 'true' : 'false', className: 'kb-seg' + (mode === 'featured' ? ' on' : ''), 'data-kb': 'seg-featured', onClick: () => { setMode('featured'); setDetail(null); setLocal(null) } },
                   'Featured ', h('span', { className: 'count' }, picks.phase === 'ready' ? String(picks.items.length) : '—')) : null,
-                h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'yours' ? 'true' : 'false', className: 'kb-seg' + (mode === 'yours' ? ' on' : ''), onClick: () => { setMode('yours'); setDetail(null); setLocal(null) } },
+                h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'yours' && !onSug ? 'true' : 'false', className: 'kb-seg' + (mode === 'yours' && !onSug ? ' on' : ''), onClick: () => { setMode('yours'); setOriginFilter((o) => (o === 'kaby' ? 'all' : o)); setDetail(null); setLocal(null) } },
                   'Yours ', h('span', { className: 'count' }, count)),
                 h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'discover' ? 'true' : 'false', className: 'kb-seg' + (mode === 'discover' ? ' on' : ''), onClick: () => { setMode('discover'); setDetail(null); setLocal(null) } },
                   'Discover ', disc !== null && Array.isArray(disc.skills) ? h('span', { className: 'count' }, String(discTotal)) : null),
@@ -3867,7 +3954,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         return h('aside', { className: 'kbs-panel', 'aria-label': t('ln.j.title'), 'data-kb': 'learned-journal' },
           h('div', { className: 'kbs-panel-top' },
             h('span', { className: 'kb8-mono kbs-nowrap' }, t('ln.j.title')),
-            h('button', { type: 'button', className: 'kb-tool', 'aria-label': t('panel.close'), title: t('panel.close'), onClick: props.onClose }, '✕')),
+            typeof props.onClose === 'function' ? h('button', { type: 'button', className: 'kb-tool', 'aria-label': t('panel.close'), title: t('panel.close'), onClick: props.onClose }, '✕') : null),
           ready ? h('div', { className: 'kb8-pills' },
             data.verified === true
               ? h('span', { key: 'v', className: 'kb8-pill ok', 'data-kb': 'journal-verified' }, icon('check', 12), t('ln.j.verified'))
@@ -3893,7 +3980,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
                 Array.isArray(e.sig) ? h('div', null, e.sig.map((x) => h('div', { key: x[0], className: 'kbl-sg' }, h('span', null, t('ln.sig.' + x[0])), h('span', { className: 'kb8-mono' }, String(x[1]))))) : null,
                 typeof e.note === 'string' && STR['ln.j.note.' + e.note] !== undefined ? h('div', null, t('ln.j.note.' + e.note)) : null,
                 h('div', { className: 'kb8-mono' }, '#' + String(e.hash).slice(0, 8) + ' ← #' + String(e.prev).slice(0, 8)),
-                canUndo(e) ? h('div', null, h('button', { type: 'button', className: 'kb8-ghost', 'data-kb': 'journal-undo', onClick: () => props.onUndo(e.skill) }, t('ln.j.undo'))) : null) : null)
+                canUndo(e) && typeof props.onUndo === 'function' ? h('div', null, h('button', { type: 'button', className: 'kb8-ghost', 'data-kb': 'journal-undo', onClick: () => props.onUndo(e.skill) }, t('ln.j.undo'))) : null) : null)
           })) : null,
           h('span', { className: 'kb8-mono' }, t('ln.j.foot')))
       }
@@ -4063,10 +4150,25 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
             h('div', { className: 'kbl-how kbl-dim2' }, t('ln2.w.foot'))))
       }
 
+      // Shared tab strip when kybernos-plugin publishes window.__KB_TABS__.Bar (same contract as Automations), with a small accessible fallback otherwise.
+      function FallbackTabsBar(props) {
+        const tabs = (Array.isArray(props.tabs) === true ? props.tabs : []).filter((x) => x !== null && x !== undefined && typeof x === 'object' && typeof x.id === 'string')
+        return h('div', { className: 'kbss-tabs', role: 'tablist', 'data-kb': props.dataKb },
+          tabs.map((x) => h('button', { key: x.id, type: 'button', role: 'tab', 'aria-selected': props.value === x.id ? 'true' : 'false', className: props.value === x.id ? 'on' : '', 'data-kb': 'section-' + x.id, onClick: () => props.onChange(x.id) }, x.label)).concat(Array.isArray(props.extra) === true ? props.extra : []))
+      }
+      const getKbTabsBar = () => {
+        try {
+          if (typeof window !== 'undefined' && window.__KB_TABS__ !== undefined && window.__KB_TABS__ !== null && typeof window.__KB_TABS__.Bar === 'function') return window.__KB_TABS__.Bar
+        } catch (e) { /* standalone fallback */ }
+        return FallbackTabsBar
+      }
+
       // Settings › Learned skills: how much Kaby may do on its own with the skills it learns. Three levels (Ask me every time by default), the confidence line with a live preview on
       // what waits now, the hard stops nothing lifts, the limits, the audit trail and the kill switch. Every change is saved at once and written to the journal by the host.
       function LearnedSettingsPage() {
         const [data, setData] = React.useState({ phase: 'loading' })
+        const [tab, setTab] = React.useState('settings')
+        const [jTick, setJTick] = React.useState(0)
         const [th, setTh] = React.useState(90)
         const [err, setErr] = React.useState('')
         const [saved, setSaved] = React.useState(false)
@@ -4077,7 +4179,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         React.useEffect(() => () => { alive.current = false; if (timer.current !== null) clearTimeout(timer.current) }, [])
         const load = React.useCallback(() => getJson('/kybernos-skills/learned').then((j) => {
           if (alive.current !== true) return
-          if (j !== null && typeof j === 'object' && j.ok === true && j.settings !== undefined && j.settings !== null) { setData({ phase: 'ready', ...j }); setTh(j.settings.threshold); kbLearnedSet(kbLearnedCount(j)) }
+          if (j !== null && typeof j === 'object' && j.ok === true && j.settings !== undefined && j.settings !== null) { setData({ phase: 'ready', ...j }); setTh(j.settings.threshold); kbLearnedSet(kbLearnedKeys(j)) }
           else setData({ phase: 'absent' })
         }).catch(() => { if (alive.current === true) setData({ phase: 'absent' }) }), [])
         React.useEffect(() => { load() }, [])
@@ -4089,20 +4191,42 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           setErr(''); setSaved(false)
           return postJson('/kybernos-skills/learned/settings/set', patch).then((j) => {
             if (alive.current !== true) return
-            if (j !== null && typeof j === 'object' && j.ok === true) { setSaved(true); load() } else { setErr(why(j, t('err.unexpected', { r: 'learned/settings/set' }))); load() }
+            if (j !== null && typeof j === 'object' && j.ok === true) { setSaved(true); setJTick((n) => n + 1); load() } else { setErr(why(j, t('err.unexpected', { r: 'learned/settings/set' }))); load() }
           }).catch(() => { if (alive.current === true) setErr(t('err.unavail', { r: 'learned/settings/set' })) })
+        }
+        const undoLearned = (name) => {
+          setErr('')
+          return postJson('/kybernos-skills/learned/undo', { name }).then((j) => {
+            if (alive.current !== true) return
+            if (j !== null && typeof j === 'object' && j.ok === true) { setJTick((n) => n + 1); load() }
+            else setErr(why(j, t('err.unexpected', { r: 'learned/undo' })))
+          }).catch(() => { if (alive.current === true) setErr(t('err.unavail', { r: 'learned/undo' })) })
         }
         const slide = (v) => { setTh(v); if (timer.current !== null) clearTimeout(timer.current); timer.current = setTimeout(() => save({ threshold: v }), 450) }
         if (data.phase === 'loading') return h('div', { className: 'kbss-page', 'data-kb': 'learned-settings' }, h('p', { className: 'kbss-sub' }, t('y.loading')))
         if (data.phase === 'absent') return h('div', { className: 'kbss-page', 'data-kb': 'learned-settings' }, pageHead({ title: t('ls.h1'), className: 'kbss-h1' }), h('p', { className: 'kbss-err', role: 'alert' }, t('ls.absent')))
         const s = data.settings
+        const proposals = Array.isArray(data.proposals) ? data.proposals : []
+        const learnedList = Array.isArray(data.learned) ? data.learned : []
+        const sugWaiting = proposals.length + learnedList.filter((l) => l.auto === true && l.reviewed === false).length
+        const TabsBar = getKbTabsBar()
+        const navTabs = [
+          { id: 'settings', label: t('ls.tab.settings') },
+          { id: 'learned', label: h('span', { className: 'kbl-tlab' }, t('ls.tab.learned'), learnedList.length > 0 ? h('span', { className: 'kbl-tcnt', 'data-kb': 'learned-tab-count' }, String(learnedList.length)) : null) },
+          { id: 'journal', label: t('ln.j.btn') },
+          { id: 'suggestions', label: h('span', { className: 'kbl-tlab' + (sugWaiting > 0 ? ' hot' : '') }, sugWaiting > 0 ? h('i', { className: 'kbl-tdot', 'aria-hidden': 'true' }) : null, t('tab.suggestions'), h('span', { className: 'kbl-tcnt' + (sugWaiting > 0 ? ' hot' : ''), 'data-kb': 'learned-sug-count' }, String(sugWaiting))) },
+        ]
+        const onTab = (id) => {
+          if (id === 'suggestions') { kbOpenSkills('kybernos.skills.suggestions', '1'); return }
+          setTab(id)
+        }
         const locked = data.sensitive === true && s.privOk !== true
         const lvl = (id) => h('button', { key: id, type: 'button', className: 'kbl-lv' + (s.mode === id ? ' on' : ''), 'aria-pressed': s.mode === id ? 'true' : 'false', 'data-kb': 'level-' + id, disabled: locked && id !== 'ask', onClick: () => save({ mode: id }) },
           h('b', null, t('ln.mode.' + id), id === 'ask' ? h('span', { className: 'kbl-pill ok' }, t('ls.level.default')) : null), h('span', null, t('ls.level.' + id)))
         // the preview: what each waiting suggestion would do at this line (the hard stops come from the host; the line and the limit are applied here, live)
         const asLevel = s.mode === 'ask' ? 'auto' : s.mode
         let used = data.week !== undefined && data.week !== null ? data.week.used : 0
-        const rows = data.proposals.map((p) => {
+        const rows = proposals.map((p) => {
           let why = null
           if (Array.isArray(p.hard) && p.hard.length > 0) why = p.hard[0]
           else if (p.kind !== 'improve' && asLevel !== 'auto') why = 'needs_create'
@@ -4113,70 +4237,97 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         })
         const sel = (id, value, opts, onChange) => h('select', { id, className: 'kbl-sel', value: String(value), onChange: (e) => onChange(e.target.value) }, opts.map((o) => h('option', { key: o[0], value: String(o[0]) }, o[1])))
         const lessThan = (p) => (p.kind === 'improve' ? p.target : p.name)
+        const learnedBody = () => h('div', { className: 'kbss-card', 'data-kb': 'learned-list' },
+          h('h3', { className: 'kbss-h2' }, t('ls.learned.h')),
+          h('p', { className: 'kbss-sub' }, t('ls.learned.sub')),
+          learnedList.length === 0
+            ? h('p', { className: 'kbss-sub', 'data-kb': 'learned-list-empty' }, t('ls.learned.empty'))
+            : h('div', { className: 'kbl-pv' }, learnedList.map((l) => {
+              const meta = []
+              if (typeof l.acceptedAt === 'string' && l.acceptedAt !== '') meta.push(today(l.acceptedAt))
+              if (typeof l.uses === 'number' && l.uses > 0) meta.push(t('ls.learned.uses', { n: l.uses }))
+              if (typeof l.unusedDays === 'number' && l.unusedDays > 0) meta.push(t('ln.stale', { d: l.unusedDays }))
+              return h('div', { key: l.name, className: 'kbl-lrow', 'data-kb': 'learned-item' },
+                h('div', { className: 'kbl-ltop' },
+                  h('b', { className: 'kbl-mono' }, l.name),
+                  l.ver > 1 ? h('span', { className: 'kbl-pill' }, t('ln.chip.ver', { v: l.ver })) : null,
+                  l.auto === true ? h('span', { className: 'kbl-pill sug' }, t(l.reviewed === false ? 'ln.chip.auto.new' : 'ln.chip.auto')) : null,
+                  l.shared === true ? h('span', { className: 'kbl-pill ok' }, t('ln2.chip.shared')) : null,
+                  l.shareReady === true ? h('span', { className: 'kbl-pill sug' }, t('ln2.chip.ready')) : null),
+                meta.length > 0 ? h('span', { className: 'kbss-sub' }, meta.join(' · ')) : null)
+            })),
+          h('div', { className: 'kbl-fr' },
+            h('button', { type: 'button', className: 'kbl-btn', 'data-kb': 'learned-open-skills', onClick: () => kbOpenSkills('kybernos.skills.learned', '1') }, t('ls.learned.open'))))
+        const journalBody = () => h('div', { className: 'kbss-card kbl-jwrap', 'data-kb': 'learned-journal-tab' },
+          h(JournalPanel, { tick: jTick, onUndo: undoLearned }))
         return h('div', { className: 'kbss-page', 'data-kb': 'learned-settings' },
           pageHead({ id: 'kybernos-skills', page: 'learned', lead: t('ls.lead'), title: t('ls.h1'), className: 'kbss-h1' }),
           kbSubFallback('kbss-lead', t('ls.lead')),
-          h('p', { className: 'kbss-sub' }, h('button', { type: 'button', className: 'kbss-link', 'data-kb': 'settings-journal', onClick: () => kbOpenSkills('kybernos.skills.journal', '1') }, t('ls.audit.open'))),
-          s.breaker !== null ? h('div', { className: 'kbl-lock', 'data-kb': 'learned-breaker' }, icon('alert', 14), h('span', null, t('ls.breaker'))) : null,
-          h('div', { className: 'kbss-card' },
-            h('h3', { className: 'kbss-h2' }, t('ls.level.h')),
-            h('p', { className: 'kbss-sub' }, t('ls.level.sub')),
-            h('div', { className: 'kbl-lvs', 'data-kb': 'learned-levels' }, ['ask', 'improve', 'auto'].map(lvl)),
-            data.sensitive === true ? h('div', { className: 'kbl-lock' }, icon('lock', 14), h('span', null, t('ls.lock'))) : null,
-            data.sensitive === true ? h('label', { className: 'kbl-chk' }, h('input', { type: 'checkbox', checked: s.privOk === true, 'data-kb': 'learned-unlock', onChange: (e) => save({ privOk: e.target.checked }) }), h('span', null, t('ls.unlock'))) : null),
-          h('div', { className: 'kbss-card', 'data-kb': 'learned-line' },
-            h('h3', { className: 'kbss-h2' }, t('ls.line.h')),
-            h('p', { className: 'kbss-sub' }, t('ls.line.sub')),
-            h('div', { className: 'kbl-rng' }, h('input', { type: 'range', min: 70, max: 99, value: th, 'aria-label': t('ls.line.h'), 'data-kb': 'learned-range', onChange: (e) => slide(Number(e.target.value)) }), h('b', { className: 'kbl-val', 'data-kb': 'learned-line-value' }, String(th))),
-            h('p', { className: 'kbss-sub' }, h('b', null, s.mode === 'ask' ? t('ls.line.preview.ask') : t('ls.line.preview'))),
-            h('div', { className: 'kbl-pv', 'data-kb': 'learned-preview' }, rows.length === 0 ? h('div', { className: 'kbl-pr' }, t('ls.line.none')) : rows.map((r) => h('div', { key: r.p.id, className: 'kbl-pr', 'data-kb': 'preview-row' },
-              h('b', { className: 'kbl-mono', title: lessThan(r.p) }, lessThan(r.p)),
-              h('span', { className: 'kbl-bar' }, h('i', { style: { width: r.p.score.total + '%' } }), h('u', { style: { left: th + '%' } })),
-              h('span', { className: 'kbl-mono' }, String(r.p.score.total)),
-              r.why === null ? h('span', { className: 'kbl-pill ok' }, icon('check', 11), s.mode === 'ask' ? t('ls.line.would') : t('ls.line.applies')) : h('span', { className: 'kbl-pill' }, t('ln.stop.' + r.why)))))),
-          h('div', { className: 'kbss-card' },
-            h('h3', { className: 'kbss-h2' }, t('ls.stops.h')),
-            h('p', { className: 'kbss-sub' }, t('ls.stops.sub')),
-            h('ul', { className: 'kbl-stops', 'data-kb': 'learned-stops' }, [['alert', t('ls.stop.untrusted')], ['wand', t('ls.stop.risky')], ['lock', t('ls.stop.client')], ['file', t('ls.stop.edited')], ['pkg', t('ls.stop.team')], ['refresh', t('ls.stop.cap', { cap: s.cap })]].map((x, i) => h('li', { key: i }, icon(x[0], 14), h('span', null, x[1]))))),
-          h('div', { className: 'kbss-card' },
-            h('h3', { className: 'kbss-h2' }, t('ls.limits.h')),
-            h('div', { className: 'kbl-fr' }, h('label', { htmlFor: 'kbl-cap' }, t('ls.cap')), sel('kbl-cap', s.cap, [[1, t('ls.cap.1')], [3, t('ls.cap.3')], [5, t('ls.cap.5')]], (v) => save({ cap: Number(v) }))),
-            h('div', { className: 'kbl-fr' }, h('label', { htmlFor: 'kbl-notify' }, t('ls.notify')), sel('kbl-notify', s.notify, [['both', t('ls.notify.both')], ['chat', t('ls.notify.chat')], ['week', t('ls.notify.week')]], (v) => save({ notify: v })))),
-          h('div', { className: 'kbss-card', 'data-kb': 'learned-repeat-card' },
-            h('h3', { className: 'kbss-h2' }, t('ls2.rep.h')),
-            h('p', { className: 'kbss-sub' }, t('ls2.rep.sub')),
-            h('label', { className: 'kbl-chk' }, h('input', { type: 'checkbox', checked: s.notice === true, 'data-kb': 'learned-notice-on', onChange: (e) => save({ notice: e.target.checked }) }), h('span', null, t('ls2.rep.on'))),
-            h('div', { className: 'kbl-fr' },
-              h('label', { htmlFor: 'kbl-minrep' }, t('ls2.rep.from')), sel('kbl-minrep', s.minRep, [[3, t('ls2.rep.n3')], [4, t('ls2.rep.n4')], [5, t('ls2.rep.n5')]], (v) => save({ minRep: Number(v) })),
-              h('label', { htmlFor: 'kbl-win' }, t('ls2.rep.within')), sel('kbl-win', s.win, [[30, t('ls2.rep.d30')], [60, t('ls2.rep.d60')], [90, t('ls2.rep.d90')]], (v) => save({ win: Number(v) }))),
-            data.sensitive === true ? h('div', { className: 'kbl-lock' }, icon('lock', 14), h('span', null, t('ls2.rep.priv'))) : null,
-            notices !== null && notices.index === false ? h('div', { className: 'kbl-lock', 'data-kb': 'learned-noindex' }, icon('alert', 14), h('span', null, t('ls2.rep.noindex'))) : null,
-            notices !== null ? h('div', { className: 'kbl-pv', 'data-kb': 'learned-patterns' }, notices.patterns.length === 0
-              ? h('div', { className: 'kbl-pr' }, t('ls2.rep.none'))
-              : notices.patterns.map((x) => h('div', { key: x.id, className: 'kbl-pt', 'data-kb': 'pattern-row' },
-                h('b', { className: 'kbl-mono' }, x.label !== null ? x.label : t('ls2.rep.kind')), h('span', null, t('ls2.rep.chats', { n: x.n })), h('span', null, t('ls2.rep.s.' + x.state)),
-                h('button', { type: 'button', className: 'kbl-btn', 'data-kb': 'pattern-forget', onClick: () => forget(x.id) }, x.state === 'never' ? t('ls2.rep.allow') : t('ls2.rep.forget'))))) : null),
-          h('div', { className: 'kbss-card', 'data-kb': 'learned-week-card' },
-            h('h3', { className: 'kbss-h2' }, t('ls2.w.h')),
-            h('p', { className: 'kbss-sub' }, t('ls2.w.sub')),
-            h('label', { className: 'kbl-chk' }, h('input', { type: 'checkbox', checked: s.week === true, 'data-kb': 'learned-week-on', onChange: (e) => save({ week: e.target.checked }) }), h('span', null, t('ls2.w.on')))),
-          h('div', { className: 'kbss-card', 'data-kb': 'learned-team-card' },
-            h('h3', { className: 'kbss-h2' }, t('ls2.t.h')),
-            h('p', { className: 'kbss-sub' }, t('ls2.t.sub')),
-            h('div', { className: 'kbl-fr' },
-              h('label', { className: 'kbl-chk' }, h('input', { type: 'checkbox', checked: s.team === true && (data.sensitive !== true || s.teamPriv === true), disabled: data.sensitive === true && s.teamPriv !== true, 'data-kb': 'learned-team-on', onChange: (e) => save({ team: e.target.checked }) }), h('span', null, t('ls2.t.on'))),
-              sel('kbl-teammin', s.teamMin, [[3, t('ls2.t.n3')], [5, t('ls2.t.n5')], [8, t('ls2.t.n8')]], (v) => save({ teamMin: Number(v) }))),
-            data.sensitive === true ? h('div', { className: 'kbl-lock' }, icon('lock', 14), h('span', null, t('ls2.t.lock'))) : null,
-            data.sensitive === true ? h('label', { className: 'kbl-chk' }, h('input', { type: 'checkbox', checked: s.teamPriv === true, 'data-kb': 'learned-team-unlock', onChange: (e) => save({ teamPriv: e.target.checked }) }), h('span', null, t('ls2.t.priv'))) : null),
-          h('div', { className: 'kbss-card' },
-            h('h3', { className: 'kbss-h2' }, t('ls.audit.h')),
-            h('p', { className: 'kbss-sub' }, t('ls.audit.sub')),
-            h('div', { className: 'kbl-fr' },
-              h('button', { type: 'button', className: 'kbl-btn pri', onClick: () => kbOpenSkills('kybernos.skills.journal', '1') }, t('ls.audit.open')),
-              sure === true
-                ? h('button', { type: 'button', className: 'kbl-btn warn', 'data-kb': 'learned-stop-yes', onClick: () => { setSure(false); postJson('/kybernos-skills/learned/stop', {}).then((j) => { if (alive.current === true && j !== null && j.ok === true) { setStopped(j.undone); load() } else if (alive.current === true) setErr(why(j, t('err.unexpected', { r: 'learned/stop' }))) }).catch(() => null) } }, t('ls.audit.sure'))
-                : h('button', { type: 'button', className: 'kbl-btn warn', 'data-kb': 'learned-stop', onClick: () => setSure(true) }, t('ls.audit.stop'))),
-            stopped !== null ? h('p', { className: 'kbss-sub', 'data-kb': 'learned-stopped' }, t('ls.audit.done', { n: stopped })) : null),
+          h(TabsBar, { dataKb: 'learned-tabs', value: tab, onChange: onTab, tabs: navTabs }),
+          tab === 'learned' ? learnedBody()
+            : tab === 'journal' ? journalBody()
+            : [
+              s.breaker !== null ? h('div', { key: 'brk', className: 'kbl-lock', 'data-kb': 'learned-breaker' }, icon('alert', 14), h('span', null, t('ls.breaker'))) : null,
+              h('div', { key: 'lvl', className: 'kbss-card' },
+                h('h3', { className: 'kbss-h2' }, t('ls.level.h')),
+                h('p', { className: 'kbss-sub' }, t('ls.level.sub')),
+                h('div', { className: 'kbl-lvs', 'data-kb': 'learned-levels' }, ['ask', 'improve', 'auto'].map(lvl)),
+                data.sensitive === true ? h('div', { className: 'kbl-lock' }, icon('lock', 14), h('span', null, t('ls.lock'))) : null,
+                data.sensitive === true ? h('label', { className: 'kbl-chk' }, h('input', { type: 'checkbox', checked: s.privOk === true, 'data-kb': 'learned-unlock', onChange: (e) => save({ privOk: e.target.checked }) }), h('span', null, t('ls.unlock'))) : null),
+              h('div', { key: 'line', className: 'kbss-card', 'data-kb': 'learned-line' },
+                h('h3', { className: 'kbss-h2' }, t('ls.line.h')),
+                h('p', { className: 'kbss-sub' }, t('ls.line.sub')),
+                h('div', { className: 'kbl-rng' }, h('input', { type: 'range', min: 70, max: 99, value: th, 'aria-label': t('ls.line.h'), 'data-kb': 'learned-range', onChange: (e) => slide(Number(e.target.value)) }), h('b', { className: 'kbl-val', 'data-kb': 'learned-line-value' }, String(th))),
+                h('p', { className: 'kbss-sub' }, h('b', null, s.mode === 'ask' ? t('ls.line.preview.ask') : t('ls.line.preview'))),
+                h('div', { className: 'kbl-pv', 'data-kb': 'learned-preview' }, rows.length === 0 ? h('div', { className: 'kbl-pr' }, t('ls.line.none')) : rows.map((r) => h('div', { key: r.p.id, className: 'kbl-pr', 'data-kb': 'preview-row' },
+                  h('b', { className: 'kbl-mono', title: lessThan(r.p) }, lessThan(r.p)),
+                  h('span', { className: 'kbl-bar' }, h('i', { style: { width: r.p.score.total + '%' } }), h('u', { style: { left: th + '%' } })),
+                  h('span', { className: 'kbl-mono' }, String(r.p.score.total)),
+                  r.why === null ? h('span', { className: 'kbl-pill ok' }, icon('check', 11), s.mode === 'ask' ? t('ls.line.would') : t('ls.line.applies')) : h('span', { className: 'kbl-pill' }, t('ln.stop.' + r.why)))))),
+              h('div', { key: 'stops', className: 'kbss-card' },
+                h('h3', { className: 'kbss-h2' }, t('ls.stops.h')),
+                h('p', { className: 'kbss-sub' }, t('ls.stops.sub')),
+                h('ul', { className: 'kbl-stops', 'data-kb': 'learned-stops' }, [['alert', t('ls.stop.untrusted')], ['wand', t('ls.stop.risky')], ['lock', t('ls.stop.client')], ['file', t('ls.stop.edited')], ['pkg', t('ls.stop.team')], ['refresh', t('ls.stop.cap', { cap: s.cap })]].map((x, i) => h('li', { key: i }, icon(x[0], 14), h('span', null, x[1]))))),
+              h('div', { key: 'limits', className: 'kbss-card' },
+                h('h3', { className: 'kbss-h2' }, t('ls.limits.h')),
+                h('div', { className: 'kbl-fr' }, h('label', { htmlFor: 'kbl-cap' }, t('ls.cap')), sel('kbl-cap', s.cap, [[1, t('ls.cap.1')], [3, t('ls.cap.3')], [5, t('ls.cap.5')]], (v) => save({ cap: Number(v) }))),
+                h('div', { className: 'kbl-fr' }, h('label', { htmlFor: 'kbl-notify' }, t('ls.notify')), sel('kbl-notify', s.notify, [['both', t('ls.notify.both')], ['chat', t('ls.notify.chat')], ['week', t('ls.notify.week')]], (v) => save({ notify: v })))),
+              h('div', { key: 'rep', className: 'kbss-card', 'data-kb': 'learned-repeat-card' },
+                h('h3', { className: 'kbss-h2' }, t('ls2.rep.h')),
+                h('p', { className: 'kbss-sub' }, t('ls2.rep.sub')),
+                h('label', { className: 'kbl-chk' }, h('input', { type: 'checkbox', checked: s.notice === true, 'data-kb': 'learned-notice-on', onChange: (e) => save({ notice: e.target.checked }) }), h('span', null, t('ls2.rep.on'))),
+                h('div', { className: 'kbl-fr' },
+                  h('label', { htmlFor: 'kbl-minrep' }, t('ls2.rep.from')), sel('kbl-minrep', s.minRep, [[3, t('ls2.rep.n3')], [4, t('ls2.rep.n4')], [5, t('ls2.rep.n5')]], (v) => save({ minRep: Number(v) })),
+                  h('label', { htmlFor: 'kbl-win' }, t('ls2.rep.within')), sel('kbl-win', s.win, [[30, t('ls2.rep.d30')], [60, t('ls2.rep.d60')], [90, t('ls2.rep.d90')]], (v) => save({ win: Number(v) }))),
+                data.sensitive === true ? h('div', { className: 'kbl-lock' }, icon('lock', 14), h('span', null, t('ls2.rep.priv'))) : null,
+                notices !== null && notices.index === false ? h('div', { className: 'kbl-lock', 'data-kb': 'learned-noindex' }, icon('alert', 14), h('span', null, t('ls2.rep.noindex'))) : null,
+                notices !== null ? h('div', { className: 'kbl-pv', 'data-kb': 'learned-patterns' }, notices.patterns.length === 0
+                  ? h('div', { className: 'kbl-pr' }, t('ls2.rep.none'))
+                  : notices.patterns.map((x) => h('div', { key: x.id, className: 'kbl-pt', 'data-kb': 'pattern-row' },
+                    h('b', { className: 'kbl-mono' }, x.label !== null ? x.label : t('ls2.rep.kind')), h('span', null, t('ls2.rep.chats', { n: x.n })), h('span', null, t('ls2.rep.s.' + x.state)),
+                    h('button', { type: 'button', className: 'kbl-btn', 'data-kb': 'pattern-forget', onClick: () => forget(x.id) }, x.state === 'never' ? t('ls2.rep.allow') : t('ls2.rep.forget'))))) : null),
+              h('div', { key: 'wk', className: 'kbss-card', 'data-kb': 'learned-week-card' },
+                h('h3', { className: 'kbss-h2' }, t('ls2.w.h')),
+                h('p', { className: 'kbss-sub' }, t('ls2.w.sub')),
+                h('label', { className: 'kbl-chk' }, h('input', { type: 'checkbox', checked: s.week === true, 'data-kb': 'learned-week-on', onChange: (e) => save({ week: e.target.checked }) }), h('span', null, t('ls2.w.on')))),
+              h('div', { key: 'tm', className: 'kbss-card', 'data-kb': 'learned-team-card' },
+                h('h3', { className: 'kbss-h2' }, t('ls2.t.h')),
+                h('p', { className: 'kbss-sub' }, t('ls2.t.sub')),
+                h('div', { className: 'kbl-fr' },
+                  h('label', { className: 'kbl-chk' }, h('input', { type: 'checkbox', checked: s.team === true && (data.sensitive !== true || s.teamPriv === true), disabled: data.sensitive === true && s.teamPriv !== true, 'data-kb': 'learned-team-on', onChange: (e) => save({ team: e.target.checked }) }), h('span', null, t('ls2.t.on'))),
+                  sel('kbl-teammin', s.teamMin, [[3, t('ls2.t.n3')], [5, t('ls2.t.n5')], [8, t('ls2.t.n8')]], (v) => save({ teamMin: Number(v) }))),
+                data.sensitive === true ? h('div', { className: 'kbl-lock' }, icon('lock', 14), h('span', null, t('ls2.t.lock'))) : null,
+                data.sensitive === true ? h('label', { className: 'kbl-chk' }, h('input', { type: 'checkbox', checked: s.teamPriv === true, 'data-kb': 'learned-team-unlock', onChange: (e) => save({ teamPriv: e.target.checked }) }), h('span', null, t('ls2.t.priv'))) : null),
+              h('div', { key: 'aud', className: 'kbss-card' },
+                h('h3', { className: 'kbss-h2' }, t('ls.audit.h')),
+                h('p', { className: 'kbss-sub' }, t('ls.audit.sub')),
+                h('div', { className: 'kbl-fr' },
+                  h('button', { type: 'button', className: 'kbl-btn pri', 'data-kb': 'settings-journal', onClick: () => setTab('journal') }, t('ls.audit.open')),
+                  sure === true
+                    ? h('button', { type: 'button', className: 'kbl-btn warn', 'data-kb': 'learned-stop-yes', onClick: () => { setSure(false); postJson('/kybernos-skills/learned/stop', {}).then((j) => { if (alive.current === true && j !== null && j.ok === true) { setStopped(j.undone); setJTick((n) => n + 1); load() } else if (alive.current === true) setErr(why(j, t('err.unexpected', { r: 'learned/stop' }))) }).catch(() => null) } }, t('ls.audit.sure'))
+                    : h('button', { type: 'button', className: 'kbl-btn warn', 'data-kb': 'learned-stop', onClick: () => setSure(true) }, t('ls.audit.stop'))),
+                stopped !== null ? h('p', { className: 'kbss-sub', 'data-kb': 'learned-stopped' }, t('ls.audit.done', { n: stopped })) : null),
+            ],
           err !== '' ? h('div', { className: 'kbss-err', role: 'alert' }, err) : (saved ? h('p', { className: 'kbss-sub', 'data-kb': 'learned-saved' }, t('ls.saved')) : null))
       }
 
@@ -4199,8 +4350,23 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           h('span', { className: 'h' }, t(bad ? 'vet.hint.bad' : 'vet.hint.warn')))
       }
 
+      // The condition of the phone layer's page rules (kybernos-mobile/mobile.css, 600 px): on a phone the sections of an opened skill are folded (a tap opens each); elsewhere the sheet is the one it always was.
+      const onPhone = () => { try { return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 600px)').matches === true } catch (e) { return false } }
       function SkillSheet(props) {
         const audits = props.audits !== null && props.audits !== undefined
+        const fold = onPhone()
+        const factsBody = [props.lead !== undefined ? props.lead : null, h('div', { key: 'rows', className: 'kb-local-rows' }, ...[].concat(props.facts))]
+        const factsCard = fold
+          ? h('details', { className: 'kbsf-dcard kbsf-fold', 'data-kb': 'sheet-facts' }, h('summary', null, h('span', { className: 'kb-section-label' }, props.factsTitle)), ...factsBody)
+          : h('section', { className: 'kbsf-dcard' }, h('span', { className: 'kb-section-label' }, props.factsTitle), ...factsBody)
+        const auditsCard = audits
+          ? (fold
+            ? h('details', { className: 'kbsf-dcard kbs-audit kbsf-fold', 'data-kb': 'sheet-audits' }, h('summary', null, [].concat(props.audits)[0]), ...[].concat(props.audits).slice(1))
+            : h('section', { className: 'kbsf-dcard kbs-audit' }, props.audits))
+          : null
+        const textCard = fold
+          ? h('details', { className: 'kbsf-dcard kbsf-fold', 'data-kb': 'sheet-text' }, h('summary', null, h('span', { className: 'kb-section-label' }, props.textTitle)), props.text)
+          : h('section', { className: 'kbsf-dcard' }, h('span', { className: 'kb-section-label' }, props.textTitle), props.text)
         return h('article', { className: 'kbsf-detail' + (props.plain === true ? ' kbsf-plain' : ''), 'data-kb': props.kb, 'aria-label': props.label },
           h('div', { className: 'kbs-panel-top' },
             h('span', { className: 'kb8-mono kbs-nowrap' }, props.crumb),
@@ -4216,15 +4382,8 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
               props.pills,
               props.aside !== undefined ? props.aside : null)),
           props.notice !== undefined && props.notice !== null ? props.notice : null,
-          h('div', { className: 'kbsf-dcols' + (audits ? '' : ' one') },
-            h('section', { className: 'kbsf-dcard' },
-              h('span', { className: 'kb-section-label' }, props.factsTitle),
-              props.lead !== undefined ? props.lead : null,
-              h('div', { className: 'kb-local-rows' }, ...[].concat(props.facts))),
-            audits ? h('section', { className: 'kbsf-dcard kbs-audit' }, props.audits) : null),
-          h('section', { className: 'kbsf-dcard' },
-            h('span', { className: 'kb-section-label' }, props.textTitle),
-            props.text),
+          h('div', { className: 'kbsf-dcols' + (audits ? '' : ' one') }, factsCard, auditsCard),
+          textCard,
           ...[].concat(props.extra === undefined ? [] : props.extra),
           h('div', { className: 'kbs-panel-acts kbsf-dacts', 'data-kb': props.actsKb }, ...[].concat(props.acts)))
       }

@@ -32,8 +32,9 @@ window.__ModuleLoader__.load({
     const NAME_MAX = 24
     const PORTRAIT_MAX_BYTES = 4.5 * 1024 * 1024
     const SAMPLE_MAX_BYTES = 10 * 1024 * 1024
-    const PILLS_SHOWN = 7
-    const TAB_IDS = ['look', 'face', 'work', 'permissions']
+    // The short list of voices drawn up front (item 17 of the mobile list: 4 to 6, each with its own Listen); the rest stays under « More voices ».
+    const PILLS_SHOWN = 5
+    const TAB_IDS = ['identity', 'voice', 'face', 'work', 'permissions']
 
     const lang = () => {
       try {
@@ -80,9 +81,21 @@ window.__ModuleLoader__.load({
       const m = /^[a-z]{2,3}-[A-Z][A-Za-z0-9]{1,7}-(.+?)(?:Neural)?$/.exec(String(label))
       return m === null ? String(label) : m[1].replace(/([a-z])([A-Z])/g, '$1 $2')
     }
+    // The Mac's novelty voices (item 17): fun for a demo, wrong for an assistant. They stay in « More voices », never in the short list, unless nothing else speaks the person's language.
+    const NOVELTY_VOICES = ['Albert', 'Bad News', 'Bahh', 'Bells', 'Boing', 'Bubbles', 'Cellos', 'Good News', 'Jester', 'Organ', 'Superstar', 'Trinoids', 'Whisper', 'Wobble', 'Zarvox', 'Fred', 'Junior', 'Kathy', 'Ralph']
+    /** « Eddy (English (UK)) » → name « Eddy », qualifier « English (UK) »: the Mac writes the region inside the voice's name. */
+    const splitVoice = (label) => { const m = /^(.+?) \((.+)\)$/.exec(String(label)); return m === null ? { name: String(label), qual: '' } : { name: m[1], qual: m[2] } }
+    const isNovelty = (v) => NOVELTY_VOICES.indexOf(v.label) >= 0
+    /** « fr-FR » → « French (France) » in the page's language; the code itself when the browser cannot say it. */
+    const langName = (code, uiLang) => {
+      const c = String(code || '').replace('_', '-')
+      if (c === '') return ''
+      try { const n = new Intl.DisplayNames([uiLang === 'fr' ? 'fr' : 'en'], { type: 'language', languageDisplay: 'dialect' }).of(c); return typeof n === 'string' && n !== '' ? n : c } catch (e) { return c }
+    }
     const REGIONS = { fr: ['fr-FR', 'fr-CA', 'fr-BE', 'fr-CH'], en: ['en-US', 'en-GB', 'en-AU', 'en-CA', 'en-IE'], es: ['es-ES', 'es-MX', 'es-US'] }
     const voicePills = (engines, uiLang, max) => {
       const all = []
+      const seen = {}
       // The Mac's own voices come last: its list holds novelty voices (Bells, Bubbles…) that nobody wants for an assistant.
       const ranked = (Array.isArray(engines) ? engines : []).filter((e) => e !== null && typeof e === 'object').map((e, i) => ({ e, i })).sort((a, b) => rankOf(a.e) - rankOf(b.e) || a.i - b.i).map((x) => x.e)
       for (const e of ranked) {
@@ -90,6 +103,9 @@ window.__ModuleLoader__.load({
         for (const v of e.voices) {
           if (v === null || typeof v !== 'object' || typeof v.id !== 'string') continue
           const lang = typeof v.lang === 'string' ? v.lang : ''
+          // The Mac's list repeats some voices (the same id twice): one row each, or two rows would share a key.
+          if (seen[String(e.id) + '|' + v.id] === true) continue
+          seen[String(e.id) + '|' + v.id] = true
           all.push({ engine: String(e.id), engineName: String(e.name || e.id), voice: v.id, label: prettyVoice(v.label || v.id), lang: lang })
         }
       }
@@ -98,7 +114,9 @@ window.__ModuleLoader__.load({
       const rankedAll = all.map((v, i) => ({ v, i })).sort((a, b) => regionRank(a.v) - regionRank(b.v) || a.i - b.i).map((x) => x.v)
       all.splice(0, all.length, ...rankedAll)
       const mine = all.filter((v) => v.lang.toLowerCase().indexOf(uiLang) === 0)
-      return { pills: (mine.length > 0 ? mine : all).slice(0, max), all: all }
+      const pool = mine.length > 0 ? mine : all
+      const serious = pool.filter((v) => !isNovelty(v))
+      return { pills: (serious.length > 0 ? serious : pool).slice(0, max), all: all }
     }
     const sameVoice = (profileVoice, v) => profileVoice !== null && typeof profileVoice === 'object' && profileVoice.pick === 'voice' && profileVoice.engine === v.engine && profileVoice.voice === v.voice
 
@@ -153,10 +171,10 @@ window.__ModuleLoader__.load({
       return { code: 'none', text: kt('Aucune autorisation en vigueur', 'No permission in force'), cls: '' }
     }
     const mandateProblem = (code) => ({
-      cannot_sign: kt('DSH ne trouve pas la clé de cet ordinateur : rien ne peut être signé.', 'DSH cannot find this computer’s key: nothing can be signed.'),
+      cannot_sign: kt('Kybernos ne trouve pas la clé de cet ordinateur : rien ne peut être signé.', 'Kybernos cannot find this computer’s key: nothing can be signed.'),
       write_failed: kt('Le fichier des autorisations n’a pas pu être écrit.', 'The permissions file could not be written.'),
       session: kt('La page n’a pas pu prouver que la demande vient de toi : recharge-la et réessaie.', 'The page could not prove the request comes from you: reload it and try again.'),
-      down: kt('Les autorisations ne répondent pas : relance DSH si ce plugin vient d’être activé.', 'The permissions do not answer: restart DSH if this plugin was just turned on.')
+      down: kt('Les autorisations ne répondent pas : relance Kybernos si ce plugin vient d’être activé.', 'The permissions do not answer: restart Kybernos if this plugin was just turned on.')
     }[code] || kt('La demande n’a pas été gardée.', 'The request was not kept.'))
     // ── wake-ups: the words of the third card. Kaby wakes through an ordinary automation of the Automations page: its schedule, its time limit, « when I write in its chat » and its Stop button are
     //    that page's. This card finds the automation (the one whose runs land in Kaby's own chat), makes it when there is none, and says what is true now. ──
@@ -209,7 +227,7 @@ window.__ModuleLoader__.load({
       'not running': kt('Aucun réveil n’est en cours : il vient de se terminer.', 'No wake-up is under way: it has just ended.'),
       no_chat: kt('Le chat de l’assistant n’existe pas encore : ouvre-le une première fois.', 'The assistant’s chat does not exist yet: open it once.'),
       session: kt('La page n’a pas pu prouver que la demande vient de toi : recharge-la et réessaie.', 'The page could not prove the request comes from you: reload it and try again.'),
-      down: kt('Les automatisations ne répondent pas : relance DSH si ce plugin vient d’être activé.', 'The automations do not answer: restart DSH if this plugin was just turned on.')
+      down: kt('Les automatisations ne répondent pas : relance Kybernos si ce plugin vient d’être activé.', 'The automations do not answer: restart Kybernos if this plugin was just turned on.')
     }[code] || kt('La demande n’a pas abouti.', 'The request did not go through.'))
     /** The chip of the « Where Kaby works » card: this computer is always ready; a cloud computer says its own state. */
     const whereChip = (w) => {
@@ -362,6 +380,8 @@ const readWake = async () => {
       '.kbkc-btn.sm{height:30px;padding:0 11px;font-size:12.5px}',
       '.kbkc-btn.dashed{border-style:dashed;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.08))}',
       '.kbkc-btn[disabled]{opacity:.45;cursor:not-allowed}',
+      // A choice that is already made reads as chosen (a firm outline and a tick), not as a button that is off.
+      '.kbkc-btn[aria-pressed="true"]{opacity:1;cursor:default;border:1.5px solid var(--dsw-alias-label-primary,#222);font-weight:600}',
       '.kbkc-vp{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));border-radius:99px;background:transparent;color:inherit;font:inherit;cursor:pointer}',
       '.kbkc-vp svg{color:var(--dsw-alias-state-warn-primary,#d9822b)}',
       '.kbkc-vp[aria-pressed="true"]{border:1.5px solid var(--dsw-alias-label-primary,#222);background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.16));font-weight:600}',
@@ -370,6 +390,19 @@ const readWake = async () => {
       '.kbkc-chip.warn{border-color:var(--dsw-alias-state-warn-primary,#d49a2a);color:var(--dsw-alias-state-warn-label,#a8530a)}',
       '.kbkc-chip.err{border-color:var(--dsw-alias-state-error-primary,#c0392b);color:var(--dsw-alias-state-error-primary,#c0392b)}',
       '.kbkc-notice.e{border-color:var(--dsw-alias-state-error-primary,#c0392b);color:var(--dsw-alias-state-error-primary,#c0392b)}',
+      '.kbkc-vlist{display:flex;flex-direction:column;gap:8px}',
+      '.kbkc-vrow{display:flex;align-items:center;gap:8px}',
+      '.kbkc-vpick{flex:1 1 auto;min-width:0;border-radius:14px;justify-content:flex-start;text-align:left;height:auto;min-height:44px;padding:8px 14px}',
+      '.kbkc-vpick .kbkc-vname{flex:0 1 auto;min-width:0;overflow-wrap:anywhere}',
+      '.kbkc-vlang{margin-left:auto;font-size:12.5px;font-weight:400;color:var(--dsw-alias-label-secondary,#666);text-align:right}',
+      '.kbkc-listen{flex:0 0 auto;min-height:44px}',
+      '.kbkc-wide{width:100%;justify-content:center}',
+      '.kbkc-more{display:flex;flex-direction:column;gap:8px}',
+      '.kbkc-more-sum{display:flex;align-items:center;min-height:44px;cursor:pointer;list-style:none;font-weight:500;color:var(--dsw-alias-label-primary,inherit)}',
+      '.kbkc-more-sum::-webkit-details-marker{display:none}',
+      '.kbkc-more-sum::after{content:"";width:7px;height:7px;margin:-3px 0 0 10px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg)}',
+      '.kbkc-more[open] .kbkc-more-sum::after{margin-top:3px;transform:rotate(-135deg)}',
+      '.kbkc-more-sel{width:100%;max-width:100%}',
       '.kbkc-vp.custom{border-style:dashed;cursor:default;color:var(--dsw-alias-label-secondary,#666)}',
       '.kbkc-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}',
       '.kbkc-num{width:76px;height:36px;padding:0 10px;border-radius:10px}',
@@ -417,6 +450,7 @@ const readWake = async () => {
       spark: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z',
       mic: 'M9 5a3 3 0 0 1 6 0v6a3 3 0 0 1-6 0zM5 11a7 7 0 0 0 14 0M12 18v4',
       play: 'M6 4l14 8-14 8z',
+      check: 'M5 13l4 4L19 7',
       up: 'M12 16V4M7 9l5-5 5 5M4 20h16',
       lock: 'M5 11h14v9H5zM8 11V8a4 4 0 0 1 8 0v3'
     }
@@ -494,7 +528,7 @@ const readWake = async () => {
           return h('section', { className: 'kbkc-card', 'data-kb': 'kaby-custom-mandate', 'aria-labelledby': 'kbkc-mandate-title' }, [
             cap,
             h('div', { key: 'm', className: down ? 'kbkc-notice w' : 'kbkc-help', 'data-kb': down ? 'kaby-custom-mandate-down' : 'kaby-custom-mandate-loading' },
-              down ? kt('La page ne peut pas lire les autorisations : relance DSH si ce plugin vient d’être activé.', 'The page cannot read the permissions: restart DSH if this plugin was just turned on.') : kt('Lecture des autorisations…', 'Reading the permissions…'))
+              down ? kt('La page ne peut pas lire les autorisations : relance Kybernos si ce plugin vient d’être activé.', 'The page cannot read the permissions: restart Kybernos if this plugin was just turned on.') : kt('Lecture des autorisations…', 'Reading the permissions…'))
           ])
         }
         const d = draft !== null ? draft : draftOf(view)
@@ -545,7 +579,7 @@ const readWake = async () => {
           h('div', { key: 'hd', className: 'kbkc-head' }, [cap, h('span', { key: 's', className: 'kbkc-chip ' + chip.cls, 'data-kb': 'kaby-custom-mandate-chip', 'data-state': chip.code }, chip.text)]),
           h('div', { key: 'lead', className: 'kbkc-help' }, fill(kt('Ce que {name} fait sans te demander dans son chat sur cet ordinateur, tant que tu ne l’as pas mis en pause. Tout le reste, et tout ce qui dépasse une limite du jour, te revient en question comme avant.', 'What {name} does without asking, in its chat on this computer, until you pause it. Everything else, and anything over a daily limit, is asked of you as before.'), { name: name })),
           chip.code === 'resign' ? h('div', { key: 'n', className: 'kbkc-notice e', role: 'alert', 'data-kb': 'kaby-custom-mandate-note' }, kt('L’autorisation ne vaut plus : le fichier a été modifié autrement que par cette page, ou la clé de cet ordinateur a changé. Rien n’est autorisé tant que tu n’as pas signé de nouveau.', 'The permission no longer holds: the file was changed other than by this page, or this computer’s key changed. Nothing is allowed until you sign again.'))
-            : chip.code === 'cannot_sign' ? h('div', { key: 'n', className: 'kbkc-notice w', role: 'alert', 'data-kb': 'kaby-custom-mandate-note' }, kt('DSH ne trouve pas la clé de cette machine : l’autorisation ne peut pas être signée, donc rien n’est autorisé. Les boutons de la carte sont grisés.', 'DSH cannot find this machine’s key: the permission cannot be signed, so nothing is allowed. The card’s controls are off.'))
+            : chip.code === 'cannot_sign' ? h('div', { key: 'n', className: 'kbkc-notice w', role: 'alert', 'data-kb': 'kaby-custom-mandate-note' }, kt('Kybernos ne trouve pas la clé de cette machine : l’autorisation ne peut pas être signée, donc rien n’est autorisé. Les boutons de la carte sont grisés.', 'Kybernos cannot find this machine’s key: the permission cannot be signed, so nothing is allowed. The card’s controls are off.'))
               : chip.code === 'paused' ? h('div', { key: 'n', className: 'kbkc-help', 'data-kb': 'kaby-custom-mandate-note' }, kt('Rien ne passe sans ta réponse. Les réglages et le compte du jour sont gardés.', 'Nothing goes through without your answer. The settings and today’s count are kept.'))
                 : null,
           h('div', { key: 'pr', className: 'kbkc-col' }, [
@@ -563,7 +597,7 @@ const readWake = async () => {
               h('div', { key: 't', className: 'kbkc-cap' }, kt('Te revient toujours en question, quelle que soit l’autorisation', 'Always asked of you, whatever the permission')),
               h('ul', { key: 'u' }, [
                 h('li', { key: '1' }, kt('Une application connectée : envoyer un message, publier, payer', 'A connected app: send a message, publish, pay')),
-                h('li', { key: '2' }, kt('Redémarrer DSH', 'Restart DSH')),
+                h('li', { key: '2' }, kt('Redémarrer Kybernos', 'Restart Kybernos')),
                 h('li', { key: '3' }, kt('Tout ce qui dépasse une limite du jour', 'Anything over a daily limit'))
               ])
             ])
@@ -625,7 +659,7 @@ const readWake = async () => {
           return h('section', { className: 'kbkc-card', 'data-kb': 'kaby-custom-wake', 'aria-labelledby': 'kbkc-wake-title' }, [
             cap,
             h('div', { key: 'm', className: down ? 'kbkc-notice w' : 'kbkc-help', 'data-kb': down ? 'kaby-custom-wake-down' : 'kaby-custom-wake-loading' },
-              down ? kt('La page ne peut pas lire les automatisations : relance DSH si ce plugin vient d’être activé.', 'The page cannot read the automations: restart DSH if this plugin was just turned on.') : kt('Lecture des automatisations…', 'Reading the automations…'))
+              down ? kt('La page ne peut pas lire les automatisations : relance Kybernos si ce plugin vient d’être activé.', 'The page cannot read the automations: restart Kybernos if this plugin was just turned on.') : kt('Lecture des automatisations…', 'Reading the automations…'))
           ])
         }
         const chip = wakeChip(state)
@@ -662,7 +696,7 @@ const readWake = async () => {
         return h('section', { className: 'kbkc-card', 'data-kb': 'kaby-custom-wake', 'aria-labelledby': 'kbkc-wake-title' }, [
           h('div', { key: 'hd', className: 'kbkc-head' }, [cap, h('span', { key: 's', className: 'kbkc-chip ' + chip.cls, 'data-kb': 'kaby-custom-wake-chip', 'data-state': chip.code }, chip.text)]),
           h('div', { key: 'lead', className: 'kbkc-help' }, fill(kt('{name} se réveille de lui-même grâce à une automatisation, comme les autres : son rythme, sa durée maximale, « quand j’écris dans son chat » et le bouton Arrêter sont dans la page Automatisations. Sa liste et ses comptes rendus sont dans son chat, pas ici.', '{name} wakes by itself through an automation, like any other: its schedule, its time limit, “when I write in its chat” and the Stop button are on the Automations page. Its list and its reports are in its chat, not here.'), { name: name })),
-          elsewhere ? h('div', { key: 'cl', className: 'kbkc-notice w', 'data-kb': 'kaby-custom-wake-cloud-note' }, fill(kt('Les réveils ne couvrent pas le cloud computer de {name} : ils ont lieu sur ton ordinateur, quand DSH y est ouvert.', 'Wake-ups do not cover {name}’s cloud computer: they happen on your own computer, while DSH is open there.'), { name: name })) : null,
+          elsewhere ? h('div', { key: 'cl', className: 'kbkc-notice w', 'data-kb': 'kaby-custom-wake-cloud-note' }, fill(kt('Les réveils ne couvrent pas le cloud computer de {name} : ils ont lieu sur ton ordinateur, quand Kybernos y est ouvert.', 'Wake-ups do not cover {name}’s cloud computer: they happen on your own computer, while Kybernos is open there.'), { name: name })) : null,
           chip.code === 'nochat' ? h('div', { key: 'n', className: 'kbkc-notice w', 'data-kb': 'kaby-custom-wake-note' }, kt('Ouvre une première fois le chat de l’assistant : le réveil y tourne, il faut qu’il existe.', 'Open the assistant’s chat once: the wake-up runs there, so it has to exist.'))
             : chip.code === 'none' ? h('div', { key: 'n', className: 'kbkc-help', 'data-kb': 'kaby-custom-wake-note' }, kt('Pas encore de réveil. Le créer ajoute une automatisation éteinte (toutes les 4 h de 08:00 à 20:00, 10 minutes au plus) : tu la relis, tu l’approuves, tu l’actives.', 'No wake-up yet. Creating it adds an automation that is off (every 4 hours from 08:00 to 20:00, 10 minutes at most): you read it, approve it and turn it on.'))
               : chip.code === 'draft' ? h('div', { key: 'n', className: 'kbkc-help', 'data-kb': 'kaby-custom-wake-note' }, made ? kt('Créée, éteinte. Ouvre-la pour la relire, l’approuver et l’activer : tant qu’elle n’est pas approuvée, aucun réveil n’a lieu.', 'Created, and off. Open it to read it, approve it and turn it on: no wake-up happens until it is approved.') : kt('L’automatisation attend ton approbation dans la page Automatisations : aucun réveil n’a lieu avant.', 'The automation waits for your approval on the Automations page: no wake-up happens before.'))
@@ -715,7 +749,7 @@ const readWake = async () => {
         const [consent, setConsent] = useState(false)
         const [notice, setNotice] = useState('')
         const [voiceNotice, setVoiceNotice] = useState('')
-        const [playing, setPlaying] = useState(false)
+        const [playingId, setPlayingId] = useState('')
         const [cv, setCv] = useState(null)
         const patchCv = (patch) => setCv((c) => (c === null ? c : Object.assign({}, c, patch)))
         const [faceView, setFaceView] = useState('none')
@@ -786,12 +820,13 @@ const readWake = async () => {
 
         // ── voice
         const pickVoice = (voice) => change('/profile', { patch: { voice: voice } })
-        const preview = async () => {
-          if (playing || profile === null) return
-          setPlaying(true)
+        /** Plays the sample line with `target` (a voice choice; the chosen voice when none is given). `key` says which row shows « Playing… ». */
+        const preview = async (target, key) => {
+          if (playingId !== '' || profile === null) return
+          setPlayingId(key || 'chosen')
           setVoiceNotice('')
           try {
-            const v = profile.voice || { pick: 'default' }
+            const v = target || profile.voice || { pick: 'default' }
             const body = { text: sampleLine(name), lang: uiLang }
             if (v.pick === 'voice') { body.engine = v.engine; body.voice = v.voice; if (v.lang) body.lang = v.lang }
             const r = await fetch('/kybernos/tts/speak', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
@@ -801,7 +836,7 @@ const readWake = async () => {
               await new Promise((resolve) => { audio.onended = resolve; audio.onerror = resolve; audio.play().catch(resolve) })
             } else setVoiceNotice((j && j.error) || kt('Écoute impossible : le moteur de voix ne répond pas.', 'Could not play: the voice engine does not answer.'))
           } catch (e) { setVoiceNotice(kt('Écoute impossible : le moteur de voix ne répond pas.', 'Could not play: the voice engine does not answer.')) }
-          setPlaying(false)
+          setPlayingId('')
         }
 
         // ── custom voice window: a consent (not kept, only its time) and a sample, recorded or uploaded
@@ -849,7 +884,7 @@ const readWake = async () => {
           return h('div', { className: 'kbkc', 'data-kb': 'kaby-custom-page' }, h('div', { className: 'kbkc-page' },
             pageHead({ title: 'Kaby' }),
             h('div', { className: failed ? 'kbkc-notice w' : 'kbkc-help', 'data-kb': failed ? 'kaby-custom-down' : 'kaby-custom-loading' },
-              failed ? kt('La page ne peut pas lire ses réglages : relance DSH si ce plugin vient d’être activé.', 'The page cannot read its settings: restart DSH if this plugin was just turned on.') : kt('Lecture des réglages…', 'Reading the settings…'))))
+              failed ? kt('La page ne peut pas lire ses réglages : relance Kybernos si ce plugin vient d’être activé.', 'The page cannot read its settings: restart Kybernos if this plugin was just turned on.') : kt('Lecture des réglages…', 'Reading the settings…'))))
         }
 
         const identity = h('section', { className: 'kbkc-card', 'data-kb': 'kaby-custom-identity' }, [
@@ -877,7 +912,8 @@ const readWake = async () => {
               gen.error !== '' ? h('div', { key: 'ge', className: 'kbkc-err', role: 'alert', 'data-kb': 'kaby-custom-gen-error' }, gen.error) : null,
               h('div', { key: 'i', className: 'kbkc-row' }, [
                 h('button', { key: 'u', type: 'button', className: 'kbkc-btn sm', 'data-kb': 'kaby-custom-import', 'aria-pressed': importing ? 'true' : 'false', onClick: () => setImporting(!importing) }, kt('Importer une image', 'Import an image')),
-                hasPortrait ? h('button', { key: 'r', type: 'button', className: 'kbkc-btn sm', 'data-kb': 'kaby-custom-remove-portrait', onClick: removePortrait }, kt('Retirer le portrait', 'Remove the portrait')) : null
+                // the three avatars: the K (the default), a generated portrait, an imported picture. The K is a choice you can go back to, not only what is left once the portrait is removed (owner's list, item 27)
+                h('button', { key: 'r', type: 'button', className: 'kbkc-btn sm', 'data-kb': 'kaby-custom-use-k', 'aria-pressed': hasPortrait ? 'false' : 'true', disabled: !hasPortrait, onClick: removePortrait }, hasPortrait ? kt('Utiliser le K', 'Use the K') : [svg(h, ICON.check, 13), kt('K utilisé', 'K in use')])
               ]),
               importing ? h('div', { key: 'imp', className: 'kbkc-col' }, [
                 h('label', { key: 'c', className: 'kbkc-row' }, [h('input', { key: 'i', type: 'checkbox', 'data-kb': 'kaby-custom-consent', checked: consent, onChange: (e) => setConsent(e.target.checked) }), h('span', { key: 't' }, kt('J’ai le droit d’utiliser cette image. Ce n’est pas le visage d’une autre personne.', 'I have the right to use this image. It is not another person’s face.'))]),
@@ -889,28 +925,46 @@ const readWake = async () => {
           ])
         ])
 
+        // ── Voice, two groups (item 17): « Kybernos voices » = the app voice and a short list in the person's language, each with its own Listen, the rest folded
+        //    under « More voices »; « Your voice » = a voice recorded or imported, with its consent window.
+        const voiceRow = (o) => h('div', { key: o.key, className: 'kbkc-vrow', 'data-kb': 'kaby-custom-voice-row' }, [
+          h('button', { key: 'p', type: 'button', className: 'kbkc-vp kbkc-vpick', 'data-kb': 'kaby-custom-voice-pill', 'data-voice': o.voice, 'aria-pressed': o.pressed ? 'true' : 'false', title: o.title || undefined, onClick: o.pick }, [
+            svg(h, o.icon), h('span', { key: 'n', className: 'kbkc-vname' }, o.label), o.sub ? h('span', { key: 'l', className: 'kbkc-vlang' }, o.sub) : null]),
+          o.listen ? h('button', { key: 'l', type: 'button', className: 'kbkc-btn kbkc-listen', 'data-kb': 'kaby-custom-listen', 'data-voice': o.voice, 'aria-label': kt('Écouter ', 'Listen to ') + (o.aria || o.label), disabled: playingId !== '', onClick: o.listen }, [svg(h, ICON.play, 13), playingId === o.key ? kt('Lecture…', 'Playing…') : kt('Écouter', 'Listen')]) : null
+        ])
+        const voiceKey = (v) => v.engine + '|' + v.voice
+        const pickOf = (v) => () => pickVoice({ pick: 'voice', engine: v.engine, voice: v.voice, lang: v.lang })
+        const rowOfVoice = (v) => voiceRow({ key: voiceKey(v), voice: v.voice, pressed: sameVoice(profile.voice, v), icon: ICON.wave, label: splitVoice(v.label).name, aria: v.label, sub: splitVoice(v.label).qual !== '' ? splitVoice(v.label).qual : langName(v.lang, uiLang), title: v.engineName, pick: pickOf(v), listen: () => preview({ pick: 'voice', engine: v.engine, voice: v.voice, lang: v.lang }, voiceKey(v)) })
+        // The voice picked under « More voices » is drawn with the short list too, so the person sees what is chosen.
+        const shownVoices = voices.pills.slice()
+        const pickedOne = profile.voice.pick === 'voice' ? voices.all.find((v) => sameVoice(profile.voice, v)) : undefined
+        if (pickedOne !== undefined && !shownVoices.some((v) => voiceKey(v) === voiceKey(pickedOne))) shownVoices.push(pickedOne)
+        const moreVoices = voices.all.filter((v) => !shownVoices.some((x) => voiceKey(x) === voiceKey(v)))
+        // A name two voices share (two engines, one first name) gets its engine back; otherwise the engines' names stay out of the way.
+        const sameName = (v) => moreVoices.some((x) => x !== v && x.label === v.label && x.lang === v.lang) || shownVoices.some((x) => x.label === v.label && x.lang === v.lang)
+
         const voiceBlock = h('section', { className: 'kbkc-card', 'data-kb': 'kaby-custom-voice' }, [
-          h('div', { key: 'c', className: 'kbkc-cap' }, kt('Voix', 'Voice')),
-          h('div', { key: 'p', className: 'kbkc-row', style: { gap: 10 } }, [
-            h('button', { key: 'def', type: 'button', className: 'kbkc-vp', 'data-kb': 'kaby-custom-voice-pill', 'data-voice': 'default', 'aria-pressed': profile.voice.pick === 'default' ? 'true' : 'false', onClick: () => pickVoice({ pick: 'default' }) }, [svg(h, ICON.wave), kt('Voix de l’app', 'App voice')])
-          ].concat(voices.pills.map((v) => h('button', { key: v.engine + '|' + v.voice, type: 'button', className: 'kbkc-vp', 'data-kb': 'kaby-custom-voice-pill', 'data-voice': v.voice, 'aria-pressed': sameVoice(profile.voice, v) ? 'true' : 'false', title: v.engineName + (v.lang ? ' · ' + v.lang : ''), onClick: () => pickVoice({ pick: 'voice', engine: v.engine, voice: v.voice, lang: v.lang }) }, [svg(h, ICON.wave), v.label])))
-            .concat(profile.customVoice !== null ? [h('button', { key: 'custom', type: 'button', className: 'kbkc-vp', 'data-kb': 'kaby-custom-voice-pill', 'data-voice': 'custom', 'aria-pressed': profile.voice.pick === 'custom' ? 'true' : 'false', onClick: () => pickVoice({ pick: 'custom' }) }, [svg(h, ICON.mic), profile.customVoice.name])] : [])
-            .concat([
-              h('button', { key: 'pv', type: 'button', className: 'kbkc-btn', 'data-kb': 'kaby-custom-preview', disabled: playing, onClick: preview }, [svg(h, ICON.play, 13), playing ? kt('Lecture…', 'Playing…') : kt('Écouter', 'Preview')]),
-              h('button', { key: 'cv', type: 'button', className: 'kbkc-btn dashed', 'data-kb': 'kaby-custom-custom-voice', onClick: () => setCv({ consent: false, sample: null, name: '', recording: '', error: '' }) }, [svg(h, ICON.mic), kt('Voix perso · enregistrer ou importer', 'Custom voice · record or upload')])
-            ])),
-          voices.all.length > voices.pills.length ? h('div', { key: 'more', className: 'kbkc-row' }, [
-            h('label', { key: 'l', className: 'kbkc-help', htmlFor: 'kbkc-more' }, kt('Toutes les voix', 'All voices')),
-            h('select', { key: 's', id: 'kbkc-more', className: 'kbkc-in', style: { width: 280 }, 'data-kb': 'kaby-custom-more-voices', value: profile.voice.pick === 'voice' ? profile.voice.engine + '|' + profile.voice.voice : '',
-              onChange: (e) => { const hit = voices.all.find((v) => v.engine + '|' + v.voice === e.target.value); if (hit !== undefined) pickVoice({ pick: 'voice', engine: hit.engine, voice: hit.voice, lang: hit.lang }) } },
-            [h('option', { key: '', value: '' }, kt('Choisir…', 'Choose…'))].concat(voices.all.map((v) => h('option', { key: v.engine + '|' + v.voice, value: v.engine + '|' + v.voice }, v.label + (v.lang ? ' (' + v.lang + ')' : '') + ' · ' + v.engineName))))
+          h('div', { key: 'c', className: 'kbkc-cap' }, kt('Voix Kybernos', 'Kybernos voices')),
+          h('div', { key: 'p', className: 'kbkc-vlist' }, [voiceRow({ key: 'default', voice: 'default', pressed: profile.voice.pick === 'default', icon: ICON.wave, label: kt('Voix de l’app', 'App voice'), sub: '', pick: () => pickVoice({ pick: 'default' }), listen: () => preview({ pick: 'default' }, 'default') })].concat(shownVoices.map(rowOfVoice))),
+          moreVoices.length > 0 ? h('details', { key: 'more', className: 'kbkc-more', 'data-kb': 'kaby-custom-more' }, [
+            h('summary', { key: 's', className: 'kbkc-more-sum' }, kt('Plus de voix', 'More voices')),
+            h('select', { key: 's2', id: 'kbkc-more', className: 'kbkc-in kbkc-more-sel', 'aria-label': kt('Plus de voix', 'More voices'), 'data-kb': 'kaby-custom-more-voices', value: '',
+              onChange: (e) => { const hit = moreVoices.find((v) => voiceKey(v) === e.target.value); if (hit !== undefined) pickVoice({ pick: 'voice', engine: hit.engine, voice: hit.voice, lang: hit.lang }) } },
+            [h('option', { key: '', value: '' }, kt('Choisir…', 'Choose…'))].concat(moreVoices.map((v) => h('option', { key: voiceKey(v), value: voiceKey(v) }, v.label + (v.lang ? ' (' + langName(v.lang, uiLang) + ')' : '') + (sameName(v) ? ' · ' + v.engineName : '')))))
           ]) : null,
-          h('div', { key: 's', className: 'kbkc-row' }, [
+          // The pressed row already says which voice is in use: the line below is only for a voice no engine speaks yet.
+          profile.voice.pick === 'custom' ? h('div', { key: 's', className: 'kbkc-row' }, [
             h('span', { key: 'c', className: 'kbkc-chip' + (profile.voice.pick === 'custom' ? ' warn' : '') }, profile.voice.pick === 'custom' ? kt('Pas encore parlée', 'Not spoken yet') : (profile.voice.pick === 'default' ? kt('Voix de l’app', 'App voice') : kt('Sa propre voix', 'Its own voice'))),
             h('span', { key: 't', className: 'kbkc-help' }, voiceSummary(profile, voices.all) + (profile.voice.pick === 'custom' ? ' · ' + kt('aucun moteur installé ne sait parler avec une voix clonée', 'no installed engine speaks a cloned voice yet') : ''))
-          ]),
-          voiceNotice !== '' ? h('div', { key: 'vn', className: 'kbkc-err', role: 'alert', 'data-kb': 'kaby-custom-voice-error' }, voiceNotice) : null,
-          h('div', { key: 'n', className: 'kbkc-help' }, ktn('Sans choix, {name} parle avec la voix de Réglages › Voix.', '{name} speaks with the voice of Settings › Voice unless you choose one.'))
+          ]) : null,
+          voiceNotice !== '' ? h('div', { key: 'vn', className: 'kbkc-err', role: 'alert', 'data-kb': 'kaby-custom-voice-error' }, voiceNotice) : null
+        ])
+
+        const ownVoiceBlock = h('section', { className: 'kbkc-card', 'data-kb': 'kaby-custom-own-voice' }, [
+          h('div', { key: 'c', className: 'kbkc-cap' }, kt('Ma voix', 'Your voice')),
+          profile.customVoice !== null ? h('div', { key: 'l', className: 'kbkc-vlist' }, [voiceRow({ key: 'custom', voice: 'custom', pressed: profile.voice.pick === 'custom', icon: ICON.mic, label: profile.customVoice.name, sub: '', pick: () => pickVoice({ pick: 'custom' }), listen: null })]) : null,
+          h('div', { key: 'a', className: 'kbkc-row' }, h('button', { type: 'button', className: 'kbkc-btn kbkc-wide', 'data-kb': 'kaby-custom-custom-voice', onClick: () => setCv({ consent: false, sample: null, name: '', recording: '', error: '' }) }, [svg(h, ICON.mic), kt('Enregistrer ou importer ma voix', 'Record or upload my voice')])),
+          h('div', { key: 'h', className: 'kbkc-help' }, kt('Ton accord est demandé avant. L’échantillon reste sur cet ordinateur.', 'You are asked to agree first. The sample stays on this computer.'))
         ])
 
         const faceBlock = h('section', { className: 'kbkc-card', 'data-kb': 'kaby-custom-face' }, [
@@ -966,7 +1020,8 @@ const readWake = async () => {
         ]))
 
         const tabLabel = (id) => ({
-          look: kt('Identité et voix', 'Identity & voice'),
+          identity: kt('Identité', 'Identity'),
+          voice: kt('Voix', 'Voice'),
           face: kt('Appels vidéo', 'Video calls'),
           work: kt('Travail', 'Work'),
           permissions: kt('Autorisations', 'Permissions')
@@ -991,7 +1046,8 @@ const readWake = async () => {
             key: id, id: 'kbkc-tab-' + id, type: 'button', role: 'tab', className: 'kbkc-tab', 'data-kb': 'kaby-custom-tab', 'data-tab': id, 'aria-selected': tab === id ? 'true' : 'false', 'aria-controls': 'kbkc-panel-' + id, tabIndex: tab === id ? 0 : -1, onClick: () => setTab(id)
           }, tabLabel(id)))),
           // Every card stays mounted and only the open tab is shown: a draft in Permissions or a half-typed name is still there when the person comes back.
-          panel('look', identity, voiceBlock),
+          panel('identity', identity),
+          panel('voice', voiceBlock, ownVoiceBlock),
           panel('face', faceBlock),
           panel('work', h(WhereCard, { key: 'where' }), h(WakeCard, { key: 'wake' })),
           panel('permissions', h(MandateCard, { key: 'mandate' })),
@@ -1033,7 +1089,7 @@ const readWake = async () => {
       name: NAME,
       inject: [],
       apply: start,
-      __test: { buildPanel, buildCards, fill, draftOf, draftPreset, mandateChip, mandateProblem, whereChip, dateText, presetLabel, PRESET_ORDER, MANDATE, TASKS, NATIVE, LOAD, WAKE_CRON, wakePrompt, wakeInput, wakeTaskOf, wakeApproved, wakeChip, wakeProblem, readWake, prettyVoice, kt, tx, lang, nameText, portraitProblem, portraitPrompt, voicePills, sameVoice, voiceSummary, sampleLine, providerState, publish, store, CSS, NAME_MAX, PILLS_SHOWN, TAB_IDS }
+      __test: { buildPanel, buildCards, fill, draftOf, draftPreset, mandateChip, mandateProblem, whereChip, dateText, presetLabel, PRESET_ORDER, MANDATE, TASKS, NATIVE, LOAD, WAKE_CRON, wakePrompt, wakeInput, wakeTaskOf, wakeApproved, wakeChip, wakeProblem, readWake, prettyVoice, NOVELTY_VOICES, isNovelty, splitVoice, langName, kt, tx, lang, nameText, portraitProblem, portraitPrompt, voicePills, sameVoice, voiceSummary, sampleLine, providerState, publish, store, CSS, NAME_MAX, PILLS_SHOWN, TAB_IDS }
     }
   }
 })

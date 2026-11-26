@@ -12,13 +12,16 @@
 //
 //   node packages/kybernos-plugin/test-tool-profiles.mjs   (exit 0 = all pass)
 import assert from 'node:assert/strict'
-import { existsSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
-  CORE_TOOLS, PROFILE_TOOLS, PROFILE_NAMES, TOOL_PROFILES_ENV, claimedText, filterFor, looksLikeCodeWorkspace,
-  mountToolProfiles, profileFor, profileNote, unknownGlobalNames, withoutNames,
+  CORE_TOOLS, PROFILE_TOOLS, PROFILE_NAMES, TOOL_PROFILES_ENV, WORKER_TOOL_PREFIX, claimedText, filterFor,
+  isWorkerTool, looksLikeCodeWorkspace, mountToolProfiles, mountWorkerExecutionGuard, normalizeWorkerTool,
+  profileFor, profileNote, readHarnessWorkerPolicy, resolveProvenAgentScope, unknownGlobalNames, withoutNames, NAMED_TOOLS, namedTools,
 } from './tool-profiles.mjs'
+import { memoryTidyPrompt, MEMORY_TIDY_TOOL } from './automation-core.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -143,6 +146,11 @@ console.log('filter')
   const automation = filterFor('automation', LIVE_TOOL_UNIVERSE)
   assert.ok(automation.allow.indexOf('schedule_create') >= 0)
   assert.ok(automation.allow.indexOf('automation_suggest') >= 0)
+  // the lessons index points the model at lesson_read, and the daily core automation calls memory_tidy: both must survive a profile
+  for (const p of ['office', 'automation']) {
+    const f = filterFor(p, [...LIVE_TOOL_UNIVERSE, 'lesson_read', 'memory_tidy'])
+    assert.ok(f.allow.indexOf('lesson_read') >= 0 && f.allow.indexOf('memory_tidy') >= 0, p + ' keeps lesson_read and memory_tidy')
+  }
   assert.equal(filterFor('full', LIVE_TOOL_UNIVERSE), null, 'full means no filter')
   assert.equal(filterFor('nonsense', LIVE_TOOL_UNIVERSE), null)
   // A deployment missing almost every tool: the filter would keep too little, so no
@@ -319,6 +327,197 @@ console.log('mount')
   host.emit('agent/inbox/claimed', { agent, message: userMsg('fix the failing test and commit'), turn: 2 })
   assert.ok(registry.scoped.has(agent))
   ok('a message without human text does not decide the profile; the next human one does')
+}
+
+console.log('named tools (a shipped automation calls its one tool by name)')
+{
+  // The core automation "Tidy memory & lessons" runs a prompt that calls `memory_tidy`; the skill scout calls `skill_scout`.
+  // Neither belongs to a profile, so without this a restricted run hid the one tool it exists for.
+  const universe = LIVE_TOOL_UNIVERSE.concat([MEMORY_TIDY_TOOL])
+  const prompt = memoryTidyPrompt()
+  assert.deepEqual(NAMED_TOOLS, ['memory_tidy', 'skill_scout'])
+  assert.deepEqual(namedTools(prompt), ['memory_tidy'], 'the core prompt names its tool')
+  assert.deepEqual(namedTools('Call the skill_scout tool once'), ['skill_scout'])
+  assert.deepEqual(namedTools('memory_tidy_old or xmemory_tidy are other names'), [], 'a whole word only')
+  assert.deepEqual([namedTools(''), namedTools(undefined), namedTools(7)], [[], [], []])
+  // The office and automation profiles list memory_tidy themselves (a person may ask a chat to tidy the lessons); the code profile does not, and naming it is what keeps it there.
+  assert.equal(filterFor('code', universe).allow.indexOf('memory_tidy'), -1, 'code: hidden when not named')
+  for (const profile of ['code', 'office', 'automation']) {
+    assert.ok(filterFor(profile, universe, ['memory_tidy']).allow.indexOf('memory_tidy') >= 0, profile + ': kept when named')
+  }
+  for (const profile of ['office', 'automation']) assert.ok(filterFor(profile, universe).allow.indexOf('memory_tidy') >= 0, profile + ': in the profile itself')
+  assert.equal(filterFor('code', LIVE_TOOL_UNIVERSE, ['memory_tidy']).allow.indexOf('memory_tidy'), -1, 'named but not registered: not passed to restrict (it throws)')
+  assert.equal(filterFor('code', universe, ['memory_write', 'plugin_manager']).allow.indexOf('plugin_manager'), -1, 'only NAMED_TOOLS can be widened by a message')
+  ok('a named tool is kept in every profile when visible, and only NAMED_TOOLS')
+}
+{
+  // An unclear workspace: the run's first message (the core prompt) decides, and the tool it names stays.
+  const host = makeHost()
+  const registry = makeRegistry(LIVE_TOOL_UNIVERSE.concat([MEMORY_TIDY_TOOL]))
+  mountToolProfiles(host.ctx, { env: { [TOOL_PROFILES_ENV]: 'code' }, exists: () => false })
+  const { agent } = makeAgent({ id: 'n1', cwd: '/tmp', requestHeader: () => undefined, registry })
+  host.emit('agent/inbox/claimed', { agent, message: userMsg(memoryTidyPrompt()), turn: 1 })
+  assert.ok(registry.scoped.has(agent))
+  assert.ok([...registry.scoped.get(agent)].indexOf('memory_tidy') >= 0, 'the run keeps memory_tidy')
+  assert.equal(registry.calls.length, 1)
+  ok('restricted at the first message: the named tool is in the filter')
+}
+{
+  // A code workspace is restricted at creation, before any message: the first message naming the tool widens it once.
+  const host = makeHost()
+  const registry = makeRegistry(LIVE_TOOL_UNIVERSE.concat([MEMORY_TIDY_TOOL]))
+  mountToolProfiles(host.ctx, { env: {}, exists: (p) => existsSync(p) })
+  const { agent, sections } = makeAgent({ id: 'n2', cwd: join(here, '..', '..'), requestHeader: () => undefined, registry })
+  host.emit('agent/created', { agent, source: 'fresh' })
+  assert.equal([...registry.scoped.get(agent)].indexOf('memory_tidy'), -1, 'hidden at creation')
+  host.emit('agent/inbox/claimed', { agent, message: userMsg(memoryTidyPrompt()), turn: 1 })
+  const allow = [...registry.scoped.get(agent)]
+  assert.ok(allow.indexOf('memory_tidy') >= 0, 'widened with the named tool')
+  assert.ok(allow.indexOf('bash') >= 0 && allow.indexOf('memory_write') < 0, 'same profile otherwise')
+  assert.equal(registry.calls.length, 2)
+  assert.equal(sections.length, 1, 'the note is not added twice')
+  host.emit('agent/inbox/claimed', { agent, message: userMsg('Call the skill_scout tool once'), turn: 2 })
+  assert.equal(registry.calls.length, 2, 'widened once, never mid-session')
+  ok('restricted at creation: the first message naming the tool widens the filter once')
+}
+{
+  const host = makeHost()
+  const registry = makeRegistry(LIVE_TOOL_UNIVERSE.concat([MEMORY_TIDY_TOOL]))
+  mountToolProfiles(host.ctx, { env: {}, exists: (p) => existsSync(p) })
+  let sent = false
+  const { agent } = makeAgent({ id: 'n3', cwd: join(here, '..', '..'), requestHeader: () => (sent === true ? { tools: [] } : undefined), registry })
+  host.emit('agent/created', { agent, source: 'fresh' })
+  sent = true
+  host.emit('agent/inbox/claimed', { agent, message: userMsg(memoryTidyPrompt()), turn: 1 })
+  assert.equal(registry.calls.length, 1, 'a session that already sent a request is not changed')
+  assert.equal([...registry.scoped.get(agent)].indexOf('memory_tidy'), -1)
+  ok('no widening once a request was sent')
+}
+
+console.log('Phase 0: worker policy single-pass composition, proven scopes and execution guard')
+{
+  // Pin current default worker visibility across task profiles (without explicit worker policy)
+  for (const p of ['code', 'office', 'automation']) {
+    const f = filterFor(p, LIVE_TOOL_UNIVERSE)
+    assert.equal(f.allow.indexOf('subagent_claude_code'), -1, p + ' hides subagent_claude_code by default')
+    assert.equal(f.allow.indexOf('subagent_codex'), -1, p + ' hides subagent_codex by default')
+  }
+  assert.equal(filterFor('full', LIVE_TOOL_UNIVERSE), null, 'full keeps all visible worker tools when no revocation exists')
+  assert.equal(WORKER_TOOL_PREFIX, 'subagent_')
+  assert.equal(isWorkerTool('subagent_codex'), true)
+  assert.equal(isWorkerTool('subagent_claude_code'), true)
+  assert.equal(isWorkerTool('subagent'), false)
+  assert.equal(isWorkerTool('subagent_fork'), false)
+  assert.equal(normalizeWorkerTool('claude-code'), 'subagent_claude_code')
+  assert.equal(normalizeWorkerTool('subagent_codex'), 'subagent_codex')
+  assert.equal(normalizeWorkerTool('bash'), null)
+  assert.equal(normalizeWorkerTool('subagent_fork'), null)
+
+  // Single-pass composition: add enabled workers, drop revoked workers, never broaden non-worker tools
+  const composed = filterFor('code', LIVE_TOOL_UNIVERSE, [], {
+    allow: ['codex', 'claude-code', 'memory_write', 'plugin_manager'],
+    deny: ['claude-code'],
+  })
+  assert.ok(composed.allow.indexOf('subagent_codex') >= 0, 'explicitly allowed worker enters the code allowlist')
+  assert.equal(composed.allow.indexOf('subagent_claude_code'), -1, 'deny wins over allow in the same pass')
+  assert.equal(composed.allow.indexOf('memory_write'), -1, 'workerPolicy can never widen non-worker tools')
+  assert.equal(composed.allow.indexOf('plugin_manager'), -1, 'workerPolicy can never widen host admin tools')
+
+  // Full profile with explicit worker revocation still produces a single-pass restriction
+  const fullRevoked = filterFor('full', LIVE_TOOL_UNIVERSE, [], { deny: ['codex'] })
+  assert.ok(fullRevoked !== null)
+  assert.equal(fullRevoked.allow.indexOf('subagent_codex'), -1, 'revoked worker dropped from full profile')
+  assert.ok(fullRevoked.allow.indexOf('subagent_claude_code') >= 0, 'unrelated worker kept in full profile')
+  assert.ok(fullRevoked.allow.indexOf('memory_write') >= 0, 'non-worker tools untouched in full profile')
+  assert.equal(filterFor('full', LIVE_TOOL_UNIVERSE, [], { deny: ['hermes'] }), null, 'revoking an absent worker does not restrict full')
+
+  // Proven scope resolution: only durable preset + explicit automation tracker + default (never guesses team/role)
+  const scopePreset = resolveProvenAgentScope({ id: 's1', session: { header: { agentPreset: 'standard' } } })
+  assert.deepEqual(scopePreset, { scope: 'preset:standard', scopes: ['preset:standard', 'default'], presetId: 'standard', automationId: null })
+  const scopeAuto = resolveProvenAgentScope(
+    { id: 's2', session: { header: { agentPreset: 'standard' } } },
+    { automationScope: () => 'nightly-audit' },
+  )
+  assert.deepEqual(scopeAuto, {
+    scope: 'automation:nightly-audit',
+    scopes: ['automation:nightly-audit', 'automation', 'preset:standard', 'default'],
+    presetId: 'standard',
+    automationId: 'nightly-audit',
+  })
+  const scopeDefault = resolveProvenAgentScope({ id: 's3', session: { header: {} } })
+  assert.deepEqual(scopeDefault, { scope: 'default', scopes: ['default'], presetId: null, automationId: null })
+
+  // Mount: single restrict() call composes profile + worker policy at creation
+  const host = makeHost()
+  const registry = makeRegistry(LIVE_TOOL_UNIVERSE)
+  mountToolProfiles(host.ctx, {
+    env: {},
+    exists: (p) => existsSync(p),
+    workerPolicyFor: (_agent, scopeInfo) => (scopeInfo.presetId === 'standard' ? { allow: ['codex'], deny: ['claude-code'] } : null),
+  })
+  const { agent } = makeAgent({ id: 'w1', cwd: join(here, '..', '..'), requestHeader: () => undefined, registry })
+  agent.session.header.agentPreset = 'standard'
+  host.emit('agent/created', { agent, source: 'fresh' })
+  assert.equal(registry.calls.length, 1, 'one single tools.restrict() pass')
+  assert.ok(registry.scoped.get(agent).has('subagent_codex'), 'codex enabled in that single pass')
+  assert.equal(registry.scoped.get(agent).has('subagent_claude_code'), false, 'claude-code absent in that single pass')
+
+  // Mount: full profile + worker revocation restricts at creation without adding a task-profile note
+  const hostFull = makeHost()
+  const registryFull = makeRegistry(LIVE_TOOL_UNIVERSE)
+  mountToolProfiles(hostFull.ctx, {
+    env: {},
+    exists: () => false,
+    workerPolicyFor: () => ({ deny: ['claude-code'] }),
+  })
+  const { agent: fullAgent, sections: fullSections } = makeAgent({ id: 'w2', cwd: '/tmp', requestHeader: () => undefined, registry: registryFull })
+  hostFull.emit('agent/created', { agent: fullAgent, source: 'fresh' })
+  assert.equal(registryFull.calls.length, 1, 'full profile revocation applied in one pass at creation')
+  assert.equal(registryFull.scoped.get(fullAgent).has('subagent_claude_code'), false)
+  assert.equal(registryFull.scoped.get(fullAgent).has('subagent_codex'), true)
+  assert.equal(fullSections.length, 0, 'no task-profile system prompt note on full sessions')
+
+  // Execution-time guard (`tools/pre-execute`): blocks revoked worker in an already-open session without touching unrelated tools
+  const guardHost = makeHost()
+  let revoked = false
+  const mountedGuard = mountWorkerExecutionGuard(guardHost.ctx, {
+    workerPolicyFor: () => (revoked ? { deny: ['codex'] } : null),
+  })
+  assert.equal(mountedGuard, true)
+  const hook = guardHost.handlers.get('tools/pre-execute')
+  const openAgent = { id: 'open-1', session: { header: { agentPreset: 'standard' } } }
+  const allowed = await hook({ name: 'subagent_codex', agent: openAgent }, async () => ({ kind: 'allow' }))
+  assert.equal(allowed.kind, 'allow')
+  revoked = true
+  const denied = await hook({ name: 'subagent_codex', agent: openAgent }, async () => ({ kind: 'allow' }))
+  assert.equal(denied.kind, 'deny')
+  assert.match(denied.reason, /subagent_codex.*preset:standard/)
+  const otherTool = await hook({ name: 'bash', agent: openAgent }, async () => ({ kind: 'allow' }))
+  assert.equal(otherTool.kind, 'allow', 'unrelated tools pass through')
+  const coreSubagent = await hook({ name: 'subagent', agent: openAgent }, async () => ({ kind: 'allow' }))
+  assert.equal(coreSubagent.kind, 'allow', 'core in-process subagent is not treated as an external worker')
+  ok('single-pass worker composition, proven scope resolution, and pre-execute revocation guard')
+
+  // Phase 1: readHarnessWorkerPolicy reads $DSH_HOME/kybernos-workers/harness.json by proven scope priority
+  const tmpDsh = mkdtempSync(join(tmpdir(), 'kb-tp-harness-'))
+  try {
+    assert.equal(readHarnessWorkerPolicy({ scopes: ['preset:standard', 'default'] }, tmpDsh), null, 'missing harness.json returns null')
+    mkdirSync(join(tmpDsh, 'kybernos-workers'), { recursive: true })
+    writeFileSync(join(tmpDsh, 'kybernos-workers', 'harness.json'), JSON.stringify({
+      version: 1,
+      policies: {
+        default: { allow: ['codex'], deny: [] },
+        'preset:standard': { allow: ['claude-code'], deny: ['hermes'] }
+      }
+    }), 'utf8')
+    const stdPol = readHarnessWorkerPolicy({ scopes: ['preset:standard', 'default'] }, tmpDsh)
+    assert.deepEqual(stdPol, { allow: ['claude-code'], deny: ['hermes'] }, 'preset scope overrides default')
+    const defPol = readHarnessWorkerPolicy({ scopes: ['preset:other', 'default'] }, tmpDsh)
+    assert.deepEqual(defPol, { allow: ['codex'], deny: [] }, 'falls back to default when preset has no entry')
+    ok('readHarnessWorkerPolicy resolves proven scopes from harness.json and degrades cleanly when missing')
+  } finally {
+    rmSync(tmpDsh, { recursive: true, force: true })
+  }
 }
 
 console.log('measure')

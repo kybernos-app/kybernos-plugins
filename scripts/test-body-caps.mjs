@@ -62,8 +62,8 @@ const BUNDLES = [
       monterRoutes(web, { reglagesPath: join(home, 'settings.json'), categoriesPath: join(home, 'categories.json'), sessionsHome: join(home, 'sessions'), kybersHome: join(home, 'kybers') })
     },
     // 256 KiB: every honest body is a few lines (a session id, a folder, a commit message, at most 50 file paths, the configured models, the `kybers` of a decision).
-    bodies: Object.fromEntries(['isolate', 'commit', 'close-check', 'brain/health', 'decision', 'settings', 'categories', 'close', 'reclaim', 'push', 'fetch', 'sync', 'pr'].map((r) => ['/kybernos-sessions/' + r, 256 * KIB])),
-    none: ['/kybernos-sessions/state'],
+    bodies: Object.fromEntries(['isolate', 'commit', 'close-check', 'brain/health', 'decision', 'settings', 'categories', 'close', 'reclaim', 'push', 'fetch', 'sync', 'pr', 'rewind'].map((r) => ['/kybernos-sessions/' + r, 256 * KIB])),
+    none: ['/kybernos-sessions/state', '/kybernos-sessions/rewind/turns'],
   },
   {
     bundle: 'kybernos-bricks',

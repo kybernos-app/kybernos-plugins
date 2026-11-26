@@ -42,9 +42,12 @@ window.__ModuleLoader__.load({
         { id: 'lesson', host: true, hue: '#f5a623', label: () => kt('Leçons', 'Lessons'), icon: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5M9 18h6M10 22h4"/>' },
         { id: 'creation', host: false, hue: '#1fa8e8', label: () => kt('Créations', 'Creations'), icon: '<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4-4-9 9"/>' },
         { id: 'automation', host: true, hue: '#16b894', label: () => kt('Automations', 'Automations'), icon: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>' },
-        { id: 'team', host: true, hue: '#6c5ce7', label: () => kt('Agent Teams', 'Agent Teams'), icon: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5M17 11a3 3 0 1 0 0-6M21 20c0-2.5-1.8-4.3-4-4.8"/>' }
+        { id: 'team', host: true, hue: '#6c5ce7', label: () => kt('Équipes d’agents IA', 'AI Agent Teams'), icon: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5M17 11a3 3 0 1 0 0-6M21 20c0-2.5-1.8-4.3-4-4.8"/>' }
       ]
       const DEFAULT_SCOPES = ['chat', 'skill', 'memory', 'lesson', 'creation']
+      // The commands other bundles register (`window.__KB_COMMANDS__`, an array of `{ id, label(), keywords?, hint?(), run() }`) are found by the same box, first, whatever the scope chips say: not a scope the person turns on, a group
+      // that appears when a word matches (« display », « mode »). Nothing is stored for them.
+      const COMMAND_SCOPE = { id: 'command', host: false, hue: '#8a8f98', label: () => kt('Commandes', 'Commands'), icon: '<path d="m5 8 4 4-4 4M12 17h7"/>' }
       const KEY_SCOPES = 'kybernos.search.scopes'
       const KEY_REMEMBER = 'kybernos.search.remember'
 
@@ -121,9 +124,29 @@ window.__ModuleLoader__.load({
         const list = Array.isArray(v) ? v.filter((x) => known.indexOf(x) >= 0) : []
         return list.length > 0 ? list : DEFAULT_SCOPES.slice()
       }
+      /** The registered commands that every word of the query finds (in the label or the keywords), as results of the scope « command »: the best first, at most six. A command that is not an object with a label and a `run` is left out. */
+      const commandMatches = (cmds, q) => {
+        const terms = queryTerms(q)
+        if (terms.length === 0 || !Array.isArray(cmds)) return []
+        const out = []
+        for (const c of cmds) {
+          if (c === null || typeof c !== 'object' || typeof c.run !== 'function' || typeof c.label !== 'function') continue
+          let title = ''
+          let hint = ''
+          try { title = String(c.label()); hint = typeof c.hint === 'function' ? String(c.hint()) : '' } catch (e) { continue }
+          if (title === '') continue
+          const titleF = fold(title)
+          const hayF = titleF + ' ' + fold(Array.isArray(c.keywords) ? c.keywords.filter((k) => typeof k === 'string').join(' ') : '')
+          if (!terms.every((t) => hayF.includes(t))) continue
+          out.push({ scope: 'command', id: String(c.id), title, titleMarks: marksOf(titleF, terms), meta: { where: hint }, open: { kind: 'command', run: c.run }, score: terms.reduce((n, t) => n + (titleF.includes(t) ? 2 : 1), 0), hits: [] })
+        }
+        out.sort((x, y) => y.score - x.score)
+        return out.slice(0, 6)
+      }
       // KB-SEARCH-PURE-END
 
       // ── storage (every access guarded: a blocked storage means defaults) ──────
+      const readCommands = () => { try { const c = window.__KB_COMMANDS__; return Array.isArray(c) ? c.slice() : [] } catch (e) { return [] } }
       const lsGet = (k) => { try { return window.localStorage.getItem(k) } catch (e) { return null } }
       const lsSet = (k, v) => { try { window.localStorage.setItem(k, v) } catch (e) { /* blocked: defaults next time */ } }
       const readScopes = () => { try { return normalizeScopes(JSON.parse(lsGet(KEY_SCOPES) || 'null')) } catch (e) { return DEFAULT_SCOPES.slice() } }
@@ -184,6 +207,7 @@ window.__ModuleLoader__.load({
 .kbsr-in{flex:1;min-width:0;height:34px;border:0;outline:0;background:transparent;font:inherit;font-size:16px;color:inherit}
 .kbsr-in::placeholder{color:var(--dsw-alias-label-tertiary,#888)}
 .kbsr-kbd{font-size:11px;padding:1px 6px;border-radius:6px;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));color:var(--dsw-alias-label-tertiary,#888)}
+.kbsr-x{display:none}
 .kbsr-hh{position:relative;flex:none;display:inline-flex}
 .kbsr-hh-btn{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 5px;border-radius:13px;border:1px solid var(--dsw-alias-border-l3,rgba(128,128,128,.35));background:transparent;color:var(--dsw-alias-label-secondary,#555);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
 .kbsr-hh-btn:hover,.kbsr-hh-btn[aria-expanded="true"]{border-color:var(--dsw-alias-label-tertiary,#888);color:var(--dsw-alias-label-primary,#111)}
@@ -241,8 +265,6 @@ window.__ModuleLoader__.load({
 .kbsr-warn{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:8px 14px;border-top:1px solid var(--dsw-alias-border-l1,rgba(128,128,128,.2));font-size:12px;color:var(--dsw-alias-label-secondary,#666)}
 .kbsr-warn[hidden]{display:none}
 .kbsr-hdr{color:var(--dsw-alias-brand-primary,#4f8cff)}
-.kbsr-hdr-own{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;border:0;background:transparent;cursor:pointer}
-.kbsr-hdr-own:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.14))}
 @media (max-width:720px){.kbsr-body{grid-template-columns:1fr}.kbsr-prev{display:none}.kbsr-list{border:0}.kbsr-dlg{max-height:88vh;border-radius:16px}}
 `
 
@@ -301,6 +323,8 @@ window.__ModuleLoader__.load({
             return false
           }
           if (r.open.kind === 'page' && typeof window.__KB_OPEN__ === 'function') { window.__KB_OPEN__({ view: r.open.view }); return true }
+          // a command runs once the dialog has closed and given the focus back (a command that opens a sheet of its own keeps it)
+          if (r.open.kind === 'command' && typeof r.open.run === 'function') { const run = r.open.run; setTimeout(() => { try { run() } catch (e) { /* the command failed: nothing more to do here */ } }, 30); return true }
         } catch (e) { /* navigation unavailable */ }
         return false
       }
@@ -394,6 +418,14 @@ window.__ModuleLoader__.load({
         input.placeholder = kt('Chercher dans les chats, skills, mémoires…', 'Search chats, skills, memories…')
         top.appendChild(input)
         top.appendChild(el('span', 'kbsr-kbd', 'Esc'))
+        // The close button of a touch screen, where there is no « Esc » key: not drawn (`display:none` above) unless the Theme's touch comfort asks for it, which then hides the « Esc » hint.
+        const closeBtn = el('button', 'kbsr-x')
+        closeBtn.type = 'button'
+        closeBtn.setAttribute('data-kb', 'search-close')
+        closeBtn.setAttribute('aria-label', kt('Fermer', 'Close'))
+        closeBtn.appendChild(svgIcon('<path d="M6 6l12 12M18 6L6 18"/>', 24))
+        closeBtn.addEventListener('click', () => closeDialog())
+        top.appendChild(closeBtn)
         // A-14: the page's own help, in the row that already carries its actions (the pill is drawn only when the host publishes help).
         const helpCard = kbHelpCard()
         if (helpCard !== null) top.appendChild(helpCard)
@@ -475,7 +507,7 @@ window.__ModuleLoader__.load({
             body.className = 'kbsr-body one'
             const e = el('div', 'kbsr-empty')
             e.appendChild(el('h3', null, kt('Chercher partout sur cet ordinateur', 'Search everything on this computer')))
-            e.appendChild(el('span', null, kt('Le contenu des chats (pas seulement leurs titres), les skills, les mémoires, les leçons, les créations, les automatisations et les équipes. Rien ne quitte cet ordinateur.', 'The content of your chats (not only their titles), skills, memories, lessons, creations, automations and agent teams. Nothing leaves this computer.')))
+            e.appendChild(el('span', null, kt('Le contenu des chats (pas seulement leurs titres), les skills, les mémoires, les leçons, les créations, les automatisations et les équipes. Rien ne quitte cet ordinateur.', 'The content of your chats (not only their titles), skills, memories, lessons, creations, automations and AI agent teams. Nothing leaves this computer.')))
             if (building) {
               e.appendChild(el('strong', null, kt('Indexation des chats… ', 'Indexing your chats… ') + S.host.done + ' / ' + S.host.total))
               const bar = el('div', 'kbsr-bar')
@@ -500,7 +532,7 @@ window.__ModuleLoader__.load({
             const list = el('div', 'kbsr-list')
             list.setAttribute('role', 'listbox')
             let n = 0
-            for (const sc of SCOPES) {
+            for (const sc of [COMMAND_SCOPE].concat(SCOPES)) {
               const rows = results.filter((r) => r.scope === sc.id)
               if (rows.length === 0) continue
               const g = el('div', 'kbsr-grp')
@@ -543,7 +575,7 @@ window.__ModuleLoader__.load({
             const cur = results[Math.min(S.sel, results.length - 1)]
             const prev = el('div', 'kbsr-prev')
             if (cur !== undefined) {
-              const sc = SCOPES.find((x) => x.id === cur.scope)
+              const sc = [COMMAND_SCOPE].concat(SCOPES).find((x) => x.id === cur.scope)
               prev.appendChild(el('div', 'kbsr-m', [sc ? sc.label() : '', cur.meta.where].filter(Boolean).join(' · ')))
               const h = el('h3')
               appendMarked(h, cur.title, cur.titleMarks)
@@ -558,7 +590,7 @@ window.__ModuleLoader__.load({
               })
               const act = el('div', 'kbsr-act')
               if (cur.open !== null && cur.open !== undefined) {
-                const ob = el('button', 'kbsr-btn main', kt('Ouvrir', 'Open'))
+                const ob = el('button', 'kbsr-btn main', cur.open.kind === 'command' ? kt('Lancer', 'Run') : kt('Ouvrir', 'Open'))
                 ob.type = 'button'
                 ob.setAttribute('data-act', 'open')
                 ob.addEventListener('click', () => { if (openResult(cur)) closeDialog() })
@@ -631,7 +663,9 @@ window.__ModuleLoader__.load({
             for (const r of pageRes) { counts[r.scope] = (counts[r.scope] || 0) + 1; all.push(r) }
             // page-side scopes are capped like the host's
             const taken = {}
-            S.results = all.filter((r) => { taken[r.scope] = (taken[r.scope] || 0) + 1; return taken[r.scope] <= 20 })
+            const cmds = commandMatches(readCommands(), q)
+            S.results = cmds.concat(all.filter((r) => { taken[r.scope] = (taken[r.scope] || 0) + 1; return taken[r.scope] <= 20 }))
+            if (cmds.length > 0) counts.command = cmds.length
             S.counts = counts
             S.error = failed && S.results.length === 0
             S.took = Date.now() - t0
@@ -695,34 +729,9 @@ window.__ModuleLoader__.load({
         try { input.focus() } catch (e) { /* focus */ }
       }
 
-      // ── the header icon: next to the native search of the Workspaces list ───────
+      // The icon that used to sit in the header of the Workspaces list is gone (2026-11-18): the one at the top of the sidebar, beside
+      // « Collapse sidebar », is the way in, so the header carries no search of its own and the native one is hidden by the main plugin.
       const HEADER_ATTR = 'data-kb'
-      const sweepHeader = () => {
-        for (const header of document.querySelectorAll('[class*="sectionHeader"]')) {
-          const native = header.querySelector('[class*="searchButton"]')
-          if (native === null) continue
-          if (header.querySelector('[data-kb="search-header"]') !== null) continue
-          const like = header.querySelector('[class*="headerActions"] [class*="iconButton"]') || header.querySelector('[class*="iconButton"]')
-          const b = document.createElement('button')
-          b.type = 'button'
-          b.setAttribute(HEADER_ATTR, 'search-header')
-          b.setAttribute('aria-label', kt('Rechercher partout', 'Search everywhere'))
-          b.title = kt('Rechercher partout (⌘K)', 'Search everywhere (⌘K)')
-          // the same look as DSH's own icon buttons when we can borrow their class, our own otherwise
-          b.className = (like !== null ? String(like.className).replace(/\bwide\b|_wide\b/g, '') : 'kbsr-hdr-own') + ' kbsr-hdr'
-          b.appendChild(svgIcon(ICON_SEARCH_PLUS, 16))
-          b.addEventListener('click', (ev) => { ev.stopPropagation(); openDialog() })
-          // Two things measured on the real GUI: the native search button sits in a 28 px slot that clips what is added to it, and the
-          // group of the other icon buttons has a FIXED width of 60 px (a third button there pushes « Add workspace » out of the
-          // header). So the icon is a child of the header itself, right before that group; the header lays itself out around it.
-          const actions = header.querySelector('[class*="headerActions"]')
-          if (actions !== null && actions.parentNode === header) header.insertBefore(b, actions)
-          else {
-            const slot = native.closest('[class*="searchSlot"]')
-            ;(slot !== null && slot.parentNode === header ? slot : native).insertAdjacentElement('afterend', b)
-          }
-        }
-      }
 
       // ── the top icon: at the very top of the sidebar, beside « Collapse sidebar » ────────────────────────────────
       // It replaces the menu row. Found by the label of the collapse button (the sidebar's own), borrowing its class so it looks like
@@ -781,11 +790,10 @@ window.__ModuleLoader__.load({
           const later = (records) => {
             if (scheduled !== null) return
             if (Array.isArray(records) && records.length > 0 && records.every((r) => r.target && r.target.closest && r.target.closest('.kbsr-scrim'))) return
-            scheduled = setTimeout(() => { scheduled = null; try { sweepHeader() } catch (e) { /* the header moved: no icon */ } try { sweepTop() } catch (e) { /* the sidebar top moved: no icon */ } }, 250)
+            scheduled = setTimeout(() => { scheduled = null; try { sweepTop() } catch (e) { /* the sidebar top moved: no icon */ } }, 250)
           }
           let observer = null
           try { observer = new MutationObserver(later); observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-label'] }) } catch (e) { observer = null }
-          try { sweepHeader() } catch (e) { /* no header yet */ }
           try { sweepTop() } catch (e) { /* no sidebar yet */ }
 
           const cleanup = () => {
@@ -794,10 +802,10 @@ window.__ModuleLoader__.load({
             if (scheduled !== null) clearTimeout(scheduled)
             closeDialog()
             style.remove()
-            document.querySelectorAll('[data-kb="search-header"], [data-kb="search-top"]').forEach((n) => n.remove())
+            document.querySelectorAll('[data-kb="search-top"]').forEach((n) => n.remove())
             try { delete window.__KB_SEARCH__ } catch (e) { /* gone */ }
           }
-          if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => cleanup, 'kybernos-search: popup, shortcut and header icon')
+          if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => cleanup, 'kybernos-search: popup, shortcut and top icon')
         },
         __test: { fold, queryTerms, marksOf, maskSecrets, localMatch, hostScopes, normalizeScopes, SCOPES, DEFAULT_SCOPES }
       }

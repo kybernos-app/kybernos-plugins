@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Protège ton ordinateur avant chaque action d’un agent : bloque les fuites de clés et commandes destructrices, demande ton accord sur les gestes risqués et repère les pièges externes.",
+    "en": "Protects your computer before every agent action: blocks leaked keys and destructive commands, asks your OK on risky operations, and flags traps inside external content."
+  },
+  "steps": [
+    {
+      "fr": "Le garde-fou travaille automatiquement en arrière-plan dès qu’il est activé, sans envoyer aucune donnée dehors.",
+      "en": "The guard runs automatically in the background as soon as it is on, without sending any data outside."
+    },
+    {
+      "fr": "Une commande risquée (envoi forcé, suppression récursive, commande administrateur) ouvre une carte de confirmation avant d’agir.",
+      "en": "A risky command (force push, recursive delete, admin command) opens a confirmation card before running."
+    },
+    {
+      "fr": "Une fuite de secret ou une commande destructrice est arrêtée net et notée dans le journal d’audit local sans garder le secret.",
+      "en": "A leaked secret or catastrophic command is stopped at once and noted in the local audit log without keeping the secret."
+    }
+  ],
+  "where": {
+    "fr": "Actif en arrière-plan · Suite › Plugins",
+    "en": "Active in the background · Suite › Plugins",
+    "page": false
+  },
+  "good": {
+    "fr": "Tout fonctionne en local en moins de deux millisecondes, sans modèle IA supplémentaire. Les agents ne peuvent pas modifier les réglages du garde-fou.",
+    "en": "Everything runs locally in under two milliseconds, with no extra AI model. Agents cannot change the guard’s own settings."
+  }
+}

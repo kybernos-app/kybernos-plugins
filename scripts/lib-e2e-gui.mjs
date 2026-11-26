@@ -44,6 +44,8 @@ export const selectModelOn = async (g, name = 'GLM') => {
     if (row) { await g.mouse(row.x, row.y); await sleep(500); item = await g.until(() => g.leaf(name), 2500) }
   }
   if (!item) fail('the model menu is open but has no line « ' + name + ' » (the profile has no such model on its routes: read GET /kybernos-cloud/models)')
+  // a long menu (several providers: the phone's model comes after the cloud ones) keeps the line below its fold: scrolled into view first, else the press lands on what covers it
+  if (item.covered === true) { await g.leaf(name, { scroll: true }); await sleep(300); const again = await g.leaf(name, { scroll: true }); if (again) item = again }
   await g.mouse(item.x, item.y)
   await sleep(500)
   // 3. read it back: a click that landed elsewhere must not pass for a choice.

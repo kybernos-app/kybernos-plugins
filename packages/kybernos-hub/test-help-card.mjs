@@ -187,6 +187,19 @@ console.log('the animated help of a page (Intro)')
   check('another page’s choice does not count', T.introOuverte(memory({ 'kybernos.help.intro.kybernos-y': 'closed' }), KEY) === true)
   check('a storage that throws, or none at all: it opens, nothing breaks', T.introOuverte(broken(), KEY) === true && T.introOuverte(null, KEY) === true && T.introOuverte(undefined, KEY) === true)
   check('a value nobody wrote is not « closed »', T.introOuverte(memory({ [KEY]: 'banana' }), KEY) === true)
+  check('on a phone the animation is not on the page by itself, whatever the storage holds', T.introOuverte(memory(), KEY, true) === false && T.introOuverte(null, KEY, true) === false && T.introOuverte(memory(), KEY, false) === true && T.introOuverte(memory(), KEY) === true)
+  check('the phone is the phone layer\'s own condition (the same media query as mobile.css), and a missing matchMedia is a desktop', (() => {
+    const had = win.matchMedia
+    try {
+      let asked = ''
+      win.matchMedia = (q) => { asked = q; return { matches: true } }
+      const yes = T.onPhone() === true
+      win.matchMedia = undefined
+      const none = T.onPhone() === false
+      win.matchMedia = () => { throw new Error('boom') }
+      return yes && none && T.onPhone() === false && asked === '(max-width: 700px), (max-height: 500px) and (pointer: coarse)'
+    } finally { win.matchMedia = had }
+  })())
 
   const draw = (seeds, store, p = props) => withStorage(store, () => { const { React, state } = fakeReact(seeds); const api = T.construireAide(React); return { tree: api.Intro(p), state, api } })
   const open = draw([], memory())

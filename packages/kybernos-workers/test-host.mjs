@@ -6,7 +6,7 @@ import { join, delimiter } from 'node:path'
 import { Readable } from 'node:stream'
 import { execFileSync } from 'node:child_process'
 import {
-  WORKERS, trouverWorker, analyserPatch, etatProfil, blocOutil, calculerPolitique, calculerActivation, blocActivation,
+  WORKERS, DRIVER_CAPABILITIES, trouverWorker, analyserPatch, etatProfil, blocOutil, calculerPolitique, calculerConfigConnexion, calculerActivation, blocActivation,
   lireAuthJson, lireAuthCompte, lireAuthHermes, verifier, statutGlobal, monterWorkers, sansAnsi, ajouterAuJournal,
   nomsDeConnexion, paquetAChercher
 } from './workers-host.mjs'
@@ -304,10 +304,10 @@ console.log('── routes ──')
   }
   const attendre = (ms = 20) => new Promise((resolve) => setTimeout(resolve, ms))
   const routes = monter(deps())
-  ok('5 routes mounted', [...routes.keys()].sort().join() === '/kybernos-workers/activate,/kybernos-workers/check,/kybernos-workers/install,/kybernos-workers/policy,/kybernos-workers/state')
+  ok('13 routes mounted', [...routes.keys()].sort().join() === '/kybernos-workers/activate,/kybernos-workers/active-worker,/kybernos-workers/check,/kybernos-workers/deactivate,/kybernos-workers/harness,/kybernos-workers/harness/instance,/kybernos-workers/harness/models,/kybernos-workers/harness/policy,/kybernos-workers/install,/kybernos-workers/policy,/kybernos-workers/runtime,/kybernos-workers/runtime/route,/kybernos-workers/state')
 
   let r = await appeler(routes, '/kybernos-workers/state', { url: '/kybernos-workers/state' })
-  ok('state: 200, default profile, the 7 workers in registry order', r.statut === 200 && r.json.profil === 'web' && r.json.workers.map((w) => w.id).join() === 'claude-code,codex,gemini,opencode,qwen,hermes,zcode')
+  ok('state: 200, default profile, the 7 workers in registry order', r.statut === 200 && r.json.profil === 'web' && r.json.workers.map((w) => w.id).join() === 'claude-code,codex,gemini,antigravity,opencode,qwen,hermes,zcode')
   ok('state: Codex mounted and installed, Claude Code not, nothing checked yet', r.json.workers.find((w) => w.id === 'codex').connexion === true && r.json.workers.find((w) => w.id === 'claude-code').connexion === false && r.json.workers.every((w) => w.dernier === null && w.job === null))
   ok('state: every worker has a boolean `connexion` (no "not supported" any more)', r.json.workers.every((w) => typeof w.connexion === 'boolean'))
   ok('state: the install command and where it comes from are given, with whether this machine can run it', (() => { const g = r.json.workers.find((w) => w.id === 'gemini'); return g.install.cmd === 'npm install -g @google/gemini-cli' && g.install.src === 'npm' && g.install.possible === true && g.activation === 'workers' })())
@@ -341,7 +341,24 @@ console.log('── routes ──')
   const lent = monter(deps({ io: { ...deps().io, worktreeJetable: () => new Promise((resolve) => { liberer = () => resolve({ ok: true }) }) } }))
   const premiere = appeler(lent, '/kybernos-workers/check', { methode: 'POST', corps: { worker: 'codex' } })
   await attendre()
-  ok('two checks at the same time: the second gets 409', (await appeler(lent, '/kybernos-workers/check', { methode: 'POST', corps: { worker: 'codex' } })).statut === 409)
+  ok('two checks on the SAME worker at the same time: the second gets 409', (await appeler(lent, '/kybernos-workers/check', { methode: 'POST', corps: { worker: 'codex' } })).statut === 409)
+  // Scoped locks (Phase 0): a slow check on codex must NOT block another worker's check or policy dry-run
+  let libererAutre
+  const multi = monter(deps({
+    io: {
+      ...deps().io,
+      worktreeJetable: () => new Promise((resolve) => {
+        if (libererAutre === undefined) libererAutre = () => resolve({ ok: true })
+        else resolve({ ok: true })
+      })
+    }
+  }))
+  const slowCodex = appeler(multi, '/kybernos-workers/check', { methode: 'POST', corps: { worker: 'codex' } })
+  await attendre()
+  const concurrentOther = await appeler(multi, '/kybernos-workers/check', { methode: 'POST', corps: { worker: 'claude-code' } })
+  const concurrentPolicy = await appeler(multi, '/kybernos-workers/policy', { methode: 'POST', corps: { worker: 'codex', expose: true, background: false, dry: true } })
+  ok('scoped locks: a slow check on codex does not block claude-code check or a policy call', concurrentOther.statut === 200 && concurrentPolicy.statut === 200, JSON.stringify([concurrentOther.statut, concurrentPolicy.statut]))
+  libererAutre(); await slowCodex
   liberer(); await premiere
   ok('the lock is released after the first', (await (async () => { const p = appeler(lent, '/kybernos-workers/check', { methode: 'POST', corps: { worker: 'codex' } }); await attendre(); liberer(); return p })()).statut === 200)
 
@@ -501,8 +518,8 @@ console.log('── real I/O ──')
     d.ecrirePatch('web', PATCH + '# end\n')
     ok('ecrirePatch: atomic, no temporary file left behind', readFileSync(join(home, 'profiles', 'web', 'cordis.patch.yml'), 'utf8').endsWith('# end\n') && !readdirSync(join(home, 'profiles', 'web')).some((n) => n.includes('.tmp-')))
     ok('sauvegarder: the file exists with the old content', readFileSync(join(home, 'profiles', 'web', 'cordis.patch.yml.bak-workers-test'), 'utf8') === PATCH)
-    ok('cleDansEnv: true when one of the names holds a value, false for a blank or missing one', d.io.cleDansEnv(['NOPE', 'GEMINI_API_KEY']) === true && d.io.cleDansEnv(['QWEN_TOKEN_PLAN_API_KEY']) === false && d.io.cleDansEnv(['NOPE']) === false)
-    ok('cleDansEnv answers a boolean: the value never leaves it', typeof d.io.cleDansEnv(['GEMINI_API_KEY']) === 'boolean')
+    ok('cleDansEnv: true when one of the names holds a value, false for a blank or missing one', (await d.io.cleDansEnv(['NOPE', 'GEMINI_API_KEY'])) === true && (await d.io.cleDansEnv(['QWEN_TOKEN_PLAN_API_KEY'])) === false && (await d.io.cleDansEnv(['NOPE'])) === false)
+    ok('cleDansEnv answers a boolean: the value never leaves it', typeof (await d.io.cleDansEnv(['GEMINI_API_KEY'])) === 'boolean')
 
     let r = await d.io.executer(process.execPath, ['-e', 'console.log(process.env.FAKE_NAME + "|" + (process.env.FAKE_TOKEN === undefined) + "|" + (process.env.GEMINI_API_KEY === undefined))'])
     ok('executer: runs a real process, without the secrets, with the rest', r.code === 0 && r.sortie.trim() === 'visible|true|true')
@@ -545,25 +562,25 @@ console.log('── real I/O ──')
     }
 
     const mounted = []
-    const ctx = { get: (n) => (n === 'webServer' ? { register: (x) => mounted.push(x.path) } : undefined), effect: (fn) => fn(), inject: () => { throw new Error('must not be called') } }
+    const ctx = { get: (n) => (n === 'webServer' ? { register: (x) => mounted.push(x.path) } : (n === 'systemPrompt' ? { context: () => {} } : undefined)), effect: (fn) => fn(), inject: () => { throw new Error('must not be called') } }
     const oldHome = process.env.DSH_HOME; process.env.DSH_HOME = home
     apply(ctx)
     if (oldHome === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = oldHome
-    ok('apply: mounts the 5 routes when webServer is already there', mounted.length === 5)
-    let deferred = null
-    apply({ get: () => undefined, effect: (fn) => fn(), inject: (list, cb) => { deferred = [list, cb] } })
-    ok('apply: otherwise waits for the webServer service', deferred !== null && deferred[0].join() === 'webServer')
+    ok('apply: mounts the 13 routes when webServer is already there', mounted.length === 13)
+    const deferred = []
+    apply({ get: () => undefined, effect: (fn) => fn(), inject: (list, cb) => { deferred.push([list, cb]) } })
+    ok('apply: otherwise waits for the webServer and systemPrompt services', deferred.some((d) => d[0].join() === 'webServer') && deferred.some((d) => d[0].join() === 'systemPrompt'))
     ok('apply: never throws, even with a broken context', (() => { try { apply({ get: () => { throw new Error('x') } }); return true } catch { return false } })())
   } finally { rmSync(dossier, { recursive: true, force: true }) }
 }
 
 console.log('── registry ──')
-ok('7 workers: 6 connections (2 official, 4 home-made) and 1 MCP connector', WORKERS.map((w) => w.genre).join() === 'connexion,connexion,connexion,connexion,connexion,connexion,mcp')
-ok('display order: Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes, ZCode', WORKERS.map((w) => w.id).join() === 'claude-code,codex,gemini,opencode,qwen,hermes,zcode')
+ok('8 workers: 7 connections (2 official, 4 home-made, 1 ACP) and 1 MCP connector', WORKERS.map((w) => w.genre).join() === 'connexion,connexion,connexion,connexion,connexion,connexion,connexion,mcp')
+ok('display order: Claude Code, Codex, Gemini, Antigravity, OpenCode, Qwen, Hermes, ZCode', WORKERS.map((w) => w.id).join() === 'claude-code,codex,gemini,antigravity,opencode,qwen,hermes,zcode')
 ok('every connection has its tool line, named like the provider’s README', claude.outil.toolName === 'subagent_claude_code' && codex.outil.toolName === 'subagent_codex' && gemini.outil.toolName === 'subagent_gemini' && claude.outil.provider === 'claude-code')
-ok('tool ids are unique and this module’s own', new Set(WORKERS.filter((w) => w.outil).map((w) => w.outil.id)).size === 6 && WORKERS.filter((w) => w.outil).every((w) => w.outil.id.startsWith('kybernos-workers-')))
-ok('the four home-made connections are mounted by this module, the rest by the Tools screen', WORKERS.filter((w) => w.activation === 'workers').map((w) => w.id).join() === 'gemini,opencode,qwen,hermes')
-ok('they load by a subpath of the ONE shared package, and keep the old bare name as an accepted alias', WORKERS.filter((w) => w.activation === 'workers').every((w) => w.paquet === '@local/dsh-subagent-maison/' + w.id && w.dossier === '@local/dsh-subagent-maison' && w.anciensNoms.join() === 'dsh-subagent-' + w.id))
+ok('tool ids are unique and this module’s own', new Set(WORKERS.filter((w) => w.outil).map((w) => w.outil.id)).size === 7 && WORKERS.filter((w) => w.outil).every((w) => w.outil.id.startsWith('kybernos-workers-')))
+ok('the four home-made connections and the ACP one are mounted by this module, the rest by the Tools screen', WORKERS.filter((w) => w.activation === 'workers').map((w) => w.id).join() === 'gemini,antigravity,opencode,qwen,hermes')
+ok('they load by a subpath of the ONE shared package, and keep the old bare name as an accepted alias', WORKERS.filter((w) => String(w.paquet).startsWith('@local/dsh-subagent-maison/')).every((w) => w.paquet === '@local/dsh-subagent-maison/' + w.id && w.dossier === '@local/dsh-subagent-maison' && w.anciensNoms.join() === 'dsh-subagent-' + w.id))
 ok('every connection says how its sign-in is verified', WORKERS.filter((w) => w.genre === 'connexion').every((w) => ['json-loggedIn', 'code', 'count', 'hermes', 'env'].includes(w.auth.format)))
 ok('key-based workers name the variables to look for, and the one to write', [gemini, qwen].every((w) => w.auth.format === 'env' && w.connect.mode === 'key' && w.auth.names.includes(w.connect.env)))
 {
@@ -571,6 +588,191 @@ ok('key-based workers name the variables to look for, and the one to write', [ge
   ok('every install command has the shape of one of the two official families, nothing else', cmds.every((c) => /^curl -fsSL https:\/\/[a-z0-9.-]+\/[a-z0-9./_-]+ \| bash$/.test(c) || /^npm install -g @?[a-z0-9./_-]+(@latest)?$/.test(c)), cmds.join(' ; '))
   ok('and each one says where it downloads from and what must be on the PATH', WORKERS.filter((w) => w.install != null).every((w) => typeof w.install.src === 'string' && Array.isArray(w.install.needs) && w.install.needs.length > 0 && w.install.doc.startsWith('https://')))
   ok('script installs come from the vendor’s own domain', WORKERS.filter((w) => w.install != null && w.install.cmd.startsWith('curl')).every((w) => w.install.cmd.includes('//' + w.install.src + '/')))
+}
+
+console.log('-- antigravity (ACP) --')
+{
+  const ag = trouverWorker('antigravity')
+  ok('Antigravity is the official ACP backend, not another hand-made adapter', ag.paquet === '@deepseek-ai/dsh-subagent-acp' && ag.via === 'acp' && ag.anciensNoms === undefined)
+  ok('it drives the Antigravity CLI (agy acp), so no API key is ever asked', ag.acp.command === 'agy' && ag.acp.args.join() === 'acp' && ag.connect.mode === 'cli' && ag.connect.cmd === 'agy')
+  ok('the provider it registers is the one its tool line delegates to', ag.outil.provider === 'antigravity' && ag.outil.toolName === 'subagent_antigravity')
+  const bloc = blocActivation(ag, '20261124-190000')
+  ok('the mounted block carries the recipe: providerName, command, args and the permission the agent needs to work', /providerName: antigravity/.test(bloc) && /command: agy/.test(bloc) && /args: \['acp'\]/.test(bloc) && /permission: allow/.test(bloc))
+  ok('the patch reader recognises the connection that block wrote', etatProfil(bloc, ag).connexion === true && etatProfil(bloc, ag).nomMonte === '@deepseek-ai/dsh-subagent-acp')
+  const r = calculerActivation({ worker: ag, texte: '', horodatage: 'x' })
+  ok('turning it on writes that block, and a second try is refused', r.ok === true && etatProfil(r.apres, ag).connexion === true && calculerActivation({ worker: ag, texte: r.apres, horodatage: 'x' }).error === 'deja-montee')
+  ok('its install is the vendor script, from the vendor domain', ag.install.cmd.indexOf('https://antigravity.google/cli/install.sh') !== -1 && ag.install.src === 'antigravity.google')
+}
+
+console.log('-- a key held by the store counts as signed in (the page and the provider agree) --')
+{
+  const avecMagasin = workersDeps(join(tmpdir(), 'kbwk-store-test'), {}, async (nom) => (nom === 'GEMINI_API_KEY' ? 'cle-du-magasin' : undefined))
+  ok('the check finds a key that only the credentials store holds', (await avecMagasin.io.cleDansEnv(['GEMINI_API_KEY', 'GOOGLE_API_KEY'])) === true)
+  ok('no store and no environment: still "not signed in"', (await workersDeps(join(tmpdir(), 'kbwk-store-test'), {}).io.cleDansEnv(['GEMINI_API_KEY'])) === false)
+  ok('the launch environment still counts', (await workersDeps(join(tmpdir(), 'kbwk-store-test'), { GOOGLE_API_KEY: 'env' }, async () => undefined).io.cleDansEnv(['GOOGLE_API_KEY'])) === true)
+}
+
+console.log('── Phase 0: official connector model/env patch contract & capability matrix ──')
+{
+  ok('every registered worker has a Phase 0 capability entry with valid enum values', WORKERS.every((w) => {
+    const c = DRIVER_CAPABILITIES[w.id]
+    return c !== undefined &&
+      ['proven', 'unsupported', 'unknown'].includes(c.multiAccount) &&
+      ['credential-ref', 'profile-dir', 'native-single'].includes(c.authIsolation) &&
+      ['cli', 'live', 'manual'].includes(c.modelDiscovery) &&
+      typeof c.modelSelection === 'boolean' &&
+      ['one-shot', 'native', 'summary-handoff'].includes(c.continuation)
+  }))
+  ok('only proven drivers advertise multiAccount=proven (codex, gemini, qwen)', WORKERS.filter((w) => DRIVER_CAPABILITIES[w.id].multiAccount === 'proven').map((w) => w.id).join(',') === 'codex,gemini,qwen')
+  ok('ACP antigravity and MCP zcode honestly declare modelSelection=false', DRIVER_CAPABILITIES.antigravity.modelSelection === false && DRIVER_CAPABILITIES.zcode.modelSelection === false)
+
+  // Read & write model + non-secret env on official Codex connector
+  const patchCodex = calculerConfigConnexion({
+    worker: codex,
+    model: 'gpt-5.2-codex',
+    env: { CODEX_HOME: '/tmp/codex-profile-work', CUSTOM_FLAG: '1' },
+    texte: PATCH
+  })
+  ok('official codex: writes model and non-secret env cleanly and preserves sibling entries', patchCodex.ok === true && patchCodex.action === 'modification' && patchCodex.apres.includes('mcp-client-zcode'), JSON.stringify(patchCodex))
+  const parsedCodex = analyserPatch(patchCodex.apres).find((i) => i.id === 'codex')
+  ok('official codex: analyserPatch reads back model and nested env map', parsedCodex.config.model === 'gpt-5.2-codex' && parsedCodex.env.CODEX_HOME === '/tmp/codex-profile-work' && parsedCodex.env.CUSTOM_FLAG === '1', JSON.stringify(parsedCodex))
+  ok('official codex: unchanged model+env is a no-op', calculerConfigConnexion({ worker: codex, model: 'gpt-5.2-codex', env: { CODEX_HOME: '/tmp/codex-profile-work', CUSTOM_FLAG: '1' }, texte: patchCodex.apres }).action === 'inchange')
+
+  // Read & write model + CLAUDE_CONFIG_DIR on official Claude Code connector
+  const patchWithClaude = PATCH + "\n- insert:\n    - id: claude-code\n      name: '@deepseek-ai/dsh-subagent-claude-code'\n      config:\n        permissionMode: dontAsk\n"
+  const patchClaude = calculerConfigConnexion({
+    worker: claude,
+    model: 'claude-sonnet-4-6',
+    env: { CLAUDE_CONFIG_DIR: '/tmp/claude-profile-a' },
+    texte: patchWithClaude
+  })
+  const parsedClaude = analyserPatch(patchClaude.apres).find((i) => i.id === 'claude-code')
+  ok('official claude-code: preserves permissionMode while setting model and CLAUDE_CONFIG_DIR', patchClaude.ok === true && parsedClaude.config.permissionMode === 'dontAsk' && parsedClaude.config.model === 'claude-sonnet-4-6' && parsedClaude.env.CLAUDE_CONFIG_DIR === '/tmp/claude-profile-a', JSON.stringify(parsedClaude))
+
+  // Secret refusal: NEVER write secret-looking env keys into cordis.patch.yml
+  for (const badKey of ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'MY_TOKEN', 'OAUTH_SECRET', 'USER_PASSWORD', 'AUTH_HEADER']) {
+    const refused = calculerConfigConnexion({ worker: codex, env: { [badKey]: 'sk-nope' }, texte: PATCH })
+    ok('refuses writing secret env key "' + badKey + '" into cordis.patch.yml', refused.ok === false && refused.error === 'secret-in-patch-refused', JSON.stringify(refused))
+  }
+
+  // ACP connector refuses model key (dsh-subagent-acp schema has no model field)
+  const ag = trouverWorker('antigravity')
+  const agPatch = blocActivation(ag, '20261125-120000')
+  const agModelRefused = calculerConfigConnexion({ worker: ag, model: 'gemini-4-neon-high', texte: agPatch })
+  ok('official ACP antigravity: refuses config.model because dsh-subagent-acp exposes no model key', agModelRefused.ok === false && agModelRefused.error === 'model-non-supporte', JSON.stringify(agModelRefused))
+  const agEnvOk = calculerConfigConnexion({ worker: ag, env: { AGY_TRACE: '1' }, texte: agPatch })
+  const agParsed = analyserPatch(agEnvOk.apres).find((i) => i.id === 'subagent-antigravity')
+  ok('official ACP antigravity: still accepts non-secret env while keeping command/args/permission', agEnvOk.ok === true && agParsed.config.command === 'agy' && agParsed.config.permission === 'allow' && agParsed.env.AGY_TRACE === '1', JSON.stringify(agParsed))
+}
+
+console.log('-- Phase 3 runtime probe & rate-limit headers routes --')
+{
+  const savedRuns = []
+  const routes = new Map()
+  const harnessMem = {
+    version: 1,
+    revision: 1,
+    updatedAt: '2026-11-25T20:00:00.000Z',
+    instances: [
+      { id: 'codex-work', driverId: 'codex', label: 'Codex Work', enabled: true, active: true, models: [] },
+      { id: 'ag-miled', driverId: 'antigravity', label: 'antigravity-miled', enabled: true, active: true, models: [] }
+    ],
+    roleEngines: {},
+    policies: {},
+    favorites: []
+  }
+  monterWorkers({ register: (r) => routes.set(r.path, r.handler) }, {
+    profils: () => ['web'],
+    profilParDefaut: () => 'web',
+    lirePatch: () => PATCH,
+    cheminPatch: () => '/nowhere/web/cordis.patch.yml',
+    ecrirePatch: () => {},
+    sauvegarder: () => {},
+    lireHarness: () => ({ ok: true, harness: harnessMem, exists: true }),
+    ecrireHarness: () => {},
+    ecrireRuns: (s) => savedRuns.push(s),
+    maintenant: () => new Date('2026-11-25T20:00:00.000Z'),
+    io: {
+      fichierServeur: '',
+      paquetInstalle: () => true,
+      fichierExiste: () => true,
+      trouver: async () => '/bin/x',
+      executer: async (bin) => (bin === 'codex' ? { code: 0, sortie: 'Logged in using ChatGPT' } : { code: 1, sortie: 'Sign in required' }),
+      worktreeJetable: async () => ({ ok: true }),
+      cleDansEnv: () => false,
+      plateforme: () => 'darwin'
+    }
+  })
+  const callRoute = async (path, method, body) => {
+    const r = Readable.from(body ? [Buffer.from(JSON.stringify(body))] : [])
+    r.method = method
+    r.url = path
+    r.socket = { localPort: 3080 }
+    r.headers = { origin: 'http://127.0.0.1:3080', cookie: sessionCookie('127.0.0.1:3080'), ...(method === 'POST' ? { 'content-type': 'application/json' } : {}) }
+    let statut = 0; let texte = ''
+    await routes.get(path)(r, { writeHead: (s) => { statut = s }, end: (t) => { texte = t } })
+    return { statut, json: texte ? JSON.parse(texte) : null }
+  }
+  const hRes = await callRoute('/kybernos-workers/runtime/route', 'POST', {
+    action: 'headers',
+    workerId: 'codex-work',
+    driverId: 'codex',
+    headers: { 'x-ratelimit-limit-requests': '100', 'x-ratelimit-remaining-requests': '88', 'x-ratelimit-reset-requests': '30m' }
+  })
+  ok('runtime/route headers parses provider rate-limit headers into rolling windows', hRes.statut === 200 && hRes.json.quota.windows[0].remainingPct === 88, JSON.stringify(hRes))
+  const pRes = await callRoute('/kybernos-workers/runtime/route', 'POST', { action: 'probe' })
+  ok('runtime/route probe collects honest zero-cost auth/billing across instances and preserves header windows', pRes.statut === 200 && pRes.json.probed === 2, JSON.stringify(pRes))
+  const snap = await callRoute('/kybernos-workers/runtime', 'GET')
+  const qCodex = snap.json.quotas.find((q) => q.workerId === 'codex-work')
+  const qAg = snap.json.quotas.find((q) => q.workerId === 'ag-miled')
+  ok('GET /kybernos-workers/runtime exposes probed billingMode, preserved header headroom, and honest authRequired', snap.statut === 200 && qCodex.billingMode === 'subscription' && qCodex.headroomPct === 88 && qAg.authRequired === true && savedRuns.length === 2, JSON.stringify({ qCodex, qAg }))
+}
+
+console.log('-- profile-mounted worker sync (autoCreate) & probe fallback on empty harness.json --')
+{
+  let harnessDisk = { version: 1, revision: 0, updatedAt: '2026-11-25T20:00:00.000Z', instances: [], roleEngines: {}, policies: {}, favorites: [] }
+  let harnessWrites = 0
+  const routes = new Map()
+  monterWorkers({ register: (r) => routes.set(r.path, r.handler) }, {
+    profils: () => ['web'],
+    profilParDefaut: () => 'web',
+    lirePatch: () => PATCH,
+    cheminPatch: () => '/nowhere/web/cordis.patch.yml',
+    ecrirePatch: () => {},
+    sauvegarder: () => {},
+    lireHarness: () => ({ ok: true, harness: harnessDisk, exists: harnessWrites > 0 }),
+    ecrireHarness: (h) => { harnessDisk = h; harnessWrites += 1 },
+    ecrireRuns: () => {},
+    maintenant: () => new Date('2026-11-25T20:10:00.000Z'),
+    io: {
+      fichierServeur: '',
+      paquetInstalle: () => true,
+      fichierExiste: () => true,
+      trouver: async () => '/bin/x',
+      executer: async (bin) => (bin === 'codex' ? { code: 0, sortie: 'Logged in using ChatGPT' } : { code: 1, sortie: '' }),
+      worktreeJetable: async () => ({ ok: true }),
+      cleDansEnv: () => false,
+      plateforme: () => 'darwin'
+    }
+  })
+  const callRoute = async (path, method, body) => {
+    const r = Readable.from(body ? [Buffer.from(JSON.stringify(body))] : [])
+    r.method = method
+    r.url = path
+    r.socket = { localPort: 3080 }
+    r.headers = { origin: 'http://127.0.0.1:3080', cookie: sessionCookie('127.0.0.1:3080'), ...(method === 'POST' ? { 'content-type': 'application/json' } : {}) }
+    let statut = 0; let texte = ''
+    await routes.get(path)(r, { writeHead: (s) => { statut = s }, end: (t) => { texte = t } })
+    return { statut, json: texte ? JSON.parse(texte) : null }
+  }
+  const prevRes = await callRoute('/kybernos-workers/harness/models', 'POST', { action: 'sync', driverId: 'claude-code' })
+  ok('harness/models sync without autoCreate returns preview and does not write harness.json', prevRes.statut === 200 && prevRes.json.preview === true && Array.isArray(prevRes.json.models) && prevRes.json.models.length >= 1 && harnessWrites === 0, JSON.stringify(prevRes))
+  const syncRes = await callRoute('/kybernos-workers/harness/models', 'POST', { action: 'sync', instanceId: 'claude-code', driverId: 'claude-code', label: 'Claude Code', autoCreate: true, expectedRevision: 0 })
+  ok('harness/models sync with autoCreate materializes profile worker into harness.json with discovered models', syncRes.statut === 200 && syncRes.json.ok === true && harnessWrites === 1 && harnessDisk.instances.length === 1 && harnessDisk.instances[0].id === 'claude-code' && harnessDisk.instances[0].models.length >= 1 && typeof harnessDisk.instances[0].lastSync === 'string', JSON.stringify(syncRes))
+  const probeRes = await callRoute('/kybernos-workers/runtime/route', 'POST', { action: 'probe', workerId: 'codex', profile: 'web' })
+  ok('runtime/route probe discovers mounted profile worker even when not yet in harness.json', probeRes.statut === 200 && probeRes.json.probed === 1 && probeRes.json.quotas[0].workerId === 'codex' && probeRes.json.quotas[0].billingMode === 'subscription', JSON.stringify(probeRes))
+  const snapRes = await callRoute('/kybernos-workers/runtime', 'GET')
+  ok('GET /kybernos-workers/runtime returns probed profile worker quota', snapRes.statut === 200 && snapRes.json.quotas.some((q) => q.workerId === 'codex' && q.billingMode === 'subscription'), JSON.stringify(snapRes))
 }
 
 console.log('\n' + (failures === 0 ? '✓ ' : '✗ ') + (total - failures) + '/' + total + ' checks')

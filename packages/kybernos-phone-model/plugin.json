@@ -1,0 +1,45 @@
+{
+  "contract": 1,
+  "id": "kybernos/phone-model",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Small model on the phone",
+    "fr": "Petit modèle sur le téléphone"
+  },
+  "description": {
+    "en": "A small model that runs on the phone itself, for simple questions, offline.",
+    "fr": "Un petit modèle qui tourne sur le téléphone lui-même, pour les questions simples, hors ligne."
+  },
+  "icon": "phonechat",
+  "family": "models",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-phone-model",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:conversation.input.dock",
+    "host.routes:/phone-model:read",
+    "net:localhost",
+    "agent.prompt"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/phone-model"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "off"
+  }
+}

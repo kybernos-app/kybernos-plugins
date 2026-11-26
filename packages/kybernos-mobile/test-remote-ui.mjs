@@ -130,6 +130,26 @@ for (const [label, make] of [
   check(label + ': the next good poll clears the message', view.find((n) => n.props && n.props['data-kb'] === 'mobile-poll-error') === null && view.find((n) => n.props && n.props['data-kb'] === 'mobile-pair') !== null, view.text())
 }
 
+console.log('the status route does not exist (the phone app\'s own engine has no phone link)')
+{
+  const r = makeRenderer()
+  timers.length = 0
+  calls.length = 0
+  const { page } = load(r)
+  answer = () => ({ status: 404, json: async () => { throw new SyntaxError('Unexpected token < in JSON') } })
+  const view = r.mount(r.React.createElement(page))
+  await view.settle()
+  const asked = () => calls.filter((u) => u.includes('/remote/status')).length
+  check('the first read is made, and the page says it failed (as for any failed poll)', asked() === 1 && view.find((n) => n.props && n.props['data-kb'] === 'mobile-poll-error') !== null, asked())
+  await poll(view); await poll(view); await poll(view)
+  check('a 404 is final: three more ticks of the timer ask nothing', asked() === 1, asked())
+  answer = GOOD
+  const r2 = makeRenderer()
+  const view2 = r2.mount(r2.React.createElement(load(r2).page))
+  await view2.settle()
+  check('a page opened again asks again (the first one was only its own)', asked() === 2, asked())
+}
+
 console.log('the very first poll fails')
 {
   const r = makeRenderer()
@@ -138,7 +158,7 @@ console.log('the very first poll fails')
   answer = () => { throw new Error('offline') }
   const view = r.mount(r.React.createElement(page))
   await view.settle()
-  check('it says it cannot reach DSH instead of loading for ever', /Cannot reach DSH/.test(view.text()), view.text())
+  check('it says it cannot reach Kybernos instead of loading for ever', /Cannot reach Kybernos/.test(view.text()), view.text())
   answer = GOOD
   await poll(view)
   check('and recovers on the next good poll', view.find((n) => n.props && n.props['data-kb'] === 'mobile-pair') !== null, view.text())

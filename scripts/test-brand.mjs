@@ -125,7 +125,7 @@ eq('it stops its timers when disposed', /clearTimeout\(first\); clearInterval\(t
   const theme = readFileSync(root + 'packages/kybernos-theme/client.js', 'utf8')
   const line = theme.split('\n').find((l) => /Personnalise l’apparence de Kybernos/.test(l)) || ''
   eq('the Theme page subtitle is found', line !== '', true)
-  eq('the Theme page subtitle names Kybernos in French and in English', /Personnalise l’apparence de Kybernos[ :.]/.test(line) && /Customize the look of Kybernos[:.]/.test(line), true)
+  eq('the Theme page subtitle names Kybernos in French and in English', /Personnalise l’apparence de Kybernos[ :.]/.test(line) && /Customize the appearance of Kybernos[:.]/.test(line), true)
   eq('…and never the engine', /DeepSeek Harness/.test(line), false)
   const row = src.split('\n').find((l) => /Personnalise l’apparence de Kybernos/.test(l)) || ''
   // the core no longer rewrites the Theme page (that page writes its own English and French, WP-07): the row is gone, and if one ever comes back it must not name the engine

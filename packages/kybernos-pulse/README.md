@@ -11,6 +11,9 @@ with one click. A module of the Kybernos Suite: **off by default**, switched on 
 - **System banners**, once per event, through the browser's Notification API. Never for what is older than ten minutes (opening a tab does not
   flood you); at most three at once; one tag per event so that two open tabs cannot show it twice. Clicking one brings Kybernos forward.
 - **A count** on the tab title and, when Kybernos is installed as an app (Chrome, Edge), on its Dock icon.
+  The count is **hidden by default** since 2026-11-24 (owner's call): the Theme page (Advanced › Effects › *Notification counters*) publishes `data-kbth-counters="hidden"` on `<html>` and this
+  module then draws no count in the title, clears the Dock badge, and strips a count that another writer put in front of the title; `shown` brings it back (still subject to the *badge* switch below).
+  Without the Theme plugin the attribute is absent and the *badge* switch alone decides. Banners and the floating window are not part of that setting.
 - **The Kybernos icon in the Mac menu bar** (next to Wi-Fi), from a small Mac app, `helper/` (see below): the K with the number of things that wait for
   you and a dot (orange: an approval waits, red: a failure, blue: a run is going). A click opens **the same panel as the floating window**, under the icon
   (title, big sentence, Inbox / Now tabs, one card per automation with its arrow, « Open Kybernos »). It works with the browser closed and puts up the

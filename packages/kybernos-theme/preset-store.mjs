@@ -7,7 +7,8 @@
 // The library is ONE document: the newer `updatedAt` wins as a whole, so a deletion on one
 // side cannot come back from the other.
 //
-// A preset is DATA: a name and a bag of known settings (colours, font, corners...). Nothing
+// A preset is DATA: a name and a bag of known settings (colours, font, corners...) and/or a menu arrangement
+// (which rows of the left menu are shown, in which order, under which names). Nothing
 // in here is ever executed, and nothing here fetches anything. What crosses this boundary is
 // still untrusted (an imported file, a hand-edited JSON), so a preset is checked on the way in
 // AND on the way out: known keys only, plain values, bounded sizes. The browser re-checks the
@@ -24,7 +25,7 @@ import { dirname, join } from 'node:path'
 export const LIB_VERSION = 1
 export const FILE_NAME = 'theme-presets.json'
 export const ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/
-export const SOURCES = ['me', 'file', 'gallery']
+export const SOURCES = ['me', 'file', 'gallery', 'template']
 export const LIMITS = {
   presets: 100,
   name: 40,
@@ -34,14 +35,30 @@ export const LIMITS = {
   ov: 40, // colour overrides in one preset
   fileBytes: 512 * 1024,
 }
+/** The menu arrangement (docs/dev/business-menu.md §4): the same shape, bounds and refusals as the menu's own reader (kybernos-plugin/client.js `kbMenuPrefsClean`) and the page's (client.js `menuClean`). */
+export const MENU_LIMITS = Object.freeze({ entries: 24, label: 40, order: 99 })
+export const MENU_ID_RE = /^[a-z][a-z0-9-]{1,23}$/
+/** The entries a person can never hide: the host's own rows (Workspaces, Settings, the account). They cannot be stored in an arrangement at all. */
+export const MENU_NEVER = Object.freeze(['workspaces', 'projects', 'settings', 'account'])
+/**
+ * The other two places an arrangement can show or hide entries (`surfaces` of a MENU DOC; the main menu is the document's own `entries`): the SECONDARY menu (the account menu
+ * the avatar opens) and the SETTINGS pages. `never`: entries that cannot be stored there at all (the door to Settings, the account, the referral and the sign-out open the
+ * app's own screens, which the phone has no other way to reach; General is the page Settings opens on). `max`: entries kept. Their entries are `{ id, shown, order }`:
+ * they carry no name (only the main menu's rows can be renamed).
+ */
+export const MENU_SURFACES = Object.freeze({
+  secondary: Object.freeze({ never: Object.freeze(['account', 'referral', 'settings', 'logout']), max: 24 }),
+  settings: Object.freeze({ never: Object.freeze(['general']), max: 64 }),
+})
+export const MENU_LANGS = Object.freeze(['en', 'fr', 'es', 'ar'])
 export const MAX_BODY_BYTES = 640 * 1024
 /**
  * The settings a PRESENTED document (an import, a pack theme file) may NOT carry: contrast, the colour-blind
- * palette, motion, the focus ring, target sizes and underlined links are the person's own business, not a
+ * palette, motion, the focus ring, target sizes, touch comfort and underlined links are the person's own business, not a
  * style someone else publishes. Defined once here — the settings vocabulary lives in this module — and
  * re-exported by themes-catalogue.mjs (one frozen list, never a copy).
  */
-export const A11Y_KEYS = Object.freeze(['contrastMode', 'cbSafe', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks'])
+export const A11Y_KEYS = Object.freeze(['contrastMode', 'cbSafe', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks', 'touch'])
 /**
  * The settings a preset may carry. Mirrors PRESET_GROUPS in client.js (test-preset-store.mjs
  * fails when the two lists drift): colours always, then font, corners and shadows, menu icons, the chat (your
@@ -55,7 +72,7 @@ export const SETTINGS_KEYS = Object.freeze([
   'bubbleUser', 'textUser', 'replyBg', 'replyColor', 'textReply',
   'wp', 'wpVis', 'wpBlur', 'tint', 'glassEffect', 'glassBlur', 'sidebarLinked', 'sidebarOpacity', 'fieldOpacity', 'floatOpacity',
   'bgBrightness', 'bgContrast', 'bgSaturation', 'bgDarken', 'bgFit', 'bgMirror',
-  'contrastMode', 'cbSafe', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks',
+  'contrastMode', 'cbSafe', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks', 'touch',
 ])
 
 const plain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -95,6 +112,69 @@ const settingValue = (key, v) => {
   return undefined
 }
 
+/**
+ * One surface of an arrangement (the secondary menu or the Settings pages), put back in the same shape: `{ entries: [{ id, shown, order }], unlisted }`, or null when it
+ * is not one or says nothing (no entry and `unlisted` is 'show'). Same checks as the main menu's entries, with the surface's own refusals (`spec.never`) and bound (`spec.max`).
+ */
+function sanitizeSurface(raw, spec) {
+  if (!plain(raw) || !Array.isArray(raw.entries)) return null
+  const seen = new Set()
+  const kept = []
+  for (const e of raw.entries) {
+    if (kept.length >= spec.max) break
+    if (!plain(e) || typeof e.id !== 'string' || !MENU_ID_RE.test(e.id) || spec.never.indexOf(e.id) >= 0 || seen.has(e.id) || typeof e.shown !== 'boolean') continue
+    seen.add(e.id)
+    kept.push({ id: e.id, shown: e.shown, order: Number.isInteger(e.order) && e.order >= 0 && e.order <= MENU_LIMITS.order ? e.order : kept.length })
+  }
+  kept.sort((a, b) => a.order - b.order)
+  kept.forEach((e, i) => { e.order = i })
+  const unlisted = raw.unlisted === 'hide' ? 'hide' : 'show'
+  return kept.length === 0 && unlisted === 'show' ? null : { entries: kept, unlisted }
+}
+
+/**
+ * One menu arrangement, always put back in the same shape: `{ entries: [{ id, shown, order, label? }], unlisted, locked, surfaces? }`, or null when `raw`
+ * is not one. Entries are checked one by one (a bad one is dropped, never trusted), sorted by `order` (an entry without one takes its place
+ * in the list), then renumbered 0..n-1; at most MENU_LIMITS.entries of them. `surfaces` (optional, left out when it says nothing) holds the secondary menu and the
+ * Settings pages the same way (MENU_SURFACES); a document without it is the main menu alone, as before. Never throws.
+ */
+export function sanitizeMenu(raw) {
+  if (!plain(raw) || !Array.isArray(raw.entries)) return null
+  const seen = new Set()
+  const kept = []
+  for (const e of raw.entries) {
+    if (kept.length >= MENU_LIMITS.entries) break
+    if (!plain(e) || typeof e.id !== 'string' || !MENU_ID_RE.test(e.id) || MENU_NEVER.indexOf(e.id) >= 0 || seen.has(e.id) || typeof e.shown !== 'boolean') continue
+    seen.add(e.id)
+    const entry = { id: e.id, shown: e.shown, order: Number.isInteger(e.order) && e.order >= 0 && e.order <= MENU_LIMITS.order ? e.order : kept.length }
+    if (plain(e.label)) {
+      const label = {}
+      for (const l of MENU_LANGS) {
+        if (typeof e.label[l] !== 'string') continue
+        const t = clean(e.label[l])
+        if (t !== '' && t.length <= MENU_LIMITS.label && !/[<>]/.test(t)) label[l] = t
+      }
+      if (Object.keys(label).length > 0) entry.label = label
+    }
+    kept.push(entry)
+  }
+  kept.sort((a, b) => a.order - b.order) // stable: ties keep the order of the list
+  kept.forEach((e, i) => { e.order = i })
+  const out = { entries: kept, unlisted: raw.unlisted === 'hide' ? 'hide' : 'show', locked: raw.locked === true }
+  if (plain(raw.surfaces)) {
+    const surfaces = {}
+    for (const k of Object.keys(MENU_SURFACES)) {
+      const v = sanitizeSurface(raw.surfaces[k], MENU_SURFACES[k])
+      if (v !== null) surfaces[k] = v
+    }
+    if (Object.keys(surfaces).length > 0) out.surfaces = surfaces
+  }
+  return out
+}
+
+/** Does this (cleaned) arrangement say anything: an entry on the main menu or on another surface, or a surface that hides what it does not list? */
+export const menuHasContent = (menu) => menu !== null && menu !== undefined && (menu.entries.length > 0 || menu.surfaces !== undefined)
+
 /** Shape check of one preset. Returns { ok, preset } with a clean copy, or { ok:false, error }. */
 export function sanitizePreset(raw, now = () => Date.now()) {
   if (!plain(raw)) return fail('not an object')
@@ -103,18 +183,27 @@ export function sanitizePreset(raw, now = () => Date.now()) {
   const name = clean(raw.name)
   if (name === '' || name.length > LIMITS.name) return fail('invalid name')
   const source = SOURCES.indexOf(raw.source) >= 0 ? raw.source : 'file'
-  if (!plain(raw.settings)) return fail('settings missing')
-  const keys = Object.keys(raw.settings)
-  if (keys.length > LIMITS.keys) return fail('too many settings')
+  // A preset holds an appearance part (`settings`), a menu part (`menu`), or both. A menu part that is not a usable arrangement is dropped, not fatal:
+  // the appearance it came with is still the person's.
+  const menu = raw.menu === undefined || raw.menu === null ? null : sanitizeMenu(raw.menu)
+  const menuOk = menuHasContent(menu)
+  if (raw.settings !== undefined && raw.settings !== null && !plain(raw.settings)) return fail('settings missing')
+  if ((raw.settings === undefined || raw.settings === null) && !menuOk) return fail('settings missing')
   const settings = {}
+  const rawSettings = plain(raw.settings) ? raw.settings : {}
+  const keys = Object.keys(rawSettings)
+  if (keys.length > LIMITS.keys) return fail('too many settings')
   for (const k of keys) {
     if (SETTINGS_KEYS.indexOf(k) < 0) continue // an unknown key is dropped, not trusted
-    const v = settingValue(k, raw.settings[k])
+    const v = settingValue(k, rawSettings[k])
     if (v === undefined) return fail('invalid value for ' + k)
     settings[k] = v
   }
-  if (Object.keys(settings).length === 0) return fail('no known settings')
-  const out = { id: raw.id, name, source, at: isNum(raw.at) ? Math.max(0, Math.round(raw.at)) : now(), settings }
+  const hasSettings = Object.keys(settings).length > 0
+  if (!hasSettings && !menuOk) return fail('no known settings')
+  const out = { id: raw.id, name, source, at: isNum(raw.at) ? Math.max(0, Math.round(raw.at)) : now() }
+  if (hasSettings) out.settings = settings
+  if (menuOk) out.menu = menu
   if (typeof raw.author === 'string' && clean(raw.author) !== '') out.author = clean(raw.author).slice(0, LIMITS.author)
   if (typeof raw.gid === 'string' && ID_RE.test(raw.gid)) out.gid = raw.gid
   if (Number.isInteger(raw.v) && raw.v >= 0 && raw.v <= 1000000) out.v = raw.v
@@ -137,7 +226,11 @@ export function sanitizeLibrary(raw, now = () => Date.now()) {
   // A clock that jumped far ahead must not make this copy win for ever.
   const ceiling = now() + 24 * 60 * 60 * 1000
   const updatedAt = isNum(raw.updatedAt) ? Math.max(0, Math.min(Math.round(raw.updatedAt), ceiling)) : 0
-  return { ok: true, library: { v: LIB_VERSION, updatedAt, presets }, dropped }
+  // The menu in use travels with the library (one document, the newer copy wins as a whole); no usable arrangement means the default menu: the field is left out.
+  const menu = raw.menu === undefined || raw.menu === null ? null : sanitizeMenu(raw.menu)
+  const library = { v: LIB_VERSION, updatedAt, presets }
+  if (menu !== null) library.menu = menu
+  return { ok: true, library, dropped }
 }
 
 export function createPresetStore(opts) {
@@ -194,17 +287,18 @@ const presetSuffixed = (name, n) => {
 /**
  * An IMPORT (one theme file, a gallery theme, a settings bag) through the host: the only writer of the disk
  * library from an import. The browser POSTs `{ import }` and adopts what comes back.
- * input = { name, settings, source?, id?, gid?, v?, author? }
+ * input = { name, settings?, menu?, source?, id?, gid?, v?, author? } (a `settings` bag, a `menu` arrangement, or both)
  * @returns {{ ok: true, id: string, preset: object } | { ok: false, error: string }} — never throws
  */
 export function applyPreset(store, input) {
   try {
     if (!plain(input)) return fail('invalid input')
     if (typeof input.name !== 'string' || clean(input.name) === '') return fail('invalid name')
-    if (!plain(input.settings)) return fail('settings missing')
+    // An import carries an appearance part, a menu part, or both (a template brings both).
+    if (!plain(input.settings) && !plain(input.menu)) return fail('settings missing')
     // The person's accessibility is not something a document may set: refused here as well as in the point,
     // because this entry is reachable without the registry.
-    for (const k of A11Y_KEYS) if (Object.prototype.hasOwnProperty.call(input.settings, k)) return fail('accessibility setting: ' + k)
+    if (plain(input.settings)) for (const k of A11Y_KEYS) if (Object.prototype.hasOwnProperty.call(input.settings, k)) return fail('accessibility setting: ' + k)
     const read = store.read()
     if (!plain(read) || read.ok !== true) return fail(plain(read) && typeof read.error === 'string' ? read.error : 'unreadable library')
     const library = plain(read.library) ? read.library : { presets: [], updatedAt: 0 }
@@ -244,14 +338,14 @@ export function applyPreset(store, input) {
     const v = sanitizePreset({
       id,
       name: existing !== null ? existing.name : (free !== null ? free : name),
-      source: input.source, settings: input.settings, gid: input.gid, v: input.v, author: input.author,
+      source: input.source, settings: input.settings, menu: input.menu, gid: input.gid, v: input.v, author: input.author,
       at: existing !== null ? existing.at : undefined,
     })
     if (v.ok !== true) return fail(v.error)
     const preset = v.preset
     const next = presets.filter((p) => p.id !== id).concat([preset])
     // `updatedAt` moves forward on every import, so the newer-wins rule with the browser copy still converges.
-    const w = store.write({ presets: next, updatedAt: Math.max(Date.now(), (isNum(library.updatedAt) ? library.updatedAt : 0) + 1) })
+    const w = store.write({ presets: next, menu: library.menu, updatedAt: Math.max(Date.now(), (isNum(library.updatedAt) ? library.updatedAt : 0) + 1) }) // the menu in use rides along
     if (!plain(w) || w.ok !== true) return fail(plain(w) && typeof w.error === 'string' ? w.error : 'could not write')
     return { ok: true, id, preset }
   } catch (e) { return fail('import failed: ' + errText(e)) }

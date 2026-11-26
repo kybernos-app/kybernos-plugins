@@ -372,6 +372,7 @@
     let CTX = null
     let SERVICE_SIDEBAR = null
     let SESSION_ID = ''
+    let GATE = null // the right-column gate (see KB-TABGATE): the tab closes itself in a chat that has no deck
     let TICK = null // local replay clock: { t0, vitesse, fige } or null; `fige` is the position (0..1) it is held at, null while it runs
 
     /** Ouvre l'onglet « Slides » quand un deck arrive (motif kybernos-modeleur :
@@ -395,6 +396,22 @@
      * A version is only remembered once its tab is really open: right after a page reload the sidebar service
      * is not always there yet, and a failed attempt used to be swallowed (the flag was set before trying), so the
      * tab then never opened by itself for the following decks. */
+    /** The session the panel was given by the engine (every body of a session-scoped slot gets `sessionId`), or ''. The panel trusts THIS, never the
+     *  cached key: that one is refreshed every few seconds and, right after a change of chat, still names the previous chat — whose deck then showed up. */
+    function cleDeProps (props) {
+      const id = props !== null && props !== undefined ? props.sessionId : ''
+      return typeof id === 'string' ? id : ''
+    }
+
+    /** The key of the chat on screen, read NOW from the engine ('' when unknown). */
+    function cleCourante (ctx) {
+      try {
+        const ui = ctx.get('uiSession')
+        const cle = ui && ui.adapter && ui.adapter.current ? ui.adapter.current.getSnapshot().key : ''
+        return typeof cle === 'string' ? cle : ''
+      } catch { return '' }
+    }
+
     function pasSonde (etat, data, ouvrir) {
       if (data === null || data === undefined) return etat
       if (data.vide) return { versionVue: etat.versionVue, dejaOuvert: false }
@@ -403,10 +420,11 @@
       return etat
     }
 
-    function PanneauSlides () {
+    function PanneauSlides (props) {
       const [, force] = React.useReducer((x) => x + 1, 0)
+      if (GATE !== null) GATE.useEmptyClose(props)
       const S = React.useRef({
-        deck: null, ann: { version: 0, edits: [], strokes: [] },
+        sid: '', deck: null, ann: { version: 0, edits: [], strokes: [] },
         overrides: new Map(), traits: new Map(),
         corrections: [], corInstant: 0,
         outil: 'voir', couleur: '#F2C31A',
@@ -420,6 +438,18 @@
       const traitLive = React.useRef(null)
 
       const reveiller = () => force()
+
+      // This panel belongs to the chat it was given: read its deck, never the previous chat's (runs before the effects below, so they see the right key).
+      React.useLayoutEffect(() => {
+        const id = cleDeProps(props)
+        if (id === '') return
+        if (id !== SESSION_ID) SESSION_ID = id
+        if (S.sid !== id) {
+          const avait = S.deck !== null
+          S.sid = id; S.deck = null; S.corrections = []; S.overrides = new Map(); S.traits = new Map(); TICK = null
+          if (avait) reveiller()
+        }
+      }, [props])
 
       React.useEffect(() => {
         if (TICK !== null) { S.deck = null; TICK = null }
@@ -1076,6 +1106,120 @@
       // KB-TABICON-BEGIN
       const KB_TAB_ICON = (props) => { const px = (props !== null && props !== undefined && typeof props.size === 'number') ? props.size : 22; return React.createElement('svg', { width: px, height: px, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: (props !== null && props !== undefined) ? props.className : undefined }, ['M2 3h20', 'M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3', 'm7 21 5-5 5 5'].map((d, i) => React.createElement('path', { key: i, d }))) }
       // KB-TABICON-END
+      // KB-TABGATE-BEGIN
+      // A tool of the right column shows only in a chat that has something for it: its tile of the « Start » page is hidden (a style sheet, no engine patch)
+      // and a tab of it left in such a chat closes itself. ONE registry per page (the first bundle to load makes it, the others join it): one poll, one
+      // style sheet. `spec.has(sessionId)` answers true, false or null (cannot tell): only false hides or closes anything.
+      const kbTabGate = (spec) => {
+        const w = typeof window !== 'undefined' ? window : null
+        if (w === null || !w.document) return { join: () => () => {}, useEmptyClose: () => {} }
+        const G = w.__KB_TABGATE__ || (w.__KB_TABGATE__ = { kinds: new Map(), hidden: new Set(), cache: new Map(), sid: '', busy: false, timer: 0, style: null })
+        const key = () => {
+          for (const e of G.kinds.values()) {
+            try {
+              const ui = e.ctx.get('uiSession')
+              const k = ui && ui.adapter && ui.adapter.current ? ui.adapter.current.getSnapshot().key : ''
+              if (typeof k === 'string' && k !== '') return k
+            } catch (x) { /* the next bundle may still answer */ }
+          }
+          return ''
+        }
+        const ask = async (kind, sid, fresh) => {
+          const e = G.kinds.get(kind)
+          if (e === undefined || sid === '') return null
+          const ck = kind + '|' + sid
+          const c = G.cache.get(ck)
+          if (!fresh && c !== undefined && Date.now() - c.at < 1000) return c.v
+          let v = null
+          try { v = await Promise.race([Promise.resolve(e.has(sid)), new Promise((r) => setTimeout(() => r(null), 3000))]) } catch (x) { v = null }
+          v = v === true || v === false ? v : null
+          if (G.cache.size > 200) G.cache.clear()
+          G.cache.set(ck, { v, at: Date.now() })
+          return v
+        }
+        const paint = () => {
+          let el = G.style
+          if (el === null || el.parentNode === null) {
+            el = w.document.createElement('style')
+            el.setAttribute('data-kb-tabgate', '')
+            w.document.head.appendChild(el)
+            G.style = el
+          }
+          el.textContent = Array.from(G.hidden).map((k) => 'div:has(> [data-sidebar-right-guide-entry="' + k + '"]){display:none!important}').join('\n')
+        }
+        const refresh = async () => {
+          if (G.busy) return
+          G.busy = true
+          try {
+            const sid = key()
+            // a new chat: every tool is held back until it has answered, so a tile never shows for a moment and then vanishes
+            if (sid !== G.sid) { G.sid = sid; G.hidden = new Set(sid === '' ? [] : G.kinds.keys()); paint() }
+            if (sid === '') return
+            const kinds = Array.from(G.kinds.keys())
+            const answers = await Promise.all(kinds.map((k) => ask(k, sid, false)))
+            if (key() !== sid) return // the person went elsewhere while we asked
+            G.hidden = new Set(kinds.filter((k, i) => answers[i] === false))
+            paint()
+          } finally { G.busy = false }
+        }
+        const tick = () => {
+          let tiles = false
+          try { tiles = w.document.querySelector('[data-sidebar-right-guide-entry]') !== null } catch (x) { tiles = false }
+          if (tiles || key() !== G.sid) refresh()
+        }
+        const join = () => {
+          G.kinds.set(spec.kind, { ctx: spec.ctx, has: spec.has })
+          if (G.sid !== '') G.hidden.add(spec.kind)
+          if (G.timer === 0) G.timer = setInterval(tick, 1200)
+          tick()
+          return () => {
+            const mine = G.kinds.get(spec.kind)
+            if (mine !== undefined && mine.has === spec.has) G.kinds.delete(spec.kind)
+            G.hidden.delete(spec.kind)
+            if (G.kinds.size === 0) {
+              clearInterval(G.timer)
+              G.timer = 0
+              G.sid = ''
+              if (G.style !== null && G.style.parentNode !== null) G.style.parentNode.removeChild(G.style)
+              G.style = null
+            } else paint()
+          }
+        }
+        // Called by the tab body at every render: a tab of this tool left in a chat that has nothing for it closes itself (two empty answers in a row,
+        // so a deck that is still being written never closes its own tab).
+        const useEmptyClose = (props) => {
+          const p = props !== null && props !== undefined ? props : {}
+          const info = typeof p.useTabInfo === 'function' ? p.useTabInfo() : null
+          const sid = typeof p.sessionId === 'string' ? p.sessionId : ''
+          const close = info !== null && info.tab !== undefined && info.tab.actions !== undefined && typeof info.tab.actions.close === 'function' ? info.tab.actions.close : null
+          React.useEffect(() => {
+            if (close === null || sid === '') return undefined
+            let dead = false
+            let misses = 0
+            const check = async () => {
+              const v = await ask(spec.kind, sid, true)
+              if (dead) return
+              if (v !== false) { misses = 0; return }
+              misses += 1
+              if (misses >= 2) { dead = true; try { close() } catch (x) { /* already gone */ } }
+            }
+            const t0 = setTimeout(check, 1500)
+            const t = setInterval(check, 2500)
+            return () => { dead = true; clearTimeout(t0); clearInterval(t) }
+          }, [sid, close])
+        }
+        return { join, useEmptyClose }
+      }
+      // KB-TABGATE-END
+      GATE = kbTabGate({ ctx, kind: KIND, has: async (sid) => {
+        const url = urlEtat(sid)
+        if (url === null) return null
+        const r = await fetch(url)
+        if (!r.ok) return null
+        const d = await r.json()
+        return d !== null && typeof d === 'object' ? d.vide !== true : null
+      } })
+      ctx.effect(() => GATE.join(), 'kybernos-slides: right tool gate')
       let registre = null
       try { registre = ctx.get('sidebarRightTabs') } catch { registre = null }
       if (registre && typeof registre.register === 'function') {
@@ -1104,18 +1248,32 @@
       // Sonde AU NIVEAU MODULE (motif kybernos-modeleur) : elle ouvre l'onglet
       // quand un deck arrive — le panneau ne peut pas le faire lui-même, son
       // propre sondage ne tourne qu'une fois monté.
-      let sonde = { versionVue: null, dejaOuvert: false }
+      // One memory PER CHAT: with a single one, going from a chat to another and back looked like a new deck each time and the panel opened by itself.
+      const sondes = new Map()
+      let sondeUneFois = false
       ctx.effect(() => {
         const sonder = async () => {
+          const vive = cleCourante(ctx)
+          if (vive !== '') SESSION_ID = vive
+          const cle = SESSION_ID
           // L4-02: no session key yet: the host would answer with another conversation's deck and the tab would open on it.
-          const url = urlEtat(SESSION_ID)
+          const url = urlEtat(cle)
           if (url === null) return
           let data = null
           try {
             const r = await fetch(url)
             if (r.ok) data = await r.json()
           } catch { /* l'hôte reviendra */ }
-          sonde = pasSonde(sonde, data, ouvrirOnglet)
+          if (cle !== SESSION_ID) return // the answer is for the chat that was on screen a moment ago
+          let etat = sondes.get(cle)
+          if (etat === undefined) {
+            // First sight of this chat: if another one was already watched, the person just switched to it — remember its deck, do not open the
+            // panel (opening is for a deck that ARRIVES, or for the first read after a page reload).
+            if (sondeUneFois && data !== null && data !== undefined && !data.vide) { sondes.set(cle, { versionVue: data.version, dejaOuvert: false }); return }
+            etat = { versionVue: null, dejaOuvert: false }
+          }
+          sondes.set(cle, pasSonde(etat, data, ouvrirOnglet))
+          if (data !== null && data !== undefined) sondeUneFois = true
         }
         sonder()
         const t = setInterval(sonder, 1200)
@@ -1132,6 +1290,6 @@
       __test: {
         normaliserDeck, normaliserSlide, budget, segments, texteVisible,
         slideActive, diffSlides, hitStroke, dessinerTraits, cleChamp,
-        progression, appliquerAnnotations, THEMES, DEMOS, poidsSlide, pasSonde, miniature, placerEditeur, urlEtat,
+        progression, appliquerAnnotations, THEMES, DEMOS, poidsSlide, pasSonde, miniature, placerEditeur, urlEtat, cleDeProps, sessionCourante: () => SESSION_ID,
       },
     }

@@ -25,3 +25,6 @@ audits/
 # Kybernos Pulse (Mac menu-bar app): Swift build output
 packages/kybernos-pulse/helper/.build/
 packages/kybernos-pulse/helper/build/
+
+# Private roadmap overlay of the platform map (horizons, vendor names, commercial detail): never public
+demo/kybernos-architecture/roadmap.private.js

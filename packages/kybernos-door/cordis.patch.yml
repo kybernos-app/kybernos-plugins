@@ -1,0 +1,4 @@
+# dsh bundle patch: the local MCP door is one plugin and nothing else.
+- insert:
+    - id: kybernos-door
+      name: '@local/kybernos-door'

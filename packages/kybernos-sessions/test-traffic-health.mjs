@@ -16,8 +16,10 @@ const eq = (label, a, b) => ok(label + ' — ' + JSON.stringify(a) + ' ≠ ' + J
 eq('providerOf reads the route', providerOf('kybernos/gpt-6-luna'), 'kybernos')
 eq('providerOf on a bare id', providerOf('gpt-6-luna'), '')
 ok('our own gateway is excluded by default', DEFAULT_EXCLUDED.includes('kybernos'))
+ok('so is the phone\'s own model: a ping wakes it and its load outlasts the 8 s limit (phone-local is the phone-model bundle\'s provider id)', DEFAULT_EXCLUDED.includes('phone-local') && filterProbeable(['phone-local/qwen3-1.7b', 'opencode-go/x'], excludedFrom({})).probe.join() === 'opencode-go/x' && filterProbeable(['phone-local/qwen3-1.7b'], excludedFrom({})).skipped[0].raison === 'exclu-phone-local')
+ok('the id excluded is the one the phone-model bundle really writes (a rename there must fail here)', (await import('../kybernos-phone-model/phone-model.mjs')).PROVIDER_ID === 'phone-local')
 ok('an operator can extend the list', excludedFrom({ KB_NO_PROBE_PROVIDERS: 'zai-coding-cn, opencode-go ,' }).has('opencode-go'))
-ok('an empty environment adds nothing', excludedFrom({}).size === 1)
+ok('an empty environment adds nothing', excludedFrom({}).size === DEFAULT_EXCLUDED.length)
 
 {
   const { probe, skipped } = filterProbeable(

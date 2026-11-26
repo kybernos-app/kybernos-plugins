@@ -15,6 +15,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
+import { readFiles } from '../packages/kybernos-plugin/lib-i18n-test.mjs'
 import { frenchEverywhere, frenchLinesOfMarkdown, frenchOutsideDictionary, isFrench, isFrenchProse, vousForms, vousFormsOfSource } from './lib-french-literals.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -48,10 +49,19 @@ const codeFiles = (dir) => {
   return out.sort()
 }
 
+// The core's texts are not in client.js any more: they are the two flat files packages/kybernos-plugin/i18n/{fr,en}.json (the dictionary, read as the page reads it).
+// They are scanned as the literals they were: one JSON string per line is a valid JS literal, so the same scanner reads them, and a line is the rank of an entry.
+const DICT_BUNDLE = 'kybernos-plugin'
+const DICT = readFiles()
+const dictSource = (lang) => Object.values(DICT[lang]).map((v) => JSON.stringify(v)).join('\n')
+const dictKeyAt = (lang, line) => 'i18n/' + (lang === 'fr' ? 'fr' : 'en') + '.json#' + Object.keys(DICT[lang])[line - 1]
+
 /** Every French literal outside a dictionary in a bundle: [{ file, line, text }]. */
 const findings = (bundle) => {
   const dir = join(PACKAGES, bundle)
   const out = []
+  // The French is allowed in fr.json (that is the dictionary); a French text in en.json is French outside the French dictionary, as an `en:` value in the old table was.
+  if (bundle === DICT_BUNDLE) for (const o of frenchOutsideDictionary(dictSource('en'), { unaccented: UNACCENTED.has(bundle) })) out.push({ file: dictKeyAt('en', o.line), line: o.line, text: o.text })
   for (const f of codeFiles(dir)) {
     for (const o of frenchOutsideDictionary(readFileSync(f, 'utf8'), { unaccented: UNACCENTED.has(bundle) })) out.push({ file: relative(dir, f), line: o.line, text: o.text })
   }
@@ -192,6 +202,7 @@ for (const b of bundles) {
   check('no French literal outside a dictionary (client.js, index.js, host modules)', left.length === 0, left.slice(0, 6).map((o) => o.file + ':' + o.line + ' ' + JSON.stringify(o.text.slice(0, 60))))
   check('every allowed exception still exists (no stale entry)', entry.every((s) => found.some((o) => o.text === s)), entry.filter((s) => !found.some((o) => o.text === s)))
   const vous = codeFiles(join(PACKAGES, b)).flatMap((f) => vousFormsOfSource(readFileSync(f, 'utf8')).map((o) => ({ file: relative(join(PACKAGES, b), f), ...o })))
+    .concat(b === DICT_BUNDLE ? vousFormsOfSource(dictSource('fr')).map((o) => ({ file: dictKeyAt('fr', o.line), ...o })) : [])
   check('the French speaks « tu »: no vous, votre, vos and no imperative in -ez (rechargez → recharge)', vous.length === 0, vous.slice(0, 6).map((o) => o.file + ':' + o.line + ' ' + o.words.join(',') + ' ' + JSON.stringify(o.text.slice(0, 50))))
   check('README.md is English', readme.length === 0, readme.slice(0, 3).map((o) => o.line + ' ' + JSON.stringify(o.text.slice(0, 50))))
   check('the package description is English and present', typeof pkg.description === 'string' && pkg.description.length > 10 && !descFrench, pkg.description)
@@ -201,7 +212,8 @@ for (const b of bundles) {
   check('the pair helper answers French for French, English for every other language', helperProblems.length === 0, helperProblems)
   const need = ALLOW.needFrench[b]
   if (need !== undefined) {
-    const twin = codeFiles(join(PACKAGES, b)).filter((f) => /(^|\/)(client|plugin)\.js$/.test(f)).reduce((n, f) => n + frenchEverywhere(readFileSync(f, 'utf8')).length, 0)
+    // + the French texts of the core's dictionary file, which used to be literals of its client.js
+    const twin = codeFiles(join(PACKAGES, b)).filter((f) => /(^|\/)(client|plugin)\.js$/.test(f)).reduce((n, f) => n + frenchEverywhere(readFileSync(f, 'utf8')).length, 0) + (b === DICT_BUNDLE ? frenchEverywhere(dictSource('fr')).length : 0)
     check('the French twin is there (at least ' + need + ' French dictionary literals in the client)', twin >= need, twin)
   }
 }

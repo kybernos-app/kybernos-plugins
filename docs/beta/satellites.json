@@ -183,7 +183,7 @@
         "nom": "@local/kybernos-bricks",
         "tier": 2,
         "obligatoire": false,
-        "defaut": "actif",
+        "defaut": "inactif",
         "role": "Bricks panel: isometric mockups driven by the chat, tool animer_briques",
         "poids_ko": 108,
         "lib_vendor": null
@@ -226,16 +226,6 @@
         "defaut": "actif",
         "role": "“Install as app”: exports a right-sidebar panel as a native app",
         "poids_ko": 276,
-        "lib_vendor": null
-      },
-      {
-        "dir": "kybernos-computers",
-        "nom": "@local/kybernos-computers",
-        "tier": 2,
-        "obligatoire": false,
-        "defaut": "actif",
-        "role": "cloud computers for agents (E2B, key supplied by the user)",
-        "poids_ko": 128,
         "lib_vendor": null
       },
       {
@@ -289,6 +279,16 @@
         "lib_vendor": null
       },
       {
+        "dir": "kybernos-phone-model",
+        "nom": "@local/kybernos-phone-model",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "inactif",
+        "role": "the small model that runs on the phone itself, for plain chat: a provider of the engine, the « Discussion » preset (no tools) and one quiet line; inert unless the Kybernos phone app starts it, so it is off on a computer and listed in the phone profile",
+        "poids_ko": 40,
+        "lib_vendor": null
+      },
+      {
         "dir": "kybernos-websearch",
         "nom": "@local/kybernos-websearch",
         "tier": 2,
@@ -304,7 +304,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "Memory & Lessons learned page (account memory + lessons per Agent Team), lessons injected per session, switches, tools lesson_write/lesson_search",
+        "role": "Memory & Lessons learned page (account memory + lessons per Agent Team), lessons injected per session, switches, tools lesson_write/lesson_search/lesson_read/memory_tidy",
         "poids_ko": 140,
         "lib_vendor": null
       },
@@ -523,6 +523,36 @@
         "role": "the Word documents, Excel workbooks, Markdown notes and PDFs of your Creations, opened in a light editor: the file is checked first for what the editor would lose, a save never overwrites a change made meanwhile, and Undo puts the file back (the editors are built on the computer from pinned versions, not shipped)",
         "poids_ko": 64,
         "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-door",
+        "nom": "@local/kybernos-door",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "inactif",
+        "role": "Kaby MCP: Claude Code (or any MCP client) on this computer gives your Kaby a task and reads its answer; reachable only with a secret token from your profile, from this computer, and a step that needs your approval waits for you on the Kybernos screen",
+        "poids_ko": 24,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-guard",
+        "nom": "@local/kybernos-guard",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "deterministic Pass 1 security guard: blocks secret leaks and catastrophic commands, asks confirmation on risky commands, and flags prompt injections in external tool outputs",
+        "poids_ko": 28,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-knowledge",
+        "nom": "@local/kybernos-knowledge",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "local document knowledge base and auto-maintained Markdown wiki (.md, .txt, .csv, .docx, .pdf) with citable BM25 search for Workspaces, Kaby and Front Desk",
+        "poids_ko": 44,
+        "lib_vendor": null
       }
     ]
   },
@@ -554,12 +584,12 @@
       "@local/kybernos-modeleur",
       "@local/kybernos-motion",
       "@local/kybernos-miniapps",
-      "@local/kybernos-computers",
       "@local/dsh-subagent-maison",
       "@local/kybernos-workers",
       "@local/kybernos-modeles-locaux",
       "@local/kybernos-refs",
       "@local/kybernos-mobile",
+      "@local/kybernos-phone-model",
       "@local/kybernos-websearch",
       "@local/kybernos-memory",
       "@local/kybernos-atlas",
@@ -582,7 +612,10 @@
       "@local/kybernos-db",
       "@local/kybernos-front-desk",
       "@local/kybernos-maquettes",
-      "@local/kybernos-office"
+      "@local/kybernos-office",
+      "@local/kybernos-door",
+      "@local/kybernos-guard",
+      "@local/kybernos-knowledge"
     ]
   }
 }

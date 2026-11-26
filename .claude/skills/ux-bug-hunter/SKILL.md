@@ -5,6 +5,8 @@ description: Hunt bugs, unpleasant or unoptimised UX, clutter, missing help and 
 
 # UX and bug hunter
 
+What a screen shows is this skill's job. A bug in the code with no screen to look at (a host route, a guard, persistence, the automations, the test suite) is `plugin-bug-hunter`'s.
+
 One pass, three outputs: **fixes** (small, made now), **proposals** (visual changes, shown before anything is built) and
 **bugs** (broken things, fixed when the cause is clear). The target is a product that is calm, predictable, complete and
 helped: nothing jumps, nothing is missing, nothing is said twice, nothing needs explaining that the screen could have explained.

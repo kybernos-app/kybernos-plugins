@@ -74,4 +74,14 @@ assert.ok(rowSrc.includes('quickActs(p)') && rowSrc.includes("'data-kb': 'learne
 assert.ok(/@media \(hover:hover\)\{\s*\.kbs-root \.kbl-pend \.kbl-quick\{opacity:0\}\s*\.kbs-root \.kbl-pend:hover \.kbl-quick,\.kbs-root \.kbl-pend:focus-within \.kbl-quick,\.kbs-root \.kbl-pend\.sel \.kbl-quick\{opacity:1\}/.test(src), 'the answers show on hover, on keyboard focus and on the selected one, and always on a touch screen')
 ok('cards and rows are never mixed: the suggestions are rows in the list view and cards in the cards view, with Review, Edit, Discard and Accept on each')
 
+// On a phone the sections of an opened skill are folded: <details>, closed, one tap opens each; elsewhere the markup is the one it always was.
+const sheetFn = src.slice(src.indexOf('function SkillSheet(props) {'), src.indexOf('const sheetRow = '))
+assert.ok(src.includes("const onPhone = () => { try { return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 600px)').matches === true } catch (e) { return false } }"), 'the condition of the phone layer\'s page rules (600 px), guarded')
+for (const hook of ['sheet-facts', 'sheet-audits', 'sheet-text']) assert.ok(sheetFn.includes("'data-kb': '" + hook + "'"), hook + ' is a folded section on a phone')
+assert.ok((sheetFn.match(/h\('details'/g) || []).length === 3 && !/\bopen: /.test(sheetFn), 'three folded sections, none open by default')
+assert.ok((sheetFn.match(/h\('section', \{ className: 'kbsf-dcard/g) || []).length === 3, 'the desktop markup (three sections) is still drawn when not on a phone')
+assert.ok(src.includes("'data-kb': 'pick-try'") && /aside: onPhone\(\)\s*\?\s*h\('details'/.test(src), '« Try asking » is folded on a phone too')
+assert.ok(/\.kbs-root \.kbsf-fold>summary\{[^}]*min-height:48px/.test(src) && /\.kbs-root details\.kbsf-fold\{display:block\}/.test(src), 'a folded row is 48 px high and the card stays a block (a flex <details> does not fold everywhere)')
+ok('on a phone the sections of an opened skill (Try asking, Details, Security audits, the SKILL.md) are folded, closed, one tap away; the desktop sheet is unchanged')
+
 console.log(pass + ' tests passed')

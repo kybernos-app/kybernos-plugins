@@ -1,0 +1,22 @@
+{
+  "name": "@local/kybernos-guard",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "Deterministic Pass 1 security guard: blocks secret leaks, guards destructive shell commands, and flags prompt injections in external tool outputs.",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test-guard.mjs && node test-write-guard.mjs"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

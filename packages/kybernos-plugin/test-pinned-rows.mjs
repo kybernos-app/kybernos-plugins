@@ -179,4 +179,132 @@ const rule = (sel) => {
   ok('the dots are wired to DSH\'s status, updated in place, drawn in the free left slot with the shared classes, and have their French twins')
 }
 
+// 6. the rename of a pinned chat (2026-11-24, item 10 of the owner's list): the new title is shown at once, a refusal puts the old one back AND says why under the row
+//    (it used to end in console.warn only). The pure block is cut out of the bundle and run as it is.
+{
+  const a = plugin.indexOf('// <pins-rename:begin>')
+  const b = plugin.indexOf('// <pins-rename:end>')
+  assert.ok(a >= 0 && b > a, 'the pure block of the rename was found')
+  const ctx = vm.createContext({})
+  vm.runInContext(plugin.slice(a, b) + '\n;Object.assign(globalThis, { kbPinsHeldTitle, kbPinsNoticeOf, kbPinsReason, kbPinsRenameRun, KB_PINS_HOLD_MS, KB_PINS_NOTICE_MS })', ctx)
+  const { kbPinsHeldTitle, kbPinsNoticeOf, kbPinsReason, kbPinsRenameRun, KB_PINS_HOLD_MS, KB_PINS_NOTICE_MS } = ctx
+  const say = (r) => 'Could not rename: ' + r
+  const rig = (call) => {
+    const t = { now: 1000, emits: 0, later: [], seen: [] }
+    const run = (id, title) => kbPinsRenameRun(id, title, (i, ti) => { t.seen.push(['call', i, ti, kbPinsHeldTitle(i, 'Old', t.now)]); return call(i, ti) }, () => { t.emits += 1 }, say, () => t.now, (fn, ms) => t.later.push(ms))
+    return { t, run }
+  }
+  // accepted: the typed title is shown while the call runs, then until the store shows it
+  {
+    const { t, run } = rig(async () => {})
+    const res = await run('session-aaa', 'New title')
+    assert.equal(res, true, 'an accepted rename resolves true')
+    assert.deepEqual(t.seen[0], ['call', 'session-aaa', 'New title', 'New title'], 'the new title is on screen while the engine call runs')
+    assert.equal(kbPinsHeldTitle('session-aaa', 'Old', t.now + 5), 'New title', 'the store still says the old title: the new one is held')
+    assert.equal(kbPinsHeldTitle('aaa', 'Old', t.now + 5), 'New title', 'the bare id and the prefixed id are the same chat')
+    assert.equal(kbPinsHeldTitle('session-aaa', 'New title', t.now + 6), 'New title', 'the store caught up: it is shown')
+    assert.equal(kbPinsHeldTitle('session-aaa', 'Old', t.now + 7), 'Old', '…and the hold is released')
+    assert.ok(t.emits >= 1 && t.later.length === 1, 'the section is redrawn at once and once more when the hold would run out')
+    assert.equal(kbPinsNoticeOf('session-aaa', t.now), null, 'nothing is said when the engine accepted')
+  }
+  // a hold that the store never confirms runs out
+  {
+    const { t, run } = rig(async () => {})
+    await run('session-hold', 'Typed')
+    assert.equal(kbPinsHeldTitle('session-hold', 'Old', t.now + KB_PINS_HOLD_MS - 1), 'Typed')
+    assert.equal(kbPinsHeldTitle('session-hold', 'Old', t.now + KB_PINS_HOLD_MS), 'Old', 'after the hold the store is the truth')
+  }
+  // refused: the old title is back and the reason is said under the row
+  {
+    const { t, run } = rig(async () => { throw new Error('  the engine\n said   no ') })
+    const res = await run('session-bbb', 'Refused title')
+    assert.equal(res, false, 'a refused rename resolves false (it does not throw)')
+    assert.equal(kbPinsHeldTitle('session-bbb', 'Old', t.now), 'Old', 'rollback: the old title is shown again')
+    assert.equal(kbPinsNoticeOf('session-bbb', t.now), 'Could not rename: the engine said no', 'the reason is kept for the row, on one line')
+    assert.equal(kbPinsNoticeOf('session-bbb', t.now + KB_PINS_NOTICE_MS - 1) !== null, true, 'it stays long enough to be read')
+    assert.equal(kbPinsNoticeOf('session-bbb', t.now + KB_PINS_NOTICE_MS), null, '…then goes')
+    assert.ok(t.emits >= 2 && t.later.length === 1, 'redrawn at once (title) and again when the notice goes')
+  }
+  // a new try clears the old notice; no message / odd throws
+  {
+    const bad = rig(async () => { throw new Error('x') })
+    await bad.run('session-ccc', 'A')
+    assert.notEqual(kbPinsNoticeOf('session-ccc', bad.t.now), null)
+    const good = rig(async () => {})
+    await good.run('session-ccc', 'B')
+    assert.equal(kbPinsNoticeOf('session-ccc', good.t.now), null, 'a new rename wipes the previous refusal')
+    assert.equal(kbPinsReason(new Error('')), '', 'no message: nothing is invented here (the caller says the plain sentence)')
+    assert.equal(kbPinsReason({ code: 7 }), '', 'an object with no message says nothing')
+    assert.equal(kbPinsReason(null), '')
+    assert.equal(kbPinsReason('plain text'), 'plain text', 'a string is its own reason')
+    assert.equal(kbPinsReason(new Error('y'.repeat(300))).length, 140, 'a long reason is cut to 140 characters')
+    const odd = rig(async () => { throw undefined }) // eslint-disable-line no-throw-literal
+    assert.equal(await odd.run('session-ddd', 'C'), false, 'even a bare `throw undefined` is a refusal')
+    assert.equal(kbPinsNoticeOf('session-ddd', odd.t.now), 'Could not rename: ', 'with an empty reason (the bundle\'s own say() then picks the plain sentence)')
+  }
+  // wiring, source level
+  assert.ok(/kbPinsRenameRun\(id, value, kbPinsRenameCall, kbPinsEmit, kbPinsSayRename, \(\) => Date\.now\(\), \(fn, ms\) => setTimeout\(fn, ms\)\)/.test(plugin), 'the inline editor runs the rename through kbPinsRenameRun')
+  assert.ok(!plugin.includes("console.warn('[kybers] rename refused'"), 'a refusal is no longer only a console.warn')
+  assert.ok(/kbPinsHeldTitle\(sid, sessionTitle\(sid\), Date\.now\(\)\)/.test(plugin) && /notice: kbPinsNoticeOf\(sid, Date\.now\(\)\)/.test(plugin), 'the section model shows the held title and carries the notice (so the signature changes and the section is redrawn)')
+  assert.ok(/note\.className = 'kbpin_notice'\n\s+note\.setAttribute\('role', 'alert'\)/.test(plugin), 'the reason is drawn under its row, as an alert')
+  assert.match(rule('.kbpin_notice'), /color:var\(--dsw-alias-state-error-primary\)/, 'in the error colour')
+  assert.ok(/console\.warn\('\[kybers\] a pinned-section subscriber failed/.test(plugin), 'a failing subscriber of kbPinsEmit is said, the others still run')
+  assert.ok(/throw new Error\(kbt\('kbpin\.rename\.noservice'\)\)/.test(plugin) && /kbt\('kbpin\.rename\.refused'\)/.test(plugin), 'the two errors of kbPinsRenameCall are plain words')
+  for (const lang of ['en', 'fr']) {
+    const dict = JSON.parse(readFileSync(join(here, 'i18n', lang + '.json'), 'utf8'))
+    for (const k of ['kbpin.rename.failed', 'kbpin.rename.failed.plain', 'kbpin.rename.noservice', 'kbpin.rename.refused']) assert.ok(typeof dict[k] === 'string' && dict[k].length > 0, lang + ' has ' + k)
+    assert.ok(dict['kbpin.rename.failed'].includes('{reason}'), lang + ': the sentence has a place for the reason')
+  }
+  ok('the rename shows the new title at once, rolls back on a refusal and says why under the row; the bundle plays that block as it is')
+}
+
+// 7. the dots' source (2026-11-24, list item 10): since engine 0.2.2-rc.2 `uiSession.sessionStatus` is a service of its own and a plain read THROWS
+//    (« cannot get property "uiSession.sessionStatus" without inject »). The read was swallowed, so the spinner never showed. The handle `ctx.inject` gives is the source now.
+{
+  const a = plugin.indexOf('const kbPinsStatusUsable')
+  const b = plugin.indexOf('/** The dot of each workspace folder row')
+  const c = plugin.indexOf('let kbPinsStatusWatched = false')
+  const d = plugin.indexOf('/** A mutation made inside OUR section')
+  assert.ok(a > 0 && b > a && c > b && d > c, 'the source and its adoption are found')
+  const ctx = vm.createContext({})
+  vm.runInContext('let kbPinsCtx = null; let emitted = 0; const kbPinsEmit = () => { emitted += 1 }\n' + plugin.slice(a, b) + '\n' + plugin.slice(c, d) +
+    '\n;Object.assign(globalThis, { kbPinsStatusSource, kbPinsStatusAdopt, setCtx: (v) => { kbPinsCtx = v }, emitted: () => emitted })', ctx)
+  const status = (log) => ({ getSnapshot: () => new Map(), subscribe: () => { log.push('on'); return () => { log.push('off') } } })
+  // an engine of 0.2.2-rc.2 or later, the plugin not injected: the property throws
+  const strict = { get: () => ({ get sessionStatus() { throw new Error('cannot get property "uiSession.sessionStatus" without inject') } }) }
+  ctx.setCtx(strict)
+  assert.equal(ctx.kbPinsStatusSource(), null, 'an uninjected read gives no source (and does not throw)')
+  // the injected handle arrives: it is the source, it is subscribed once, the dots are drawn again
+  const log = []
+  const mine = status(log)
+  ctx.kbPinsStatusAdopt(mine)
+  assert.equal(ctx.kbPinsStatusSource(), mine, 'the injected service is the source')
+  assert.deepEqual(log, ['on'], 'one subscription')
+  assert.equal(ctx.emitted(), 1, 'the section is drawn again at once')
+  // a replacement (hot reload): the old subscription is dropped before the new one is taken
+  const log2 = []
+  const next = status(log2)
+  ctx.kbPinsStatusAdopt(next)
+  assert.deepEqual(log, ['on', 'off'], 'the old subscription is dropped')
+  assert.deepEqual(log2, ['on'], 'the new one is taken')
+  assert.equal(ctx.kbPinsStatusSource(), next)
+  // the service goes: no source again, subscription dropped
+  ctx.kbPinsStatusAdopt(null)
+  assert.deepEqual(log2, ['on', 'off'])
+  assert.equal(ctx.kbPinsStatusSource(), null, 'the service is gone: no dot, no error')
+  // something that is not a status service is refused
+  ctx.kbPinsStatusAdopt({ getSnapshot: () => new Map() })
+  assert.equal(ctx.kbPinsStatusSource(), null, 'a handle without subscribe is no source')
+  // an engine older than 0.2.2-rc.2: the status is a plain property of uiSession
+  const old = status([])
+  ctx.setCtx({ get: () => ({ sessionStatus: old }) })
+  assert.equal(ctx.kbPinsStatusSource(), old, 'an older engine still reads the property')
+  // wired: a sub-plugin asks for the service (`uiSession` itself too: the guard refuses a root that is not declared), out of the module's own inject
+  assert.ok(/ctx\.inject\(\['uiSession', 'uiSession\.sessionStatus'\], \(scope\) => \{/.test(plugin) && /kbPinsStatusAdopt\(ui !== undefined && ui !== null \? ui\.sessionStatus : null\)/.test(plugin), 'the bundle injects the status service and adopts it')
+  assert.ok(/return \(\) => \{ kbPinsStatusAdopt\(null\) \}/.test(plugin), 'and lets it go with the effect')
+  assert.ok(!/^  inject: \[[^\]]*uiSession/m.test(plugin), 'the module itself does not require it: an engine without the service must not hold the bundle back')
+  assert.ok(!/ctx\.get\('uiSession'\)\.sessionStatus/.test(plugin), 'no other place reads the status without the injected handle')
+  ok('the dots read the injected status service (an uninjected read throws on engine 0.2.2-rc.2+), an older engine still works, a replacement or a loss drops the old subscription')
+}
+
 console.log('\n' + pass + ' checks passed')

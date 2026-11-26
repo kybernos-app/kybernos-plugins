@@ -16,7 +16,7 @@ export const SESSION_WRITE_PATHS = new Set([
   '/kybernos-cloud/artifacts/detail', '/kybernos-cloud/artifacts/push', '/kybernos-cloud/chat/ensure', '/kybernos-cloud/chats/push',
   '/kybernos-cloud/connections/delete', '/kybernos-cloud/connections/link', '/kybernos-cloud/connector-asks/answer', '/kybernos-cloud/disconnect', '/kybernos-cloud/invitation/accept',
   '/kybernos-cloud/kyby/mandate/set', '/kybernos-cloud/kyby/native/set', '/kybernos-cloud/marketplace/install', '/kybernos-cloud/members/invite', '/kybernos-cloud/members/remove',
-  '/kybernos-cloud/memory/add', '/kybernos-cloud/memory/delete', '/kybernos-cloud/memory/index/run',
+  '/kybernos-cloud/memory/add', '/kybernos-cloud/memory/delete', '/kybernos-cloud/memory/index/run', '/kybernos-cloud/memory/no-expiry', '/kybernos-cloud/memory/wipe',
   '/kybernos-cloud/memory/settings/set', '/kybernos-cloud/memory/tidy/apply', '/kybernos-cloud/memory/tidy/dismiss',
   '/kybernos-cloud/memory/tidy/scan', '/kybernos-cloud/memory/tidy/settings', '/kybernos-cloud/memory/tidy/undo', '/kybernos-cloud/memory/update',
   '/kybernos-cloud/models/sync', '/kybernos-cloud/poll', '/kybernos-cloud/refresh', '/kybernos-cloud/shares/revoke', '/kybernos-cloud/shares/set',
@@ -32,7 +32,7 @@ export const SESSION_WRITE_PATHS = new Set([
   // L3-04 / L3-05: the fifteen that were at the Origin alone.
   '/kybernos-cloud/instructions/save', '/kybernos-cloud/telegram/pairing', '/kybernos-cloud/telegram/pairing/cancel', '/kybernos-cloud/telegram/unlink',
   '/kybernos-cloud/whatsapp/pairing', '/kybernos-cloud/whatsapp/pairing/cancel', '/kybernos-cloud/whatsapp/unlink', '/kybernos-cloud/kyby/computer',
-  '/kybernos-cloud/computer/open', '/kybernos-cloud/computer/resume', '/kybernos-cloud/computer/suspend', '/kybernos-cloud/computer/target/set', '/kybernos-cloud/console/link',
+  '/kybernos-cloud/computer/open', '/kybernos-cloud/computer/resume', '/kybernos-cloud/computer/suspend', '/kybernos-cloud/computer/target/set', '/kybernos-cloud/computer/update/start', '/kybernos-cloud/console/link',
   '/kybernos-cloud/billing/checkout', '/kybernos-cloud/billing/portal', '/kybernos-cloud/invitation/preview',
   // A team's own DSH: starting a process and copying a profile.
   '/kybernos-cloud/team-dsh/open', '/kybernos-cloud/team-dsh/stop',
@@ -50,6 +50,8 @@ export const STRICT_ONLY_EXCEPTIONS = new Map([
   ['/kybernos-cloud/turn', "computer's own runner"],
   ['/kybernos-cloud/turn/answer', "computer's own runner"],
   ['/kybernos-cloud/turn/continue', "computer's own runner"],
+  ['/kybernos-cloud/turn/journal', "computer's own runner"],
+  ['/kybernos-cloud/turn/stop', "computer's own runner"],
   ['/kybernos-cloud/computer/claimed', 'computer image claimer'],
 ])
 

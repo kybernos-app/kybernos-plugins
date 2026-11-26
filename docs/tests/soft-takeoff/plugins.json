@@ -74,12 +74,6 @@
       "why": "Connectors: Discover shows the whole catalogue, Connect is gated by account.",
       "unit": 11
     },
-    "kybernos-computers": {
-      "state": "off",
-      "call": "owner",
-      "why": "E2B code sandbox with the person's own key. NOT the Kybernos Cloud Computer (that lives in kybernos-cloud). 4 unit tests, no live check.",
-      "unit": 4
-    },
     "kybernos-dashboards": {
       "state": "on",
       "call": "recommended",
@@ -116,6 +110,12 @@
       "why": "Not a DSH bundle: the sign-in gate baked into the cloud computer image. Needed by W3.",
       "unit": 0
     },
+    "kybernos-guard": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Pass 1 deterministic security guard (secrets, destructive commands, prompt injections); host-only, 2 unit test files.",
+      "unit": 2
+    },
     "kybernos-hub": {
       "state": "on",
       "call": "recommended",
@@ -126,6 +126,12 @@
       "state": "off",
       "call": "recommended",
       "why": "Kaby name, portrait and voice. Goes with Kaby.",
+      "unit": 2
+    },
+    "kybernos-knowledge": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Local document knowledge base and Markdown wiki (.md, .txt, .csv, .docx, .pdf) for Workspaces, Kaby and Front Desk; 2 unit test files.",
       "unit": 2
     },
     "kybernos-kyber": {
@@ -206,6 +212,12 @@
       "why": "Create-workspace dialog (private folder or own folder).",
       "unit": 2
     },
+    "kybernos-door": {
+      "state": "off",
+      "call": "recommended",
+      "why": "The local MCP door for Claude Code on this computer: off by default, opens nothing without the secret token it makes in the profile, and cannot approve a step for the person.",
+      "unit": 3
+    },
     "kybernos-no-process": {
       "state": "off",
       "call": "recommended",
@@ -217,6 +229,12 @@
       "call": "recommended",
       "why": "Word, Excel, Markdown and PDF editor: an optional creation tool, off by default; its editors are built on the computer, and it writes only the files the person opens.",
       "unit": 6
+    },
+    "kybernos-phone-model": {
+      "state": "off",
+      "call": "recommended",
+      "why": "For the Kybernos phone app only: the small model on the phone; inert on a computer.",
+      "unit": 2
     },
     "kybernos-plugin": {
       "state": "on",

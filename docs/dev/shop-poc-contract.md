@@ -38,16 +38,22 @@ session token are all refused), and act for the person the turn runs for. 60 cal
 `POST /v1/computer/shop/define`
 
 ```json
-{ "job_id": "<uuid>", "name": "Atelier Café", "tagline": "Torréfié à Lyon",
-  "products": [ { "name": "Colombie Huila 250 g", "price_eur": 15.9, "cost_eur": 8, "stock": 12 } ] }
+{ "job_id": "<uuid>", "name": "Atelier Café", "tagline": "Torréfié à Lyon", "currency": "eur",
+  "products": [ { "name": "Colombie Huila 250 g", "price": 15.9, "cost": 8, "stock": 12 } ] }
 ```
 
-- At least one of `name`, `tagline`, `products` (else `400 nothing_to_define`); the first time `name` is needed (`400 name_required`). A price is 0.50 to 100000 euros (Stripe's
-  minimum), a cost 0 to 100000, at most 50 products in a shop (`409 shop_full`). A product whose name the shop already has (accents and capitals ignored) is updated, not doubled.
-- `200 { products: [{ id, name, price, stock, cost, margin_pct }], shop: { name, tagline, url, connected, payable }, added: [...], updated: [...] }`. The cost and margin are for Kaby
+- At least one of `name`, `tagline`, `currency`, `products` (else `400 nothing_to_define`); the first time `name` is needed (`400 name_required`). **Currency (decision 2026-11-06: the shops are in the countries
+  Stripe serves, so not only the euro)**: one of 20 two-decimal currencies (`eur usd gbp chf cad aud nzd sek nok dkk pln ron bgn mxn brl sgd hkd myr thb aed`, `400 currency_not_supported` otherwise), `eur` until
+  the merchant says otherwise; prices already in the shop are written again in the new one; **locked** (`409 currency_locked`) once a payment page was opened or an order exists. A price is `price` (the old
+  name `price_eur` still works) in that currency, from Stripe's smallest charge in it (`400 price_too_low`: 0.50 for eur/usd/chf/cad/aud/nzd/brl/sgd, 0.30 gbp, 3 sek/nok, 2.50 dkk, 2 pln/ron/myr/aed, 1 bgn, 10 mxn/thb, 4 hkd)
+  to 100000, a cost (`cost`, old `cost_eur`) 0 to 100000, at most 50 products in a shop (`409 shop_full`). Zero- and three-decimal currencies (jpy, kwd…) are not offered. A product whose name the shop already has (accents and capitals ignored) is updated, not doubled.
+- `200 { products: [{ id, name, price, stock, cost, margin_pct }], shop: { name, tagline, url, connected, payable, currency, fee_percent, terms: "set" | "missing", terms_hint? }, added: [...], updated: [...] }`. The cost and margin are for Kaby
   and the merchant only. Every other Kaby route answers with the same `products` and `shop`.
 
-`POST /v1/computer/shop/connect` `{ "job_id": "<uuid>", "test_account"?: true }`
+`POST /v1/computer/shop/connect` `{ "job_id": "<uuid>", "test_account"?: true, "country"?: "BE" }`
+
+- `country` (two letters, decision 2026-11-06: any country where Stripe is available, so Kaby **asks the merchant** where they live or are registered): the country of the Standard account, which cannot change
+  afterwards. Not sent: the server sets none and Stripe applies its own default (not checked which), which is why Kaby asks first. Not used for a test account (always FR / EUR, Stripe's test data).
 
 - Needs a defined shop (`409 shop_not_defined`) and a server with Stripe in test mode (`409 payments_off`). Makes the shop's connected account once, then answers
   `200 { …, url }`: the single-use link where the merchant gives their details at Stripe (Kaby hands it to the person in the chat). When a card can already be charged, no `url`
@@ -57,6 +63,20 @@ session token are all refused), and act for the person the turn runs for. 60 cal
   nothing of a real person goes in) and answers with no `url`; `shop.payable` turns true once Stripe has switched `charges_enabled` on (seconds), so Kaby may have to look again with `shop_list`.
   It is made once per shop (asking again makes no second one) and replaces an account that was only started with the link. Only where the server's Stripe key is a TEST key: it cannot run on live money.
   Direct charges work the same on that account. Server test: `test/shoppoc-stripe.test.ts` (the form sent to Stripe), `test/shoppoc-storefront.test.ts` (the route).
+
+### Fee, terms of sale (decisions of the owner, 2026-11-06)
+
+- **Kybernos keeps 1 % of each sale**: a Stripe `application_fee_amount` on the direct charge (rounded to the cent, `PLATFORM_FEE_BP` = 100 in `store.ts`), taken by Stripe from the payment itself. Stripe's own card
+  fees come on top and are the merchant's. It is recorded with the order, told to the merchant in the line of each paid order (`Commission Kybernos (1 %) : …`) and in `shop.fee_percent`; `shop_list` tells Kaby to say
+  it to the merchant once (when the shop is set up or Stripe connected), never to call the shop free.
+- **Terms of sale: the merchant writes them, Kaby reminds them and proposes a version.** `POST /v1/computer/shop/terms` `{ job_id, text? }` → `200 { products, shop, terms: { text, saved, outline? } }`. Without
+  `text` it reads (while there are none, `outline` lists what a draft covers: seller, what is sold and tax, delivery, payment, returns and the 14-day withdrawal right for EU consumers, complaints, country and law).
+  With `text` (at most 8000 characters; the tool refuses more instead of letting the server cut it) it keeps it; an empty text takes it away. `409 no_shop_yet` before the shop is defined. While the shop has none,
+  every Kaby read carries `shop.terms: "missing"` and `terms_hint` (remind the merchant once, offer a draft in their clients' language, say it is a draft and not legal advice, never invent a name, an address,
+  a delay or a price, save only after the merchant said yes to the full text).
+- **The window** shows the terms (footer link and a sheet) and asks the client to tick « I accept » before paying: `POST …/checkout` without `accepted_terms: true` answers `400 terms_not_accepted` while the shop has
+  terms. Not built: a record of who accepted which version and when (the tick is in the page and the server checks it, nothing proves it afterwards).
+- Seller identity on the page: the terms name the merchant as the seller; the page still says « Boutique en mode essai » while the trial lasts.
 
 ### Photos (the person sends them in the chat, Kaby retouches them)
 
@@ -81,7 +101,7 @@ session token are all refused), and act for the person the turn runs for. 60 cal
 
 ### What a client sees (public, no sign-in)
 
-- `GET /shop/<name>`: one page for every shop. `GET /v1/shops/<name>`: name, line, `payable`, products with their price (`price`, `price_cents`), `available` and `max` (what a cart may hold of it: the stock, never more than 10, so a stock above ten is not told; never a cost).
+- `GET /shop/<name>`: one page for every shop. `GET /v1/shops/<name>`: name, line, `payable`, `currency` and its `symbol` (the page writes `15,90 $`), `terms` (the text, or empty), products with their price (`price`, `price_cents`), `available` and `max` (what a cart may hold of it: the stock, never more than 10, so a stock above ten is not told; never a cost).
 - The page has a **cart** (2026-11-05): « Ajouter » on a product turns into a quantity stepper, a bar at the bottom says the count and the total, « Voir le panier » opens the list (quantities, remove, total, « Payer »). The cart lives in the visitor's browser (`localStorage`, key `kb-cart:<shop>`, nothing on the server), is checked against the shop on every load (an unknown or sold-out product goes, a quantity is cut to `max`) and is emptied when the client comes back from Stripe paid.
 - `POST /v1/shops/<name>/checkout` `{ items: [{ product, quantity 1-10 }] }` (1 to 20 lines; the same product twice is one line; the old `{ product, quantity }` still works as a cart of one line): opens ONE Stripe payment page with a line per product, a direct charge on the merchant's account. `400 empty_cart`, `404` for an unknown product, `409 payments_not_ready`
   until the merchant has finished at Stripe, `409 sold_out` (nothing is sold of the cart, the message names the product). The client types the card on Stripe's page; this server and Kaby never see it.
@@ -94,9 +114,9 @@ session token are all refused), and act for the person the turn runs for. 60 cal
 - `shop_list` — reads the shop. Passes the turn's gate without a question (it changes nothing).
 - `shop_stock` `{ product, set | delta }` — changes one stock. **Asked** like any change in a turn (`TURN_GATE_SAFE_TOOLS` does not list it): the person reads « Set the stock of
   colombie to 7 » and taps. Moving it to the no-question list is a decision for the owner (the gate's audit of 2026-10-20 lists reads only).
-- `shop_define` `{ name?, tagline?, products? }` — one call for the whole shop, so ONE question (« Set up the shop "Atelier Café": Colombie 15.9 €, … »). Kaby proposes a price
+- `shop_define` `{ name?, tagline?, currency?, products? }` (each product `{ name, price, cost?, stock? }`) — one call for the whole shop, so ONE question (« Set up the shop "Atelier Café" (prices in EUR): Colombie 15.9 €, … »). Kaby asks the country and the currency the first time and passes the currency every call; the tool checks the price against the currency's smallest charge before the network. Kaby proposes a price
   from the costs in its own answer first and waits for the person's yes: the tool description says so, and nothing in the server computes a price.
-- `shop_connect` — asked (« Ask Stripe for the link… »); gives Kaby the single-use link to hand over. The turn's gate allows three questions a task: define, connect and a stock
+- `shop_connect` `{ country?, test_account? }` — asked (« Ask Stripe for the link where…, account in BE »); gives Kaby the single-use link to hand over. The turn's gate allows three questions a task: define, connect and a stock
   change fit.
 - `shop_photo` `{ photos: [{ product, photo, look? }] }` (6 at most) — **asked** (« Put 2 photos you sent on the shop: Colombie, Moulin »): ONE question for the batch, fourth of nothing: define,
   connect and photos fit the turn's three. For each photo it takes the picture at `photo/raw`, retouches it ON the computer (`shop-photo.mjs`, the image library `sharp` of the cloud image, loaded
@@ -104,6 +124,7 @@ session token are all refused), and act for the person the turn runs for. 60 cal
   sharpened, **every metadata block dropped, so the place of the photo never leaves the computer**, shrunk by quality then by side until it fits 245 KB) and puts it with `photo/put`. It is a
   careful retouch of THEIR picture, not a generated one: the tool description tells Kaby to say so and to suggest a new shot when a photo is poor. One line per photo comes back; a gone photo,
   an unknown product or an unreadable picture do not stop the others; a closed door (no turn, no account, rate limit) or a full shop stops the batch and is said once.
+- `shop_terms` — reads the terms of sale (a read: passes the gate with no question). While there are none it hands Kaby the outline and the rules above. `shop_terms_save` `{ text }` — **asked** (« Save the terms of sale of the shop (412 characters), shown to clients before they pay: « … » »; an empty text: « Remove the terms of sale of the shop »): the merchant has already read and approved the full text in the chat.
 - Only a cloud computer inside a turn can call them; anywhere else they answer in one line that the shop is reached from Kaby's chat on the phone, and send nothing.
 - Everything the server says (product names) is data: flattened to one bounded line, no markup (`dataLine`).
 
@@ -121,4 +142,4 @@ session token are all refused), and act for the person the turn runs for. 60 cal
 ## What it does not do yet
 
 One process only (two server instances would each hold their own working copy and the last write would win: documented in the server's `docs/runbooks/sites.md`), no WhatsApp surface, no line from the Mini App in
-Kaby's own thread (so Kaby learns of a change made in the Mini App by calling `shop_list`, not by reading the conversation), **photos are a retouch, not a generation** (a poor photo stays poor), they are kept in the database like the shop (`product.trial_shop_photos`, a JPEG of at most 250 kB per product), WhatsApp photos are not taken, and the Mini App does not show them yet (only the shop window does), no Stripe webhook (a payment is counted when the client comes back to the window), no refund, no shipping, no tax, no application fee, a window in French only.
+Kaby's own thread (so Kaby learns of a change made in the Mini App by calling `shop_list`, not by reading the conversation), **photos are a retouch, not a generation** (a poor photo stays poor), they are kept in the database like the shop (`product.trial_shop_photos`, a JPEG of at most 250 kB per product), WhatsApp photos are not taken, and the Mini App does not show them yet (only the shop window does), no Stripe webhook (a payment is counted when the client comes back to the window, or by the server's job `shop-payments` within a minute when the tab was closed: it reads Stripe's list of completed sessions, so nothing is set up in Stripe's dashboard; a webhook would only make it faster), no refund, no shipping, no tax, a window in French only (the amounts follow the shop's currency, the words do not).

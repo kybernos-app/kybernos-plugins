@@ -1,21 +1,16 @@
-// kybernos-memory — browser half: the « Memory & Lessons » settings page.
+// kybernos-memory — browser half: the « Memory & Lessons » settings page (Settings → Memory & Lessons).
 //
-//   settings section « Memory & Lessons » ... settings.section (order 3; where it is DRAWN is decided by the
-//                                             Settings menu grouping in kybernos-plugin: « Kybernos » group,
-//                                             after Auto Routing and before Workers)
-//   Memories tab ............................ the account memory (cloud): list, search, filters,
-//                                             pages, add / edit / forget — host routes of
-//                                             @local/kybernos-cloud (`/kybernos-cloud/memory/*`)
-//   Lessons learned tab ..................... the lessons of every kyber (local files): list,
-//                                             filters, pages, edit / delete — host routes of
-//                                             this bundle (`/kybernos-memory/*`)
-//   Status line ............................. « Memory looks after itself »: what is on, when it last tidied, the account as
-//                                             the one step when there is none (pure: selfStatus)
-//   Customize page .......................... every switch of both, folded behind one button, as a classic settings page
+//   Settings .............................. one screen of plain rows: the instructions, three switches (use memory, learn,
+//                                           sensitive topics), look for repeats, then Manage, Import and Export
+//   Manage ................................ the notes about the person (the account memory, cloud host routes
+//                                           `/kybernos-cloud/memory/*`), the lessons grouped by agent team (local files,
+//                                           host routes of this bundle `/kybernos-memory/*`), a box to tell Kybernos something
+//                                           to remember, Recently removed, Delete all; on a Team workspace a Team tab
+//   A note ................................ its own page: when, who wrote it, how long it is kept; Edit, Delete, Make a skill
+//   Import ................................ a prompt for another assistant, the answer back as notes, and the Claude Code wait-list
 //
 // Nothing here talks to the cloud directly: the account token never leaves the host half.
-// What is not offered is not drawn as if it were: the map is for memories only and needs Search by
-// meaning (the Map view says what is missing), and the list search is by words.
+// What is not offered is not drawn as if it were: the list search is by words, never by meaning.
 //
 // One file, no bundler, no import: the loader hands `require` to the factory. The factory's
 // try/catch is vital — an evaluation error here would break the WHOLE client entry ("Failed to
@@ -49,26 +44,7 @@ window.__ModuleLoader__.load({
       // 1. PURE PIECES (exposed for test-client.mjs)
       // ═══════════════════════════════════════════════════════════════
 
-      const PAGE_SIZES = [25, 50, 100]
-      // Ids, values and keys (« fact », '1m', 'capture'…) go to the host and never change; only the words drawn do.
-      const kindLabels = () => ({ fact: kt('Fait', 'Fact'), preference: kt('Préférence', 'Preference'), policy: kt('Règle', 'Rule'), event: kt('Événement', 'Event') })
-      const originLabels = () => ({ capture: 'Auto', agent: 'Agent', taught: kt('Toi', 'You'), sync: kt('Synchro', 'Sync') })
       const retentions = () => [[30, kt('30 jours', '30 days')], [90, kt('90 jours', '90 days')], [180, kt('180 jours', '180 days')], [365, kt('1 an', '1 year')]]
-      const addedOpts = () => [['any', kt('À tout moment', 'Any time')], ['1m', kt('Dernière minute', 'Last minute')], ['1h', kt('Dernière heure', 'Last hour')], ['today', kt('Aujourd’hui', 'Today')], ['7d', kt('7 derniers jours', 'Last 7 days')]]
-
-      /** A status that every row shares says nothing: `sentMarks` keeps the « Sent » chip only for
-       *  the rows that differ from the majority of the page (the details sheet always shows it). */
-      const sentMarks = (items) => {
-        const flags = (items || []).map((m) => m !== null && m !== undefined && m.sent === true)
-        const yes = flags.filter(Boolean).length
-        const no = flags.length - yes
-        // One truth on the whole page: the chip carries nothing, so no row gets it. Mixed: the
-        // minority is marked (if half the rows are sent, marking the unsent ones is noise too —
-        // nothing is marked then, and the list reads as one state).
-        if (flags.length === 0 || yes === 0 || no === 0 || yes === no) return flags.map(() => false)
-        const mark = yes < no
-        return flags.map((f) => f === mark)
-      }
 
       /** The plan as the page talks about it: Free, Solo or Team (anything paid that is not a team seat is « Solo »). */
       const planOf = (status) => {
@@ -76,16 +52,6 @@ window.__ModuleLoader__.load({
           ? String(status.state.user.plan || '').toLowerCase() : ''
         if (raw === '' || raw === 'free') return 'free'
         return raw.indexOf('team') === 0 ? 'team' : 'solo'
-      }
-      /** The plan's name as the person reads it everywhere else: the label the server gave the space (« Plus », « Pro », « Team »), else the plan key with a capital, else « Free ». Never an invented name. */
-      const planLabelOf = (status) => {
-        const cap = (m) => (typeof m === 'string' && m.trim() !== '' ? m.trim().charAt(0).toUpperCase() + m.trim().slice(1) : null)
-        const state = status !== null && status !== undefined && status.state !== undefined && status.state !== null && typeof status.state === 'object' ? status.state : null
-        if (state === null) return 'Free'
-        const space = state.space_plan !== undefined && state.space_plan !== null && typeof state.space_plan === 'object' ? cap(state.space_plan.label) : null
-        if (space !== null) return space
-        const own = state.user !== undefined && state.user !== null ? cap(state.user.plan) : null
-        return own !== null ? own : 'Free'
       }
 
       /** Minutes → « now », « 12m », « 3h », « 2d ». */
@@ -96,50 +62,8 @@ window.__ModuleLoader__.load({
         if (minutes < 1440) return String(Math.round(minutes / 60)) + kt(' h', 'h')
         return String(Math.round(minutes / 1440)) + kt(' j', 'd')
       }
-      /** The compact age inside a sentence: « 12m ago » (English), « il y a 12 min » or « à l’instant » (French). */
-      const agoWords = (minutes) => {
-        const a = ageLabel(minutes)
-        return kt(a === '' ? '' : minutes < 1 ? 'à l’instant' : 'il y a ' + a, a + ' ago')
-      }
 
-      /** Page numbers to draw: first, last, current ± 1, and the first three at the edges. */
-      const pagerPages = (total, page, size) => {
-        const pages = Math.max(1, Math.ceil(total / size))
-        const p = Math.min(Math.max(1, page), pages)
-        const want = [1, pages, p - 1, p, p + 1]
-        if (p <= 2) want.push(3)
-        if (p >= pages - 1) want.push(pages - 2)
-        const list = Array.from(new Set(want)).filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b)
-        const out = []
-        let prev = 0
-        for (const n of list) { if (n - prev > 1) out.push('…'); out.push(n); prev = n }
-        return { pages, page: p, items: out, from: total === 0 ? 0 : (p - 1) * size + 1, to: Math.min(total, p * size) }
-      }
-
-      /** Every non-default filter as `[key, label]`, for the chips under the toolbar. */
-      // The groups are getters: their labels are read when the page is drawn, in the language of the page.
-      const GROUPS = {
-        get memories() {
-          return [
-            { key: 'show', label: kt('Afficher', 'Show'), def: 'all', opts: [['all', kt('Tous', 'All')], ['pinned', kt('Épinglés', 'Pinned')], ['sent', kt('Envoyés au modèle', 'Sent to the model')]] },
-            { key: 'src', label: 'Source', def: 'any', opts: [['any', kt('Toutes', 'Any')], ['capture', kt('Capture auto', 'Auto-capture')], ['agent', 'Agent'], ['you', kt('Toi', 'You')], ['sync', kt('Synchro', 'Sync')]] },
-            { key: 'added', label: kt('Ajout', 'Added'), def: 'any', opts: addedOpts() },
-          ]
-        },
-        get lessons() {
-          return [
-            { key: 'status', label: kt('Statut', 'Status'), def: 'all', opts: [['all', kt('Toutes', 'All')], ['used', kt('Utilisées au moins une fois', 'Used at least once')]] },
-            { key: 'added', label: kt('Ajout', 'Added'), def: 'any', opts: addedOpts() },
-          ]
-        },
-      }
       const defaultFilters = () => ({ show: 'all', src: 'any', added: 'any', scope: 'mine', status: 'all', kyber: '' })
-      const activeFilters = (tab, f) => {
-        const out = []
-        for (const g of GROUPS[tab]) if (f[g.key] !== g.def) out.push({ key: g.key, def: g.def, text: g.label + kt(' : ', ': ') + g.opts.find((o) => o[0] === f[g.key])[1] })
-        if (tab === 'lessons' && f.kyber !== '') out.push({ key: 'kyber', def: '', text: 'Agent Team' + kt(' : ', ': ') + f.kyber })
-        return out
-      }
 
       /** The URL of a list request. Defaults are left out: the host treats absence as « any ». */
       const listUrl = (tab, state) => {
@@ -152,8 +76,6 @@ window.__ModuleLoader__.load({
         if (tab === 'memories') {
           if (f.show !== 'all') q.set('show', f.show)
           if (f.src !== 'any') q.set('src', f.src)
-          // Meaning only matters with a query; the host falls back to words, and says why, when it cannot.
-          if (state.mode === 'meaning' && String(state.q || '').trim() !== '') q.set('mode', 'meaning')
           return '/kybernos-cloud/memory/list?' + q.toString()
         }
         if (f.kyber !== '') q.set('kyber', f.kyber)
@@ -161,98 +83,7 @@ window.__ModuleLoader__.load({
         return '/kybernos-memory/lessons?' + q.toString()
       }
 
-      /** Search mode is a per-viewer preference, kept across tabs, options and visits. Storage can be blocked: never throw. */
-      const MODE_KEY = 'kbmem.searchMode'
-      const readMode = () => { try { return window.localStorage.getItem(MODE_KEY) === 'meaning' ? 'meaning' : 'relevance' } catch (e) { return 'relevance' } }
-      const writeMode = (v) => { try { window.localStorage.setItem(MODE_KEY, v) } catch (e) { /* private window */ } }
-
-      // The server names no tier today (`required_tier` is never sent): then the sentence says the feature is not in the plan, never a plan name the page invented.
-      const TIER_NAME = { solo: 'Solo', team: 'Team', free: 'Free' }
-      /** Why a meaning search is not being done (host codes of /memory/index and of the list's `search.fallback`), as a sentence. */
-      const meaningWhy = (code, tier) => {
-        const c = String(code === undefined || code === null ? '' : code)
-        if (c === 'sens_desactive') return kt('La recherche par sens est désactivée. Active-la dans Personnaliser.', 'Search by meaning is off. Turn it on in Customize.')
-        if (c === 'offre_requise') return TIER_NAME[tier] !== undefined ? kt('La recherche par sens demande l’offre ' + TIER_NAME[tier] + '.', 'Search by meaning needs the ' + TIER_NAME[tier] + ' plan.') : kt('La recherche par sens n’est pas incluse dans ton offre.', 'Search by meaning is not included in your plan.')
-        if (c === 'sens_indisponible' || c === 'serveur_ancien') return kt('Ton serveur Kybernos ne sait pas encore chercher par sens.', 'Your Kybernos server cannot search by meaning yet.')
-        if (c === 'credits_epuises') return kt('Tu n’as plus de crédits.', 'You are out of credits.')
-        if (c === 'embedding_invalide') return kt('Le service d’embeddings a renvoyé quelque chose d’inattendu.', 'The embedding service sent back something unexpected.')
-        return friendlyError(c)
-      }
-      /** « 2 of 3 words » on a relevance match that did not find every word of the query; nothing when all were found. */
-      const wordsLabel = (matched, of) => (Number.isInteger(matched) && Number.isInteger(of) && of > 1 && matched >= 1 && matched < of ? kt(String(matched) + ' mot' + sfx(matched) + ' sur ' + String(of), String(matched) + ' of ' + String(of) + ' words') : null)
-      /** « 82% match » — only for a number the host really computed. */
-      const closenessLabel = (n) => (typeof n === 'number' && Number.isFinite(n) ? kt(String(Math.max(0, Math.min(100, Math.round(n)))) + ' % de proximité', String(Math.max(0, Math.min(100, Math.round(n)))) + '% match') : null)
-
-      // ── The map (memories placed by meaning; the host works the positions out, the page draws and lets you look around) ──
-      const MAP_W = 1000, MAP_H = 540, MAP_MIN_W = 150
-      const MAP_FIT = [0, 0, MAP_W, MAP_H]
-      const LAYOUT_KEY = 'kbmem.layout'
-      const readLayout = () => { try { return window.localStorage.getItem(LAYOUT_KEY) === 'map' ? 'map' : 'list' } catch (e) { return 'list' } }
-      const writeLayout = (v) => { try { window.localStorage.setItem(LAYOUT_KEY, v) } catch (e) { /* private window */ } }
       const plain = (t) => String(t === undefined || t === null ? '' : t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-      /** « Light up what matches »: the memory has every word typed (accents and case ignored). Nothing typed matches everything. */
-      const mapMatches = (node, q) => {
-        const words = plain(q).split(/\s+/).filter((w) => w !== '')
-        if (words.length === 0) return true
-        const hay = plain(node.content)
-        return words.every((w) => hay.indexOf(w) >= 0)
-      }
-      /** A view box [x, y, w, h] kept inside the drawing. */
-      const mapClamp = (vb) => [Math.min(MAP_W - vb[2], Math.max(0, vb[0])), Math.min(MAP_H - vb[3], Math.max(0, vb[1])), vb[2], vb[3]]
-      /** The view after zooming by `factor` (above 1 zooms in) around the point (px, py), given as fractions of the view; never wider than the drawing nor narrower than MAP_MIN_W. */
-      const mapZoom = (vb, factor, px, py) => {
-        const w = Math.min(MAP_W, Math.max(MAP_MIN_W, vb[2] / factor))
-        const h = w * MAP_H / MAP_W
-        const fx = px === undefined ? 0.5 : px, fy = py === undefined ? 0.5 : py
-        return mapClamp([vb[0] + (vb[2] - w) * fx, vb[1] + (vb[3] - h) * fy, w, h])
-      }
-      const mapPan = (vb, dx, dy) => mapClamp([vb[0] + dx, vb[1] + dy, vb[2], vb[3]])
-      /**
-       * Where the names of the clusters are written (in the drawing's units): above the highest dot of the cluster, else below the lowest one, else
-       * the nearest free spot within reach; never over another name, over a dot, the search field, the legend or the zoom buttons. A name that finds no
-       * room is left out. Returns { clusterId: { x, y } }.
-       */
-      const mapLabelSpots = (nodes, clusters) => {
-        const boxes = [[0, 0, 290, 58], [0, MAP_H - 50, 400, MAP_H], [MAP_W - 70, MAP_H - 150, MAP_W, MAP_H]]
-        const dots = nodes.map((n) => [n.x * MAP_W - 9, n.y * MAP_H - 9, n.x * MAP_W + 9, n.y * MAP_H + 9])
-        const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3]
-        const free = (box) => box[0] >= 6 && box[2] <= MAP_W - 6 && box[1] >= 4 && box[3] <= MAP_H - 4 && !boxes.some((o) => hit(box, o)) && !dots.some((o) => hit(box, o))
-        const out = {}
-        clusters.slice().sort((a, b) => b.size - a.size || a.id - b.id).forEach((c) => {
-          const own = nodes.filter((n) => n.cl === c.id)
-          if (own.length === 0 || c.label === '') return
-          const cx = own.reduce((a, n) => a + n.x, 0) / own.length * MAP_W, cy = own.reduce((a, n) => a + n.y, 0) / own.length * MAP_H
-          const top = Math.min.apply(null, own.map((n) => n.y)) * MAP_H, bottom = Math.max.apply(null, own.map((n) => n.y)) * MAP_H
-          const w = c.label.length * 8.4 + 10
-          const boxAt = (x, y) => [x - w / 2, y - 12, x + w / 2, y + 4]
-          const tries = [[cx, top - 16], [cx, bottom + 24], [cx - w * 0.6, top - 16], [cx + w * 0.6, top - 16], [cx - w * 0.6, bottom + 24], [cx + w * 0.6, bottom + 24], [cx, top - 34], [cx, bottom + 42]]
-          let spot = tries.find(([x, y]) => free(boxAt(x, y)))
-          if (spot === undefined) {
-            // the nearest free place to the middle of the cluster, within reach
-            let best = null
-            for (let y = 14; y <= MAP_H - 8; y += 8) for (let x = w / 2 + 6; x <= MAP_W - w / 2 - 6; x += 12) {
-              const dist = Math.hypot(x - cx, y - cy)
-              if (dist <= 150 && (best === null || dist < best[2]) && free(boxAt(x, y))) best = [x, y, dist]
-            }
-            if (best !== null) spot = [best[0], best[1]]
-          }
-          if (spot === undefined) return
-          boxes.push(boxAt(spot[0], spot[1]))
-          out[c.id] = { x: spot[0], y: spot[1] }
-        })
-        return out
-      }
-      /** What the map says when it cannot be drawn: [title, what it means and what to do]. */
-      const mapWords = (code, tier) => {
-        const c = String(code === undefined || code === null ? '' : code)
-        if (c === 'sens_desactive') return [kt('La carte a besoin de la recherche par sens', 'The map needs Search by meaning'), kt('La carte place chaque souvenir selon son sens, avec les mêmes embeddings que la recherche par sens, qui est désactivée. Une fois activée, elle envoie le texte des souvenirs dessinés (150 au maximum) au modèle d’embeddings de Kybernos, et rien d’autre.', 'The map places each memory by what it means, with the same embeddings as Search by meaning, which is off. Turned on, it sends the text of the memories drawn (150 at most) to the Kybernos embedding model, and nothing else.')]
-        if (c === 'offre_requise') return [TIER_NAME[tier] !== undefined ? kt('La carte demande l’offre ' + TIER_NAME[tier], 'The map needs the ' + TIER_NAME[tier] + ' plan') : kt('La carte n’est pas incluse dans ton offre', 'The map is not included in your plan'), kt('Elle utilise le modèle d’embeddings, que ton offre n’inclut pas. La liste et la recherche par mots continuent de fonctionner.', 'It uses the embeddings model, which your plan does not include. The list and the search by words keep working.')]
-        if (c === 'credits_epuises') return [kt('Tu n’as plus de crédits', 'You are out of credits'), kt('Placer les souvenirs utilise le modèle d’embeddings, facturé sur ton compte comme le chat.', 'Placing the memories uses the embeddings model, billed to your account like chat.')]
-        if (c === 'non connecte') return [kt('Non connecté', 'Not connected'), kt('Les souvenirs vivent dans ton compte Kybernos Cloud : connecte-le pour voir la carte.', 'Memories live in your Kybernos Cloud account: connect it to see the map.')]
-        if (c === 'indisponible') return [kt('La carte demande un redémarrage', 'The map needs a restart'), kt('Le plugin Kybernos Cloud a été mis à jour : redémarre DSH pour voir la carte.', 'The Kybernos Cloud plugin was updated: restart DSH to see the map.')]
-        if (c === 'embedding_invalide') return [kt('La carte n’a pas pu être dessinée', 'The map could not be drawn'), kt('Le service d’embeddings a renvoyé quelque chose d’inattendu. Réessaie dans un instant.', 'The embeddings service sent back something unexpected. Try again in a moment.')]
-        return [kt('La carte n’a pas pu être dessinée', 'The map could not be drawn'), friendlyError(c)]
-      }
 
       /** What a host error code means to a person. */
       const friendlyError = (code) => {
@@ -275,7 +106,7 @@ window.__ModuleLoader__.load({
         if (c === 'espace_introuvable') return kt('Tu n’es plus membre de cet espace d’équipe.', 'You are not a member of that team workspace any more.')
         if (c === 'offre_requise') return kt('Les leçons d’équipe demandent une offre Team.', 'Team lessons need a Team plan.')
         if (c === 'aucun_espace') return kt('Aucun espace d’équipe n’est sélectionné.', 'No team workspace is selected.')
-        if (c === 'partage_desactive') return kt('Le partage des leçons avec ton équipe est désactivé dans Personnaliser.', 'Sharing lessons with your team is switched off in Customize.')
+        if (c === 'partage_desactive') return kt('Le partage des leçons avec ton équipe est désactivé.', 'Sharing lessons with your team is switched off.')
         if (c === 'texte_invalide') return kt('Écris d’abord la leçon (500 caractères au maximum).', 'Write the lesson first (500 characters at most).')
         // the answers of the Skills page when a lesson is turned into a skill suggestion (kybernos-skills/learned.mjs)
         if (c === 'already_proposed') return kt('Ces leçons ont déjà donné une suggestion de skill.', 'These lessons already made a skill suggestion.')
@@ -288,7 +119,7 @@ window.__ModuleLoader__.load({
         if (c === 'garde_invalide') return kt('Cet élément ne fait pas partie de la suggestion : analyse à nouveau.', 'That item is not part of the suggestion: look again.')
         if (c === 'epingle_protege') return kt('Un souvenir épinglé n’est jamais supprimé : garde celui-là.', 'A pinned memory is never removed: keep that one.')
         if (c === 'trop_de_suppressions') return kt('Ça en supprime trop d’un coup (50 au maximum).', 'That removes too many at once (50 at most).')
-        if (c === 'kyber_plein') return kt('Cette Agent Team garde déjà 50 leçons : supprime-en, puis défais.', 'That agent team already holds 50 lessons: delete some, then undo.')
+        if (c === 'kyber_plein') return kt('Cette équipe d’agents IA garde déjà 50 leçons : supprime-en, puis défais.', 'That AI agent team already holds 50 lessons: delete some, then undo.')
         if (c === 'archive_perimee') return kt('Trop ancien pour être défait (30 jours).', 'Too old to undo (30 days).')
         if (c === 'deja_annule') return kt('Déjà défait.', 'Already undone.')
         if (c === 'aucun_scan') return kt('Analyse d’abord : rien n’a encore été analysé.', 'Look first: nothing has been scanned yet.')
@@ -373,183 +204,28 @@ window.__ModuleLoader__.load({
       const tidySaves = (t) => (t.mem === null ? 0 : t.mem.saves) + (t.les === null ? 0 : t.les.saves)
       /** The banner is hidden for one scan only: a new scan shows it again. */
       const scanKey = (t) => (t.mem === null ? '' : String(t.mem.scannedAt)) + '|' + (t.les === null ? '' : String(t.les.scannedAt))
-      const TIDY_HIDDEN_KEY = 'kbmem.tidyHidden'
-      const readHidden = () => { try { return window.localStorage.getItem(TIDY_HIDDEN_KEY) || '' } catch (e) { return '' } }
-      const writeHidden = (v) => { try { window.localStorage.setItem(TIDY_HIDDEN_KEY, v) } catch (e) { /* private window */ } }
-
-      /** One log line, in words: « Merged 3 memories into 1 ». */
-      const logWho = (l) => (l.by === 'auto' ? kt('Automatique · 80 %+', 'Automatic · 80 %+') : kt('Toi', 'You'))
-      const logWords = (src, l) => {
-        const n = l.removed + 1
-        const lead = src === 'mem' ? kt('Fusion de ' + n + ' souvenir' + sfx(n) + ' en 1', 'Merged ' + plural(n, TIDY_SOURCES[src].one, TIDY_SOURCES[src].many) + ' into 1')
-          : kt('Fusion de ' + n + ' leçon' + sfx(n) + ' en 1', 'Merged ' + plural(n, TIDY_SOURCES[src].one, TIDY_SOURCES[src].many) + ' into 1')
-        return lead + (l.kyber ? ' · ' + l.kyber : '') + (l.partial ? kt(' (en partie)', ' (partly)') : '')
-      }
 
       const tidyModes = () => [['auto', kt('Fusionner seul les doublons proches', 'Merge close matches by itself')], ['ask', kt('Me demander d’abord', 'Ask me first')]]
-      const tidySchedules = () => [['off', kt('Désactivé', 'Off')], ['start', kt('Au démarrage de DSH', 'When DSH starts')], ['daily', kt('Chaque jour', 'Daily')], ['weekly', kt('Chaque semaine', 'Weekly')], ['n50', kt('Tous les 50 nouveaux', 'Every 50 new')]]
       const TIDY_DEFAULT_SETTINGS = { mode: 'auto', schedule: 'weekly', brain: false }
-
-      /** « in 3 hours », « in 2 days » (a date ahead). */
-      const whenAhead = (iso, now) => {
-        const t = Date.parse(iso)
-        if (!Number.isFinite(t)) return ''
-        const m = Math.round((t - (now === undefined ? Date.now() : now)) / 60000)
-        const h24 = Math.round(m / 60)
-        const d = Math.round(m / 1440)
-        if (m < 1) return kt('maintenant', 'now')
-        if (m < 60) return kt('dans ' + m + ' minute' + sfx(m), 'in ' + plural(m, 'minute'))
-        if (m < 1440) return kt('dans ' + h24 + ' heure' + sfx(h24), 'in ' + plural(h24, 'hour'))
-        return kt('dans ' + d + ' jour' + sfx(d), 'in ' + plural(d, 'day'))
-      }
 
       /** The settings the page shows: the lessons host's (it never needs the cloud), else the memories'. Both are written together. */
       const tidySettingsOf = (t) => (t.les !== null && t.les.settings !== undefined ? t.les.settings : (t.mem !== null && t.mem.settings !== undefined ? t.mem.settings : TIDY_DEFAULT_SETTINGS))
-
-      /** What the page says about the next automatic run, from the host's `next`. */
-      const nextWords = (n, now) => {
-        if (n === null || n === undefined || n.kind === 'off') return kt('Non planifié.', 'Not scheduled.')
-        if (n.kind === 'start') return kt('Au prochain démarrage de DSH, si le dernier lancement date de plus de 3 jours.', 'At the next start of DSH, if the last run is over 3 days old.')
-        if (n.kind === 'at') return kt('Prochain : ' + whenAhead(n.at, now) + ', si DSH est lancé.', 'Next: ' + whenAhead(n.at, now) + ', if DSH is running.')
-        if (n.kind === 'now') return kt('Prochain : à la prochaine vérification, si DSH est lancé.', 'Next: at the next check, if DSH is running.')
-        if (n.kind === 'count') {
-          if (n.remaining === null) return kt('Prochain : après 50 nouveaux éléments.', 'Next: after 50 new items.')
-          if (n.remaining === 0) return kt('Prochain : à la prochaine vérification (les 50 nouveaux éléments sont là).', 'Next: at the next check (50 new items are in).')
-          return n.remaining === 1 ? kt('Prochain : après 1 nouvel élément de plus.', 'Next: after ' + plural(n.remaining, 'more new item') + '.') : kt('Prochain : après ' + n.remaining + ' nouveaux éléments de plus.', 'Next: after ' + plural(n.remaining, 'more new item') + '.')
-        }
-        return ''
-      }
-      const tidyNextOf = (t) => (t.les !== null && t.les.next !== undefined ? t.les.next : (t.mem !== null && t.mem.next !== undefined ? t.mem.next : null))
-
-      /** The latest run of the two hosts, summed when both ran together (a manual run or the same schedule tick). */
-      const tidyLast = (t) => {
-        const lasts = [t.mem, t.les].filter((x) => x !== null && x.last !== null && x.last !== undefined).map((x) => x.last)
-        if (lasts.length === 0) return null
-        const newest = lasts.map((l) => Date.parse(l.at)).filter(Number.isFinite).sort((a, b) => b - a)[0]
-        const near = lasts.filter((l) => newest - Date.parse(l.at) < 3600000)
-        return { at: new Date(newest).toISOString(), trigger: near[0].trigger, autoGroups: near.reduce((n, l) => n + (l.autoGroups || 0), 0), autoRemoved: near.reduce((n, l) => n + (l.autoRemoved || 0), 0), found: near.reduce((n, l) => n + (l.found || 0), 0), brainAsked: near.reduce((n, l) => n + (l.brainAsked || 0), 0) }
-      }
-      const lastWords = (l, now) => {
-        if (l === null) return kt('Pas encore lancé.', 'Not run yet.')
-        const why = l.trigger === 'schedule' ? kt(' (planifié)', ' (scheduled)') : (l.trigger === 'cap' ? kt(' (une Agent Team était presque pleine)', ' (an agent team was nearly full)') : '')
-        const did = l.autoGroups > 0 ? kt(l.autoGroups + ' groupe' + sfx(l.autoGroups) + ' fusionné' + sfx(l.autoGroups) + ' automatiquement', 'merged ' + plural(l.autoGroups, 'group') + ' by itself') : kt('rien de fusionné automatiquement', 'nothing merged by itself')
-        const left = l.found - l.autoGroups
-        const rest = left > 0 ? kt(', ' + String(left) + ' laissé' + sfx(left) + ' pour toi', ', ' + String(left) + ' left for you') : ''
-        return kt('Dernier lancement ' + whenLabel(l.at, now), 'Last run ' + whenLabel(l.at, now)) + why + kt(' : ', ': ') + did + rest + '.'
-      }
-
-      /**
-       * A scheduled run that merged something while nobody was looking: the notice the page shows once, with the runs it can undo.
-       * `null` when there is nothing to tell (no run, nothing merged, or the user pressed the button and saw the result).
-       */
-      const TIDY_RAN_KEY = 'kbmem.tidyRanSeen'
-      const readRanSeen = () => { try { return window.localStorage.getItem(TIDY_RAN_KEY) || '' } catch (e) { return '' } }
-      const writeRanSeen = (v) => { try { window.localStorage.setItem(TIDY_RAN_KEY, v) } catch (e) { /* private window */ } }
-      const tidyRanNotice = (t, seen) => {
-        const last = tidyLast(t)
-        if (last === null || (last.trigger !== 'schedule' && last.trigger !== 'cap') || !(last.autoGroups > 0) || seen === last.at) return null
-        const from = Date.parse(last.at) - 120000
-        const entries = tidyLog(t).filter((l) => l.by === 'auto' && l.canUndo === true && Date.parse(l.at) >= from)
-        return { at: last.at, groups: last.autoGroups, removed: last.autoRemoved, entries }
-      }
 
       // ── Team lessons: the pure pieces ───────────────────────────────────────────────────────────────────
       // ── « Memory looks after itself »: the line under the title, the one step it may need, the cap note ──────
       const PAGE_TITLE = 'Memory & Lessons'
       const pageTitle = () => kt('Mémoire & Leçons', PAGE_TITLE)
-      const LESSONS_CAP = 50    // LESSONS_MAX_COUNT of lessons-store.mjs: what an agent team holds
-      const LESSONS_NEAR = 40   // LESSONS_NEAR_COUNT: from here the host tidies the agent team by itself (index.js, tidyTick)
-      const tidyEvery = () => ({ start: kt('au démarrage de DSH', 'when DSH starts'), daily: kt('chaque jour', 'every day'), weekly: kt('chaque semaine', 'every week'), n50: kt('tous les 50 nouveaux éléments', 'every 50 new items') })
 
-      /** The tag three lessons of the list share (the pitfalls of one topic make one checklist), with those lessons: `{ tag, items }`, or null. */
-      const lessonCluster = (items) => {
-        const by = new Map()
-        for (const l of Array.isArray(items) ? items : []) {
-          if (l === null || typeof l !== 'object') continue
-          for (const tag of Array.isArray(l.tags) ? l.tags : []) { const k = String(tag); if (k !== '' && k !== 'default') by.set(k, (by.get(k) || []).concat([l])) }
-        }
-        let best = null
-        for (const [tag, ls] of by) if (ls.length >= 3 && (best === null || ls.length > best.items.length)) best = { tag, items: ls.slice(0, 8) }
-        return best
-      }
       /** Hand lessons to the Skills page as a SUGGESTION: nothing is active before the person accepts it there. Fixed rules, no model, no cost. */
       const suggestSkill = async (lessons) => {
         const r = await api('/kybernos-skills/learned/from-lessons', { lessons: lessons.map((l) => ({ text: l.text, tags: Array.isArray(l.tags) ? l.tags : [], kyber: l.kyber })) })
         try { if (r.ok === true && window.__KB_LEARNED__ !== undefined && typeof window.__KB_LEARNED__.refresh === 'function') window.__KB_LEARNED__.refresh() } catch (e) { /* the menu dot catches up at its next look */ }
         return r
       }
-      const openSkills = () => { try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'skills' }) } catch (e) { /* the menu is the other way in */ } }
-
-      /**
-       * The one line under the title: what looks after itself, in words, and whether the one step left is the account.
-       * `tone` is 'wait' (still reading: no line, never a flash of « Off »), 'ok', 'step' (it works and the account is the one thing
-       * left) or 'off' (nothing works: the person switched everything off). The word « Off » is never the line while something works:
-       * a visitor without an account has the lessons, which live on this computer.
-       */
-      const selfStatus = (input) => {
-        try {
-          const { status, settings, tidy, now, skills } = input === null || input === undefined ? {} : input
-          const wait = { tone: 'wait', text: '', connect: false }
-          if (status === undefined || settings === undefined || tidy === undefined || status === null || settings === null || tidy === null) return wait
-          if (status.loaded !== true || settings.loaded !== true || tidy.loaded !== true) return wait
-          const connected = status.connected === true
-          const mem = settings.memory === undefined ? null : settings.memory
-          const les = settings.lessons === undefined ? null : settings.lessons
-          const memOn = connected && mem !== null && mem.memories === true
-          const lesOn = les !== null && les.lessons === true
-          if (!memOn && !lesOn) return { tone: 'off', text: connected ? kt('La mémoire est désactivée', 'Memory is off') : kt('La mémoire est désactivée · Les souvenirs ont besoin de ton compte', 'Memory is off · Memories need your account'), connect: !connected }
-          const parts = [memOn && lesOn ? kt('Les souvenirs et les leçons sont activés', 'Memories and lessons are on') : (lesOn ? (connected ? kt('Les leçons sont activées', 'Lessons are on') : kt('Les leçons sont activées et restent sur cet ordinateur', 'Lessons are on and stay on this computer')) : kt('Les souvenirs sont activés', 'Memories are on'))]
-          if (!connected) parts.push(kt('Les souvenirs ont besoin de ton compte', 'Memories need your account'))
-          else if (!memOn) parts.push(mem === null ? kt('Les souvenirs ne sont pas disponibles pour l’instant', 'Memories are not available right now') : kt('Les souvenirs sont désactivés', 'Memories are off'))
-          if (!lesOn) parts.push(les === null ? kt('Les leçons ne sont pas disponibles pour l’instant', 'Lessons are not available right now') : kt('Les leçons sont désactivées', 'Lessons are off'))
-          if (memOn && mem.context !== true) parts.push(kt('Les souvenirs enregistrés ne sont pas envoyés au modèle', 'Saved memories are not sent to the model'))
-          if (lesOn && les.context !== true) parts.push(kt('Les leçons ne sont pas envoyées au modèle', 'Lessons are not sent to the model'))
-          try {
-            if ((tidy.mem !== null && typeof tidy.mem === 'object') || (tidy.les !== null && typeof tidy.les === 'object')) {
-              const cfg = tidySettingsOf(tidy)
-              const last = tidyLast(tidy)
-              if (cfg.schedule === 'off') parts.push(kt('Le rangement automatique est désactivé', 'Automatic tidy-up is off'))
-              else if (last !== null) parts.push(kt('Dernier rangement ' + whenLabel(last.at, now), 'Last tidied ' + whenLabel(last.at, now)))
-              else { const every = tidyEvery()[cfg.schedule] === undefined ? kt('chaque semaine', 'every week') : tidyEvery()[cfg.schedule]; parts.push(kt('Se range tout seul ' + every, 'Tidies itself ' + every)) }
-            }
-          } catch (e) { /* the tidy-up part is a bonus: the line stands without it */ }
-          // Skills the person accepted from Kaby's suggestions (the Skills page's ledger): a count, only once there is one.
-          if (Number.isInteger(skills) && skills > 0) parts.push(kt(skills === 1 ? '1 skill fait par l’expérience' : skills + ' skills faits par l’expérience', skills === 1 ? '1 skill made from experience' : skills + ' skills made from experience'))
-          return { tone: !connected ? 'step' : 'ok', text: parts.join(' · '), connect: !connected, skills: Number.isInteger(skills) ? skills : 0 }
-        } catch (e) { return { tone: 'wait', text: '', connect: false } }
-      }
 
       /** The one step: connect the account. The cloud plugin's card listens for this window event (the Models page sends it too). */
       const connectAccount = () => { try { window.dispatchEvent(new CustomEvent('kybernos-cloud:open')) } catch (e) { /* the card is not mounted: nothing to open */ } }
 
-      /**
-       * The Lessons tab's note when an agent team nears its cap: which one, how full, and what happens by itself. `kybers` is the
-       * host's `[{ id, count }]`, `cfg` the tidy settings. `null` while every agent team is under LESSONS_NEAR lessons.
-       */
-      const capNote = (kybers, cfg) => {
-        const near = (Array.isArray(kybers) ? kybers : []).filter((k) => k !== null && typeof k === 'object' && Number.isFinite(k.count) && k.count >= LESSONS_NEAR).sort((a, b) => b.count - a.count)
-        if (near.length === 0) return null
-        const set = cfg === null || cfg === undefined ? TIDY_DEFAULT_SETTINGS : cfg
-        const others = near.length - 1
-        const archive = kt('la leçon la moins utile part dans l’archive, jamais supprimée.', 'the least useful lesson goes to the archive, never deleted.')
-        const what = set.schedule === 'off' ? kt('Le rangement automatique est désactivé : utilise Ranger maintenant dans Personnaliser. Quand elle est pleine, ', 'Automatic tidy-up is off: use Clean up now in Customize. When it is full, ') + archive
-          : (set.mode === 'ask' ? kt('Les doublons proches attendent ton examen. Quand elle est pleine, ', 'Close matches wait for your review. When it is full, ') + archive : kt('Les doublons proches sont fusionnés tout seuls ; quand elle est pleine, ', 'Close matches are merged by themselves; when it is full, ') + archive)
-        const close = others === 0 ? '' : (others === 1 ? kt(' (1 autre Agent Team est proche)', ' (' + plural(others, 'other agent team') + ' is close)') : kt(' (' + others + ' autres Agent Teams sont proches)', ' (' + plural(others, 'other agent team') + ' are close)'))
-        return kt(near[0].id + ' garde ' + String(near[0].count) + ' leçons sur ' + String(LESSONS_CAP), near[0].id + ' holds ' + String(near[0].count) + ' of ' + String(LESSONS_CAP) + ' lessons') + close + '. ' + what
-      }
-
-      const teamLocked = () => ({ offre_requise: [kt('Offre Team', 'Team plan'), kt('Les leçons d’équipe demandent un espace Team : les membres proposent ce qu’ils ont appris, un propriétaire ou un admin l’approuve, et chaque agent de l’équipe le lit.', 'Team lessons need a Team workspace: members propose what they learned, an owner or admin approves it, and every agent of the team reads it.')],
-        aucun_espace: [kt('Aucun espace d’équipe', 'No team workspace'), kt('Choisis un espace d’équipe dans la barre latérale pour lire et proposer ses leçons.', 'Select a team workspace in the sidebar to read and propose its lessons.')], non_connecte: [kt('Se connecter', 'Sign in'), kt('Connecte ton compte Kybernos pour utiliser les leçons d’équipe.', 'Connect your Kybernos account to use team lessons.')],
-        hote_ancien: [kt('Redémarrer DSH', 'Restart DSH'), kt('Le plugin Kybernos Cloud a été mis à jour : redémarre DSH pour utiliser les leçons d’équipe.', 'The Kybernos Cloud plugin was updated: restart DSH to use team lessons.')], chargement: [kt('Vérification…', 'Checking…'), kt('Recherche de ton espace d’équipe…', 'Looking for your team workspace…')] })
-      const teamLockedWords = (reason) => teamLocked()[reason] || [kt('Indisponible', 'Unavailable'), kt('Les leçons d’équipe ne sont pas disponibles pour l’instant.', 'Team lessons are not available right now.')]
-      /** Why Team is not offered, from what `useTeam` knows: the host's own answer when there is one, else what its silence means (a host that predates the routes answers 404). */
-      const teamReasonOf = (team) => {
-        if (team === undefined || team === null) return 'indisponible'
-        if (team.ok === true && team.team !== null && team.team !== undefined) return team.team.reason === null || team.team.reason === undefined ? 'indisponible' : team.team.reason
-        if (team.loaded !== true) return 'chargement'
-        if (team.error === 'non connecte') return 'non_connecte'
-        return team.error === 'indisponible' ? 'hote_ancien' : 'indisponible'
-      }
       const isTeamAdmin = (role) => role === 'owner' || role === 'admin'
       const minutesSince = (iso, now) => { const t = Date.parse(iso); return Number.isFinite(t) ? Math.max(0, Math.round(((now === undefined ? Date.now() : now) - t) / 60000)) : null }
       /** « Waiting for review », « Approved »… with the chip tone the page uses. */
@@ -587,37 +263,6 @@ window.__ModuleLoader__.load({
         }
       }
 
-      /** What the Study model row says about itself: `using` (which model, and whether it was picked for you) and `why` (what blocks
-       *  it, or null). */
-      const studyWords = (b) => {
-        if (b.model === '') {
-          return { using: null, why: b.none ? kt('Le modèle d’étude est réglé sur Aucun dans les Réglages Kybernos.', 'The Study model is set to None in Kybernos Settings.') : kt('Pas encore de modèle d’étude : les Réglages Kybernos en choisissent un automatiquement dès qu’un modèle est connecté (Kybernos Cloud, l’un des tiens ou un modèle local).', 'No Study model yet: Kybernos Settings picks one by itself as soon as a model is connected (the Kybernos Cloud, one of yours, or a local one).') }
-        }
-        return {
-          using: b.auto ? kt('Modèle utilisé : ' + b.model + ', choisi automatiquement ; change-le dans les Réglages Kybernos.', 'Using ' + b.model + ', picked automatically; change it in Kybernos Settings.') : kt('Modèle utilisé : ' + b.model + '.', 'Using ' + b.model + '.'),
-          why: b.llm ? null : kt('Le service de modèles n’est pas disponible pour l’instant.', 'The model service is not available right now.')
-        }
-      }
-
-      /** Both logs, newest first, each line tagged with its side. */
-      const tidyLog = (t) => []
-        .concat(t.mem === null ? [] : t.mem.log.map((l) => Object.assign({ src: 'mem' }, l)))
-        .concat(t.les === null ? [] : t.les.log.map((l) => Object.assign({ src: 'les' }, l)))
-        .sort((a, b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0))
-
-      /** The capture's last outcome, in words (the host keeps it in memory only). */
-      const captureWords = (capture) => {
-        if (capture === null || capture === undefined || capture.status === undefined) return kt('inconnu', 'unknown')
-        const s = String(capture.status)
-        if (s === 'jamais') return kt('ne s’est pas lancée depuis le démarrage de DSH', 'has not run since DSH started')
-        const map = {
-          hors_connexion: kt('non connecté', 'not connected'), desactivee: kt('désactivée', 'switched off'), espace_equipe: kt('désactivée dans un espace d’équipe', 'off in a team space'), sans_session: kt('aucune session', 'no session'), tour_trop_court: kt('tour trop court', 'turn too short'),
-          llm_indisponible: kt('aucun modèle disponible', 'no model available'), rien_a_retenir: kt('rien à retenir', 'nothing worth keeping'), deja_connu: kt('déjà connu', 'already known'), erreur: kt('échec', 'failed'),
-        }
-        if (s === 'ecrit') return kt('a écrit ' + String(capture.facts) + ' souvenir' + sfx(capture.facts), 'wrote ' + String(capture.facts) + (capture.facts === 1 ? ' memory' : ' memories'))
-        return map[s] !== undefined ? map[s] : s
-      }
-
       /**
        * Escape closes the page's own menu / side sheet. DSH's Settings dialog also listens for Escape
        * (capture phase on the document), so we listen earlier (window, capture) and stop the event:
@@ -644,6 +289,169 @@ window.__ModuleLoader__.load({
         }
       }
 
+      // ── The Memory page (2026-11-20): its pure pieces ───────────────────────────────────────────────────
+      /** A note's name and the rest, for a row and a heading (the account keeps only the text): the first sentence, capitalised, with no final full stop; a first sentence over 60 characters is cut, and the rest is then the whole text. */
+      const noteParts = (text) => {
+        const t = String(text === undefined || text === null ? '' : text).replace(/\s+/g, ' ').trim()
+        if (t === '') return { name: '', rest: '' }
+        const m = /^(.{6,}?[.!?])(?:\s+(?=\S)|$)/.exec(t)
+        let name = m !== null ? m[1] : t
+        let rest = m !== null ? t.slice(m[0].length).trim() : ''
+        if (name.length > 60) {
+          const cut = name.slice(0, 57)
+          const sp = cut.lastIndexOf(' ')
+          name = (sp > 20 ? cut.slice(0, sp) : cut).replace(/[\s,;:.!?-]+$/, '') + '\u2026'
+          rest = t
+        } else name = name.replace(/[.!?]+$/, '')
+        return { name: name.charAt(0).toUpperCase() + name.slice(1), rest }
+      }
+      const noteName = (text) => noteParts(text).name
+
+      const NOTE_MAX_CHARS = 2000
+      const IMPORT_MAX_LINES = 300
+      /** What another assistant answered, as one note per line: bullets, numbers and headings go, short lines go, a repeat inside the paste goes. */
+      const parseImport = (text) => {
+        const seen = new Set()
+        const out = []
+        for (const raw of String(text === undefined || text === null ? '' : text).split(/\r?\n/)) {
+          const line = raw.replace(/^[\s\-*•#>]+/, '').replace(/^\d+[.)]\s+/, '').trim().slice(0, NOTE_MAX_CHARS)
+          if (line.length <= 3) continue
+          const key = line.toLowerCase()
+          if (seen.has(key)) continue
+          seen.add(key)
+          out.push(line)
+          if (out.length >= IMPORT_MAX_LINES) break
+        }
+        return out
+      }
+
+      /** The import's outcome in one sentence. */
+      const importResult = ({ added, same, failed }) => {
+        const n = (c) => kt(c + ' note' + sfx(c), plural(c, 'note'))
+        const there = same === 1 ? kt('Déjà dans ta mémoire : rien n’a été ajouté.', 'Nothing added: it is already in your memory.') : kt('Rien n’a été ajouté : les ' + same + ' sont déjà dans ta mémoire.', 'Nothing added: all ' + same + ' are already in your memory.')
+        const bad = kt(failed + ' n’' + (failed === 1 ? 'a' : 'ont') + ' pas pu être ajoutée' + sfx(failed) + '.', failed + ' could not be added.')
+        if (added > 0) return kt('Ajouté : ' + n(added) + '.', 'Added ' + n(added) + '.') + (same > 0 ? kt(' ' + same + ' déjà dans ta mémoire.', ' ' + same + ' already in your memory.') : '') + (failed > 0 ? ' ' + bad : '')
+        if (failed > 0) return (same > 0 ? kt('Rien n’a été ajouté : ' + same + ' déjà dans ta mémoire. ', 'Nothing added: ' + same + ' already in your memory. ') : '') + bad
+        return same > 0 ? there : kt('Rien à ajouter.', 'Nothing to add.')
+      }
+
+      /**
+       * The three switches of the page, over the two settings groups (`mem` = the account's, `les` = this machine's lessons; either can be `null`).
+       * « Use memory » = what is sent in chats (lessons are only sent while their recording is on, as the host does), « Learn from chats » = the
+       * automatic capture of notes and the recording of lessons, « Include sensitive topics » = the capture prompt of the account's notes.
+       */
+      const switchState = (mem, les) => {
+        const m = mem !== null && mem !== undefined ? mem : {}
+        const l = les !== null && les !== undefined ? les : {}
+        return {
+          use: (m.memories === true && m.context === true) || (l.lessons === true && l.context === true),
+          learn: (m.memories === true && m.capture === true) || l.lessons === true,
+          sensitive: m.memories === true && m.sensitive === true,
+        }
+      }
+      const switchPatches = (key, value, mem, les) => {
+        const on = value === true
+        const patch = { cloud: null, lessons: null }
+        if (key === 'use') { patch.cloud = on ? { memories: true, context: true } : { context: false }; patch.lessons = { context: on } }
+        else if (key === 'learn') { patch.cloud = on ? { memories: true, capture: true } : { capture: false }; patch.lessons = { lessons: on } }
+        else if (key === 'sensitive') patch.cloud = { sensitive: on }
+        if (mem === null || mem === undefined) patch.cloud = null
+        if (les === null || les === undefined) patch.lessons = null
+        return patch
+      }
+
+      /** What can still be brought back (the tidy archive keeps it 30 days): merges and deletes, newest first, from both hosts. A shortened or retitled lesson is not a removal. */
+      const recentlyRemoved = (t, now) => {
+        const rows = []
+        for (const src of ['mem', 'les']) {
+          const view = t !== null && t !== undefined ? t[src] : null
+          for (const l of view !== null && view !== undefined && Array.isArray(view.log) ? view.log : []) {
+            if (l.canUndo !== true || l.undone === true || l.kind === 'compact' || l.kind === 'title' || !(l.removed > 0)) continue
+            const del = l.kind === 'delete'
+            const n = l.removed + 1
+            const count = src === 'mem' ? kt(n + ' notes', n + ' notes') : kt(n + ' leçons', n + ' lessons')
+            const why = del ? kt('Tu l’as supprimée.', 'You deleted it.')
+              : l.by === 'you' ? kt('Tu as fusionné ' + count + ' en une seule.', 'You combined ' + count + ' into one.')
+                : kt(count + ' fusionnées en une seule (doublons exacts).', count + ' combined into one (exact repeats).')
+            const label = typeof l.label === 'string' && l.label.trim() !== '' ? l.label.trim() : (src === 'mem' ? kt('Notes fusionnées', 'Combined notes') : kt('Leçons fusionnées', 'Combined lessons'))
+            rows.push({ id: l.id, src, at: l.at, name: label, why, when: whenLabel(l.at, now), button: del ? 'Restore' : 'Undo', kyber: l.kyber })
+          }
+        }
+        return rows.sort((a, b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0))
+      }
+
+      /** A date in the page's words: « Nov 17 » (the year only when it is not this one). */
+      const noteDate = (ageMinutes, now) => {
+        if (typeof ageMinutes !== 'number' || !Number.isFinite(ageMinutes)) return ''
+        const at = now === undefined ? Date.now() : now
+        try {
+          const t = new Date(at - ageMinutes * 60000)
+          const opts = t.getFullYear() === new Date(at).getFullYear() ? { month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric', year: 'numeric' }
+          return t.toLocaleDateString(lang() === 'fr' ? 'fr-FR' : 'en-US', opts)
+        } catch (e) { return ageLabel(ageMinutes) }
+      }
+
+      /** Lessons grouped by team, in the order the teams first appear. */
+      const groupLessons = (items) => {
+        const by = new Map()
+        for (const it of Array.isArray(items) ? items : []) { if (!by.has(it.kyber)) by.set(it.kyber, []); by.get(it.kyber).push(it) }
+        return Array.from(by, ([kyber, list]) => ({ kyber, items: list }))
+      }
+
+      // The export: plain text files in a zip, made in the page (nothing leaves this computer, nothing is sent anywhere).
+      const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n += 1) { let c = n; for (let k = 0; k < 8; k += 1) c = (c & 1) !== 0 ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0 } return t })()
+      const crc32 = (bytes) => { let c = 0xFFFFFFFF; for (let i = 0; i < bytes.length; i += 1) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0 }
+      /** A zip of stored (uncompressed) files, names in UTF-8. `files` = [{ name, text }]. */
+      const zipFiles = (files) => {
+        const enc = new TextEncoder()
+        const now = new Date()
+        const dosDate = ((Math.max(1980, now.getFullYear()) - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()
+        const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1)
+        const parts = []
+        const central = []
+        let offset = 0
+        const put = (len, fill) => { const b = new Uint8Array(len); fill(new DataView(b.buffer)); return b }
+        for (const f of files) {
+          const name = enc.encode(f.name)
+          const data = enc.encode(f.text)
+          const crc = crc32(data)
+          const head = put(30 + name.length, (v) => { v.setUint32(0, 0x04034b50, true); v.setUint16(4, 20, true); v.setUint16(6, 0x0800, true); v.setUint16(8, 0, true); v.setUint16(10, dosTime, true); v.setUint16(12, dosDate, true); v.setUint32(14, crc, true); v.setUint32(18, data.length, true); v.setUint32(22, data.length, true); v.setUint16(26, name.length, true); v.setUint16(28, 0, true) })
+          head.set(name, 30)
+          const entry = put(46 + name.length, (v) => { v.setUint32(0, 0x02014b50, true); v.setUint16(4, 20, true); v.setUint16(6, 20, true); v.setUint16(8, 0x0800, true); v.setUint16(10, 0, true); v.setUint16(12, dosTime, true); v.setUint16(14, dosDate, true); v.setUint32(16, crc, true); v.setUint32(20, data.length, true); v.setUint32(24, data.length, true); v.setUint16(28, name.length, true); v.setUint32(42, offset, true) })
+          entry.set(name, 46)
+          parts.push(head, data)
+          central.push(entry)
+          offset += head.length + data.length
+        }
+        const dirSize = central.reduce((n, e) => n + e.length, 0)
+        const end = put(22, (v) => { v.setUint32(0, 0x06054b50, true); v.setUint16(8, files.length, true); v.setUint16(10, files.length, true); v.setUint32(12, dirSize, true); v.setUint32(16, offset, true) })
+        const all = parts.concat(central, [end])
+        const out = new Uint8Array(all.reduce((n, p) => n + p.length, 0))
+        let at = 0
+        for (const p of all) { out.set(p, at); at += p.length }
+        return out
+      }
+      /** The files of an export: one about you, one per team, a note or a lesson per line. */
+      const exportFiles = ({ about, teams }) => {
+        const oneLine = (s) => String(s === undefined || s === null ? '' : s).replace(/\s*[\r\n]+\s*/g, ' ').trim()
+        const lines = (list, key) => (Array.isArray(list) ? list : []).map((x) => oneLine(x === null || x === undefined ? '' : x[key])).filter((x) => x !== '')
+        const out = []
+        const mine = lines(about, 'content')
+        if (mine.length > 0) out.push({ name: 'about-you.txt', text: mine.join('\n') + '\n' })
+        const used = new Set()
+        for (const t of Array.isArray(teams) ? teams : []) {
+          const l = lines(t.lessons, 'text')
+          if (l.length === 0) continue
+          const base = String(t.kyber === undefined || t.kyber === null ? '' : t.kyber).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'team'
+          let slug = base
+          let n = 2
+          while (used.has(slug)) { slug = base + '-' + n; n += 1 }
+          used.add(slug)
+          out.push({ name: 'teams/' + slug + '.txt', text: l.join('\n') + '\n' })
+        }
+        return out
+      }
+
       // ═══════════════════════════════════════════════════════════════
       // 2. STYLES
       // ═══════════════════════════════════════════════════════════════
@@ -664,12 +472,10 @@ window.__ModuleLoader__.load({
 :where(.kbmem-page) svg{display:block;flex:none}
 .kbmem-ico{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .kbmem-page :focus-visible{outline:2px solid var(--m-acc);outline-offset:1px}
-.kbmem-grow{flex:1}.kbmem-muted{color:var(--m-muted)}.kbmem-cap{color:var(--m-cap)}.kbmem-tiny{font-size:12px;color:var(--m-cap)}
+.kbmem-grow{flex:1}.kbmem-muted{color:var(--m-muted)}.kbmem-tiny{font-size:12px;color:var(--m-cap)}
 .kbmem-top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 .kbmem-lead{margin:4px 0 22px;font-size:13px;color:var(--m-muted)}
 .kbmem-top{margin-bottom:8px}
-.kbmem-st{display:flex;gap:6px 10px;align-items:center;flex-wrap:wrap;min-height:30px;margin:0 0 14px;font-size:13px;color:var(--m-ink2)}
-.kbmem-st i{display:inline-block;width:7px;height:7px;margin-inline-end:8px;vertical-align:middle;border-radius:50%;background:var(--m-ok)}.kbmem-st[data-st=step] i{background:var(--m-acc)}.kbmem-st[data-st=off] i{background:var(--m-warn)}
 .kbmem-btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;background:var(--m-primary);color:var(--m-primary-ink);white-space:nowrap}
 .kbmem-btn.ghost{background:transparent;color:var(--m-ink2);border:1px solid var(--m-line2)}.kbmem-btn.ghost:hover{background:var(--m-hover)}
 .kbmem-btn.danger{background:transparent;color:var(--m-danger);border:1px solid var(--m-line2)}
@@ -686,29 +492,10 @@ window.__ModuleLoader__.load({
 .kbmem-field input{flex:1 1 120px;min-width:0;background:none;border:0;outline:0;color:var(--m-ink);font:inherit}
 /* the browser's default placeholder is a mid grey: 2.6:1 on the dark field */
 .kbmem-field input::placeholder{color:var(--m-ink2)}
-.kbmem-modes{display:inline-flex;gap:2px;padding:2px;margin-inline-start:auto;border-radius:999px;background:var(--m-surf);flex:none}
-.kbmem-modes button{display:inline-flex;gap:4px;align-items:center;height:24px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;color:var(--m-ink2);white-space:nowrap}
-.kbmem-modes button.on{background:var(--m-primary);color:var(--m-primary-ink)}
-.kbmem-modes button.locked{color:var(--m-muted)}
-.kbmem-modes .kbmem-ico{width:11px;height:11px}
 .kbmem-chip.close{color:var(--m-acc);border-color:var(--m-acc)}
-.kbmem-idx{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
-.kbmem-mode{display:inline-flex;gap:4px;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:600;background:var(--m-surf);color:var(--m-ink2);white-space:nowrap}
-.kbmem-menuwrap{position:relative}
-.kbmem-menu{position:absolute;top:calc(100% + 6px);inset-inline-end:0;min-width:240px;max-height:70vh;overflow:auto;padding:6px;border-radius:var(--m-r-md);background:var(--m-toast);box-shadow:var(--kb-elev,0 8px 24px rgba(0,0,0,.35));z-index:30}
-.kbmem-menu button{display:flex;gap:8px;align-items:center;width:100%;height:34px;padding:0 12px;border-radius:var(--m-r-sm);font-size:13px}.kbmem-menu button:hover{background:var(--m-hover)}
-.kbmem-mg{padding:8px 12px 2px;font-size:11px;font-weight:600;color:var(--m-cap)}
-.kbmem-msep{height:1px;margin:6px 0;background:var(--m-line2)}
-.kbmem-ck{width:15px}
-.kbmem-badge{display:inline-grid;place-items:center;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--m-acc);color:#151517;font-size:10px;font-weight:700}
-.kbmem-chips{display:flex;gap:6px;flex-wrap:wrap;margin:-4px 0 12px}
-.kbmem-fc{display:inline-flex;gap:6px;align-items:center;height:26px;padding:0 6px 0 10px;border-radius:999px;background:var(--m-toast);font-size:12px}
-.kbmem-fc .kbmem-ico{width:12px;height:12px;color:var(--m-muted)}
 .kbmem-chip{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 8px;border-radius:999px;border:1px solid var(--m-line2);font-size:11px;font-weight:500;color:var(--m-ink2);white-space:nowrap}
 .kbmem-chip.ok{color:var(--m-ok);background:var(--m-ok-bg);border-color:transparent}
 .kbmem-chip.warn{color:var(--m-warn);background:var(--m-warn-bg);border-color:transparent}
-.kbmem-plan{display:inline-flex;gap:4px;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:600;color:var(--m-acc);border:1px solid var(--m-acc);white-space:nowrap}
-.kbmem-plan .kbmem-ico{width:11px;height:11px}
 .kbmem-sug{margin:0 0 14px;padding:12px 16px;border-radius:var(--m-r-md);border:1px dashed var(--m-line3);background:var(--m-surf)}
 .kbmem-sug-h{display:flex;align-items:center;gap:4px;font-size:13px;margin-bottom:6px}.kbmem-sug-why{font-size:12px;color:var(--m-cap)}
 .kbmem-sug-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--m-line)}.kbmem-sug-row:first-of-type{border-top:0}
@@ -717,15 +504,11 @@ window.__ModuleLoader__.load({
 .kbmem-note{display:flex;gap:12px;align-items:flex-start;margin:0 0 14px;padding:12px 16px;border-radius:var(--m-r-md);background:var(--m-surf);font-size:13px;color:var(--m-ink2)}
 .kbmem-note.warn{background:var(--m-warn-bg)}.kbmem-note a,.kbmem-link{color:var(--m-acc);font-weight:600;cursor:pointer}
 .kbmem-list{border-top:1px solid var(--m-line2)}
-.kbmem-r{display:flex;gap:12px;align-items:flex-start;width:100%;padding:12px 8px;border-bottom:1px solid var(--m-line)}.kbmem-r:hover{background:var(--m-hover)}.kbmem-r.sel{background:var(--m-toast)}
+.kbmem-r{display:flex;gap:12px;align-items:flex-start;width:100%;padding:12px 8px;border-bottom:1px solid var(--m-line)}.kbmem-r:hover{background:var(--m-hover)}
 .kbmem-kd{flex:none;width:8px;height:8px;margin-top:7px;border-radius:50%;background:var(--m-cap)}
 .kbmem-kd.fact{background:var(--m-acc)}.kbmem-kd.preference{background:var(--m-ok)}.kbmem-kd.policy{background:var(--m-warn)}.kbmem-kd.event{background:var(--m-cap)}.kbmem-kd.lesson{border-radius:2px;transform:rotate(45deg);background:var(--m-primary)}
 .kbmem-tx{flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
 .kbmem-mt{flex:none;display:flex;gap:8px;align-items:center;margin-top:1px;font-size:12px;color:var(--m-cap)}
-.kbmem-pager{display:flex;gap:12px;align-items:center;margin-top:16px;font-size:12px;color:var(--m-muted)}
-.kbmem-pgs{display:flex;gap:2px;align-items:center}
-.kbmem-pg{min-width:30px;height:30px;padding:0 6px;border-radius:var(--m-r-sm);text-align:center!important;font-size:13px;color:var(--m-ink2)}.kbmem-pg:hover{background:var(--m-hover)}.kbmem-pg.on{background:var(--m-toast);color:var(--m-ink);font-weight:600}.kbmem-pg[disabled]{opacity:.35;pointer-events:none}
-.kbmem-gap{padding:0 4px;color:var(--m-cap)}
 .kbmem-sel{height:34px;padding:0 12px;border-radius:var(--m-r-md);background:var(--m-fill);border:0;color:var(--m-ink);font:inherit;font-size:13px}
 .kbmem-empty{display:grid;justify-items:center;gap:12px;padding:48px 24px;text-align:center;color:var(--m-muted)}
 .kbmem-empty h3{margin:0;color:var(--m-ink);font-size:16px}
@@ -738,22 +521,94 @@ window.__ModuleLoader__.load({
 .kbmem-ib{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:var(--m-r-sm);color:var(--m-ink2)}.kbmem-ib:hover{background:var(--m-fill)}
 .kbmem-toast{position:fixed;inset-inline:0;bottom:24px;margin-inline:auto;width:max-content;max-width:90vw;display:flex;gap:12px;align-items:center;padding:12px 16px;border-radius:999px;background:var(--m-toast);color:var(--m-ink);box-shadow:var(--kb-elev,0 8px 24px rgba(0,0,0,.35));font-size:13px;z-index:10001}
 .kbmem-toast button{font-weight:600;color:var(--m-acc)}
+/* The « Noted » line under the last answer of a chat: quiet, one line each, the page's own token chain so both themes follow */
+.kbmem-noted-wrap{display:flex;flex-direction:column;gap:4px;margin:8px 0 2px;max-width:640px}
+.kbmem-noted{--m-cap:var(--kb-caption,var(--dsw-alias-label-tertiary,#81858c));--m-acc:var(--kb-accent,#7aaaff);--m-danger:var(--kb-danger,#f25a5a);display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;font-size:12.5px;line-height:1.5;color:var(--m-cap)}
+.kbmem-noted-text{min-width:0;overflow-wrap:anywhere}
+.kbmem-noted-err{color:var(--m-danger)}
+.kbmem-noted button{background:none;border:0;padding:0;font:inherit;font-weight:600;color:var(--m-acc);cursor:pointer}
+.kbmem-noted button:hover{text-decoration:underline}
+.kbmem-noted button:disabled{opacity:.5;cursor:default;text-decoration:none}
+.kbmem-noted button:focus-visible{outline:2px solid var(--m-acc);outline-offset:2px;border-radius:3px}
 /* Everything drawn on the toast fill (--m-toast) takes the toast's own ink, the label that pairs with it: the fill is dark in both schemes, the page ink is dark in the light one (1.56:1, recette L1-21). The accent is lifted
    toward white on that fill, so « Undo » reads in both schemes too. */
-.kbmem-toast,.kbmem-menu,.kbmem-fc,.kbmem-r.sel,.kbmem-pg.on,.kbmem-tip{--m-ink:var(--dsw-alias-toast-label,#fff);--m-ink2:color-mix(in srgb,var(--m-ink) 78%,transparent);--m-muted:color-mix(in srgb,var(--m-ink) 70%,transparent);--m-cap:color-mix(in srgb,var(--m-ink) 66%,transparent);--m-acc:color-mix(in srgb,var(--kb-accent,#7aaaff) 55%,#fff);color:var(--m-ink)}
-.kbmem-crumb{display:inline-flex;gap:6px;align-items:center;margin-bottom:12px;font-size:13px;color:var(--m-muted)}.kbmem-crumb:hover{color:var(--m-ink)}
+.kbmem-toast{--m-ink:var(--dsw-alias-toast-label,#fff);--m-ink2:color-mix(in srgb,var(--m-ink) 78%,transparent);--m-muted:color-mix(in srgb,var(--m-ink) 70%,transparent);--m-cap:color-mix(in srgb,var(--m-ink) 66%,transparent);--m-acc:color-mix(in srgb,var(--kb-accent,#7aaaff) 55%,#fff);color:var(--m-ink)}
 .kbmem-sec{margin:28px 0 0}.kbmem-sec>h2{margin:0;display:flex;gap:8px;align-items:baseline;font-size:14px;font-weight:600}.kbmem-sec>h2 small{font-size:12px;font-weight:400;color:var(--m-muted)}
 .kbmem-srow{display:flex;gap:24px;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--m-line2);max-width:760px}
 .kbmem-srow .lab{display:flex;gap:8px;align-items:center}.kbmem-srow .desc{font-size:12px;line-height:18px;color:var(--m-muted);margin-top:2px}.kbmem-srow .why{margin-top:4px;font-size:12px;line-height:18px;color:var(--m-warn)}
 .kbmem-srow .ctl{flex:none}.kbmem-srow.locked .ctl{opacity:.4;pointer-events:none}
-.kbmem-srow.sum{border-bottom:0;padding-bottom:0}
 .kbmem-spin{width:18px;height:18px;border-radius:50%;border:2px solid var(--m-fill);border-top-color:var(--m-muted);animation:kbmem-spin .8s linear infinite}
 @keyframes kbmem-spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.kbmem-spin{animation:none}}
+/* The Memory page (2026-11-20): settings rows with switches, « Your memory », one note, and its dialogs. Same tokens as the rest of the page. */
+.kbmem-m{display:flex;flex-direction:column;min-width:0}
+.kbmem-m.has-say{min-height:calc(100vh - 160px)}
+.kbmem-sec.first{margin-top:8px}
+.kbmem-nsub{margin:2px 0 8px;font-size:13px;color:var(--m-muted)}
+.kbmem-sw{position:relative;flex:none;width:34px;height:20px;border-radius:999px;background:var(--m-fill);border:1px solid var(--m-line3);transition:background .15s,border-color .15s}
+.kbmem-sw::after{content:"";position:absolute;top:2px;inset-inline-start:2px;width:14px;height:14px;border-radius:999px;background:var(--m-cap);transition:transform .15s,background .15s}
+.kbmem-sw[aria-checked=true]{background:var(--m-primary);border-color:var(--m-primary)}
+.kbmem-sw[aria-checked=true]::after{transform:translateX(14px);background:var(--m-primary-ink)}
+[dir=rtl] .kbmem-sw[aria-checked=true]::after{transform:translateX(-14px)}
+.kbmem-sw[disabled]{opacity:.4;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.kbmem-sw,.kbmem-sw::after{transition:none}}
+.kbmem-instr,.kbmem-ta{width:100%;min-height:76px;padding:12px 14px;border-radius:var(--m-r-md);border:1px solid transparent;background:var(--m-fill);color:var(--m-ink);font:inherit;font-size:14px;line-height:22px;resize:vertical;outline:0}
+.kbmem-instr::placeholder,.kbmem-ta::placeholder{color:var(--m-ink2)}
+.kbmem-ta{min-height:96px;border-color:var(--m-line3);background:var(--m-surf)}
+.kbmem-ta.in{height:130px;border-color:transparent;background:var(--m-fill)}
+.kbmem-nhint{display:flex;gap:12px;align-items:center;margin-top:8px;font-size:12.5px;color:var(--m-cap);min-height:30px}
+.kbmem-nhint .err{color:var(--m-danger)}
+.kbmem-nfoot{padding:16px 8px 8px;font-size:13px;color:var(--m-cap)}
+.kbmem-link{color:var(--m-acc);font-weight:600;cursor:pointer}.kbmem-link.danger{color:var(--m-danger);font-weight:500}.kbmem-link.rlink{font-size:13px;font-weight:500}
+.kbmem-back{display:inline-flex;gap:8px;align-items:center;align-self:flex-start;height:30px;margin:-4px 0 14px -6px;padding:0 8px;border-radius:var(--m-r-sm);font-size:14px;color:var(--m-ink)}.kbmem-back:hover{background:var(--m-hover)}
+.kbmem-back .kbmem-ico{width:16px;height:16px}
+.kbmem-ntop{display:flex;gap:12px;align-items:center;margin-bottom:4px}
+.kbmem-nh1{font-size:20px;line-height:26px;font-weight:600;margin:0}
+.kbmem-nsearch{display:flex;gap:8px;align-items:center;max-width:340px;min-height:36px;margin-top:12px;padding:2px 12px;border-radius:var(--m-r-md);background:var(--m-fill);color:var(--m-muted)}
+.kbmem-nsearch input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--m-ink);font:inherit}
+.kbmem-nsearch input::placeholder{color:var(--m-ink2)}
+.kbmem-nsec{margin:22px 0 0;padding:0 8px 10px;font-size:14px;font-weight:600;border-bottom:1px solid var(--m-line2);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.kbmem-nsec .cp{font-weight:400;font-size:12.5px;color:var(--m-cap)}
+.kbmem-nrow{position:relative;display:grid;grid-template-columns:minmax(110px,210px) minmax(0,1fr) auto;gap:16px;align-items:center;width:100%;padding:12px 8px;border-bottom:1px solid var(--m-line);cursor:pointer}
+.kbmem-nrow:hover{background:var(--m-hover)}
+.kbmem-nrow .nm{min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbmem-nrow .sm{color:var(--m-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.kbmem-nrow .dt{color:var(--m-cap);font-size:13px;white-space:nowrap}
+.kbmem-nrow.solo{grid-template-columns:minmax(0,1fr) auto}.kbmem-nrow.sub{padding-inline-start:28px}.kbmem-nrow.dimtext{color:var(--m-cap);cursor:default;display:block}.kbmem-nrow.dimtext:hover{background:none}
+.kbmem-ngrp{display:flex;gap:10px;align-items:center;width:100%;margin-top:6px;padding:11px 12px;border-radius:var(--m-r-md);font-size:14px}
+.kbmem-ngrp:hover{background:var(--m-hover)}.kbmem-ngrp.open{background:var(--m-fill)}.kbmem-ngrp .ct{font-size:12px;color:var(--m-cap)}
+.kbmem-nmore{display:block;width:100%;padding:11px 8px;font-size:13px;color:var(--m-acc);font-weight:600;border-bottom:1px solid var(--m-line)}.kbmem-nmore.sub{padding-inline-start:28px}
+.kbmem-ninfo{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:13px 8px;border-bottom:1px solid var(--m-line);font-size:13.5px;color:var(--m-muted)}
+.kbmem-nsay{position:sticky;bottom:0;margin-top:auto;padding:18px 0 20px;background:linear-gradient(to bottom,transparent,var(--dsw-alias-bg-layer-2,#2c2c2e) 28%)}
+.kbmem-nsay .box{display:flex;gap:10px;align-items:center;min-height:50px;padding:5px 6px 5px 20px;border-radius:999px;background:var(--m-fill);border:1px solid var(--m-line)}
+.kbmem-nsay input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--m-ink);font:inherit;font-size:14px}.kbmem-nsay input::placeholder{color:var(--m-ink2)}
+.kbmem-nsend{width:38px;height:38px;border-radius:999px;display:grid;place-items:center;background:var(--m-primary);color:var(--m-primary-ink)}.kbmem-nsend[disabled]{opacity:.35;pointer-events:none}
+.kbmem-nempty{display:grid;justify-items:center;gap:10px;padding:56px 24px 24px;text-align:center;color:var(--m-muted)}.kbmem-nempty h3{margin:0;color:var(--m-ink);font-size:16px}.kbmem-nempty p{margin:0;max-width:46ch}
+.kbmem-m .dim{opacity:.4;pointer-events:none}
+.kbmem-dh{display:flex;gap:10px;align-items:flex-start;margin-bottom:22px;flex-wrap:wrap}.kbmem-dh h2{margin:0;font-size:20px;line-height:30px;font-weight:600;flex:1 1 220px;min-width:0;overflow-wrap:anywhere}
+.kbmem-blk{margin-top:22px}.kbmem-blk .lb{font-size:13px;color:var(--m-cap);margin-bottom:4px}.kbmem-blk .vl{font-size:15px;line-height:24px;color:var(--m-ink);max-width:62ch;overflow-wrap:anywhere;white-space:pre-wrap}
+.kbmem-blk .kbmem-sel.wide{width:100%}
+.kbmem-prow{display:flex;gap:16px;align-items:center;justify-content:space-between;font-size:14px}
+.kbmem-nacts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:22px}
+.kbmem-btn.danger.solid{background:var(--m-danger);color:#fff;border-color:transparent}
+.kbmem-scrim{position:fixed;inset:0;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.5);z-index:10000}
+.kbmem-dlg{width:min(480px,100%);max-height:100%;overflow:auto;padding:22px 24px;border-radius:var(--m-r-lg);background:var(--m-surf2);color:var(--m-ink);box-shadow:var(--kb-elev,0 16px 48px rgba(0,0,0,.4));display:grid;gap:14px;font-size:14px;line-height:22px}
+.kbmem-dlg.wide{width:min(580px,100%)}
+.kbmem-dlg h3{margin:0;font-size:17px;line-height:26px;display:flex;align-items:center}
+.kbmem-hint{margin:0;font-size:13px;color:var(--m-cap)}.kbmem-hint.big{font-size:13.5px;color:var(--m-ink2)}
+.kbmem-dacts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.kbmem-step{display:grid;grid-template-columns:28px minmax(0,1fr);gap:4px 12px;align-items:start}
+.kbmem-step .no{width:26px;height:26px;border-radius:999px;background:var(--m-surf);border:1px solid var(--m-line2);display:grid;place-items:center;font-size:12.5px;color:var(--m-ink2)}
+.kbmem-step .st{font-size:14.5px;color:var(--m-ink2);padding-top:2px}.kbmem-step .bd{grid-column:2;min-width:0}
+.kbmem-promptbox{position:relative;height:120px;overflow:auto;padding:12px 14px;border-radius:var(--m-r-md);background:var(--m-surf);border:1px solid var(--m-line2);font:12.5px/20px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--m-muted);white-space:pre-wrap;overflow-wrap:anywhere}
+.kbmem-promptbox .copyb{position:sticky;float:right;top:0;margin:-4px -6px 0 8px}
+.kbmem-tl{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 0;border-top:1px solid var(--m-line)}
+.kbmem-tl .t{flex:1 1 240px;min-width:0;font-size:14px;overflow-wrap:anywhere}.kbmem-tl .d{font-size:12.5px;color:var(--m-cap)}
+.kbmem-btn.sm{height:30px;padding:0 12px;font-size:12.5px}
+@media (max-width:640px){.kbmem-nrow{grid-template-columns:minmax(0,1fr) auto}.kbmem-nrow .sm{display:none}.kbmem-srow{flex-wrap:wrap}.kbmem-srow .ctl{width:100%}}
 .kbmem-chip.acc{color:var(--m-acc);background:var(--m-acc-bg);border-color:transparent}
 .kbmem-banner{display:flex;gap:12px;align-items:center;margin-bottom:14px;padding:12px 14px;border-radius:var(--m-r-md);background:var(--m-acc-bg)}
 .kbmem-banner>.kbmem-ico{width:18px;height:18px;color:var(--m-acc)}
-.kbmem-x{width:26px;height:26px;border-radius:999px;display:inline-grid;place-items:center;color:var(--m-muted)}.kbmem-x:hover{background:var(--m-hover)}
 .kbmem-btn.sm{height:26px;padding:0 11px;font-size:12px}
 .kbmem-sum{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:4px 0 14px;font-size:13px;color:var(--m-ink2)}.kbmem-sum b{color:var(--m-ink)}
 .kbmem-grp{border:1px solid var(--m-line2);border-radius:14px;margin-bottom:12px;overflow:hidden;background:var(--m-surf)}
@@ -779,30 +634,8 @@ window.__ModuleLoader__.load({
 .kbmem-grp.done .items,.kbmem-grp.done .kbmem-gnote{display:none}.kbmem-grp.done{opacity:.8}
 .kbmem-stat{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--m-muted)}.kbmem-stat.ok{color:var(--m-ok)}.kbmem-stat.err{color:var(--m-danger)}
 .kbmem-foot{position:sticky;bottom:0;margin-top:18px;display:flex;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--m-line2);border-radius:14px;background:var(--m-surf2);flex-wrap:wrap}
-.kbmem-run{padding:14px 0;border-bottom:1px solid var(--m-line);display:flex;gap:14px;align-items:center;max-width:760px}
-.kbmem-run .when{width:120px;color:var(--m-cap);font-size:12.5px;flex:none}
-.kbmem-mapwrap{display:block}
-.kbmem-map{position:relative;width:100%;aspect-ratio:1000/540;border:1px solid var(--m-line2);border-radius:14px;overflow:hidden;background:var(--m-surf)}
-.kbmem-map>svg{display:block;width:100%;height:100%;touch-action:none;user-select:none}
-.kbmem-bg{fill:transparent;cursor:grab}.kbmem-map.drag .kbmem-bg{cursor:grabbing}
-.kbmem-ed{stroke:var(--m-line3);stroke-width:1;vector-effect:non-scaling-stroke;pointer-events:none}
-.kbmem-nd{cursor:pointer;outline:none}.kbmem-nd .kbmem-dot{fill:var(--m-cap)}.kbmem-nd.fact .kbmem-dot{fill:var(--m-acc)}.kbmem-nd.preference .kbmem-dot{fill:var(--m-ok)}.kbmem-nd.policy .kbmem-dot{fill:var(--m-warn)}
-.kbmem-ring{fill:none;stroke:var(--m-ok);stroke-width:1.5;vector-effect:non-scaling-stroke;opacity:.85}
-.kbmem-nd.dim{opacity:.2}.kbmem-nd.sel .kbmem-dot,.kbmem-nd:focus-visible .kbmem-dot{stroke:var(--m-ink);stroke-width:2;vector-effect:non-scaling-stroke}
-.kbmem-cl{fill:var(--m-cap);font-size:12px;font-weight:600;pointer-events:none}
-.kbmem-maphud{position:absolute;inset-inline-start:12px;top:12px;display:flex;gap:10px;align-items:center;max-width:calc(100% - 24px)}
-.kbmem-maphud .kbmem-field{flex:0 1 230px;width:230px;max-width:100%;min-height:32px;background:var(--m-surf2)}
-.kbmem-legend{position:absolute;inset-inline-start:12px;bottom:12px;display:flex;gap:12px;flex-wrap:wrap;max-width:calc(100% - 70px);padding:6px 10px;border-radius:10px;background:var(--m-surf2);font-size:11.5px;color:var(--m-muted)}
-.kbmem-legend span{display:inline-flex;gap:6px;align-items:center}.kbmem-legend .kbmem-kd{margin:0}
-.kbmem-lring{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--m-ok);display:inline-block}
-.kbmem-zoom{position:absolute;inset-inline-end:12px;bottom:12px;display:grid;gap:6px}
-.kbmem-zoom button{width:32px;height:32px;border-radius:50%;border:1px solid var(--m-line2);background:var(--m-surf2);color:var(--m-ink2);display:grid;place-items:center;cursor:pointer;padding:0}.kbmem-zoom button:hover{background:var(--m-hover)}
-.kbmem-tip{position:absolute;max-width:280px;padding:8px 10px;border-radius:10px;background:var(--m-toast);color:var(--m-ink);font-size:12px;line-height:1.4;pointer-events:none;transform:translate(-50%,calc(-100% - 12px));z-index:3}
-.kbmem-mcard{position:absolute;inset-inline-end:12px;top:12px;width:min(320px,calc(100% - 24px));display:grid;gap:8px;padding:12px 14px;border:1px solid var(--m-line2);border-radius:14px;background:var(--m-surf2);box-shadow:0 8px 24px rgba(0,0,0,.28);z-index:4}
-.kbmem-mhd{display:flex;gap:8px;align-items:center}.kbmem-mtx{font-size:13px;line-height:1.5;color:var(--m-ink);max-height:180px;overflow:auto;word-break:break-word}
-.kbmem-mmt{display:flex;gap:10px;align-items:center;font-size:11.5px;color:var(--m-cap)}.kbmem-mmt .kbmem-ico{width:12px;height:12px}
 .kbmem-empty .kbmem-acts{flex-wrap:wrap;justify-content:center}
-@media (max-width:720px){.kbmem-foot .kbmem-grow{flex-basis:100%}.kbmem-run{flex-wrap:wrap}.kbmem-run .when{width:auto}.kbmem-it{flex-wrap:wrap}}
+@media (max-width:720px){.kbmem-foot .kbmem-grow{flex-basis:100%}.kbmem-it{flex-wrap:wrap}}
 /* « Import Claude memories »: a fold above the lessons list — the counts, the two host calls, then one compact row per entry
    (a title line, a text line, and its status + buttons: never more than three). */
 .kbmem-imp{margin:0 0 14px;border:1px solid var(--m-line2);border-radius:14px;background:var(--m-surf);overflow:hidden}
@@ -830,19 +663,24 @@ window.__ModuleLoader__.load({
       const ICONS = {
         brain: '<path d="M9.5 3A3.5 3.5 0 0 0 6 6.5c0 .4.1.8.2 1.1A3.5 3.5 0 0 0 4 10.8c0 1 .5 2 1.2 2.6A3.5 3.5 0 0 0 7 19a3 3 0 0 0 5-1V4.5A1.5 1.5 0 0 0 9.5 3z"/><path d="M14.5 3A3.5 3.5 0 0 1 18 6.5c0 .4-.1.8-.2 1.1A3.5 3.5 0 0 1 20 10.8c0 1-.5 2-1.2 2.6A3.5 3.5 0 0 1 17 19a3 3 0 0 1-5-1V4.5A1.5 1.5 0 0 1 14.5 3z"/>',
         wand: '<path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5"/>',
-        pin: '<path d="M12 17v5M9 3h6l-1 6 3 3H7l3-3z"/>', search: '<circle cx="11" cy="11" r="6"/><path d="m20 20-4-4"/>', plus: '<path d="M12 5v14M5 12h14"/>',
-        check: '<path d="m5 12 5 5 9-10"/>', x: '<path d="M6 6l12 12M18 6 6 18"/>', trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
-        cloud: '<path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.5a4 4 0 0 1-.5 8.5z"/>', lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
-        alert: '<path d="M12 3 2 20h20z"/><path d="M12 10v5M12 18v.5"/>', shield: '<path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6z"/>',
-        list: '<path d="M8 6h12M8 12h12M8 18h12M4 6h.5M4 12h.5M4 18h.5"/>', map: '<circle cx="6" cy="7" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="17" r="2"/><path d="M7.7 8.2l3 7M16.5 7.5l-3.5 8"/>',
-        filter: '<path d="M4 6h16M7 12h10M10 18h4"/>', left: '<path d="m15 6-6 6 6 6"/>', right: '<path d="m9 6 6 6-6 6"/>',
-        gear: '<circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
+        pin: '<path d="M12 17v5M9 3h6l-1 6 3 3H7l3-3z"/>',
+        search: '<circle cx="11" cy="11" r="6"/><path d="m20 20-4-4"/>',
+        plus: '<path d="M12 5v14M5 12h14"/>',
+        check: '<path d="m5 12 5 5 9-10"/>',
+        x: '<path d="M6 6l12 12M18 6 6 18"/>',
+        trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+        cloud: '<path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.5a4 4 0 0 1-.5 8.5z"/>',
+        lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+        alert: '<path d="M12 3 2 20h20z"/><path d="M12 10v5M12 18v.5"/>',
+        left: '<path d="m15 6-6 6 6 6"/>',
+        right: '<path d="m9 6 6 6-6 6"/>',
         broom: '<path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7z"/>',
-        inbox: '<path d="M3 13h5l1 3h6l1-3h5"/><path d="M5 5h14l2 8v6H3v-6z"/>', share: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 14v5h14v-5"/>',
-        zin: '<circle cx="11" cy="11" r="6"/><path d="m20 20-4-4M11 8v6M8 11h6"/>', zout: '<circle cx="11" cy="11" r="6"/><path d="m20 20-4-4M8 11h6"/>', fit: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+        inbox: '<path d="M3 13h5l1 3h6l1-3h5"/><path d="M5 5h14l2 8v6H3v-6z"/>',
+        share: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 14v5h14v-5"/>',
         undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
-        bulb: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6M10 22h4"/>',
-        down: '<path d="m6 9 6 6 6-6"/>', up: '<path d="m6 15 6-6 6 6"/>',
+        copy: '<path d="M9 9h10v10H9zM5 15V5h10"/>',
+        down: '<path d="m6 9 6 6 6-6"/>',
+        up: '<path d="m6 15 6-6 6 6"/>',
       }
       // The paths are this file's own constants (never user text): setting them as markup is safe.
       const Ico = (name, extra) => h('svg', { className: 'kbmem-ico' + (extra ? ' ' + extra : ''), viewBox: '0 0 24 24', 'aria-hidden': 'true', dangerouslySetInnerHTML: { __html: ICONS[name] || '' } })
@@ -852,32 +690,15 @@ window.__ModuleLoader__.load({
         items.map((it) => h('button', { key: it.v, type: 'button', className: value === it.v ? 'on' : '', 'aria-pressed': value === it.v, disabled: it.disabled === true, title: it.title, 'data-v': it.v,
           onClick: () => onChange(it.v) }, ...(Array.isArray(it.l) ? it.l : [it.l]))))
 
-      const YesNo = ({ value, onChange, name }) => h(Seg, { value: value ? 'y' : 'n', label: name, onChange: (v) => onChange(v === 'y'), items: [{ v: 'y', l: kt('Oui', 'Yes') }, { v: 'n', l: kt('Non', 'No') }] })
-
-      const PlanChip = (text) => h('span', { className: 'kbmem-plan' }, Ico('lock'), text)
-
       /** One settings row, in the rhythm of DSH's General page: label + description left, control right. */
-      const SettingRow = ({ label, desc, control, chip, why, locked, live, act }) => h('div', { className: 'kbmem-srow' + (locked ? ' locked' : ''), 'data-act': act },
+      const SettingRow = ({ label, desc, control, chip, why, locked, live, act, fold }) => h('div', { className: 'kbmem-srow' + (locked ? ' locked' : ''), 'data-act': act },
         h('div', null,
           h('div', { className: 'lab' }, label, chip || null),
-          h('div', { className: 'desc' }, desc),
+          // `fold`: the description only explains; the Theme may put it behind an « i » (Simple on a phone). A description that warns or changes what the setting means never carries the mark: nothing folds without it.
+          h('div', { className: 'desc', 'data-kb-desc': fold === true ? 'fold' : undefined }, desc),
           live || null,
           why ? h('div', { className: 'why', style: { pointerEvents: 'auto', opacity: 1 } }, why) : null),
         h('div', { className: 'ctl' }, control))
-
-      const Pager = ({ total, page, size, onPage, onSize }) => {
-        const p = pagerPages(total, page, size)
-        return h('div', { className: 'kbmem-pager' },
-          h('span', null, total === 0 ? kt('0 résultat', '0 results') : p.from + '–' + p.to + kt(' sur ', ' of ') + total),
-          h('span', { className: 'kbmem-grow' }),
-          h('div', { className: 'kbmem-pgs' },
-            h('button', { type: 'button', className: 'kbmem-pg', disabled: p.page <= 1, 'aria-label': kt('Page précédente', 'Previous page'), onClick: () => onPage(p.page - 1) }, Ico('left')),
-            p.items.map((n, i) => n === '…' ? h('span', { key: 'g' + i, className: 'kbmem-gap' }, '…')
-              : h('button', { key: n, type: 'button', className: 'kbmem-pg' + (n === p.page ? ' on' : ''), 'aria-label': 'Page ' + n, 'aria-current': n === p.page ? 'page' : undefined, 'data-page': n, onClick: () => onPage(n) }, n)),
-            h('button', { type: 'button', className: 'kbmem-pg', disabled: p.page >= p.pages, 'aria-label': kt('Page suivante', 'Next page'), onClick: () => onPage(p.page + 1) }, Ico('right'))),
-          h('select', { className: 'kbmem-sel', style: { height: 30, fontSize: 12 }, 'aria-label': kt('Lignes par page', 'Rows per page'), value: size, onChange: (e) => onSize(parseInt(e.target.value, 10)) },
-            PAGE_SIZES.map((n) => h('option', { key: n, value: n }, kt(n + ' par page', n + ' per page')))))
-      }
 
       // ═══════════════════════════════════════════════════════════════
       // 4. DATA HOOKS
@@ -905,23 +726,6 @@ window.__ModuleLoader__.load({
           return () => { live = false }
         }, [refreshKey])
         return s
-      }
-
-      /** One list (memories or lessons), reloaded when its query changes. A stale answer never overwrites a newer one. */
-      /** Search by meaning: is it on, can the server, does the plan allow it, how much is indexed. Reads only (a probe is asked for explicitly). */
-      const useMeaning = (enabled, refreshKey, probe) => {
-        const [m, setM] = useState({ loaded: false })
-        const probed = useRef(false)
-        useEffect(() => {
-          if (!enabled) { probed.current = false; setM({ loaded: true, enabled: false }); return undefined }
-          let live = true
-          // The probe (one 2-letter embedding) happens once each time the switch comes on, never on a later re-read.
-          const withProbe = probe === true && probed.current !== true
-          if (withProbe) probed.current = true
-          api('/kybernos-cloud/memory/index' + (withProbe ? '?probe=1' : '')).then((r) => { if (live) setM(Object.assign({ loaded: true }, r)) })
-          return () => { live = false }
-        }, [enabled, refreshKey, probe])
-        return m
       }
 
       const useList = (tab, state, refreshKey) => {
@@ -984,25 +788,6 @@ window.__ModuleLoader__.load({
       // 5. PAGE
       // ═══════════════════════════════════════════════════════════════
 
-      const FilterMenu = ({ tab, f, onSet, onClear, kybers, plan }) => {
-        const groups = GROUPS[tab]
-        return h('div', { className: 'kbmem-menu', role: 'menu' },
-          groups.map((g) => [
-            h('div', { key: g.key + '-h', className: 'kbmem-mg' }, g.label),
-            g.opts.map(([v, l]) => {
-              return h('button', { key: g.key + v, type: 'button', role: 'menuitemradio', 'aria-checked': f[g.key] === v, 'data-g': g.key, 'data-v': v,
-                onClick: () => onSet(g.key, v) },
-                h('span', { className: 'kbmem-ck' }, f[g.key] === v ? Ico('check') : null), l)
-            }),
-          ]),
-          tab === 'lessons' && kybers.length > 0 ? [h('div', { key: 'k-h', className: 'kbmem-mg' }, 'Agent Team'),
-            h('button', { key: 'k-any', type: 'button', role: 'menuitemradio', 'data-g': 'kyber', 'data-v': '', onClick: () => onSet('kyber', '') }, h('span', { className: 'kbmem-ck' }, f.kyber === '' ? Ico('check') : null), kt('Toutes', 'Any')),
-            kybers.map((k) => h('button', { key: 'k-' + k.id, type: 'button', role: 'menuitemradio', 'data-g': 'kyber', 'data-v': k.id, onClick: () => onSet('kyber', k.id) },
-              h('span', { className: 'kbmem-ck' }, f.kyber === k.id ? Ico('check') : null), k.id, h('span', { className: 'kbmem-cap', style: { marginInlineStart: 'auto' } }, k.count)))] : null,
-          h('div', { className: 'kbmem-msep' }),
-          h('button', { type: 'button', 'data-act': 'clear', onClick: onClear }, kt('Effacer les filtres', 'Clear filters')))
-      }
-
       // Skeleton rows while a list is read for the first time. The core plugin publishes ONE helper for every list
       // (window.__KB_SKEL__: same box as the real rows, a soft shimmer, a short fade-in, nothing under reduced motion);
       // without it the old spinner shows, as before.
@@ -1021,26 +806,6 @@ window.__ModuleLoader__.load({
           h('span', { className: 'kbmem-tx', style: { display: 'flex', flexDirection: 'column', gap: 6 } }, k.bone(i % 3 === 0 ? '92%' : (i % 3 === 1 ? '74%' : '58%'), 12), i % 2 === 0 ? k.bone('46%', 12) : null),
           h('span', { className: 'kbmem-mt' }, k.bone(96, 12)))))
       }
-
-      const MemoryRow = ({ m, selected, onOpen, ctxOn, markSent, i }) => h('button', { type: 'button', className: 'kbmem-r' + (selected ? ' sel' : '') + appear(i), 'data-id': m.id, onClick: () => onOpen(m) },
-        h('span', { className: 'kbmem-kd ' + m.kind, title: kindLabels()[m.kind] || m.kind }),
-        h('span', { className: 'kbmem-tx' }, m.content),
-        h('span', { className: 'kbmem-mt' },
-          m.sent && ctxOn && markSent === true ? h('span', { className: 'kbmem-chip ok', 'data-chip': 'sent' }, kt('Envoyé', 'Sent')) : null,
-          closenessLabel(m.closeness) !== null ? h('span', { className: 'kbmem-chip close', title: kt('À quel point ce souvenir est proche de ta recherche, par le sens', 'How close this memory is to your search, by meaning') }, closenessLabel(m.closeness)) : null,
-          wordsLabel(m.matched, m.of) !== null ? h('span', { className: 'kbmem-chip', 'data-chip': 'words', title: kt('Combien des mots que tu as tapés ce souvenir contient', 'How many of the words you typed this memory has') }, wordsLabel(m.matched, m.of)) : null,
-          m.pinned ? h('span', { title: kt('Épinglé', 'Pinned') }, Ico('pin')) : null,
-          h('span', null, originLabels()[m.origin] || m.origin),
-          h('span', { style: { minWidth: 30, textAlign: 'end' } }, ageLabel(m.ageMinutes))))
-
-      const LessonRow = ({ l, selected, onOpen, i }) => h('button', { type: 'button', className: 'kbmem-r' + (selected ? ' sel' : '') + appear(i), 'data-id': l.id, onClick: () => onOpen(l) },
-        h('span', { className: 'kbmem-kd lesson' }),
-        h('span', { className: 'kbmem-tx' }, l.text),
-        h('span', { className: 'kbmem-mt' },
-          wordsLabel(l.matched, l.of) !== null ? h('span', { className: 'kbmem-chip', 'data-chip': 'words', title: kt('Combien des mots que tu as tapés cette leçon contient', 'How many of the words you typed this lesson has') }, wordsLabel(l.matched, l.of)) : null,
-          h('span', null, l.kyber),
-          l.uses > 0 ? h('span', null, kt('Utilisée ' + l.uses + ' fois', 'Used ' + l.uses + '×')) : null,
-          h('span', { style: { minWidth: 30, textAlign: 'end' } }, ageLabel(l.ageMinutes))))
 
       /**
        * What Kaby saw several times and suggests keeping (the ledger of the core plugin, kind « memory »): dashed rows above the list, Add / Edit / Discard on each. Nothing is
@@ -1247,95 +1012,6 @@ window.__ModuleLoader__.load({
             entries.length <= shown.length ? null : h('div', { className: 'kbmem-imp-more' }, kt('… et ' + (entries.length - shown.length) + ' autre' + sfx(entries.length - shown.length), '… and ' + (entries.length - shown.length) + ' more'))))
       }
 
-      /** The side sheet: edit or add a memory, edit a lesson. Closes on Cancel; the page reloads after a save. */
-      const Sheet = ({ sheet, onClose, onDone, notify, onPropose }) => {
-        const mem = sheet.kind === 'mem'
-        const item = sheet.item
-        const [text, setText] = useState(mem ? item.content : item.text)
-        const [pinned, setPinned] = useState(mem ? item.pinned === true : false)
-        const [kind, setKind] = useState(mem ? item.kind : 'fact')
-        const [days, setDays] = useState(mem && item.retentionDays !== null && item.retentionDays !== undefined ? item.retentionDays : 180)
-        const [tags, setTags] = useState(mem ? '' : (item.tags || []).join(', '))
-        const [busy, setBusy] = useState(false)
-        const [confirm, setConfirm] = useState(false)
-        const isNew = sheet.isNew === true
-        const fail = (r) => { setBusy(false); notify(friendlyError(r.error)) }
-
-        const save = async () => {
-          setBusy(true)
-          if (mem && isNew) {
-            const r = await api('/kybernos-cloud/memory/add', { content: text, kind, pinned, source: 'taught' })
-            if (r.ok !== true) return fail(r)
-            if (typeof sheet.onSaved === 'function') sheet.onSaved() // a suggested memory edited then added: the ledger is told it was answered
-            return onDone(kt('Souvenir ajouté', 'Memory added'))
-          }
-          if (mem) {
-            const body = { id: item.id }
-            if (text.trim() !== item.content) body.content = text
-            if (pinned !== (item.pinned === true)) body.pinned = pinned
-            if (days !== item.retentionDays) body.retentionDays = days
-            if (Object.keys(body).length === 1) { setBusy(false); return onClose() }
-            const r = await api('/kybernos-cloud/memory/update', body)
-            if (r.ok !== true) return fail(r)
-            return onDone(kt('Enregistré', 'Saved'))
-          }
-          const body = { id: item.id }
-          if (text.trim() !== item.text) body.text = text
-          const cleanTags = tags.split(',').map((t) => t.trim()).filter((t) => t !== '')
-          if (cleanTags.join(',') !== (item.tags || []).join(',')) body.tags = cleanTags
-          if (Object.keys(body).length === 1) { setBusy(false); return onClose() }
-          const r = await api('/kybernos-memory/lessons/update', body)
-          if (r.ok !== true) return fail(r)
-          return onDone(kt('Enregistré', 'Saved'))
-        }
-
-        // « Make a skill »: this lesson, word for word, as a checklist of pitfalls waiting in Skills for the person's yes (fixed rules, no model).
-        const makeSkill = async () => {
-          setBusy(true)
-          const r = await suggestSkill([item])
-          if (r.ok !== true) return fail(r)
-          return onDone(kt('Skill suggéré : « ' + r.proposal.name + ' ». Il attend ton accord dans Skills.', 'Skill suggested: “' + r.proposal.name + '”. It waits for your yes in Skills.'))
-        }
-
-        const remove = async () => {
-          setBusy(true)
-          if (mem) {
-            const r = await api('/kybernos-cloud/memory/delete', { id: item.id })
-            if (r.ok !== true) return fail(r)
-            return onDone(kt('1 souvenir oublié', 'Forgot 1 memory'), { content: item.content, kind: item.kind, pinned: item.pinned === true, source: 'taught' })
-          }
-          const r = await api('/kybernos-memory/lessons/delete', { id: item.id })
-          if (r.ok !== true) return fail(r)
-          return onDone(kt('Leçon archivée', 'Lesson archived'))
-        }
-
-        return h('aside', { className: 'kbmem-sheet', role: 'dialog', 'aria-label': mem ? kt('Souvenir', 'Memory') : kt('Leçon', 'Lesson') },
-          h('h3', null, h('span', { className: 'kbmem-kd ' + (mem ? kind : 'lesson'), style: { margin: 0 } }), isNew ? kt('Nouveau souvenir', 'New memory') : (mem ? kt('Souvenir', 'Memory') : kt('Leçon', 'Lesson')),
-            h('span', { className: 'kbmem-grow' }), h('button', { type: 'button', className: 'kbmem-ib', 'aria-label': kt('Fermer', 'Close'), onClick: onClose }, Ico('x'))),
-          h('textarea', { 'aria-label': mem ? kt('Texte du souvenir', 'Memory text') : kt('Texte de la leçon', 'Lesson text'), value: text, placeholder: mem ? kt('Que doit retenir Kybernos à ton sujet ?', 'What should Kybernos remember about you?') : '', onChange: (e) => setText(e.target.value), disabled: busy }),
-          mem && isNew ? h('div', { className: 'kbmem-f' }, h('span', null, 'Type'),
-            h('select', { className: 'kbmem-sel', value: kind, onChange: (e) => setKind(e.target.value) }, Object.keys(kindLabels()).map((k) => h('option', { key: k, value: k }, kindLabels()[k])))) : null,
-          mem && !isNew ? h('div', { className: 'kbmem-f' }, h('span', null, 'Type'), h('div', null, h('span', { className: 'kbmem-chip' }, kindLabels()[item.kind] || item.kind))) : null,
-          mem ? h('div', { className: 'kbmem-f' }, h('span', null, kt('Garder pendant', 'Keep for')),
-            h('select', { className: 'kbmem-sel', value: days, onChange: (e) => setDays(parseInt(e.target.value, 10)), disabled: busy || pinned },
-              retentions().map(([v, l]) => h('option', { key: v, value: v }, l)).concat(retentions().some((r) => r[0] === days) ? [] : [h('option', { key: days, value: days }, kt(days === 1 ? '1 jour' : days + ' jours', days === 1 ? '1 day' : days + ' days'))]))) : null,
-          mem ? h('div', { className: 'kbmem-f' }, h('span', null, kt('Épinglé — n’expire jamais, envoyé en premier', 'Pinned — never expires, sent first')), h(YesNo, { value: pinned, name: kt('Épinglé', 'Pinned'), onChange: setPinned })) : null,
-          !mem ? h('div', { className: 'kbmem-f' }, h('span', null, kt('Étiquettes (séparées par des virgules, 5 au maximum)', 'Tags (comma separated, 5 at most)')),
-            h('input', { className: 'kbmem-sel', style: { width: '100%' }, value: tags, onChange: (e) => setTags(e.target.value), disabled: busy })) : null,
-          !isNew && mem ? h('div', { className: 'kbmem-tiny' }, (originLabels()[item.origin] || item.origin) + (item.originKnown === false ? kt(' (supposée)', ' (guessed)') : '') + kt(' · créé ' + agoWords(item.ageMinutes) + ' · ', ' · created ' + agoWords(item.ageMinutes) + ' · ') + (item.sent ? kt('envoyé au modèle à chaque tour', 'sent to the model each turn') : kt('non envoyé ce tour', 'not sent this turn'))) : null,
-          !mem ? h('div', { className: 'kbmem-tiny' }, h('span', { className: 'kbmem-chip' }, item.kyber), ' ' + (item.uses > 0 ? kt('utilisée ' + item.uses + ' fois · ', 'used ' + item.uses + '× · ') : kt('jamais utilisée · ', 'never used · ')) + agoWords(item.ageMinutes)) : null,
-          h('div', { className: 'kbmem-acts' },
-            h('button', { type: 'button', className: 'kbmem-btn', 'data-act': 'save', disabled: busy || text.trim() === '', onClick: save }, isNew ? kt('Enregistrer le souvenir', 'Save memory') : kt('Enregistrer', 'Save')),
-            h('button', { type: 'button', className: 'kbmem-btn ghost', onClick: onClose }, kt('Annuler', 'Cancel')),
-            !mem && !isNew && typeof onPropose === 'function' ? h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'propose-team', disabled: busy, onClick: () => onPropose(item) }, Ico('share'), kt('Proposer à l’équipe', 'Propose to team')) : null,
-            !mem && !isNew ? h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'make-skill', disabled: busy, title: kt('Une liste de pièges avec les mots de cette leçon, qui attend ton accord dans Skills. Aucun modèle, aucun coût.', 'A checklist of pitfalls in this lesson’s own words, waiting for your yes in Skills. No model, no cost.'), onClick: makeSkill }, Ico('wand'), kt('Faire un skill', 'Make a skill')) : null,
-            h('span', { className: 'kbmem-grow' }),
-            isNew ? null : (confirm
-              ? h('button', { type: 'button', className: 'kbmem-btn danger', 'data-act': 'confirm-remove', disabled: busy, onClick: remove }, mem ? kt('Confirmer : oublier', 'Confirm: forget') : kt('Confirmer : supprimer', 'Confirm: delete'))
-              : h('button', { type: 'button', className: 'kbmem-btn danger', 'data-act': 'remove', disabled: busy, onClick: () => setConfirm(true) }, Ico('trash'), mem ? kt('Oublier', 'Forget') : kt('Supprimer', 'Delete')))),
-          !mem && !isNew ? h('div', { className: 'kbmem-tiny' }, kt('Une leçon supprimée va dans les archives de l’Agent Team : elle n’est pas détruite.', 'A deleted lesson goes to the agent team\'s archive — it is not destroyed.')) : null)
-      }
-
       // ── Team lessons: the Team tab, proposing, reviewing ─────────────────────────────────────────────────
       const TeamRow = ({ l, mineView, onOpen, i }) => {
         const [label, tone] = teamStatusChip(l)
@@ -1362,13 +1038,13 @@ window.__ModuleLoader__.load({
           if (r.ok !== true) { setBusy(false); notify(friendlyError(r.error)); return }
           onDone(admin ? kt('Ajoutée : ton équipe la lit dès le prochain message', 'Added: your team reads it from the next message') : kt('Proposée : un propriétaire ou un admin va l’examiner', 'Proposed: an owner or admin will review it'))
         }
-        const options = [{ id: '', label: kt('Générale (chaque Agent Team)', 'General (every agent team)') }].concat(kybers.map((k) => ({ id: k.id, label: k.id })))
+        const options = [{ id: '', label: kt('Générale (chaque équipe d’agents IA)', 'General (every AI agent team)') }].concat(kybers.map((k) => ({ id: k.id, label: k.id })))
         if (kyber !== '' && !options.some((o) => o.id === kyber)) options.push({ id: kyber, label: kyber })
         return h('aside', { className: 'kbmem-sheet', role: 'dialog', 'aria-label': admin ? kt('Ajouter une leçon d’équipe', 'Add a team lesson') : kt('Proposer à ton équipe', 'Propose to your team') },
           h('h3', null, Ico('share'), admin ? kt('Ajouter une leçon d’équipe', 'Add a team lesson') : kt('Proposer à ton équipe', 'Propose to your team'), h('span', { className: 'kbmem-grow' }), h('button', { type: 'button', className: 'kbmem-ib', 'aria-label': kt('Fermer', 'Close'), onClick: onClose }, Ico('x'))),
           h('textarea', { 'aria-label': kt('Texte de la leçon', 'Lesson text'), value: text, maxLength: 500, placeholder: kt('Une phrase vérifiable que toute l’équipe devrait connaître.', 'One falsifiable sentence the whole team should know.'), onChange: (e) => setText(e.target.value), disabled: busy }),
           h('div', { className: 'kbmem-f' }, h('span', null, kt('S’applique à', 'Applies to')),
-            h('select', { className: 'kbmem-sel', 'aria-label': 'Agent Team', value: kyber, onChange: (e) => setKyber(e.target.value), disabled: busy }, options.map((o) => h('option', { key: o.id, value: o.id }, o.label)))),
+            h('select', { className: 'kbmem-sel', 'aria-label': 'AI Agent Team', value: kyber, onChange: (e) => setKyber(e.target.value), disabled: busy }, options.map((o) => h('option', { key: o.id, value: o.id }, o.label)))),
           h('div', { className: 'kbmem-f' }, h('span', null, kt('Étiquettes (séparées par des virgules, 5 au maximum)', 'Tags (comma separated, 5 at most)')), h('input', { className: 'kbmem-sel', style: { width: '100%' }, 'aria-label': kt('Étiquettes', 'Tags'), value: tags, onChange: (e) => setTags(e.target.value), disabled: busy })),
           admin ? null : h('div', { className: 'kbmem-f' }, h('span', null, kt('En quoi ça aide l’équipe (facultatif)', 'Why it helps the team (optional)')), h('input', { className: 'kbmem-sel', style: { width: '100%' }, 'aria-label': 'Note', value: note, maxLength: 280, onChange: (e) => setNote(e.target.value), disabled: busy })),
           h('div', { className: 'kbmem-tiny' }, admin ? kt('En tant que propriétaire ou admin, ta leçon est approuvée tout de suite et lue par chaque membre dès son prochain message.', 'As an owner or admin your lesson is approved at once and read by every member from their next message.') : kt('Un propriétaire ou un admin la lit d’abord. D’ici là, elle reste à toi et personne d’autre ne la voit.', 'An owner or admin reads it first. Until then it stays yours and nobody else sees it.')),
@@ -1492,9 +1168,9 @@ window.__ModuleLoader__.load({
           bump()
           notify(decision === 'approve' ? kt('Approuvée : les membres la lisent dès leur prochain message', 'Approved: members read it from their next message') : kt('Refusée : l’auteur de la proposition voit ta raison', 'Rejected: the proposer sees your reason'))
         }
-        const options = [{ id: '', label: kt('Générale (chaque Agent Team)', 'General (every agent team)') }].concat(kybers.map((k) => ({ id: k.id, label: k.id })))
+        const options = [{ id: '', label: kt('Générale (chaque équipe d’agents IA)', 'General (every AI agent team)') }].concat(kybers.map((k) => ({ id: k.id, label: k.id })))
         return h('div', null,
-          h('a', { className: 'kbmem-crumb', role: 'button', tabIndex: 0, 'data-act': 'back', onClick: back, onKeyDown: (e) => { if (e.key === 'Enter') back() } }, Ico('left'), pageTitle()),
+          h('button', { type: 'button', className: 'kbmem-back', 'data-act': 'back', onClick: back }, Ico('left'), h('span', null, pageTitle())),
           h('div', { className: 'kbmem-top' }, pageHead({ title: kt('Propositions de leçons d’équipe', 'Team lesson proposals'), as: 'h1', className: 'kbmem-h1' }), h('span', { className: 'kbmem-grow' }), h('span', { className: 'kbmem-tiny' }, (team.workspaceName || kt('Ton équipe', 'Your team')) + kt(' · ' + String(waiting) + ' à examiner', ' · ' + String(waiting) + ' to review'))),
           h('p', { className: 'kbmem-lead' }, kt('Une leçon que tu approuves est lue par les agents de chaque membre dès son prochain message. Les membres ne voient jamais une proposition en attente, sauf la leur.', 'A lesson you approve is read by every member’s agents from their next message. Members never see a proposal that is still waiting, except their own.')),
           d.loading ? h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-spin' }))
@@ -1513,7 +1189,7 @@ window.__ModuleLoader__.load({
                     h('div', { className: 'items' },
                       h('div', { className: 'kbmem-it new' }, e !== undefined
                         ? h('div', { style: { width: '100%' } }, h('textarea', { 'aria-label': kt('Texte à approuver', 'Text to approve'), value: e.text, maxLength: 500, onChange: (ev) => setEdit((old) => Object.assign({}, old, { [l.id]: Object.assign({}, old[l.id], { text: ev.target.value }) })) }),
-                          h('select', { className: 'kbmem-sel', 'aria-label': 'Agent Team', style: { marginTop: 8 }, value: e.kyber, onChange: (ev) => setEdit((old) => Object.assign({}, old, { [l.id]: Object.assign({}, old[l.id], { kyber: ev.target.value }) })) }, options.map((o) => h('option', { key: o.id, value: o.id }, o.label))))
+                          h('select', { className: 'kbmem-sel', 'aria-label': 'AI Agent Team', style: { marginTop: 8 }, value: e.kyber, onChange: (ev) => setEdit((old) => Object.assign({}, old, { [l.id]: Object.assign({}, old[l.id], { kyber: ev.target.value }) })) }, options.map((o) => h('option', { key: o.id, value: o.id }, o.label))))
                         : h('span', { className: 'kbmem-itx' }, l.text)),
                       l.note ? h('div', { className: 'kbmem-gnote', style: { padding: '0 0 8px' } }, h('b', null, kt(l.proposedName ? l.proposedName + ' dit : ' : 'L’auteur dit : ', (l.proposedName || 'The proposer') + ' says: ')), l.note) : null,
                       rj !== undefined ? h('textarea', { 'aria-label': kt('Raison', 'Reason'), placeholder: kt(l.proposedName ? 'Dis à ' + l.proposedName + ' pourquoi (la personne le verra)' : 'Dis pourquoi (la personne le verra)', 'Tell ' + (l.proposedName || 'them') + ' why (they will see it)'), value: rj, maxLength: 280, onChange: (ev) => setRejecting((old) => Object.assign({}, old, { [l.id]: ev.target.value })) }) : null),
@@ -1524,360 +1200,6 @@ window.__ModuleLoader__.load({
                         h('button', { key: 'j', type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'team-rejecting', disabled: busy, onClick: () => setRejecting((old) => Object.assign({}, old, { [l.id]: '' })) }, kt('Refuser…', 'Reject…'))]))
                 }))
       }
-
-      /**
-       * The map of the memories: each dot is a memory, close dots mean close meaning. The host sends the positions (`/kybernos-cloud/memory/meaning-map`:
-       * it embeds a sample on first use, then reads its own private cache); here a dot is drawn, looked at, searched and opened.
-       * When the map cannot be drawn the page says why, in words, and offers the way out.
-       */
-      const MapPane = ({ ctxOn, refreshKey, openOptions, onOpen, onReady, onList }) => {
-        const [d, setD] = useState({ loading: true, ok: false, error: null, tier: null, nodes: [], clusters: [], links: [], total: 0, shown: 0 })
-        const [q, setQ] = useState('')
-        const [sel, setSel] = useState(null)
-        const [tip, setTip] = useState(null)
-        const [vb, setVb] = useState(MAP_FIT)
-        const [drag, setDrag] = useState(false)
-        const [tick, setTick] = useState(0)
-        const frame = useRef(null)
-        useEffect(() => {
-          let live = true
-          setD((old) => Object.assign({}, old, { loading: true }))
-          api('/kybernos-cloud/memory/meaning-map').then((r) => {
-            if (!live) return
-            if (r.ok === true && Array.isArray(r.nodes)) { setD({ loading: false, ok: true, error: null, tier: null, nodes: r.nodes, clusters: r.clusters || [], links: r.links || [], total: r.total, shown: r.shown }); onReady() }
-            else setD({ loading: false, ok: false, error: r.error === undefined ? 'indisponible' : r.error, tier: r.requiredTier === undefined ? null : r.requiredTier, nodes: [], clusters: [], links: [], total: 0, shown: 0 })
-          })
-          return () => { live = false }
-        }, [refreshKey, tick])
-        useEffect(() => (sel !== null ? onEscape(() => setSel(null)) : undefined), [sel])
-        const drawn = d.ok
-        // the wheel zooms around the pointer: a native listener, because React's is passive and could not keep the page from scrolling
-        useEffect(() => {
-          const el = frame.current
-          if (el === null || !drawn) return undefined
-          const wheel = (e) => {
-            e.preventDefault()
-            const r = el.getBoundingClientRect()
-            setVb((v) => mapZoom(v, e.deltaY < 0 ? 1.2 : 1 / 1.2, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height))
-          }
-          el.addEventListener('wheel', wheel, { passive: false })
-          return () => el.removeEventListener('wheel', wheel)
-        }, [drawn])
-        const startDrag = (e) => {
-          if (e.button !== 0 || frame.current === null) return
-          const r = frame.current.getBoundingClientRect()
-          const from = { x: e.clientX, y: e.clientY, vb }
-          setDrag(true)
-          const move = (m) => setVb(mapPan(from.vb, -(m.clientX - from.x) / r.width * from.vb[2], -(m.clientY - from.y) / r.height * from.vb[3]))
-          const up = () => { setDrag(false); document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
-          document.addEventListener('mousemove', move)
-          document.addEventListener('mouseup', up)
-        }
-        const showTip = (n) => {
-          if (frame.current === null) return
-          const r = frame.current.getBoundingClientRect()
-          setTip({ id: n.id, left: (n.x * MAP_W - vb[0]) / vb[2] * r.width, top: (n.y * MAP_H - vb[1]) / vb[3] * r.height })
-        }
-
-        if (!d.ok) {
-          if (d.loading) return h('div', { className: 'kbmem-empty', 'data-map': 'loading' }, h('div', { className: 'kbmem-spin' }), h('div', null, kt('Placement de tes souvenirs par sens… la première fois, ça prend quelques secondes.', 'Placing your memories by meaning… the first time takes a few seconds.')))
-          const [title, text] = mapWords(d.error, d.tier)
-          return h('div', { className: 'kbmem-empty', 'data-map': 'unavailable', 'data-why': d.error }, h('div', { className: 'kbmem-ill' }, Ico('lock')), h('h3', null, title), h('div', null, text),
-            h('div', { className: 'kbmem-acts' },
-              d.error === 'sens_desactive' || d.error === 'offre_requise' ? h('button', { type: 'button', className: 'kbmem-btn', 'data-act': 'map-options', onClick: openOptions }, kt('Ouvrir Personnaliser', 'Open Customize')) : null,
-              d.error !== 'sens_desactive' && d.error !== 'offre_requise' && d.error !== 'non connecte' ? h('button', { type: 'button', className: 'kbmem-btn', 'data-act': 'map-retry', onClick: () => setTick((t) => t + 1) }, kt('Réessayer', 'Try again')) : null,
-              h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'map-list', onClick: onList }, kt('Retour à la liste', 'Back to the list'))))
-        }
-        if (d.nodes.length === 0) return h('div', { className: 'kbmem-empty', 'data-map': 'empty' }, h('div', { className: 'kbmem-ill' }, Ico('brain')), h('h3', null, kt('Rien à placer pour l’instant', 'Nothing to place yet')), h('div', null, kt('Les souvenirs apparaissent sur la carte dès qu’il y en a.', 'Memories appear on the map as soon as there are some.')))
-
-        const typed = q.trim() !== ''
-        const hits = typed ? d.nodes.filter((n) => mapMatches(n, q)).length : d.nodes.length
-        const picked = sel === null ? null : d.nodes.find((n) => n.id === sel) || null
-        const tipped = tip === null ? null : d.nodes.find((n) => n.id === tip.id) || null
-        const pos = (n) => [n.x * MAP_W, n.y * MAP_H]
-        const byIndex = d.nodes
-        const spots = mapLabelSpots(d.nodes, d.clusters)
-        return h('div', { className: 'kbmem-mapwrap' },
-          h('div', { className: 'kbmem-map' + (drag ? ' drag' : ''), ref: frame, 'data-map': 'ready', style: d.loading ? { opacity: 0.6 } : null },
-            h('svg', { viewBox: vb.map((x) => Math.round(x * 100) / 100).join(' '), role: 'img', 'aria-label': kt('Carte de tes souvenirs : des points proches ont un sens proche', 'Map of your memories: close dots mean close meaning'), 'data-view': vb.join(',') },
-              h('rect', { className: 'kbmem-bg', x: 0, y: 0, width: MAP_W, height: MAP_H, onMouseDown: startDrag, onClick: () => { setSel(null) } }),
-              d.clusters.map((c) => { const at = spots[c.id]; return at === undefined ? null : h('text', { key: 'c' + c.id, className: 'kbmem-cl', x: at.x, y: at.y, textAnchor: 'middle', 'data-cluster': c.id }, c.label) }),
-              d.links.map(([a, b]) => { const A = pos(byIndex[a]), B = pos(byIndex[b]); return h('line', { key: a + ':' + b, className: 'kbmem-ed', x1: A[0], y1: A[1], x2: B[0], y2: B[1] }) }),
-              d.nodes.map((n) => {
-                const hit = typed && mapMatches(n, q)
-                const [x, y] = pos(n)
-                return h('g', { key: n.id, className: 'kbmem-nd ' + n.kind + (typed && !hit ? ' dim' : '') + (hit ? ' hit' : '') + (sel === n.id ? ' sel' : ''), 'data-id': n.id, transform: 'translate(' + x + ' ' + y + ')', tabIndex: 0, role: 'button', 'aria-label': n.content,
-                  onClick: (e) => { e.stopPropagation(); setSel(n.id) }, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSel(n.id) } },
-                  onMouseEnter: () => showTip(n), onMouseLeave: () => setTip(null), onFocus: () => showTip(n), onBlur: () => setTip(null) },
-                  n.sent && ctxOn ? h('circle', { className: 'kbmem-ring', r: 8 }) : null,
-                  h('circle', { className: 'kbmem-dot', r: (n.pinned ? 6 : 4) + (hit ? 3 : 0) }),
-                  h('circle', { r: 12, fill: 'transparent' }))
-              })),
-            h('div', { className: 'kbmem-maphud' },
-              h('label', { className: 'kbmem-field' }, Ico('search'), h('input', { 'aria-label': kt('Éclairer ce qui correspond', 'Light up what matches'), placeholder: kt('Éclairer ce qui correspond…', 'Light up what matches…'), value: q, onChange: (e) => setQ(e.target.value) })),
-              typed ? h('span', { className: 'kbmem-tiny', 'data-map': 'hits' }, kt(hits + ' correspondance' + sfx(hits), hits + (hits === 1 ? ' match' : ' matches'))) : null),
-            h('div', { className: 'kbmem-legend' },
-              ['fact', 'preference', 'policy', 'event'].map((k) => h('span', { key: k }, h('i', { className: 'kbmem-kd ' + k }), kindLabels()[k])),
-              ctxOn ? h('span', { key: 'sent' }, h('i', { className: 'kbmem-lring' }), kt('Envoyé à chaque tour', 'Sent each turn')) : null),
-            h('div', { className: 'kbmem-zoom' },
-              h('button', { type: 'button', 'aria-label': kt('Zoom avant', 'Zoom in'), 'data-act': 'zin', onClick: () => setVb((v) => mapZoom(v, 1.4)) }, Ico('zin')),
-              h('button', { type: 'button', 'aria-label': kt('Zoom arrière', 'Zoom out'), 'data-act': 'zout', onClick: () => setVb((v) => mapZoom(v, 1 / 1.4)) }, Ico('zout')),
-              h('button', { type: 'button', 'aria-label': kt('Ajuster à toute la carte', 'Fit the whole map'), 'data-act': 'zfit', onClick: () => setVb(MAP_FIT) }, Ico('fit'))),
-            tipped !== null && picked === null ? h('div', { className: 'kbmem-tip', role: 'tooltip', 'data-map': 'tip', style: { left: tip.left, top: tip.top } }, tipped.content.length > 160 ? tipped.content.slice(0, 160) + '…' : tipped.content) : null,
-            picked !== null ? h('div', { className: 'kbmem-mcard', 'data-map': 'card' },
-              h('div', { className: 'kbmem-mhd' }, h('span', { className: 'kbmem-kd ' + picked.kind, style: { margin: 0 } }), h('b', null, kindLabels()[picked.kind] || picked.kind), h('span', { className: 'kbmem-grow' }),
-                h('button', { type: 'button', className: 'kbmem-ib', 'aria-label': kt('Fermer', 'Close'), 'data-act': 'map-close', onClick: () => setSel(null) }, Ico('x'))),
-              h('div', { className: 'kbmem-mtx' }, picked.content),
-              h('div', { className: 'kbmem-mmt' },
-                picked.sent && ctxOn ? h('span', { className: 'kbmem-chip ok' }, kt('Envoyé', 'Sent')) : null,
-                picked.pinned ? h('span', { title: kt('Épinglé', 'Pinned') }, Ico('pin')) : null,
-                h('span', null, originLabels()[picked.origin] || picked.origin), h('span', null, ageLabel(picked.ageMinutes))),
-              h('div', { className: 'kbmem-acts' }, h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'map-open', onClick: () => onOpen(picked) }, kt('Ouvrir', 'Open')))) : null),
-          h('div', { className: 'kbmem-tiny', 'data-map': 'foot', style: { marginTop: 10 } }, kt('Chaque point est un souvenir ; des points proches ont un sens proche · ', 'Each dot is a memory; close dots mean close meaning · ') + (d.shown < d.total ? kt('échantillon de ' + d.shown + ' sur ' + d.total + ' (épinglés, puis envoyés, puis les plus récents)', 'sample of ' + d.shown + ' of ' + d.total + ' (pinned, then sent, then newest)') : kt(d.shown + ' souvenir' + sfx(d.shown), d.shown + (d.shown === 1 ? ' memory' : ' memories'))) + (ctxOn ? kt(' · anneaux = envoyé au modèle à chaque tour', ' · rings = sent to the model each turn') : '') + kt(' · glisse pour déplacer, molette pour zoomer', ' · drag to move, scroll to zoom')))
-      }
-
-      const MainView = ({ tab, setTab, status, settings, openOptions, notify, bump, refreshKey, tidy, hiddenKey, hideBanner, openReview, ran, onRanUndo, onRanHide, team, openTeamReview, startScope, usedStartScope }) => {
-        const [q, setQ] = useState('')
-        const [qd, setQd] = useState('')
-        const [f, setF] = useState(() => Object.assign(defaultFilters(), tab === 'lessons' && startScope === 'team' ? { scope: 'team' } : {}))
-        useEffect(() => { if (typeof usedStartScope === 'function') usedStartScope() }, [])
-        const [page, setPage] = useState(1)
-        const [size, setSize] = useState(PAGE_SIZES[0])
-        const [menu, setMenu] = useState(false)
-        const [sheet, setSheet] = useState(null)
-        const [mode, setModeState] = useState(readMode)
-        const [layout, setLayoutState] = useState(readLayout)
-        const setMode = (v) => { setModeState(v); writeMode(v); setPage(1) }
-        const wrap = useRef(null)
-        useEffect(() => { const t = setTimeout(() => { setQd(q); setPage(1) }, 250); return () => clearTimeout(t) }, [q])
-        useEffect(() => {
-          if (!menu) return undefined
-          const away = (e) => { if (wrap.current !== null && !wrap.current.contains(e.target)) setMenu(false) }
-          document.addEventListener('mousedown', away)
-          const unesc = onEscape(() => setMenu(false))
-          return () => { document.removeEventListener('mousedown', away); unesc() }
-        }, [menu])
-        // Escape also closes the side sheet.
-        const sheetOpen = sheet !== null
-        useEffect(() => (sheetOpen ? onEscape(() => setSheet(null)) : undefined), [sheetOpen])
-        const meaning = useMeaning(settings.memory !== null && settings.memory.meaning === true, refreshKey, false)
-        const list = useList(tab, { f, q: qd, page, size, mode }, refreshKey)
-        const [kybers, setKybers] = useState([])
-        useEffect(() => { let live = true; api('/kybernos-memory/kybers').then((r) => { if (live && r.ok === true) setKybers(r.kybers) }); return () => { live = false } }, [refreshKey])
-        // Skills made from experience (the Skills page's ledger): read when the page opens and again when a sheet closes, so « Make a skill » shows at once.
-        const [skillsMade, setSkillsMade] = useState(null)
-        useEffect(() => { let live = true; api('/kybernos-skills/learned').then((r) => { if (live && r.ok === true && Array.isArray(r.learned)) setSkillsMade(r.learned.length) }); return () => { live = false } }, [sheet === null])
-        const [otherCount, setOtherCount] = useState(null)
-        useEffect(() => {
-          let live = true
-          const url = tab === 'memories' ? '/kybernos-memory/lessons?limit=1' : '/kybernos-cloud/memory/list?limit=1'
-          api(url).then((r) => { if (live) setOtherCount(r.ok === true ? r.total : null) })
-          return () => { live = false }
-        }, [tab, refreshKey])
-
-        const mems = tab === 'memories'
-        const connected = status.connected
-        const memSwitches = settings.memory
-        // Why « Meaning » is not available right now: the switch, the server, or the plan — in that order.
-        const meaningReason = memSwitches === null || memSwitches.meaning !== true ? 'sens_desactive'
-          : meaning.loaded !== true ? null : meaning.available === false ? meaning.reason : meaning.allowed === false ? 'offre_requise' : null
-        const canMeaning = memSwitches !== null && memSwitches.meaning === true && meaning.loaded === true && meaning.available === true && meaning.allowed !== false
-        const memOn = settings.memory === null ? true : settings.memory.memories === true
-        const ctxOn = mems ? (settings.memory === null ? true : settings.memory.context === true) : (settings.lessons === null ? true : settings.lessons.context === true)
-        const lesOn = settings.lessons === null ? true : settings.lessons.lessons === true
-        const active = activeFilters(tab, f)
-        // A list that failed to load has no count: showing 0 would say « nothing here » when the truth is « unknown ».
-        const memCount = mems ? (list.ok ? list.total : null) : otherCount
-        const lesCount = mems ? otherCount : (list.ok ? list.total : null)
-        // The line under the title, and the one step (the account) when it is the only thing left. No account is not « Off »: the lessons work.
-        const self = selfStatus({ status, settings, tidy, now: Date.now(), skills: skillsMade })
-        const noAccount = mems && status.loaded === true && !connected
-        // Team lessons: the Team scope of the Lessons tab, available on a Team workspace only.
-        const teamInfo = team !== undefined && team.ok === true && team.team !== null ? team.team : null
-        const teamAvail = teamInfo !== null && teamInfo.available === true
-        const teamFull = teamAvail ? Object.assign({}, teamInfo, { shareOn: team.settings.share === true }) : null
-        const teamMode = !mems && f.scope === 'team' && teamAvail
-        // The map is for the memories (the lessons stay on this machine: drawing them would send them to the embeddings model). The choice is kept
-        // once a map has really been drawn, so a plan or a switch that is missing never leaves the page stuck on a map it cannot show.
-        const mapOn = mems && layout === 'map'
-        const setLayout = (v) => { setLayoutState(v); setSheet(null); if (v === 'list') writeLayout('list') }
-        const [lockLabel, lockWhy] = teamLockedWords(teamInfo === null ? teamReasonOf(team) : teamInfo.reason)
-
-        const setFilter = (key, v) => { setF(Object.assign({}, f, { [key]: v })); setPage(1) }
-        const clearFilters = () => { setF(defaultFilters()); setPage(1); setMenu(false) }
-        const notFound = list.error === 'indisponible' || list.error === 'non connecte'
-
-        const after = (message, undo) => { setSheet(null); bump(); notify(message, undo) }
-        const forgetUndo = (message, copy) => after(message, copy === undefined ? undefined : async () => {
-          const r = await api('/kybernos-cloud/memory/add', copy)
-          bump(); notify(r.ok === true ? kt('Souvenir restauré', 'Memory restored') : friendlyError(r.error))
-        })
-
-        const tabs = h('div', { className: 'kbmem-row2' },
-          h(Seg, { value: tab, onChange: (v) => { setTab(v); setF(defaultFilters()); setQ(''); setPage(1); setSheet(null); setMenu(false) }, label: 'Section', items: [
-            { v: 'memories', l: [h('span', { key: 'a' }, kt('Souvenirs', 'Memories')), h('span', { key: 'b', className: 'kbmem-cnt' }, memCount === null ? '' : memCount)] },
-            { v: 'lessons', l: [h('span', { key: 'a' }, kt('Leçons apprises', 'Lessons learned')), h('span', { key: 'b', className: 'kbmem-cnt' }, lesCount === null ? '' : lesCount)] }] }),
-          h('span', { className: 'kbmem-grow' }),
-          !mems ? h(Seg, { value: teamMode ? 'team' : 'mine', label: 'Scope', ariaLabel: kt('Portée', 'Scope'), onChange: (v) => { setFilter('scope', v); setSheet(null) }, items: [
-            { v: 'mine', l: [h('span', { key: 'a' }, kt('Les miennes', 'Mine')), h('span', { key: 'b', className: 'kbmem-cnt' }, lesCount === null ? '' : lesCount)] },
-            { v: 'team', disabled: !teamAvail, title: teamAvail ? undefined : lockWhy, l: teamAvail ? [h('span', { key: 'a' }, kt('Équipe', 'Team')), h('span', { key: 'b', className: 'kbmem-cnt' }, teamInfo.counts ? teamInfo.counts.approved : '')] : [h('span', { key: 'a' }, kt('Équipe', 'Team')), h('span', { key: 'b', className: 'kbmem-plan', 'data-lock': 'team' }, Ico('lock'), lockLabel)] }] }) : null,
-          noAccount ? null : h(Seg, { small: true, value: mapOn ? 'map' : 'list', label: kt('Affichage', 'View'), onChange: setLayout, items: [
-            { v: 'list', l: [Ico('list'), kt(' Liste', ' List')] },
-            { v: 'map', l: [Ico('map'), kt(' Carte ', ' Map '), canMeaning ? null : Ico('lock')], disabled: !mems, title: !mems ? kt('Les leçons restent sur cet ordinateur : la carte les enverrait au modèle d’embeddings, elle n’est donc proposée que pour les souvenirs.', 'Lessons stay on this machine: the map would send them to the embeddings model, so it is only offered for memories.') : (canMeaning ? kt('Souvenirs placés par sens : des points proches ont un sens proche.', 'Memories placed by meaning: close dots mean close meaning.') : meaningWhy(meaningReason, meaning.requiredTier) + kt(' Clique pour voir pourquoi.', ' Click to see why.')) }] }))
-
-        const tools = h('div', { className: 'kbmem-tools' },
-          h('label', { className: 'kbmem-field' }, Ico('search'),
-            h('input', { 'aria-label': kt('Rechercher', 'Search'), placeholder: mems ? kt('Rechercher dans les souvenirs…', 'Search memories…') : kt('Rechercher dans les leçons…', 'Search lessons…'), value: q, onChange: (e) => setQ(e.target.value) }),
-            mems
-              ? h('span', { className: 'kbmem-modes', role: 'group', 'aria-label': kt('Rechercher par', 'Search by') },
-                h('button', { type: 'button', className: mode === 'relevance' ? 'on' : '', 'aria-pressed': mode === 'relevance', 'data-mode': 'relevance', title: kt('Classe les souvenirs selon leur correspondance avec tes mots (accents et pluriels ignorés). Rien ne quitte cet ordinateur.', 'Ranks memories by how well they match your words (accents and plurals ignored). Nothing leaves this machine.'), onClick: () => setMode('relevance') }, kt('Pertinence', 'Relevance')),
-                h('button', { type: 'button', className: (mode === 'meaning' ? 'on' : '') + (canMeaning ? '' : ' locked'), 'aria-pressed': mode === 'meaning', 'data-mode': 'meaning',
-                  title: canMeaning ? kt('Trouve les souvenirs qui veulent dire la même chose, même avec d’autres mots.', 'Finds memories that mean the same, even with other words.') : meaningWhy(meaningReason, meaning.requiredTier) + kt(' Clique pour ouvrir Personnaliser.', ' Click to open Customize.'),
-                  onClick: () => (canMeaning || mode === 'meaning' ? setMode('meaning') : openOptions()) }, canMeaning ? null : Ico('lock'), kt('Sens', 'Meaning')))
-              : h('span', { className: 'kbmem-mode', title: kt('Classe les leçons selon leur correspondance avec tes mots (accents et pluriels ignorés). Rien ne quitte cet ordinateur.', 'Ranks lessons by how well they match your words (accents and plurals ignored). Nothing leaves this machine.') }, kt('Par pertinence', 'By relevance'))),
-          h('div', { className: 'kbmem-menuwrap', ref: wrap },
-            h('button', { type: 'button', className: 'kbmem-btn ghost', 'aria-haspopup': 'true', 'aria-expanded': menu, 'data-act': 'filter', onClick: () => setMenu(!menu) }, Ico('filter'), kt('Filtrer', 'Filter'),
-              active.length > 0 ? h('span', { className: 'kbmem-badge' }, active.length) : null),
-            menu ? h(FilterMenu, { tab, f, onSet: setFilter, onClear: clearFilters, kybers, plan: status.plan }) : null),
-          mems ? h('button', { type: 'button', className: 'kbmem-btn', 'data-act': 'add', disabled: !connected || !memOn, onClick: () => setSheet({ kind: 'mem', isNew: true, item: { content: '', kind: 'fact', pinned: false } }) }, Ico('plus'), kt('Ajouter', 'Add')) : null)
-
-        const chips = active.length > 0 ? h('div', { className: 'kbmem-chips' },
-          active.map((c) => h('button', { key: c.key, type: 'button', className: 'kbmem-fc', 'aria-label': kt('Retirer le filtre ' + c.text, 'Remove filter ' + c.text), 'data-key': c.key, onClick: () => setFilter(c.key, c.def) }, c.text, Ico('x'))),
-          h('button', { type: 'button', className: 'kbmem-link', style: { fontSize: 12, padding: '0 4px' }, onClick: clearFilters }, kt('Tout effacer', 'Clear all'))) : null
-
-        const notes = []
-        if (mems && !memOn && !noAccount) notes.push(h('div', { key: 'n2', className: 'kbmem-note warn' }, Ico('alert'), h('div', null, h('b', null, kt('Les souvenirs sont désactivés. ', 'Memories is off. ')), kt('Rien de nouveau n’est enregistré ni utilisé. Ce que tu as déjà reste ici. ', 'Nothing new is saved or used. What you already have stays here. '), h('a', { onClick: openOptions }, kt('Personnaliser', 'Customize')))))
-        else if (!mems && !lesOn) notes.push(h('div', { key: 'n3', className: 'kbmem-note warn' }, Ico('alert'), h('div', null, h('b', null, kt('Les leçons apprises sont désactivées. ', 'Lessons learned is off. ')), kt('Les agents ont pour consigne de ne pas enregistrer de leçons, et aucune n’est injectée. ', 'Agents are told not to record lessons, and none is injected. '), h('a', { onClick: openOptions }, kt('Personnaliser', 'Customize')))))
-        // An agent team that nears its cap: it is tidied by itself; the note says which one and what happens at 50.
-        const cap = mems ? null : capNote(kybers, tidySettingsOf(tidy))
-        if (cap !== null) notes.push(h('div', { key: 'ncap', className: 'kbmem-note', 'data-note': 'cap' }, Ico('bulb'), h('div', null, cap)))
-        // Three lessons of this list share a topic (a tag): together they make a checklist. A hint, one click; nothing is active before the person accepts it in Skills.
-        const cluster = mems || teamMode ? null : lessonCluster(list.ok ? list.items : [])
-        if (cluster !== null) {
-          notes.push(h('div', { key: 'ncl', className: 'kbmem-note', 'data-note': 'cluster' }, Ico('wand'),
-            h('div', { className: 'kbmem-grow' }, kt(cluster.items.length + ' leçons parlent de « ' + cluster.tag + ' ». Ce ne sont pas des doublons : ensemble elles font une liste de contrôle.', cluster.items.length + ' lessons are about “' + cluster.tag + '”. They are not duplicates: together they make a checklist.')),
-            h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'cluster-skill', onClick: () => { suggestSkill(cluster.items).then((r) => { if (r.ok === true) { notify(kt('Skill suggéré : « ' + r.proposal.name + ' ». Il attend ton accord dans Skills.', 'Skill suggested: “' + r.proposal.name + '”. It waits for your yes in Skills.')) } else notify(friendlyError(r.error)) }) } }, kt('En faire un skill', 'Make a skill from them'))))
-        }
-
-        // A meaning search that could not be done shows word matches instead — and says why, with the way to fix it.
-        const sr = mems && mode === 'meaning' && String(qd).trim() !== '' && list.ok && list.extra !== null && list.extra.search !== undefined ? list.extra.search : null
-        if (sr !== null && sr.fallback !== undefined && sr.fallback !== null) {
-          notes.push(h('div', { key: 'nf', className: 'kbmem-note', 'data-note': 'fallback' }, Ico('search'), h('div', null, h('b', null, kt('Affichage des correspondances par pertinence. ', 'Showing relevance matches. ')), meaningWhy(sr.fallback, sr.requiredTier), ' ',
-            h('a', { className: 'kbmem-link', role: 'button', tabIndex: 0, 'data-act': 'note-options', onClick: openOptions }, kt('Ouvrir Personnaliser', 'Open Customize')))))
-        }
-        const byMeaning = sr !== null && sr.mode === 'meaning'
-
-        let body
-        if (noAccount) body = h('div', { className: 'kbmem-empty', 'data-empty': 'account' }, h('div', { className: 'kbmem-ill' }, Ico('cloud')),
-          h('h3', null, kt('Tes souvenirs commencent avec ton compte', 'Your memories start with your account')),
-          h('div', null, kt('Les souvenirs vivent dans ton compte Kybernos, sur toutes les offres, Free comprise, pour te suivre d’un ordinateur à l’autre. Les leçons fonctionnent déjà sur cet ordinateur : va voir l’onglet Leçons apprises.', 'Memories live in your Kybernos account, on any plan, Free included, so they follow you from one computer to the next. Lessons already work on this computer: see the Lessons learned tab.')))
-        else if (list.loading && list.items.length === 0 && list.ok === false && list.error === null) body = SkelRows(6)
-        else if (!list.ok && list.error !== null) body = h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-ill' }, Ico(mems ? 'cloud' : 'alert')),
-          h('h3', null, notFound ? (mems ? kt('Les souvenirs ne sont pas disponibles', 'Memories are not available') : kt('Les leçons ne sont pas disponibles', 'Lessons are not available')) : kt('Chargement impossible', 'Could not load')), h('div', null, friendlyError(list.error)))
-        else if (list.items.length === 0) body = h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-ill' }, Ico(String(qd).trim() !== '' || active.length > 0 ? 'search' : (mems ? 'brain' : 'bulb'))),
-          String(qd).trim() !== '' || active.length > 0
-            ? [h('h3', { key: 'h' }, kt('Aucun résultat', 'No match')), h('div', { key: 'd' }, kt('Rien ne correspond à ', 'Nothing matches ') + (String(qd).trim() !== '' ? '“' + qd + '”' : kt('ces filtres', 'these filters')) + (byMeaning ? kt('. Rien n’est assez proche par le sens.', '. Nothing is close enough in meaning.') : (mems ? kt('. Aucun souvenir ne contient ces mots.', '. No memory has those words.') : kt('. Aucune leçon ne contient ces mots.', '. No lesson has those words.')))), active.length > 0 ? h('button', { key: 'b', type: 'button', className: 'kbmem-btn ghost', onClick: clearFilters }, kt('Effacer les filtres', 'Clear filters')) : null]
-            : (mems ? [h('h3', { key: 'h' }, kt('Rien de retenu pour l’instant', 'Nothing remembered yet')), h('div', { key: 'd' }, kt('Les souvenirs apparaissent au fil de ton travail : Kybernos peut les capturer à la fin d’un tour, un agent peut en enregistrer un, ou tu peux ajouter les tiens.', 'Memories appear as you work: Kybernos can capture them at the end of a turn, an agent can save one, or you can add your own.'))]
-              : [h('h3', { key: 'h' }, kt('Aucune leçon pour l’instant', 'No lesson yet')), h('div', { key: 'd' }, kt('Une leçon est écrite quand un agent constate qu’une attente a été contredite. Elles sont stockées par Agent Team, sur cet ordinateur.', 'A lesson is written when an agent finds an expectation was contradicted. They are stored per agent team, on this machine.'))]))
-        else body = h('div', null,
-          h('div', { className: 'kbmem-list', style: list.loading ? { opacity: .6 } : null }, list.items.map((it, i) => mems
-            ? h(MemoryRow, { key: it.id, i, m: it, ctxOn, markSent: sentMarks(list.items)[i] === true, selected: sheet !== null && sheet.item !== undefined && sheet.item.id === it.id, onOpen: (m) => setSheet({ kind: 'mem', item: m }) })
-            : h(LessonRow, { key: it.id, i, l: it, selected: sheet !== null && sheet.item !== undefined && sheet.item.id === it.id, onOpen: (l) => setSheet({ kind: 'les', item: l }) }))),
-          h(Pager, { total: list.total, page, size, onPage: setPage, onSize: (n) => { setSize(n); setPage(1) } }))
-
-        return h('div', null,
-          h('div', { className: 'kbmem-top' }, pageHead({ id: 'kybernos-memory', title: pageTitle(), as: 'h1', className: 'kbmem-h1' }), h('span', { className: 'kbmem-grow' }),
-            h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'customize', title: kt('Ce qui est gardé, ce qui est envoyé au modèle, quand ça se range', 'What is kept, what is sent to the model, when it tidies up'), onClick: openOptions }, Ico('gear'), kt('Personnaliser', 'Customize'))),
-          h('div', { className: 'kbmem-st', 'data-st': self.tone, 'aria-live': 'polite' },
-            self.tone === 'wait' ? null : h('span', null, h('i'), self.text),
-            self.skills > 0 ? h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'open-skills', onClick: openSkills }, kt('Voir dans Skills', 'See in Skills')) : null,
-            self.connect ? h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'connect', onClick: connectAccount }, kt('Connecte ton compte', 'Connect your account')) : null),
-          tabs, teamMode || mapOn || noAccount ? null : tools, teamMode || mapOn || noAccount ? null : chips, teamMode ? h(TeamPane, { team: teamFull, kybers, notify, bump, refreshKey, openReview: openTeamReview }) : null, teamMode ? null : (ran !== null && ran !== undefined ? h(TidyRanNotice, { notice: ran, onUndo: onRanUndo, onHide: onRanHide }) : null), teamMode ? null : (tidy.loaded === true && tidySaves(tidy) > 0 && hiddenKey !== scanKey(tidy) ? h(TidyBanner, { tidy, onReview: openReview, onHide: hideBanner }) : null), teamMode ? null : notes, teamMode || !mems ? null : h(MemSuggest, { connected: !noAccount && connected === true, refreshKey, onChanged: bump, notify, onEdit: (it, done) => setSheet({ kind: 'mem', isNew: true, item: { content: it.text, kind: 'fact', pinned: false }, onSaved: done }) }), teamMode || mems ? null : h(ClaudeImport, { refreshKey }), teamMode ? null : (mapOn ? h(MapPane, { ctxOn, refreshKey, openOptions, onOpen: (m) => setSheet({ kind: 'mem', item: m }), onReady: () => writeLayout('map'), onList: () => setLayout('list') }) : body),
-          sheet !== null && sheet.kind !== 'propose' ? h(Sheet, { key: (sheet.item.id === undefined ? 'new' : sheet.item.id) + String(sheet.isNew), sheet, onClose: () => setSheet(null), onDone: (m, u) => (sheet.kind === 'mem' ? forgetUndo(m, u) : after(m)), notify,
-            onPropose: teamAvail && team.settings.share === true ? (lesson) => setSheet({ kind: 'propose', initial: { text: lesson.text, kyber: lesson.kyber === 'default' ? null : lesson.kyber, tags: lesson.tags } }) : undefined }) : null,
-          sheet !== null && sheet.kind === 'propose' ? h(ProposeSheet, { key: 'propose', initial: sheet.initial, kybers, admin: isTeamAdmin(teamInfo === null ? null : teamInfo.role), onClose: () => setSheet(null), onDone: (m) => { setSheet(null); bump(); notify(m) }, notify }) : null)
-      }
-
-      /**
-       * « Search by meaning »: the switch (off by default: it sends the text of each memory to the embedding
-       * model), what the server and the plan allow, and the indexing. Opening it with the switch on spends ONE
-       * 2-letter embedding to learn the plan; indexing is only ever started by the button.
-       */
-      const MeaningRow = ({ cloud, mem, onToggle, refreshKey, refresh }) => {
-        // The page is served live but the host half only loads at the next `dsh web` start: a host that predates
-        // this switch does not report it at all. Say so instead of offering a switch that would be refused.
-        const stale = mem !== null && typeof mem.meaning !== 'boolean'
-        const locked = !cloud || mem === null || mem.memories !== true || stale
-        const on = !locked && mem.meaning === true
-        const idx = useMeaning(on, refreshKey, true)
-        const [run, setRun] = useState({ running: false, done: 0, error: null, tier: null })
-        const stop = useRef(false)
-        useEffect(() => () => { stop.current = true }, [])
-        const index = async () => {
-          stop.current = false
-          setRun({ running: true, done: 0, error: null, tier: null })
-          let done = 0
-          for (let guard = 0; guard < 200 && !stop.current; guard++) {
-            const r = await api('/kybernos-cloud/memory/index/run', { max: 64 })
-            if (r.ok !== true) { setRun({ running: false, done, error: r.error === undefined ? 'indisponible' : r.error, tier: r.requiredTier === undefined ? null : r.requiredTier }); refresh(); return }
-            done += r.indexed
-            setRun({ running: true, done, error: null, tier: null })
-            if (r.remaining === 0 || r.indexed === 0) break
-          }
-          setRun({ running: false, done, error: null, tier: null })
-          refresh()
-        }
-        let live = null
-        if (on) {
-          if (idx.loaded !== true || idx.ok === false) live = h('div', { className: 'kbmem-tiny', style: { marginTop: 6 } }, idx.ok === false ? friendlyError(idx.error) : kt('Vérification de ce que ton offre et ton serveur permettent…', 'Checking what your plan and server allow…'))
-          else if (idx.available === false) live = h('div', { className: 'kbmem-tiny', style: { marginTop: 6 }, 'data-meaning': 'unavailable' }, meaningWhy(idx.reason))
-          else if (idx.allowed === false) live = h('div', { className: 'kbmem-tiny', style: { marginTop: 6 }, 'data-meaning': 'plan' }, meaningWhy('offre_requise', idx.requiredTier) + (idx.plan ? kt(' Tu es sur l’offre ' + (TIER_NAME[idx.plan] || idx.plan) + '.', ' You are on ' + (TIER_NAME[idx.plan] || idx.plan) + '.') : ''))
-          else {
-            const left = idx.remaining === null || idx.remaining === undefined ? null : idx.remaining
-            live = h('div', { className: 'kbmem-tiny kbmem-idx', style: { marginTop: 6 }, 'data-meaning': 'ready' },
-              h('span', { 'data-idx': 'count' }, idx.indexed === null || idx.total === null ? kt('État de l’index inconnu', 'Index status unknown') : kt(idx.indexed + ' indexé' + sfx(idx.indexed) + ' sur ' + idx.total, 'Indexed ' + idx.indexed + ' of ' + idx.total)),
-              run.running ? h('span', null, kt(' · indexation… ' + run.done + ' fait' + sfx(run.done), ' · indexing… ' + run.done + ' done')) : null,
-              run.error ? h('span', { 'data-idx': 'error' }, ' · ' + (run.error === 'offre_requise' ? meaningWhy('offre_requise', run.tier) : meaningWhy(run.error))) : null,
-              ' ',
-              run.running
-                ? h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'index-stop', onClick: () => { stop.current = true } }, kt('Arrêter', 'Stop'))
-                : h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'index', disabled: left === 0, onClick: index }, left === 0 ? kt('Tout est indexé', 'All indexed') : kt('Indexer mes souvenirs', 'Index my memories')))
-          }
-        }
-        return h(SettingRow, { label: kt('Recherche par sens', 'Search by meaning'), desc: kt('Retrouve un souvenir avec d’autres mots que ceux avec lesquels il a été écrit. Le texte de chaque souvenir est envoyé au modèle d’embeddings de Kybernos pour le placer par sens : c’est donc désactivé tant que tu ne l’actives pas.', 'Find a memory with other words than it was written with. The text of each memory is sent to the Kybernos embedding model to place it by meaning, so this is off until you turn it on.'),
-          chip: on && idx.loaded === true && idx.allowed === false ? PlanChip(TIER_NAME[idx.requiredTier] || kt('Offre supérieure', 'Higher plan')) : null, locked, live,
-          why: !cloud ? kt('Connecte d’abord un compte Kybernos Cloud.', 'Connect a Kybernos Cloud account first.') : (stale ? kt('Le plugin cloud a été mis à jour : redémarre DSH pour l’utiliser.', 'The cloud plugin was updated: restart DSH to use this.') : (mem !== null && mem.memories !== true ? kt('Active d’abord Souvenirs.', 'Turn on Memories first.') : null)),
-          control: h(YesNo, { name: kt('Recherche par sens', 'Search by meaning'), value: on, onChange: onToggle }) })
-      }
-
-      /** « Pick by relevance »: besides the pinned and the newest, the memories that clearly match what the user just asked. Local. */
-      const RelevantRow = ({ cloud, mem, onToggle }) => {
-        const stale = mem !== null && typeof mem.relevant !== 'boolean'   // a host that predates the switch
-        const off = !cloud || mem === null || mem.memories !== true || mem.context !== true || stale
-        return h(SettingRow, { label: kt('Choisir par pertinence', 'Pick by relevance'),
-          desc: kt('En plus des souvenirs épinglés et des plus récents, envoie aussi ceux qui correspondent clairement à ce que tu viens de demander, même anciens. Calculé sur cet ordinateur : rien de plus n’est envoyé ailleurs.', 'Besides the pinned and the newest memories, also send the ones that clearly match what you just asked, even old ones. Worked out on this machine: nothing extra is sent anywhere.'),
-          locked: off,
-          why: !cloud ? kt('Connecte d’abord un compte Kybernos Cloud.', 'Connect a Kybernos Cloud account first.') : (stale ? kt('Le plugin cloud a été mis à jour : redémarre DSH pour l’utiliser.', 'The cloud plugin was updated: restart DSH to use this.') : (mem !== null && (mem.memories !== true || mem.context !== true) ? kt('Active d’abord Souvenirs et Contexte système de la mémoire.', 'Turn on Memories and Memory system context first.') : null)),
-          control: h(YesNo, { name: kt('Choisir par pertinence', 'Pick by relevance'), value: !off && mem.relevant === true, onChange: onToggle }) })
-      }
-
-      // ── Tidy up: banner, review, options rows ────────────────────────────────
-      const TidyBanner = ({ tidy, onReview, onHide }) => {
-        const nm = tidy.mem === null ? 0 : tidy.mem.saves
-        const nl = tidy.les === null ? 0 : tidy.les.saves
-        const parts = [nm > 0 ? kt(nm + ' souvenir' + sfx(nm), plural(nm, 'memory', 'memories')) : null, nl > 0 ? kt(nl + ' leçon' + sfx(nl), plural(nl, 'lesson')) : null].filter((x) => x !== null)
-        const at = [tidy.mem === null ? null : tidy.mem.scannedAt, tidy.les === null ? null : tidy.les.scannedAt].filter((x) => x !== null).sort().pop()
-        return h('div', { className: 'kbmem-banner', 'data-tidy': 'banner', role: 'status' }, Ico('broom'),
-          h('div', { className: 'kbmem-grow' }, h('b', null, kt((nm + nl) + ' quasi-doublon' + sfx(nm + nl), plural(nm + nl, 'near-duplicate'))), kt(' détecté' + sfx(nm + nl) + ' : ' + parts.join(', ') + '. ', ' found: ' + parts.join(', ') + '. '),
-            h('span', { className: 'kbmem-muted' }, kt('Détecté ' + whenLabel(at) + ', rien n’a encore changé.', 'Found ' + whenLabel(at) + ', nothing changed yet.'))),
-          h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'tidy-review', onClick: onReview }, kt('Examiner', 'Review')),
-          h('button', { type: 'button', className: 'kbmem-x', 'data-act': 'tidy-hide', 'aria-label': kt('Masquer', 'Dismiss'), onClick: onHide }, Ico('x')))
-      }
-
-      const TidyRanNotice = ({ notice, onUndo, onHide }) => h('div', { className: 'kbmem-autobar', 'data-tidy': 'ran', role: 'status' }, Ico('check'),
-        h('div', { className: 'kbmem-grow' }, h('b', null, kt('Rangé automatiquement ' + whenLabel(notice.at), 'Tidied up by itself ' + whenLabel(notice.at))), kt(' : ' + notice.groups + ' groupe' + sfx(notice.groups) + ' fusionné' + sfx(notice.groups) + ' (' + notice.removed + ' élément' + sfx(notice.removed) + ' supprimé' + sfx(notice.removed) + '). Chaque changement peut être défait pendant 30 jours.', ': merged ' + plural(notice.groups, 'group') + ' (' + plural(notice.removed, 'item') + ' removed). Every change can be undone for 30 days.')),
-        notice.entries.length > 0 ? h('button', { type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'tidy-ran-undo', onClick: onUndo }, Ico('undo'), kt('Défaire', 'Undo')) : null,
-        h('button', { type: 'button', className: 'kbmem-x', 'data-act': 'tidy-ran-hide', 'aria-label': kt('Masquer', 'Dismiss'), onClick: onHide }, Ico('x')))
 
       /** One suggestion: the items (the kept one in green, the others struck), who stays, and what to do. */
       const GroupCard = ({ g, st, keepId, editing, edit, busy, expanded, onExpand, onPick, onMerge, onToggleEdit, onEdit, onKeepBoth, onUndo, onRestore }) => {
@@ -1966,7 +1288,7 @@ window.__ModuleLoader__.load({
               if (u.ok === true) { back += 1; setStatus((old) => Object.assign({}, old, { [x.id]: { s: 'undone' } })) }
             }
             bump()
-            notify(back === runs.length ? kt('Défait : tout est revenu', 'Undone: everything is back') : kt('Défait : ' + String(back) + ' sur ' + String(runs.length) + ' ; ouvre Personnaliser pour réessayer le reste', 'Undone ' + String(back) + ' of ' + String(runs.length) + ': open Customize to retry the rest'))
+            notify(back === runs.length ? kt('Défait : tout est revenu', 'Undone: everything is back') : kt('Défait : ' + String(back) + ' sur ' + String(runs.length) + ' ; retrouve le reste dans « Récemment supprimées »', 'Undone ' + String(back) + ' of ' + String(runs.length) + ': the rest is in Recently removed'))
           })
         }
 
@@ -2007,11 +1329,12 @@ window.__ModuleLoader__.load({
 
         const autoCount = auto === null || auto === undefined ? 0 : (auto.mem === null || auto.mem === undefined ? 0 : auto.mem.groups) + (auto.les === null || auto.les === undefined ? 0 : auto.les.groups)
         const autoRemoved = auto === null || auto === undefined ? 0 : (auto.mem === null || auto.mem === undefined ? 0 : auto.mem.removed) + (auto.les === null || auto.les === undefined ? 0 : auto.les.removed)
+        const autoBrain = auto === null || auto === undefined ? 0 : (auto.mem === null || auto.mem === undefined ? 0 : auto.mem.brain || 0) + (auto.les === null || auto.les === undefined ? 0 : auto.les.brain || 0)
         const autoBar = autoCount > 0 ? h('div', { className: 'kbmem-autobar', 'data-tidy': 'auto' }, Ico('check'),
-          h('div', { className: 'kbmem-grow' }, autoState === 'undone' ? kt('Défait : ce qui avait été fusionné automatiquement est revenu. Appuie sur « Analyser à nouveau » pour le revoir sous forme de suggestions.', 'Undone: what was merged by itself is back. Press “Look again” to see it as suggestions.') : [h('b', { key: 'b' }, kt(autoCount + ' groupe' + sfx(autoCount) + ' fusionné' + sfx(autoCount) + ' automatiquement', 'Merged ' + plural(autoCount, 'group') + ' by itself')), kt(' (80 % de ressemblance ou plus) : ' + autoRemoved + ' élément' + sfx(autoRemoved) + ' supprimé' + sfx(autoRemoved) + '. Chaque changement peut être défait pendant 30 jours.', ' (80 % alike or more): ' + plural(autoRemoved, 'item') + ' removed. Every change can be undone for 30 days.')]),
-          autoState === 'undone' ? null : h('button', { type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'tidy-auto-undo', disabled: busy, onClick: async () => { setBusy(true); const r = await onUndoAuto(auto); setBusy(false); if (r.back === r.total) setAutoState('undone'); else notify(kt('Défait : ' + String(r.back) + ' sur ' + String(r.total) + ' ; ouvre Personnaliser pour réessayer le reste', 'Undid ' + String(r.back) + ' of ' + String(r.total) + ': open Customize to retry the rest')) } }, Ico('undo'), kt('Défaire', 'Undo'))) : null
+          h('div', { className: 'kbmem-grow' }, autoState === 'undone' ? kt('Défait : ce qui avait été fusionné automatiquement est revenu. Appuie sur « Analyser à nouveau » pour le revoir sous forme de suggestions.', 'Undone: what was merged by itself is back. Press “Look again” to see it as suggestions.') : [h('b', { key: 'b' }, kt(autoCount + ' groupe' + sfx(autoCount) + ' fusionné' + sfx(autoCount) + ' automatiquement', 'Merged ' + plural(autoCount, 'group') + ' by itself')), kt((autoBrain > 0 ? ' (80 % de ressemblance ou plus, ou jugés identiques par le modèle d’étude)' : ' (80 % de ressemblance ou plus)') + ' : ' + autoRemoved + ' élément' + sfx(autoRemoved) + ' supprimé' + sfx(autoRemoved) + '. Chaque changement peut être défait pendant 30 jours.', (autoBrain > 0 ? ' (80 % alike or more, or judged the same by the Study model)' : ' (80 % alike or more)') + ': ' + plural(autoRemoved, 'item') + ' removed. Every change can be undone for 30 days.')]),
+          autoState === 'undone' ? null : h('button', { type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'tidy-auto-undo', disabled: busy, onClick: async () => { setBusy(true); const r = await onUndoAuto(auto); setBusy(false); if (r.back === r.total) setAutoState('undone'); else notify(kt('Défait : ' + String(r.back) + ' sur ' + String(r.total) + ' ; retrouve le reste dans « Récemment supprimées »', 'Undid ' + String(r.back) + ' of ' + String(r.total) + ': the rest is in Recently removed')) } }, Ico('undo'), kt('Défaire', 'Undo'))) : null
         const head = h('div', null,
-          h('a', { className: 'kbmem-crumb', role: 'button', tabIndex: 0, 'data-act': 'back', onClick: back, onKeyDown: (e) => { if (e.key === 'Enter') back() } }, Ico('left'), pageTitle()),
+          h('button', { type: 'button', className: 'kbmem-back', 'data-act': 'back', onClick: back }, Ico('left'), h('span', null, pageTitle())),
           h('div', { className: 'kbmem-top' }, pageHead({ title: kt('Suggestions de rangement', 'Tidy-up suggestions'), as: 'h1', className: 'kbmem-h1' }), h('span', { className: 'kbmem-grow' }),
             at ? h('span', { className: 'kbmem-tiny' }, kt('Détecté ' + whenLabel(at), 'Found ' + whenLabel(at)) + (tidyBrain(tidy).model !== '' && tidySettingsOf(tidy).brain === true ? kt(' · analyse locale + modèle d’étude', ' · local scan + Study model') : kt(' · analyse locale', ' · local scan'))) : null,
             h('button', { type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'tidy-rescan', disabled: scanning || busy, onClick: scan }, Ico('broom'), scanning ? kt('Analyse…', 'Looking…') : kt('Analyser à nouveau', 'Look again'))),
@@ -2026,7 +1349,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kbmem-row2' }, h(Seg, { value: tab, onChange: (v) => { setTab(v); setEditing(null) }, label: 'Section', items: [
             { v: 'mem', l: [h('span', { key: 'a' }, kt('Souvenirs', 'Memories')), h('span', { key: 'b', className: 'kbmem-cnt' }, openOf('mem'))] },
             { v: 'les', l: [h('span', { key: 'a' }, kt('Leçons apprises', 'Lessons learned')), h('span', { key: 'b', className: 'kbmem-cnt' }, openOf('les'))] }] })),
-          h('div', { className: 'kbmem-sum' }, h('span', null, h('b', null, String(open.length)), kt(' à examiner', ' to review')), tab === 'mem' ? h('span', null, kt('Les souvenirs épinglés ne sont jamais supprimés', 'Pinned memories are never removed')) : h('span', null, kt('Les leçons ne se croisent qu’au sein de leur Agent Team', 'Lessons only meet inside their own agent team'))),
+          h('div', { className: 'kbmem-sum' }, h('span', null, h('b', null, String(open.length)), kt(' à examiner', ' to review')), tab === 'mem' ? h('span', null, kt('Les souvenirs épinglés ne sont jamais supprimés', 'Pinned memories are never removed')) : h('span', null, kt('Les leçons ne se croisent qu’au sein de leur équipe d’agents IA', 'Lessons only meet inside their own AI agent team'))),
           list.length === 0 ? h('div', { className: 'kbmem-empty' }, h('h3', null, tab === 'mem' ? kt('Aucune suggestion pour les souvenirs', 'No suggestion for ' + TIDY_SOURCES[tab].noun) : kt('Aucune suggestion pour les leçons', 'No suggestion for ' + TIDY_SOURCES[tab].noun)), h('div', null, kt('Rien ne ressemble à un doublon ici.', 'Nothing looks duplicated here.'))) : null,
           list.map((g) => {
             const keepId = keeperOf(g, choices)
@@ -2051,140 +1374,437 @@ window.__ModuleLoader__.load({
         ? h(ReviewBody, props)
         : h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-spin' })))
 
-      /** Options: « Tidy up now », the three settings (what to merge by itself, when to run, the Study model) and the recent tidy-ups with their Undo. */
-      const TidyOptions = ({ tidy, scan, scanning, openReview, notify, bump }) => {
-        const none = tidy.loaded === true && tidy.mem === null && tidy.les === null
-        const stale = tidy.loaded === true && !none && ((tidy.mem !== null && tidy.mem.settings === undefined) || (tidy.les !== null && tidy.les.settings === undefined))
+      // ═══════════════════════════════════════════════════════════════
+      // 5b. THE MEMORY PAGE (2026-11-20): settings, your memory, one note, import, recently removed
+      // ═══════════════════════════════════════════════════════════════
+      const MEM_STEP = 8
+      /** A lesson's name and rest for a row or a heading: the title the person (or the host) gave it, else the first sentence of its text. */
+      const lessonLine = (l) => (l.titled === true ? { name: String(l.title || ''), rest: String(l.summary || l.text || '') } : noteParts(l.text))
+      const kyberName = (id) => (id === 'default' ? kt('Général', 'General') : String(id))
+      const keepOptions = () => [[0, kt('Jusqu’à ce que tu la supprimes', 'Until you delete it')]].concat(retentions())
+      const originWords = (m) => ({ capture: kt('Kybernos, après une conversation', 'Kybernos, after a chat'), agent: kt('Un agent', 'An agent'), taught: kt('Toi', 'You'), sync: kt('Un autre appareil (synchro)', 'Another device (sync)') }[m.origin] || 'Kybernos')
+
+      const Switch = ({ on, onChange, label, disabled }) => h('button', { type: 'button', role: 'switch', 'aria-checked': on === true, 'aria-label': label, className: 'kbmem-sw', disabled: disabled === true, onClick: () => onChange(on !== true) })
+
+      /** A value that follows `value` after `ms` of quiet (the search box asks the host once the typing stops). */
+      const useDebounced = (value, ms) => {
+        const [v, setV] = useState(value)
+        useEffect(() => { const t = setTimeout(() => setV(value), ms); return () => clearTimeout(t) }, [value, ms])
+        return v
+      }
+
+      /** A page of lessons for a URL; nothing is asked while `enabled` is false. */
+      const useLessonsPage = (url, enabled, refreshKey) => {
+        const [d, setD] = useState({ loading: enabled, ok: false, items: [], total: 0 })
+        const seq = useRef(0)
+        useEffect(() => {
+          if (!enabled) { setD({ loading: false, ok: false, items: [], total: 0 }); return undefined }
+          const mine = ++seq.current
+          setD((o) => Object.assign({}, o, { loading: true }))
+          api(url).then((r) => {
+            if (mine !== seq.current) return
+            setD(r.ok === true ? { loading: false, ok: true, items: r.items, total: r.total } : { loading: false, ok: false, items: [], total: 0, error: r.error })
+          })
+          return undefined
+        }, [url, enabled, refreshKey])
+        return d
+      }
+
+      const Dialog = ({ title, onClose, wide, children }) => {
+        const ref = useRef(null)
+        useEffect(() => {
+          const opener = document.activeElement
+          const off = onEscape(onClose)
+          try { const f = ref.current !== null ? ref.current.querySelector('textarea,input,button:not([data-close])') : null; (f !== null ? f : ref.current).focus() } catch (e) { /* no focus to move */ }
+          // Closed, the focus goes back to what opened it, so a keyboard user does not start over at the top of the page.
+          return () => { off(); try { if (opener !== null && opener !== document.body && document.contains(opener)) opener.focus() } catch (e) { /* the opener is gone */ } }
+        }, [])
+        return h('div', { className: 'kbmem-scrim', 'data-scrim': 'true', onMouseDown: (e) => { if (e.target === e.currentTarget) onClose() } },
+          h('div', { className: 'kbmem-dlg' + (wide ? ' wide' : ''), role: 'dialog', 'aria-modal': 'true', 'aria-label': title, tabIndex: -1, ref },
+            h('h3', null, title, h('span', { className: 'kbmem-grow' }), h('button', { type: 'button', className: 'kbmem-ib', 'data-close': 'true', 'aria-label': kt('Fermer', 'Close'), onClick: onClose }, Ico('x'))),
+            children))
+      }
+
+      /** The standing instructions (a marked section of the DSH home's AGENTS.md): the same text as the Kybernos Cloud page, read and saved through the same routes. Hidden when the file cannot be read. */
+      const InstructionsBox = ({ notify }) => {
+        const [st, setSt] = useState({ s: 'loading', text: '', saved: '' })
+        const [busy, setBusy] = useState(false)
+        const [err, setErr] = useState('')
+        useEffect(() => {
+          let live = true
+          api('/kybernos-cloud/instructions').then((r) => { if (live) setSt(r.ok === true && typeof r.text === 'string' ? { s: 'ready', text: r.text, saved: r.text } : { s: 'none', text: '', saved: '' }) })
+          return () => { live = false }
+        }, [])
+        if (st.s !== 'ready') return null
+        const dirty = st.text !== st.saved
+        const why = (c) => (c === 'too-long' ? kt('C’est trop long (2 000 caractères au maximum).', 'That is too long (2,000 characters at most).') : c === 'markers-damaged' ? kt('La section des instructions a été modifiée à la main : elle ne peut pas être enregistrée ici.', 'The instructions section was edited by hand: it cannot be saved here.') : friendlyError(c))
+        const save = async () => {
+          if (!dirty || busy) return
+          setBusy(true)
+          setErr('')
+          const r = await api('/kybernos-cloud/instructions/save', { text: st.text })
+          setBusy(false)
+          if (r.ok !== true) { setErr(why(r.error)); return }
+          const kept = st.text.replace(/\r\n/g, '\n').trim()
+          setSt({ s: 'ready', text: kept, saved: kept })
+          notify(kt('Instructions enregistrées', 'Instructions saved'))
+        }
+        return h('section', { className: 'kbmem-sec first', 'data-sec': 'instructions' },
+          h('h2', null, kt('Instructions', 'Instructions')),
+          h('p', { className: 'kbmem-nsub' }, kt('Kybernos les garde en tête dans chaque chat.', 'Kybernos keeps these in mind in every chat.')),
+          h('textarea', { className: 'kbmem-instr', 'aria-label': kt('Instructions', 'Instructions'), maxLength: 2000, value: st.text, placeholder: kt('Par ex. Réponds court, le résultat d’abord. Utilise des mots simples.', 'e.g. Answer short, with the result first. Use plain words, not jargon.'), onChange: (e) => setSt(Object.assign({}, st, { text: e.target.value })) }),
+          h('div', { className: 'kbmem-nhint' },
+            h('span', { role: err === '' ? undefined : 'alert', className: err === '' ? '' : 'err' }, err !== '' ? err : dirty ? kt('Pas encore enregistré', 'Not saved yet') : st.text === '' ? kt('2 000 caractères au maximum.', 'Up to 2,000 characters.') : kt('Enregistré', 'Saved')),
+            h('span', { className: 'kbmem-grow' }),
+            h('span', null, st.text.length + ' / 2000'),
+            dirty ? h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'instr-save', disabled: busy, onClick: () => { void save() } }, busy ? kt('Enregistrement…', 'Saving…') : kt('Enregistrer', 'Save')) : null))
+      }
+
+      // ── Settings ─────────────────────────────────────────────────────────────────────────────────────
+      const SettingsView = ({ status, settings, tidy, notify, setSwitch, openManage, openImport, exportNow, exporting, scan, scanning, openReview, bump }) => {
+        const mem = settings.memory
+        const les = settings.lessons
+        const sw = switchState(mem, les)
+        const wait = settings.loaded !== true || (mem === null && les === null)
+        const noAccount = status.loaded === true && status.connected !== true
         const cfg = tidySettingsOf(tidy)
-        const brain = tidyBrain(tidy)
         const saves = tidySaves(tidy)
-        const last = tidyLast(tidy)
-        const log = tidyLog(tidy)
-        const set = async (patch) => {
-          // the two hosts keep a copy each (lessons work without the cloud): write both, tolerate one being away
+        const tidyNone = tidy.loaded !== true || (tidy.mem === null && tidy.les === null)
+        const setTidy = async (patch) => {
           const rs = await Promise.all([tidy.mem !== null ? api(TIDY_SOURCES.mem.base + '/settings', patch) : Promise.resolve({ ok: false }), tidy.les !== null ? api(TIDY_SOURCES.les.base + '/settings', patch) : Promise.resolve({ ok: false })])
           if (!rs.some((r) => r.ok === true)) notify(friendlyError(rs[1].error || rs[0].error))
           bump()
         }
-        const undo = async (l) => {
-          const r = await api(TIDY_SOURCES[l.src].base + '/undo', { run: l.id })
-          if (r.ok !== true) notify(friendlyError(r.error))
-          else notify(l.src === 'mem' ? kt('Défait : les originaux sont revenus comme nouveaux souvenirs', 'Undone: the originals are back as new memories') : kt('Défait : tout est revenu comme avant', 'Undone: everything is back as it was'))
-          bump()
-        }
-        const unavailable = none ? kt('Les plugins ont été mis à jour : redémarre DSH pour l’utiliser.', 'The plugins were updated: restart DSH to use this.') : (stale ? kt('Les plugins ont été mis à jour : redémarre DSH pour modifier ça.', 'The plugins were updated: restart DSH to change this.') : null)
-        const words = studyWords(brain)
-        const brainWhy = unavailable !== null ? unavailable : words.why
-        return [
-          h('section', { key: 'tidy', className: 'kbmem-sec', 'data-sec': 'tidy' }, h('h2', null, kt('Rangement', 'Tidy up'), h('small', null, kt('quasi-doublons, souvenirs et leçons', 'near-duplicates, memories and lessons'))),
-            h(SettingRow, { label: kt('Ranger maintenant', 'Tidy up now'), act: 'tidy-now',
-              desc: (cfg.mode === 'auto' && !stale && !none ? kt('Cherche des quasi-doublons sur cet ordinateur et fusionne tout seul ceux qui se ressemblent à 80 % ou plus ; le reste t’est montré pour examen. ', 'Looks for near-duplicates on this machine and merges by itself the ones that are 80 % alike or more; the rest is shown for you to review. ') : kt('Cherche des quasi-doublons sur cet ordinateur ; rien ne change tant que tu n’as pas accepté. ', 'Looks for near-duplicates on this machine; nothing changes until you accept. ')) + kt('Chaque changement peut être défait pendant 30 jours. ', 'Every change can be undone for 30 days. ') + lastWords(last),
-              why: unavailable,
-              live: saves > 0 ? h('div', { className: 'kbmem-tiny', style: { marginTop: 6 } }, kt(saves + ' quasi-doublon' + sfx(saves) + ' en attente de ton examen.', plural(saves, 'near-duplicate') + ' waiting for your review.')) : null,
+        return h('div', { className: 'kbmem-m', 'data-nv': 'settings' },
+          pageHead({ id: 'kybernos-memory', title: pageTitle(), as: 'h1', className: 'kbmem-h1' }),
+          noAccount ? h('div', { className: 'kbmem-note warn', 'data-note': 'no-account' }, Ico('cloud'), h('div', { className: 'kbmem-grow' }, h('b', null, kt('Non connecté. ', 'Not connected. ')), kt('Les notes à ton sujet vivent dans ton compte Kybernos : connecte-le pour les voir et en ajouter. Les leçons restent sur cet ordinateur et continuent de fonctionner.', 'Notes about you live in your Kybernos account: connect it to see and add them. Lessons stay on this computer and keep working.')),
+            h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'connect', onClick: connectAccount }, kt('Connecte ton compte', 'Connect your account'))) : null,
+          h(InstructionsBox, { notify }),
+          h('section', { className: 'kbmem-sec', 'data-sec': 'memory' },
+            h('h2', null, kt('Mémoire', 'Memory')),
+            wait && settings.loaded === true ? h('div', { className: 'kbmem-note warn' }, Ico('alert'), h('div', null, kt('Les plugins de mémoire ne sont pas disponibles pour l’instant.', 'The memory plugins are not available right now.'))) : null,
+            h(SettingRow, { act: 'use', fold: true, label: kt('Utiliser la mémoire dans les chats', 'Use memory in chats'), desc: kt('Laisse Kybernos s’appuyer sur ce qu’il retient de toi et de ton travail, dans chaque chat.', 'Let Kybernos use what it remembers about you and your work in every chat.'), locked: wait,
+              control: h(Switch, { on: sw.use, label: kt('Utiliser la mémoire dans les chats', 'Use memory in chats'), disabled: wait, onChange: (v) => { void setSwitch('use', v) } }) }),
+            h(SettingRow, { act: 'learn', label: kt('Apprendre des chats', 'Learn from chats'), desc: kt('Laisse Kybernos noter ce qui mérite d’être gardé, dans tes chats et dans le travail de tes équipes.', 'Allow Kybernos to note what is worth keeping, from your chats and from your teams’ work.'), locked: wait,
+              control: h(Switch, { on: sw.learn, label: kt('Apprendre des chats', 'Learn from chats'), disabled: wait, onChange: (v) => { void setSwitch('learn', v) } }) }),
+            mem === null ? null : h(SettingRow, { act: 'sensitive', label: kt('Inclure les sujets sensibles', 'Include sensitive topics'), desc: kt('Autorise Kybernos à garder des détails sur des sujets sensibles comme la santé ou les convictions. Désactivé, il essaie de les laisser de côté.', 'Allow Kybernos to keep details about sensitive topics like health or beliefs. When off, it tries to leave them out.'),
+              control: h(Switch, { on: sw.sensitive, label: kt('Inclure les sujets sensibles', 'Include sensitive topics'), onChange: (v) => { void setSwitch('sensitive', v) } }) }),
+            h(SettingRow, { act: 'tidy-look', label: kt('Chercher les doublons', 'Look for repeats'), locked: tidyNone,
+              desc: kt('Kybernos cherche les notes écrites deux fois et celles qui se ressemblent. Rien ne change sans ton accord, sauf si tu choisis « tout seul » juste en dessous. Tout ce qu’il fusionne revient depuis « Récemment supprimées » pendant 30 jours.', 'Kybernos looks for notes written twice and notes that look alike. Nothing changes without your yes, unless you pick “by itself” just below. Whatever it merges comes back from Recently removed for 30 days.'),
+              live: saves > 0 ? h('div', { className: 'kbmem-tiny', style: { marginTop: 6 } }, kt(saves + ' groupe' + sfx(saves) + ' en attente de ton examen.', plural(saves, 'group') + ' waiting for your review.')) : null,
               control: h('div', { className: 'kbmem-acts' },
                 saves > 0 ? h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'tidy-open', onClick: openReview }, kt('Examiner ' + String(saves), 'Review ' + String(saves))) : null,
-                h('button', { type: 'button', className: 'kbmem-btn', 'data-act': 'tidy-scan', disabled: scanning || none || tidy.loaded !== true, onClick: scan }, Ico('broom'), scanning ? kt('Analyse…', 'Looking…') : kt('Ranger maintenant', 'Clean up now'))) }),
-            h(SettingRow, { label: kt('Quand il trouve des quasi-doublons', 'When it finds near-duplicates'), act: 'tidy-mode', locked: unavailable !== null,
-              desc: cfg.mode === 'auto' ? kt('Ceux qui se ressemblent à 80 % ou plus sont fusionnés tout seuls (la formulation la plus longue reste, rien n’est perdu : chaque fusion est archivée). Les correspondances plus faibles et les suggestions du modèle d’étude t’attendent toujours.', 'The ones that are 80 % alike or more are merged by itself (the longest wording stays, nothing is lost: every merge is archived). Weaker matches and the Study model\'s suggestions always wait for you.') : kt('Rien n’est fusionné tant que tu n’as pas appuyé sur Fusionner ou Tout accepter.', 'Nothing is merged until you press Merge or Accept all.'),
-              control: h(Seg, { value: cfg.mode, label: kt('Quand il trouve des quasi-doublons', 'When it finds near-duplicates'), onChange: (v) => set({ mode: v }), items: tidyModes().map(([v, l]) => ({ v, l })) }) }),
-            h(SettingRow, { label: kt('Lancer automatiquement', 'Run automatically'), act: 'tidy-schedule', locked: unavailable !== null,
-              desc: kt('Un lancement est une analyse, puis ce que le réglage ci-dessus permet. Il n’a lieu que si DSH est lancé. ', 'A run is a look, then what the setting above allows. It only happens while DSH is running. ') + nextWords(tidyNextOf(tidy)),
-              control: h(Seg, { value: cfg.schedule, label: kt('Lancer automatiquement', 'Run automatically'), onChange: (v) => set({ schedule: v }), items: tidySchedules().map(([v, l]) => ({ v, l })) }) }),
-            h(SettingRow, { label: kt('Le modèle d’étude juge les cas douteux', 'Study model judges the unclear cases'), act: 'tidy-brain', locked: brainWhy !== null && !(cfg.brain === true), why: brainWhy,
-              desc: kt('Des paires qui se ressemblent sans être des doublons (« port 3000 » puis « port 3080 », « fais » puis « ne fais pas ») : le modèle d’étude dit si l’une remplace l’autre, si elles sont identiques ou si elles diffèrent. Seul le texte de ces paires lui est envoyé, jamais ta liste entière, et il ne fait que suggérer : c’est toi qui décides.', 'Pairs that look alike but are not duplicates (“port 3000” then “port 3080”, “do” then “do not”): the Study model says whether one replaces the other, they are the same or they differ. Only the text of those pairs is sent to it, never your whole list, and it only suggests: you decide.'),
-              live: words.using !== null || brain.unclear > 0 ? h('div', null,
-                words.using !== null ? h('div', { className: 'kbmem-tiny', style: { marginTop: 6 }, 'data-live': 'study-model' }, words.using) : null,
-                brain.unclear > 0 ? h('div', { className: 'kbmem-tiny', style: { marginTop: 6 }, 'data-live': 'unclear' }, kt(brain.unclear + ' paire' + sfx(brain.unclear) + ' similaire' + sfx(brain.unclear), plural(brain.unclear, 'look-alike pair')) + (cfg.brain === true ? kt(' trouvée' + sfx(brain.unclear) + ' au dernier lancement.', ' found at the last run.') : (brain.unclear === 1 ? kt(' trouvée : active ceci pour la faire juger.', ' found: turn this on to have them judged.') : kt(' trouvées : active ceci pour les faire juger.', ' found: turn this on to have them judged.')))) : null) : null,
-              control: h(YesNo, { name: kt('Le modèle d’étude juge les cas douteux', 'Study model judges the unclear cases'), value: cfg.brain === true, onChange: (v) => set({ brain: v }) }) }),
-            h(SettingRow, { label: kt('Souvenirs épinglés', 'Pinned memories'), desc: kt('Jamais supprimés par un rangement.', 'Never removed by a tidy-up.'), control: h('span', { className: 'kbmem-chip' }, kt('Toujours protégés', 'Always protected')) })),
-          h('section', { key: 'log', className: 'kbmem-sec', 'data-sec': 'tidy-log' }, h('h2', null, kt('Rangements récents', 'Recent tidy-ups')),
-            log.length === 0 ? h('div', { className: 'kbmem-srow' }, h('div', { className: 'desc' }, kt('Rien pour l’instant.', 'Nothing yet.'))) : log.slice(0, 10).map((l) => h('div', { key: l.id, className: 'kbmem-run', 'data-run': l.id },
-              h('div', { className: 'when' }, whenLabel(l.at)), h('div', { className: 'kbmem-grow' }, logWords(l.src, l), h('div', { className: 'kbmem-tiny' }, logWho(l))),
-              l.canUndo ? h('button', { type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'tidy-log-undo', onClick: () => undo(l) }, Ico('undo'), kt('Défaire', 'Undo'))
-                : h('span', { className: 'kbmem-tiny' }, l.undone ? kt('Défait', 'Undone') : kt('Trop ancien pour être défait', 'Too old to undo')))))
-        ]
+                h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'tidy-scan', disabled: scanning || tidyNone, onClick: scan }, Ico('broom'), scanning ? kt('Analyse…', 'Looking…') : kt('Chercher', 'Look now'))) }),
+            h(SettingRow, { act: 'tidy-mode', label: kt('Quand il en trouve', 'When it finds some'), locked: tidyNone,
+              desc: cfg.mode === 'auto' ? kt('Ceux qui se ressemblent à 80 % ou plus sont fusionnés tout seuls ; le reste t’est montré. Chaque fusion est archivée et peut être défaite.', 'The ones that are 80 % alike or more are merged by itself; the rest is shown to you. Every merge is archived and can be undone.') : kt('Tout t’est montré d’abord : rien n’est fusionné sans ton accord.', 'Everything is shown to you first: nothing is merged without your yes.'),
+              control: h(Seg, { value: cfg.mode, label: kt('Quand il en trouve', 'When it finds some'), onChange: (v) => { void setTidy({ mode: v }) }, items: tidyModes().map(([v, l]) => ({ v, l })) }) }),
+            h(SettingRow, { act: 'manage', fold: true, label: kt('Ta mémoire', 'Your memory'), desc: kt('Voir, ajouter, modifier ou supprimer ce que Kybernos retient.', 'See, add to, edit or delete what Kybernos remembers.'),
+              control: h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'manage', onClick: openManage }, kt('Gérer', 'Manage')) }),
+            h(SettingRow, { act: 'import', fold: true, label: kt('Importer la mémoire d’autres assistants', 'Import memory from other assistants'), desc: kt('Reprends ce qu’un autre assistant sait de toi. On te donne un texte à copier.', 'Bring what another assistant knows about you. We give you a prompt to copy.'),
+              control: h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'import', onClick: openImport }, kt('Lancer l’import', 'Start import')) }),
+            h(SettingRow, { act: 'export', fold: true, label: kt('Exporter la mémoire', 'Export memory'), desc: kt('Télécharge une copie de ta mémoire en fichiers texte (un .zip).', 'Download a copy of your memory as plain text files (a .zip).'),
+              control: h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'export', disabled: exporting, onClick: exportNow }, exporting ? kt('Préparation…', 'Preparing…') : kt('Exporter', 'Export')) })))
       }
 
-      /** « Pick by relevance » for the lessons: besides the most used and the newest, the ones that clearly match what the user just asked. Local. */
-      const LessonsRelevantRow = ({ les, onToggle }) => {
-        const stale = les !== null && typeof les.relevant !== 'boolean'   // a host that predates the switch
-        const off = les === null || les.lessons !== true || les.context !== true || stale
-        return h(SettingRow, { label: kt('Choisir par pertinence', 'Pick by relevance'), act: 'lessons-relevant',
-          desc: kt('En plus des leçons les plus utilisées et des plus récentes, envoie aussi celles qui correspondent clairement à ce que tu viens de demander, même anciennes — uniquement celles de l’Agent Team du chat et les leçons générales. Calculé sur cet ordinateur : rien de plus n’est envoyé ailleurs.', 'Besides the most used and the newest lessons, also send the ones that clearly match what you just asked, even old ones — from the agent team of the chat and the general lessons only. Worked out on this machine: nothing extra is sent anywhere.'),
-          locked: off,
-          why: stale ? kt('Le plugin des leçons a été mis à jour : redémarre DSH pour l’utiliser.', 'The lessons plugin was updated: restart DSH to use this.') : (les !== null && (les.lessons !== true || les.context !== true) ? kt('Active d’abord Leçons apprises et Contexte système des leçons.', 'Turn on Lessons learned and Lessons system context first.') : null),
-          control: h(YesNo, { name: kt('Choisir les leçons par pertinence', 'Pick lessons by relevance'), value: !off && les.relevant === true, onChange: onToggle }) })
-      }
+      // ── Your memory ──────────────────────────────────────────────────────────────────────────────────
+      const NoteRow = ({ id, name, summary, date, sub, onOpen, title }) => h('div', { className: 'kbmem-nrow' + (sub ? ' sub' : '') + (summary === '' ? ' solo' : ''), role: 'button', tabIndex: 0, 'data-id': id, title, onClick: onOpen,
+        onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen() } } },
+        h('div', { className: 'nm' }, name), summary === '' ? null : h('div', { className: 'sm' }, summary), h('div', { className: 'dt' }, date))
 
-      /** Options of the team lessons: read them, share yours, and who decides. Locked with the reason outside a Team workspace. */
-      const TeamRows = ({ team, mem, onToggle }) => {
-        const info = team !== undefined && team.ok === true && team.team !== null ? team.team : null
-        const avail = info !== null && info.available === true
-        const [label, why] = teamLockedWords(info === null ? teamReasonOf(team) : info.reason)
-        const stale = mem !== null && (typeof mem.team_use !== 'boolean' || typeof mem.team_share !== 'boolean')   // a host that predates the switches
-        const off = !avail || mem === null || stale
-        const reason = off ? (stale ? kt('Le plugin cloud a été mis à jour : redémarre DSH pour l’utiliser.', 'The cloud plugin was updated: restart DSH to use this.') : why) : null
-        const chip = off ? PlanChip(stale ? kt('Redémarrer DSH', 'Restart DSH') : label) : h('span', { className: 'kbmem-plan' }, 'Team')
+      /** One team's lessons: closed it shows its name and count, open it loads the first few (all of them while a search is running). */
+      const TeamGroup = ({ g, searching, openNote, refreshKey }) => {
+        const [open, setOpen] = useState(false)
+        const [lim, setLim] = useState(MEM_STEP)
+        const show = searching || open
+        const d = useLessonsPage(listUrl('lessons', { size: Math.min(200, Math.max(lim, MEM_STEP)), page: 1, q: '', f: Object.assign(defaultFilters(), { kyber: g.kyber }) }), show && g.items === null, refreshKey)
+        const items = g.items !== null ? g.items : d.items
         return [
-          h(SettingRow, { key: 'use', label: kt('Utiliser les leçons de ton équipe', 'Use your team’s lessons'), act: 'team-use', locked: off, chip, why: reason,
-            desc: kt('Tes agents lisent aussi les leçons que ton équipe a approuvées : celles de l’Agent Team du chat et les générales, jusqu’à un quart du bloc de leçons. Celles qui correspondent à ce que tu viens de demander passent en premier.', 'Your agents also read the lessons your team approved: the ones for the agent team of the chat and the general ones, up to a quarter of the lessons block. The ones that match what you just asked come first.'),
-            control: h(YesNo, { name: kt('Utiliser les leçons de ton équipe', 'Use your team’s lessons'), value: !off && mem.team_use === true, onChange: (v) => onToggle({ team_use: v }) }) }),
-          h(SettingRow, { key: 'share', label: kt('Partager des leçons avec ton équipe', 'Share lessons with your team'), act: 'team-share', locked: off, chip, why: reason,
-            desc: kt('Affiche « Proposer à l’équipe » sur tes leçons et le bouton Proposer de l’onglet Équipe. Une proposition n’est lue que par les propriétaires et les admins jusqu’à ce que l’un d’eux l’approuve.', 'Show “Propose to team” on your lessons and the Propose button of the Team tab. A proposal is only read by owners and admins until one approves it.'),
-            control: h(YesNo, { name: kt('Partager des leçons avec ton équipe', 'Share lessons with your team'), value: !off && mem.team_share === true, onChange: (v) => onToggle({ team_share: v }) }) }),
-          h(SettingRow, { key: 'who', label: kt('Qui approuve', 'Who approves'), desc: kt('Défini par les rôles de l’espace, pas ici.', 'Set by the workspace roles, not here.'), control: h('span', { className: 'kbmem-chip' }, kt('Propriétaires et admins', 'Owners and admins')) }),
+          h('button', { key: 'h', type: 'button', className: 'kbmem-ngrp' + (show ? ' open' : ''), 'aria-expanded': show, 'data-kyber': g.kyber, onClick: () => { if (!searching) setOpen(!open) } },
+            Ico(show ? 'down' : 'right'), h('span', null, kyberName(g.kyber)), h('span', { className: 'ct' }, g.total)),
+          show && g.items === null && d.loading && items.length === 0 ? h('div', { key: 'l', className: 'kbmem-nrow sub dimtext' }, kt('Chargement…', 'Loading…')) : null,
+          show && !d.loading && g.items === null && !d.ok ? h('div', { key: 'e', className: 'kbmem-nrow sub dimtext' }, friendlyError(d.error)) : null,
+          show ? items.slice(0, lim).map((l) => { const p = lessonLine(l); return h(NoteRow, { key: 'l' + l.id, id: l.id, sub: true, name: p.name, summary: p.rest, title: l.text, date: kt('Ajoutée ', 'Added ') + noteDate(l.ageMinutes), onOpen: () => openNote({ src: 'les', item: l }) }) }) : null,
+          show && g.total > lim && lim < 200 ? h('button', { key: 'm', type: 'button', className: 'kbmem-nmore sub', 'data-act': 'more-team', onClick: () => setLim(Math.min(200, lim + 50)) }, kt('Afficher ' + Math.min(50, g.total - lim) + ' de plus', 'Show ' + Math.min(50, g.total - lim) + ' more')) : null,
         ]
       }
 
-      const OptionsView = ({ status, settings, back, notify, refresh, refreshKey, tidy, scan, scanning, openReview, team }) => {
-        const cloud = status.connected
-        const mem = settings.memory
-        const les = settings.lessons
-        const plan = status.plan
-        const setMem = async (patch) => { const r = await api('/kybernos-cloud/memory/settings/set', patch); if (r.ok !== true) notify(friendlyError(r.error)); refresh() }
-        const setLes = async (patch) => { const r = await api('/kybernos-memory/settings/set', patch); if (r.ok !== true) notify(friendlyError(r.error)); refresh() }
-        const note = !cloud
-          ? h('div', { className: 'kbmem-note warn' }, Ico('cloud'), h('div', null, h('b', null, kt('Non connecté. ', 'Not connected. ')), kt('Les souvenirs vivent dans ton compte Kybernos Cloud, ils ne peuvent donc pas être modifiés ici. Les leçons sont stockées sur cet ordinateur et continuent de fonctionner.', 'Memories live in your Kybernos Cloud account, so they cannot be changed here. Lessons are stored on this machine and keep working.')))
-          : h('div', { className: 'kbmem-note' }, Ico('shield'), h('div', null, kt('Ton offre : ', 'Your plan: '), h('b', null, planLabelOf(status.raw)), '.'))
-        const memUnavailable = mem === null
-        const lesUnavailable = les === null
-        const lastCapture = settings.capture === null ? null : h('div', { className: 'kbmem-tiny', style: { marginTop: 6 } }, kt('Dernière capture : ' + captureWords(settings.capture), 'Last capture: ' + captureWords(settings.capture)))
-        return h('div', null,
-          h('a', { className: 'kbmem-crumb', role: 'button', tabIndex: 0, 'data-act': 'back', onClick: back, onKeyDown: (e) => { if (e.key === 'Enter') back() } }, Ico('left'), pageTitle()),
-          pageHead({ title: kt('Personnaliser', 'Customize'), as: 'h1', className: 'kbmem-h1' }),
-          h('p', { className: 'kbmem-lead' }, kt('Tout est déjà réglé ici et tourne tout seul. Ne change quelque chose que pour enregistrer moins, envoyer moins au modèle ou ranger autrement.', 'Everything here is already set up and runs by itself. Change it only to save less, send less to the model, or tidy up differently.')),
-          note,
-          h('section', { className: 'kbmem-sec' }, h('h2', null, kt('Souvenirs', 'Memories'), h('small', null, kt('à ton sujet', 'about you'))),
-            h(SettingRow, { label: kt('Souvenirs', 'Memories'), desc: kt('Autorise Kybernos à enregistrer des souvenirs pour des réponses plus personnalisées.', 'Allow Kybernos to save memories for more personalized responses.'), locked: !cloud || memUnavailable, chip: !cloud ? PlanChip(kt('Compte Cloud', 'Cloud account')) : null,
-              why: !cloud ? kt('Connecte un compte Kybernos Cloud, quelle que soit l’offre, Free comprise.', 'Connect a Kybernos Cloud account — any plan, including Free.') : (memUnavailable ? kt('Le plugin cloud n’est pas disponible.', 'The cloud plugin is not available.') : null),
-              control: h(YesNo, { name: kt('Souvenirs', 'Memories'), value: mem !== null && mem.memories === true && cloud, onChange: (v) => setMem({ memories: v }) }) }),
-            h(SettingRow, { label: kt('Contexte système de la mémoire', 'Memory system context'), desc: kt('Inclure les souvenirs enregistrés dans le contexte système.', 'Include saved memories in the system context.'), locked: !cloud || memUnavailable || (mem !== null && mem.memories !== true),
-              why: mem !== null && mem.memories !== true && cloud ? kt('Active d’abord Souvenirs.', 'Turn on Memories first.') : null,
-              control: h(YesNo, { name: kt('Contexte système de la mémoire', 'Memory system context'), value: mem !== null && mem.context === true && mem.memories === true && cloud, onChange: (v) => setMem({ context: v }) }) }),
-            h(RelevantRow, { cloud, mem, onToggle: (v) => setMem({ relevant: v }) }),
-            h(SettingRow, { label: kt('Capture automatique', 'Automatic capture'), desc: kt('À la fin d’un tour, laisse le modèle noter ce qui mérite d’être gardé.', 'At the end of a turn, let the model note what is worth keeping.'), live: lastCapture, locked: !cloud || memUnavailable || (mem !== null && mem.memories !== true),
-              why: mem !== null && mem.memories !== true && cloud ? kt('Active d’abord Souvenirs.', 'Turn on Memories first.') : null,
-              control: h(YesNo, { name: kt('Capture automatique', 'Automatic capture'), value: mem !== null && mem.capture === true && mem.memories === true && cloud, onChange: (v) => setMem({ capture: v }) }) }),
-            h(MeaningRow, { cloud, mem, onToggle: (v) => setMem({ meaning: v }), refreshKey, refresh })),
-          h('section', { className: 'kbmem-sec' }, h('h2', null, kt('Leçons apprises', 'Lessons learned'), h('small', null, kt('sur ton travail', 'about your work'))),
-            h(SettingRow, { label: kt('Leçons apprises', 'Lessons learned'), desc: kt('Autorise les agents à enregistrer une leçon quand une attente a été contredite.', 'Allow agents to save a lesson when an expectation was contradicted.'), locked: lesUnavailable, why: lesUnavailable ? kt('Le plugin des leçons n’est pas disponible.', 'The lessons plugin is not available.') : null,
-              control: h(YesNo, { name: kt('Leçons apprises', 'Lessons learned'), value: les !== null && les.lessons === true, onChange: (v) => setLes({ lessons: v }) }) }),
-            h(SettingRow, { label: kt('Contexte système des leçons', 'Lessons system context'), desc: kt('Inclure les leçons enregistrées dans le contexte système.', 'Include saved lessons in the system context.'), locked: lesUnavailable || (les !== null && les.lessons !== true),
-              why: les !== null && les.lessons !== true ? kt('Active d’abord Leçons apprises.', 'Turn on Lessons learned first.') : null,
-              control: h(YesNo, { name: kt('Contexte système des leçons', 'Lessons system context'), value: les !== null && les.context === true && les.lessons === true, onChange: (v) => setLes({ context: v }) }) }),
-            h(LessonsRelevantRow, { les, onToggle: (v) => setLes({ relevant: v }) }),
-            h(TeamRows, { team, mem, onToggle: setMem })),
-          h(TidyOptions, { tidy, scan, scanning, openReview, notify, bump: refresh }))
+      const ManageView = ({ status, settings, tidy, team, kybers, notify, bump, refreshKey, back, openNote, openRemoved, openImport, openWipe, openReview, openTeamReview, removedCount, tab, setTab, setSwitch }) => {
+        const connected = status.connected === true
+        const [q, setQ] = useState('')
+        const dq = useDebounced(q, 200)
+        const [limit, setLimit] = useState(MEM_STEP)
+        const [say, setSay] = useState('')
+        const [saying, setSaying] = useState(false)
+        const pending = useRef(null)
+        const sayRef = useRef(null)
+        const sw = switchState(settings.memory, settings.lessons)
+        const searching = dq.trim() !== ''
+        const list = useList('memories', { size: searching ? 50 : limit, page: 1, q: dq, f: defaultFilters() }, refreshKey)
+        const found = useLessonsPage(listUrl('lessons', { size: 200, page: 1, q: dq, f: defaultFilters() }), searching, refreshKey)
+        const groups = searching ? groupLessons(found.items).map((g) => ({ kyber: g.kyber, total: g.items.length, items: g.items })) : kybers.filter((k) => k.count > 0).map((k) => ({ kyber: k.id, total: k.count, items: null }))
+        const teamInfo = team !== undefined && team.ok === true && team.team !== null ? team.team : null
+        const teamAvail = teamInfo !== null && teamInfo.available === true
+        const teamFull = teamAvail ? Object.assign({}, teamInfo, { shareOn: team.settings.share === true }) : null
+        const noAccount = status.loaded === true && !connected
+        const rows = list.ok === true ? list.items : []
+        const total = list.ok === true ? list.total : 0
+        const saves = tidySaves(tidy)
+        const fresh = !searching && list.ok === true && !list.loading && total === 0 && groups.length === 0
+        const noMatch = searching && !list.loading && !found.loading && rows.length === 0 && groups.length === 0
+        const send = async () => {
+          const text = say.trim()
+          if (text === '' || saying || !sw.use || !connected) return
+          setSaying(true)
+          const r = await api('/kybernos-cloud/memory/add', { content: text, kind: 'fact', pinned: false, source: 'taught' })
+          setSaying(false)
+          if (r.ok !== true) { notify(friendlyError(r.error)); return }
+          setSay('')
+          if (pending.current !== null) { pending.current(); pending.current = null }
+          if (r.same === true) { notify(kt('Déjà dans ta mémoire : rien n’a été ajouté.', 'Already in your memory: nothing was added.')); return }
+          bump()
+          const id = r.memory !== undefined && r.memory !== null ? r.memory.id : null
+          notify(kt('C’est noté.', 'Noted.'), id === null ? undefined : async () => { const u = await api('/kybernos-cloud/memory/delete', { id }); bump(); notify(u.ok === true ? kt('Retiré.', 'Removed.') : friendlyError(u.error)) })
+        }
+        const sayBox = h('div', { className: 'kbmem-nsay' }, h('div', { className: 'box' },
+          h('input', { ref: sayRef, type: 'text', 'aria-label': kt('Dis quelque chose à retenir', 'Tell Kybernos something to remember'), value: say, disabled: !sw.use || !connected, maxLength: NOTE_MAX_CHARS,
+            placeholder: !connected ? kt('Connecte ton compte pour ajouter une note', 'Connect your account to add a note') : sw.use ? kt('Dis à Kybernos quelque chose à retenir…', 'Tell Kybernos something to remember…') : kt('La mémoire est désactivée', 'Memory is off'),
+            onChange: (e) => setSay(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); void send() } } }),
+          h('button', { type: 'button', className: 'kbmem-nsend', 'data-act': 'say', 'aria-label': kt('Envoyer', 'Send'), disabled: say.trim() === '' || saying || !sw.use || !connected, onClick: () => { void send() } }, Ico('up'))))
+        const cards = [
+          !sw.use && settings.loaded === true ? h('div', { key: 'off', className: 'kbmem-ninfo', 'data-card': 'off' }, h('span', null, kt('La mémoire est désactivée : Kybernos n’utilise aucune de ces notes dans les chats.', 'Memory is off: Kybernos uses none of these notes in chats.')), h('button', { type: 'button', className: 'kbmem-link', 'data-act': 'turn-on', onClick: () => { void setSwitch('use', true) } }, kt('Activer', 'Turn on'))) : null,
+          noAccount ? h('div', { key: 'acc', className: 'kbmem-ninfo', 'data-card': 'no-account' }, h('span', null, kt('Non connecté : les notes à ton sujet vivent dans ton compte Kybernos. Les leçons ci-dessous restent sur cet ordinateur.', 'Not connected: notes about you live in your Kybernos account. The lessons below stay on this computer.')), h('button', { type: 'button', className: 'kbmem-link', 'data-act': 'connect', onClick: connectAccount }, kt('Connecte ton compte', 'Connect your account'))) : null,
+          !noAccount && connected && list.ok !== true && !list.loading ? h('div', { key: 'err', className: 'kbmem-ninfo', 'data-card': 'error', role: 'alert' }, h('span', null, kt('Impossible de lire tes notes. ', 'Your notes could not be read. ') + friendlyError(list.error)), h('button', { type: 'button', className: 'kbmem-link', 'data-act': 'retry', onClick: bump }, kt('Réessayer', 'Try again'))) : null,
+          saves > 0 ? h('div', { key: 'tidy', className: 'kbmem-ninfo', 'data-card': 'tidy' }, h('span', null, kt('Kybernos a trouvé ' + saves + ' groupe' + sfx(saves) + ' de notes qui se répètent ou se ressemblent. Rien n’a encore été changé.', 'Kybernos found ' + plural(saves, 'group') + ' of notes that repeat or look alike. Nothing has been changed yet.')), h('button', { type: 'button', className: 'kbmem-link', 'data-act': 'tidy-open', onClick: openReview }, kt('Examiner', 'Review'))) : null,
+        ]
+        const mine = [
+          cards,
+          h(MemSuggest, { key: 'sug', connected: !noAccount && connected, refreshKey, onChanged: bump, notify, onEdit: (it, done) => { setSay(it.text); pending.current = done; try { sayRef.current.focus() } catch (e) { /* the box is not mounted */ } } }),
+          h(ClaudeImport, { key: 'cc', refreshKey }),
+          h('div', { key: 'sr', className: 'kbmem-nsearch' }, Ico('search'), h('input', { type: 'search', 'aria-label': kt('Rechercher dans la mémoire', 'Search memory'), placeholder: kt('Rechercher dans la mémoire', 'Search memory'), value: q, onChange: (e) => setQ(e.target.value) })),
+          h('div', { key: 'body', className: sw.use ? '' : 'dim' },
+            list.loading && rows.length === 0 && groups.length === 0 ? SkelRows(4) : null,
+            rows.length > 0 ? h('div', { className: 'kbmem-nsec', 'data-sec': 'about' }, kt('À ton sujet', 'About you')) : null,
+            rows.map((m) => { const p = noteParts(m.content); return h(NoteRow, { key: 'm' + m.id, id: m.id, name: p.name, summary: p.rest, title: m.content, date: kt('Ajoutée ', 'Added ') + noteDate(m.ageMinutes), onOpen: () => openNote({ src: 'mem', item: m }) }) }),
+            !searching && total > rows.length ? (rows.length < 200 ? h('button', { type: 'button', className: 'kbmem-nmore', 'data-act': 'more-about', onClick: () => setLimit(Math.min(200, limit + 50)) }, kt('Afficher ' + Math.min(50, total - rows.length) + ' de plus', 'Show ' + Math.min(50, total - rows.length) + ' more'))
+              : h('div', { className: 'kbmem-nfoot' }, kt('Les 200 premières sont affichées sur ' + total + ' : utilise la recherche pour trouver les autres.', 'The first 200 of ' + total + ' are shown: use the search to find the others.'))) : null,
+            groups.length > 0 ? h('div', { className: 'kbmem-nsec', 'data-sec': 'teams' }, kt('Apprises par tes équipes', 'Learned by your teams'), h('span', { className: 'cp' }, kt('notes écrites par tes agents au travail', 'notes your agents wrote at work'))) : null,
+            groups.map((g) => h(TeamGroup, { key: 'g' + g.kyber, g, searching, openNote, refreshKey })),
+            noMatch ? h('div', { className: 'kbmem-nempty', style: { padding: '36px 0' } }, h('h3', null, kt('Aucune note ne correspond', 'No note matches'))) : null,
+            fresh ? h('div', { className: 'kbmem-nempty', 'data-empty': 'fresh' }, h('h3', null, kt('Rien n’est encore retenu', 'Nothing remembered yet')),
+              h('p', null, kt('Travaille comme d’habitude : Kybernos note ce qui dure. Tu peux aussi lui dire quelque chose ci-dessous, ou ', 'Just work as usual: Kybernos notes what lasts. You can also tell it something below, or '), h('button', { type: 'button', className: 'kbmem-link', 'data-act': 'import', onClick: openImport }, kt('importer ce qu’un autre assistant sait', 'import what another assistant knows')), '.')) : null,
+            !fresh && total > 0 ? h('div', { className: 'kbmem-nfoot' }, h('button', { type: 'button', className: 'kbmem-link danger', 'data-act': 'wipe', onClick: () => openWipe(total) }, kt('Tout supprimer…', 'Delete all memory…'))) : null),
+        ]
+        return h('div', { className: 'kbmem-m has-say', 'data-nv': 'manage' },
+          h('button', { type: 'button', className: 'kbmem-back', 'data-act': 'back', onClick: back }, Ico('left'), h('span', null, pageTitle())),
+          h('div', { className: 'kbmem-ntop' }, h('h2', { className: 'kbmem-nh1' }, kt('Ta mémoire', 'Your memory')), h('span', { className: 'kbmem-grow' }),
+            fresh ? null : h('button', { type: 'button', className: 'kbmem-link rlink', 'data-act': 'removed', onClick: openRemoved }, kt('Récemment supprimées · ', 'Recently removed · ') + removedCount)),
+          teamAvail ? h('div', { className: 'kbmem-row2', style: { marginTop: 8 } }, h(Seg, { value: tab, onChange: setTab, label: 'Section', items: [{ v: 'mine', l: kt('Ta mémoire', 'Your memory') }, { v: 'team', l: 'Team' }] })) : null,
+          tab === 'team' && teamAvail ? h(TeamPane, { team: teamFull, kybers, notify, bump, refreshKey, openReview: openTeamReview }) : mine,
+          tab === 'team' && teamAvail ? null : sayBox)
+      }
+
+      // ── One note ─────────────────────────────────────────────────────────────────────────────────────
+      const NoteView = ({ noteRef, team, kybers, notify, bump, back }) => {
+        const mem = noteRef.src === 'mem'
+        const item = noteRef.item
+        const [editing, setEditing] = useState(false)
+        const [busy, setBusy] = useState(false)
+        const [text, setText] = useState(mem ? item.content : item.text)
+        const [pinned, setPinned] = useState(mem ? item.pinned === true : false)
+        const [days, setDays] = useState(mem && typeof item.retentionDays === 'number' ? item.retentionDays : 0)
+        const [tags, setTags] = useState(mem ? '' : (item.tags || []).join(', '))
+        const ownTitle = !mem && item.titled === true ? String(item.title || '') : ''
+        const ownSummary = !mem && item.summarized === true ? String(item.summary || '') : ''
+        const [title, setTitle] = useState(ownTitle)
+        const [summary, setSummary] = useState(ownSummary)
+        const [propose, setPropose] = useState(null)
+        const teamInfo = team !== undefined && team.ok === true && team.team !== null ? team.team : null
+        const canPropose = !mem && teamInfo !== null && teamInfo.available === true && team.settings.share === true
+        const name = mem ? noteName(item.content) : lessonLine(item).name
+        const fail = (r) => { setBusy(false); notify(friendlyError(r.error)) }
+        const save = async () => {
+          setBusy(true)
+          if (mem) {
+            const body = { id: item.id }
+            if (text.trim() !== item.content) body.content = text
+            if (pinned !== (item.pinned === true)) body.pinned = pinned
+            if (typeof item.retentionDays === 'number' ? days !== item.retentionDays : days !== 0) body.retentionDays = days
+            if (Object.keys(body).length === 1) { setBusy(false); setEditing(false); return undefined }
+            const r = await api('/kybernos-cloud/memory/update', body)
+            if (r.ok !== true) return fail(r)
+          } else {
+            const body = { id: item.id }
+            if (text.trim() !== item.text) body.text = text
+            const clean = tags.split(',').map((t) => t.trim()).filter((t) => t !== '')
+            if (clean.join(',') !== (item.tags || []).join(',')) body.tags = clean
+            if (title.trim() !== ownTitle) body.title = title.trim()
+            if (summary.trim() !== ownSummary) body.summary = summary.trim()
+            if (Object.keys(body).length === 1) { setBusy(false); setEditing(false); return undefined }
+            const r = await api('/kybernos-memory/lessons/update', body)
+            if (r.ok !== true) return fail(r)
+          }
+          bump()
+          notify(kt('Enregistré', 'Saved'))
+          back()
+          return undefined
+        }
+        const remove = async () => {
+          setBusy(true)
+          const r = await api(mem ? '/kybernos-cloud/memory/delete' : '/kybernos-memory/lessons/delete', { id: item.id })
+          if (r.ok !== true) return fail(r)
+          bump()
+          back()
+          notify(kt('Supprimée.', 'Deleted.'), typeof r.run === 'string' ? async () => { const u = await api((mem ? TIDY_SOURCES.mem.base : TIDY_SOURCES.les.base) + '/undo', { run: r.run }); bump(); notify(u.ok === true ? kt('Restaurée.', 'Restored.') : friendlyError(u.error)) } : undefined)
+          return undefined
+        }
+        const makeSkill = async () => {
+          setBusy(true)
+          const r = await suggestSkill([item])
+          if (r.ok !== true) return fail(r)
+          setBusy(false)
+          notify(kt('Skill suggéré : « ' + r.proposal.name + ' ». Il attend ton accord dans Skills.', 'Skill suggested: “' + r.proposal.name + '”. It waits for your yes in Skills.'))
+          return undefined
+        }
+        const blk = (label, value, key) => h('div', { key, className: 'kbmem-blk' }, h('div', { className: 'lb' }, label), h('div', { className: 'vl' }, value))
+        const field = (label, id, control) => h('div', { key: id, className: 'kbmem-blk' }, h('label', { className: 'lb', htmlFor: id, style: { display: 'block' } }, label), control)
+        let body
+        if (editing) {
+          body = [
+            field(mem ? kt('Note', 'Note') : kt('Leçon', 'Lesson'), 'kbmem-e-text', h('textarea', { id: 'kbmem-e-text', className: 'kbmem-ta', value: text, disabled: busy, maxLength: mem ? NOTE_MAX_CHARS : 500, onChange: (e) => setText(e.target.value) })),
+            mem ? h('div', { key: 'keep', className: 'kbmem-blk' }, h('label', { className: 'lb', htmlFor: 'kbmem-e-days', style: { display: 'block' } }, kt('Garder', 'Keep for')),
+              h('select', { id: 'kbmem-e-days', className: 'kbmem-sel', value: days, disabled: busy || pinned, onChange: (e) => setDays(parseInt(e.target.value, 10)) },
+                keepOptions().map(([v, l]) => h('option', { key: v, value: v }, l)).concat(keepOptions().some((o) => o[0] === days) ? [] : [h('option', { key: days, value: days }, kt(days + ' jours', days + ' days'))]))) : null,
+            mem ? h('div', { key: 'pin', className: 'kbmem-blk kbmem-prow' }, h('span', null, kt('Épinglée : jamais supprimée par un rangement, envoyée en premier', 'Pinned: never removed by a tidy-up, sent first')), h(Switch, { on: pinned, label: kt('Épinglée', 'Pinned'), disabled: busy, onChange: setPinned })) : null,
+            !mem ? field(kt('Titre (60 caractères au maximum)', 'Title (60 characters at most)'), 'kbmem-e-title', h('input', { id: 'kbmem-e-title', className: 'kbmem-sel wide', maxLength: 60, value: title, placeholder: String(item.title || ''), disabled: busy, onChange: (e) => setTitle(e.target.value) })) : null,
+            !mem ? field(kt('Résumé (140 caractères au maximum)', 'Summary (140 characters at most)'), 'kbmem-e-sum', h('input', { id: 'kbmem-e-sum', className: 'kbmem-sel wide', maxLength: 140, value: summary, placeholder: String(item.summary || ''), disabled: busy, onChange: (e) => setSummary(e.target.value) })) : null,
+            !mem ? field(kt('Étiquettes (séparées par des virgules, 5 au maximum)', 'Tags (comma separated, 5 at most)'), 'kbmem-e-tags', h('input', { id: 'kbmem-e-tags', className: 'kbmem-sel wide', value: tags, disabled: busy, onChange: (e) => setTags(e.target.value) })) : null,
+            h('div', { key: 'acts', className: 'kbmem-nacts' }, h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'cancel', disabled: busy, onClick: () => { setEditing(false); setText(mem ? item.content : item.text) } }, kt('Annuler', 'Cancel')),
+              h('button', { type: 'button', className: 'kbmem-btn', 'data-act': 'save', disabled: busy || text.trim() === '', onClick: () => { void save() } }, kt('Enregistrer', 'Save'))),
+          ]
+        } else if (mem) {
+          body = [
+            blk(kt('Ajoutée le', 'Added on'), noteDate(item.ageMinutes) + (item.pinned ? kt(' · épinglée', ' · pinned') : ''), 'when'),
+            blk(kt('S’applique à', 'Applies to'), kt('Tous tes chats', 'All your chats'), 'scope'),
+            blk(kt('Écrite par', 'Written by'), originWords(item) + (item.originKnown === false ? kt(' (déduit)', ' (inferred)') : ''), 'by'),
+            typeof item.retentionDays === 'number' ? blk(kt('Conservée', 'Kept'), keepOptions().filter((o) => o[0] === item.retentionDays).map((o) => o[1])[0] || kt(item.retentionDays + ' jours', item.retentionDays + ' days'), 'keep') : null,
+            blk(kt('Note', 'Note'), item.content, 'text'),
+          ]
+        } else {
+          body = [
+            blk(kt('Ajoutée le', 'Added on'), noteDate(item.ageMinutes), 'when'),
+            blk(kt('Équipe', 'Team'), kyberName(item.kyber), 'team'),
+            blk(kt('Écrite par', 'Written by'), item.from === 'page' ? kt('Toi', 'You') : kt('Un agent de l’équipe ' + kyberName(item.kyber), 'An agent of the ' + kyberName(item.kyber) + ' team'), 'by'),
+            blk(kt('Utilisée', 'Used'), item.uses > 0 ? kt(item.uses + ' fois', item.uses + (item.uses === 1 ? ' time' : ' times')) : kt('Jamais', 'Never'), 'uses'),
+            blk(kt('Leçon', 'Lesson'), item.text, 'text'),
+            Array.isArray(item.tags) && item.tags.length > 0 ? blk(kt('Étiquettes', 'Tags'), item.tags.join(', '), 'tags') : null,
+          ]
+        }
+        return h('div', { className: 'kbmem-m', 'data-nv': 'note' },
+          h('button', { type: 'button', className: 'kbmem-back', 'data-act': 'back', onClick: back }, Ico('left'), h('span', null, kt('Ta mémoire', 'Your memory'))),
+          h('div', { className: 'kbmem-dh' }, h('h2', null, name),
+            editing ? null : [
+              h('button', { key: 'e', type: 'button', className: 'kbmem-btn ghost', 'data-act': 'edit', disabled: busy, onClick: () => setEditing(true) }, kt('Modifier', 'Edit')),
+              h('button', { key: 'd', type: 'button', className: 'kbmem-btn ghost danger', 'data-act': 'delete', disabled: busy, onClick: () => { void remove() } }, Ico('trash'), kt('Supprimer', 'Delete'))]),
+          body,
+          !mem && !editing ? h('div', { className: 'kbmem-nacts' },
+            canPropose ? h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'propose-team', disabled: busy, onClick: () => setPropose({ text: item.text, kyber: item.kyber === 'default' ? null : item.kyber, tags: item.tags || [] }) }, Ico('share'), kt('Proposer à l’équipe', 'Propose to team')) : null,
+            h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'make-skill', disabled: busy, title: kt('Une liste de pièges avec les mots de cette leçon, qui attend ton accord dans Skills. Aucun modèle, aucun coût.', 'A checklist of pitfalls in this lesson’s own words, waiting for your yes in Skills. No model, no cost.'), onClick: () => { void makeSkill() } }, Ico('wand'), kt('Faire un skill', 'Make a skill'))) : null,
+          !mem && !editing ? h('div', { className: 'kbmem-tiny', style: { marginTop: 14 } }, kt('Une leçon supprimée va dans les archives de l’équipe d’agents IA : elle revient depuis « Récemment supprimées » pendant 30 jours.', 'A deleted lesson goes to the AI agent team’s archive: it comes back from Recently removed for 30 days.')) : null,
+          propose !== null ? h(ProposeSheet, { initial: propose, kybers, admin: isTeamAdmin(teamInfo === null ? null : teamInfo.role), onClose: () => setPropose(null), onDone: (m) => { setPropose(null); bump(); notify(m) }, notify }) : null)
+      }
+
+      // ── Dialogs: import, recently removed, delete everything ─────────────────────────────────────────
+      const importPrompt = () => kt(
+        'Liste tout ce que tu as appris sur moi, pour que je puisse le transférer vers un autre assistant.\n\nÉcris une note par ligne, en phrases simples, sans numérotation. Garde cet ordre :\n\n1. Sur moi (nom, métier, langue, fuseau horaire, façon de travailler)\n2. Mon activité et mes projets (ce que je vends, les outils que j’utilise, les clients que je cite)\n3. Ce qui a changé avec le temps : garde seulement la version la plus récente\n\nDes faits, pas des instructions à suivre. Garde seulement ce qui est encore vrai. Ne devine pas. Laisse de côté les mots de passe, les numéros de carte et les détails de santé.',
+        'List everything you have learned about me, so I can move it to another assistant.\n\nWrite one note per line, in plain sentences, with no numbering. Keep this order:\n\n1. About me (name, job, language, time zone, how I like to work)\n2. My business and my projects (what I sell, tools I use, customers I mention)\n3. Things that changed over time: keep only the newest version\n\nFacts only, not instructions to follow. Keep only what is still true. Do not guess. Leave out passwords, card numbers and health details.')
+
+      const ImportDialog = ({ onClose, notify, bump, connected }) => {
+        const [paste, setPaste] = useState('')
+        const [copied, setCopied] = useState(false)
+        const [progress, setProgress] = useState(null)
+        const lines = parseImport(paste)
+        const copy = async () => { try { await navigator.clipboard.writeText(importPrompt()); setCopied(true) } catch (e) { notify(kt('Copie impossible : sélectionne le texte et copie-le à la main.', 'Copy failed: select the text and copy it by hand.')) } }
+        const run = async () => {
+          if (lines.length === 0 || progress !== null) return
+          const tally = { added: 0, same: 0, failed: 0 }
+          let stop = ''
+          for (let i = 0; i < lines.length; i += 1) {
+            setProgress({ at: i + 1, of: lines.length })
+            const r = await api('/kybernos-cloud/memory/add', { content: lines[i], kind: 'fact', pinned: false, source: 'taught' })
+            if (r.ok === true) { if (r.same === true) tally.same += 1; else tally.added += 1 } else {
+              tally.failed += 1
+              if (r.error === 'non connecte' || r.error === 'compte_kybernos_non_connecte' || r.error === 'memoire_desactivee' || r.error === 'reseau') { stop = r.error; tally.failed += lines.length - i - 1; break }
+            }
+          }
+          bump()
+          onClose()
+          notify(importResult(tally) + (stop !== '' ? ' ' + friendlyError(stop) : ''))
+        }
+        return h(Dialog, { title: kt('Importer la mémoire dans Kybernos', 'Import memory to Kybernos'), onClose: progress === null ? onClose : () => {}, wide: true },
+          !connected ? h('div', { className: 'kbmem-note warn' }, Ico('cloud'), h('div', { className: 'kbmem-grow' }, kt('Non connecté : les notes sont ajoutées à ton compte Kybernos, connecte-le d’abord.', 'Not connected: notes are added to your Kybernos account, connect it first.')), h('button', { type: 'button', className: 'kbmem-btn sm', onClick: connectAccount }, kt('Connecte ton compte', 'Connect your account'))) : null,
+          h('div', { className: 'kbmem-step' }, h('div', { className: 'no' }, '1'), h('div', { className: 'st' }, kt('Copie ce texte dans un chat avec ton autre assistant', 'Copy this prompt into a chat with your other assistant')),
+            h('div', { className: 'bd' }, h('div', { className: 'kbmem-promptbox', 'data-box': 'prompt' }, h('button', { type: 'button', className: 'kbmem-btn ghost sm copyb', 'data-act': 'copy', onClick: () => { void copy() } }, Ico('copy'), copied ? kt('Copié', 'Copied') : kt('Copier', 'Copy')), importPrompt()))),
+          h('div', { className: 'kbmem-step' }, h('div', { className: 'no' }, '2'), h('div', { className: 'st' }, kt('Colle le résultat ici pour l’ajouter à la mémoire de Kybernos', 'Paste the result below to add it to Kybernos’s memory')),
+            h('div', { className: 'bd' }, h('textarea', { className: 'kbmem-ta in', 'aria-label': kt('Résultat à importer', 'Result to import'), placeholder: kt('Colle ici les détails de ta mémoire', 'Paste your memory details here'), value: paste, disabled: progress !== null, onChange: (e) => setPaste(e.target.value) }))),
+          h('div', { className: 'kbmem-dacts' },
+            h('span', { className: 'kbmem-hint', 'aria-live': 'polite' }, progress !== null ? kt('Ajout de ' + progress.at + ' sur ' + progress.of + '…', 'Adding ' + progress.at + ' of ' + progress.of + '…') : lines.length > 0 ? kt(lines.length + ' note' + sfx(lines.length) + ' à ajouter. Chaque ligne est comparée à ce que tu as déjà. Les règles durables, comme le ton ou le format, vont dans Instructions.', plural(lines.length, 'note') + ' to add. Each line is checked against what you already have. Standing rules, like tone or format, belong in Instructions.') : kt('Chaque ligne est comparée à ce que tu as déjà. Les règles durables, comme le ton ou le format, vont dans Instructions.', 'Each line is checked against what you already have. Standing rules, like tone or format, belong in Instructions.')),
+            h('span', { className: 'kbmem-grow' }),
+            h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'cancel', disabled: progress !== null, onClick: onClose }, kt('Annuler', 'Cancel')),
+            h('button', { type: 'button', className: 'kbmem-btn', 'data-act': 'do-import', disabled: lines.length === 0 || progress !== null || !connected, onClick: () => { void run() } }, kt('Ajouter à la mémoire', 'Add to memory'))))
+      }
+
+      const RemovedDialog = ({ tidy, onClose, notify, bump }) => {
+        const [busy, setBusy] = useState('')
+        const rows = recentlyRemoved(tidy)
+        const back = async (r) => {
+          if (busy !== '') return
+          setBusy(r.id)
+          const u = await api(TIDY_SOURCES[r.src].base + '/undo', { run: r.id })
+          setBusy('')
+          bump()
+          notify(u.ok === true ? (r.src === 'mem' ? kt('Restaurée : les originales sont revenues comme nouvelles notes.', 'Restored: the originals are back as new notes.') : kt('Restaurée : tout est revenu comme avant.', 'Restored: everything is back as it was.')) : friendlyError(u.error))
+        }
+        return h(Dialog, { title: kt('Récemment supprimées', 'Recently removed'), onClose, wide: true },
+          h('p', { className: 'kbmem-hint' }, kt('Kybernos ne fusionne seul que ce que tu l’as laissé faire, et chaque fusion est archivée. Rien d’autre n’est supprimé sans toi. Tout ce qui est ici revient pendant 30 jours.', 'Kybernos only merges by itself what you let it, and every merge is archived. Nothing else is removed unless you delete it. Everything here comes back for 30 days.')),
+          rows.length === 0 ? h('p', { className: 'kbmem-hint', style: { padding: '12px 0' }, 'data-empty': 'removed' }, kt('Rien n’a été supprimé récemment.', 'Nothing removed lately.'))
+            : rows.map((r) => h('div', { key: r.src + r.id, className: 'kbmem-tl', 'data-run': r.id }, h('div', { className: 't' }, r.name, h('div', { className: 'd' }, r.why + ' · ' + r.when)),
+              h('button', { type: 'button', className: 'kbmem-btn ghost sm', 'data-act': r.button === 'Restore' ? 'restore' : 'undo', disabled: busy !== '', onClick: () => { void back(r) } }, r.button === 'Restore' ? kt('Restaurer', 'Restore') : kt('Défaire', 'Undo')))),
+          rows.length > 0 ? h('div', { className: 'kbmem-dacts' }, h('span', { className: 'kbmem-hint' }, kt('Elles disparaissent d’elles-mêmes au bout de 30 jours.', 'They also disappear on their own after 30 days.'))) : null)
+      }
+
+      const WipeDialog = ({ count, onClose, notify, bump }) => {
+        const [busy, setBusy] = useState(false)
+        const go = async () => {
+          setBusy(true)
+          const r = await api('/kybernos-cloud/memory/wipe', { confirm: true })
+          bump()
+          onClose()
+          notify(r.ok !== true ? friendlyError(r.error) : (r.failed > 0 ? kt(r.deleted + ' notes supprimées, ' + r.failed + ' n’ont pas pu l’être.', r.deleted + ' notes deleted, ' + r.failed + ' could not be.') : kt(r.deleted + ' note' + sfx(r.deleted) + ' supprimée' + sfx(r.deleted) + '.', plural(r.deleted, 'note') + ' deleted.')))
+        }
+        return h(Dialog, { title: kt('Tout supprimer définitivement ?', 'Delete all memory for good?'), onClose },
+          h('p', { className: 'kbmem-hint big' }, kt('Kybernos supprime les ' + count + ' notes à ton sujet. Les leçons de tes équipes ne sont pas touchées. C’est définitif : « Récemment supprimées » est vidée aussi.', 'Kybernos deletes all ' + count + ' notes about you. Your teams’ lessons are not touched. This cannot be undone: Recently removed is emptied too.')),
+          h('div', { className: 'kbmem-dacts' }, h('span', { className: 'kbmem-grow' }),
+            h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'cancel', disabled: busy, onClick: onClose }, kt('Annuler', 'Cancel')),
+            h('button', { type: 'button', className: 'kbmem-btn danger solid', 'data-act': 'wipe-yes', disabled: busy, onClick: () => { void go() } }, busy ? kt('Suppression…', 'Deleting…') : kt('Tout supprimer', 'Delete everything'))))
       }
 
       function Page() {
-        const [view, setView] = useState('main')
-        const [startScope, setStartScope] = useState('mine')   // the scope the list opens on: back from the team review lands on Team, not on Mine
-        const [tab, setTab] = useState('memories')
+        const [nview, setNview] = useState('settings')      // settings | manage | note | review | teamreview
+        const [ntab, setNtab] = useState('mine')            // « Your memory » or, on a Team offer, « Team »
+        const [noteRef, setNoteRef] = useState(null)
+        const [dialog, setDialog] = useState(null)          // null | { kind: 'import' | 'removed' | 'wipe', count }
+        const [exporting, setExporting] = useState(false)
         const [refreshKey, setRefreshKey] = useState(0)
         const [toast, setToast] = useState(null)
         const timer = useRef(null)
         const bump = useCallback(() => setRefreshKey((k) => k + 1), [])
+        // « Open » on the line in the chat lands here: the note it points at opens at once (the hand-over is taken once, and only while fresh).
+        useEffect(() => {
+          const take = () => { const item = notedOpen.take(); if (item !== null) { setNoteRef({ src: 'mem', item }); setNview('note') } }
+          take()
+          notedOpen.subs.add(take)
+          return () => { notedOpen.subs.delete(take) }
+        }, [])
         const status = useStatus(refreshKey)
         const settings = useSettings(refreshKey)
         const [tidy, adopt] = useTidy(refreshKey)
@@ -2193,9 +1813,6 @@ window.__ModuleLoader__.load({
         useEffect(() => { let live = true; api('/kybernos-memory/kybers').then((r) => { if (live && r.ok === true) setKybersForTeam(r.kybers) }); return () => { live = false } }, [refreshKey])
         const [scanning, setScanning] = useState(false)
         const [autoRun, setAutoRun] = useState(null)
-        const [hiddenKey, setHiddenKey] = useState(readHidden)
-        const [ranSeen, setRanSeen] = useState(readRanSeen)
-        const hideBanner = () => { const k = scanKey(tidy); writeHidden(k); setHiddenKey(k) }
         const notify = useCallback((message, undo) => {
           setToast({ message, undo })
           if (timer.current !== null) clearTimeout(timer.current)
@@ -2216,36 +1833,210 @@ window.__ModuleLoader__.load({
           const [m, l] = await Promise.all([api(TIDY_SOURCES.mem.base + '/scan', {}), api(TIDY_SOURCES.les.base + '/scan', {})])
           setScanning(false)
           if (asTidyView(m) === null && asTidyView(l) === null) { notify(friendlyError(m.error === undefined || m.error === 'indisponible' ? l.error : m.error)); return }
-          const pick = (r) => (r.auto !== undefined && r.auto !== null ? { groups: r.auto.groups, removed: r.auto.removed, runs: r.auto.runs } : null)
+          const pick = (r) => (r.auto !== undefined && r.auto !== null ? { groups: r.auto.groups, removed: r.auto.removed, runs: r.auto.runs, brain: Number.isFinite(r.auto.brain) ? r.auto.brain : 0 } : null)
           const a = { mem: pick(m), les: pick(l), brainError: [m, l].map((r) => (r.brain !== undefined && r.brain !== null && r.brain.error ? r.brain.error : null)).find((e) => e !== null) || null, brainDetail: [m, l].map((r) => (r.brain !== undefined && r.brain !== null && r.brain.detail ? r.brain.detail : null)).find((e) => e !== null) || null }
           setAutoRun(a)
           adopt(m, l)
-          setView('review')
+          setNview('review')
           const groups = (a.mem === null ? 0 : a.mem.groups) + (a.les === null ? 0 : a.les.groups)
           const gone = (a.mem === null ? 0 : a.mem.removed) + (a.les === null ? 0 : a.les.removed)
-          if (groups > 0) notify(kt(groups + ' groupe' + sfx(groups) + ' fusionné' + sfx(groups) + ' automatiquement · ' + gone + ' élément' + sfx(gone) + ' supprimé' + sfx(gone), 'Merged ' + plural(groups, 'group') + ' by itself · ' + plural(gone, 'item') + ' removed'), async () => { const r = await undoAuto(a); notify(r.back === r.total ? kt('Défait : tout est revenu', 'Undone: everything is back') : kt('Défait : ' + String(r.back) + ' sur ' + String(r.total) + ' ; ouvre Personnaliser pour réessayer le reste', 'Undid ' + String(r.back) + ' of ' + String(r.total) + ': open Customize to retry the rest')) })
+          if (groups > 0) notify(kt(groups + ' groupe' + sfx(groups) + ' fusionné' + sfx(groups) + ' automatiquement · ' + gone + ' élément' + sfx(gone) + ' supprimé' + sfx(gone), 'Merged ' + plural(groups, 'group') + ' by itself · ' + plural(gone, 'item') + ' removed'), async () => { const r = await undoAuto(a); notify(r.back === r.total ? kt('Défait : tout est revenu', 'Undone: everything is back') : kt('Défait : ' + String(r.back) + ' sur ' + String(r.total) + ' ; retrouve le reste dans « Récemment supprimées »', 'Undid ' + String(r.back) + ' of ' + String(r.total) + ': the rest is in Recently removed')) })
         }
-        const ran = tidy.loaded === true ? tidyRanNotice(tidy, ranSeen) : null
-        const hideRan = () => { if (ran !== null) { writeRanSeen(ran.at); setRanSeen(ran.at) } }
-        const undoRan = async () => {
-          if (ran === null) return
-          let back = 0
-          for (const l of ran.entries) { const u = await api(TIDY_SOURCES[l.src].base + '/undo', { run: l.id }); if (u.ok === true) back += 1 }
-          hideRan()
+        const toReview = () => { setAutoRun(null); setNview('review') }
+        // One setter for the three switches: it writes both hosts, tolerates one being away, and reads the settings again.
+        const setSwitch = async (key, v) => {
+          const p = switchPatches(key, v, settings.memory, settings.lessons)
+          const rs = await Promise.all([p.cloud !== null ? api('/kybernos-cloud/memory/settings/set', p.cloud) : Promise.resolve(null), p.lessons !== null ? api('/kybernos-memory/settings/set', p.lessons) : Promise.resolve(null)])
+          const done = rs.filter((r) => r !== null)
+          if (done.length > 0 && !done.some((r) => r.ok === true)) notify(friendlyError(done[0].error))
           bump()
-          notify(back === ran.entries.length ? kt('Défait : tout est revenu', 'Undone: everything is back') : kt('Défait : ' + String(back) + ' sur ' + String(ran.entries.length) + ' ; ouvre Personnaliser pour réessayer le reste', 'Undid ' + String(back) + ' of ' + String(ran.entries.length) + ': open Customize to retry the rest'))
         }
-        const toReview = () => { setAutoRun(null); setView('review') }
-        return h('div', { className: 'kbmem-page', 'data-kbmem': view },
-          view === 'options'
-            ? h(OptionsView, { status, settings, back: () => setView('main'), notify, refresh: bump, refreshKey, tidy, scan, scanning, openReview: toReview, team })
-            : view === 'teamreview'
-              ? h(TeamReviewView, { team: team.team === null ? {} : team.team, kybers: kybersForTeam, back: () => { setStartScope('team'); setView('main') }, notify, bump, refreshKey })
-              : view === 'review'
-              ? h(ReviewView, { key: scanKey(tidy), tidy, back: () => setView('main'), notify, bump, scan, scanning, auto: autoRun, onUndoAuto: undoAuto })
-              : h(MainView, { tab, setTab, status, settings, openOptions: () => setView('options'), notify, bump, refreshKey, tidy, hiddenKey, hideBanner, openReview: toReview, ran, onRanUndo: undoRan, onRanHide: hideRan, team, openTeamReview: () => setView('teamreview'), startScope, usedStartScope: () => setStartScope('mine') }),
+        // The export: plain text files in a zip, built here from what the two hosts list (nothing is sent anywhere).
+        const exportNow = async () => {
+          if (exporting) return
+          setExporting(true)
+          try {
+            const about = []
+            for (let off = 0; off < 2000; off += 200) {
+              const r = await api('/kybernos-cloud/memory/list?limit=200&offset=' + off)
+              if (r.ok !== true) break
+              about.push(...r.items)
+              if (about.length >= r.total || r.items.length === 0) break
+            }
+            const teams = []
+            const ks = await api('/kybernos-memory/kybers')
+            for (const k of ks.ok === true ? ks.kybers : []) {
+              const lessons = []
+              for (let off = 0; off < 2000; off += 200) {
+                const r = await api('/kybernos-memory/lessons?limit=200&offset=' + off + '&kyber=' + encodeURIComponent(k.id))
+                if (r.ok !== true) break
+                lessons.push(...r.items)
+                if (lessons.length >= r.total || r.items.length === 0) break
+              }
+              teams.push({ kyber: k.id === 'default' ? 'general' : k.id, lessons })
+            }
+            const files = exportFiles({ about, teams })
+            if (files.length === 0) { notify(kt('Rien à exporter pour l’instant.', 'Nothing to export yet.')); return }
+            const blob = new Blob([zipFiles(files)], { type: 'application/zip' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = 'kybernos-memory-' + new Date().toISOString().slice(0, 10) + '.zip'
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            setTimeout(() => URL.revokeObjectURL(url), 10000)
+            notify(kt('Export prêt : ' + files.length + ' fichier' + sfx(files.length) + ' dans le .zip.', 'Export ready: ' + plural(files.length, 'file') + ' in the .zip.'))
+          } catch (e) { notify(kt('L’export a échoué.', 'The export failed.')) } finally { setExporting(false) }
+        }
+        const removedCount = tidy.loaded === true ? recentlyRemoved(tidy).length : 0
+        const goManage = () => { setNoteRef(null); setNview('manage') }
+        const memoryPage = nview === 'review'
+          ? h(ReviewView, { key: scanKey(tidy), tidy, back: goManage, notify, bump, scan, scanning, auto: autoRun, onUndoAuto: undoAuto })
+          : nview === 'teamreview'
+            ? h(TeamReviewView, { team: team.team === null ? {} : team.team, kybers: kybersForTeam, back: () => { setNtab('team'); setNview('manage') }, notify, bump, refreshKey })
+            : nview === 'note' && noteRef !== null
+              ? h(NoteView, { key: noteRef.src + String(noteRef.item.id), noteRef, team, kybers: kybersForTeam, notify, bump, back: goManage })
+              : nview === 'manage'
+                ? h(ManageView, { status, settings, tidy, team, kybers: kybersForTeam, notify, bump, refreshKey, back: () => setNview('settings'), openNote: (ref) => { setNoteRef(ref); setNview('note') }, openRemoved: () => setDialog({ kind: 'removed' }), openImport: () => setDialog({ kind: 'import' }), openWipe: (count) => setDialog({ kind: 'wipe', count }), openReview: toReview, openTeamReview: () => setNview('teamreview'), removedCount, tab: ntab, setTab: setNtab, setSwitch })
+                : h(SettingsView, { status, settings, tidy, notify, setSwitch, openManage: () => { bump(); goManage() }, openImport: () => setDialog({ kind: 'import' }), exportNow, exporting, scan, scanning, openReview: toReview, bump })
+        const dialogs = dialog === null ? null
+          : dialog.kind === 'import' ? h(ImportDialog, { onClose: () => setDialog(null), notify, bump, connected: status.connected === true })
+            : dialog.kind === 'removed' ? h(RemovedDialog, { tidy, onClose: () => setDialog(null), notify, bump })
+              : h(WipeDialog, { count: dialog.count, onClose: () => setDialog(null), notify, bump })
+        return h('div', { className: 'kbmem-page', 'data-kbmem': 'memory', 'data-nv-view': nview },
+          memoryPage, dialogs,
           toast !== null ? h('div', { className: 'kbmem-toast', role: 'status', 'aria-live': 'polite' }, toast.message,
             toast.undo ? h('button', { type: 'button', 'data-act': 'undo', onClick: () => { const u = toast.undo; setToast(null); u() } }, kt('Défaire', 'Undo')) : null) : null)
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // 5b. THE « NOTED » LINE IN THE CHAT (2026-11-20)
+      // ═══════════════════════════════════════════════════════════════
+      // When Kaby saves something to memory during a conversation, one quiet line sits under the last answer: « Noted: … », with a way to open the note and one tap to take
+      // it back. The host holds the pointer (which chat wrote which note, ids and times only) and the line reads the note from the account, so a note the person removed is
+      // simply not there. Undo is the page's own delete: the note goes to « Recently removed » for 30 days, nothing is lost for good by a tap.
+      const NOTED_SHOWN = 3
+      const NOTED_POLLS = [0, 3000, 10000, 25000]   // the capture writes AFTER the answer: the line looks again a few times, then stops
+      const NOTED_CLAIMS_MAX = 400
+      /** The words of a note on one line: folded, and a long one cut on a word. */
+      const notedLine = (text) => {
+        const t = String(text === undefined || text === null ? '' : text).replace(/\s+/g, ' ').trim()
+        if (t.length <= 110) return t
+        const cut = t.slice(0, 110)
+        const sp = cut.lastIndexOf(' ')
+        return (sp > 60 ? cut.slice(0, sp) : cut).replace(/[\s.,;:]+$/, '') + '…'
+      }
+      /** The turn's number in the chat (the slot gives the closing sequence; an older shell gave `turn`): absent when it is neither. */
+      const notedSeq = (props) => (props !== null && props !== undefined ? (typeof props.seq === 'number' ? props.seq : (typeof props.turn === 'number' ? props.turn : undefined)) : undefined)
+      /** A note belongs to the first turn that sees it and is shown under that turn only (the slot runs for every answer). With no turn number nothing is claimed away: it fails open. */
+      const notedClaim = (store, sid, seq, ids) => {
+        if (typeof seq !== 'number') return ids.slice()
+        const mine = []
+        for (const id of ids) {
+          const key = sid + ':' + String(id)
+          const owner = store.claims.get(key)
+          if (owner === undefined) { store.claims.set(key, seq); mine.push(id) } else if (owner === seq) mine.push(id)
+        }
+        while (store.claims.size > NOTED_CLAIMS_MAX) store.claims.delete(store.claims.keys().next().value)
+        return mine
+      }
+      /** What the host said to the delete: undone, the note was already gone (the server's 404), or a refusal the person can retry. */
+      const notedUndoState = (r) => (r !== null && r !== undefined && r.ok === true ? 'undone' : (r !== null && r !== undefined && r.error === 'refus_404' ? 'gone' : 'failed'))
+      const undoNoted = async (id) => notedUndoState(await api('/kybernos-cloud/memory/delete', { id }))
+      const notedStore = { max: new Map(), claims: new Map(), subs: new Set() }
+      /** The label the Settings nav shows for this page: the one registered at mount (the shell draws that string, whatever the language is later). */
+      let navLabel = null
+      /** Open: the note travels to the page in a hand-over, taken once and only while fresh (a click that never reached the page must not open a note later). */
+      const notedOpen = {
+        pending: null,
+        subs: new Set(),
+        give(item) { this.pending = { item, at: Date.now() }; this.subs.forEach((f) => { try { f() } catch (e) { /* one listener must not stop the others */ } }) },
+        take() { const p = this.pending; this.pending = null; return p !== null && Date.now() - p.at < 15000 ? p.item : null },
+      }
+      /** Settings on the Memory page: the Settings button, then the page's cell BY ITS LABEL (the hashed class names change at every build; the same two anchors as the Memory card of the sessions plugin). */
+      const openMemorySettings = async () => {
+        try {
+          const labels = [navLabel, pageTitle(), PAGE_TITLE].filter((x) => typeof x === 'string' && x !== '')
+          const navVisible = () => { const nav = document.querySelector('[class*="navList"]'); return nav !== null && nav.offsetParent !== null }
+          const find = () => Array.prototype.slice.call(document.querySelectorAll('[class*="navCell"]')).filter((x) => labels.indexOf(String(x.textContent || '').trim()) >= 0)[0]
+          if (!navVisible()) {
+            const trigger = document.querySelector('[class*="settingsArea"] button[class*="trigger"]') || document.querySelector('button[aria-label="Settings"]')
+            if (trigger === null) return false
+            trigger.click()
+          }
+          for (let i = 0; i < 40; i += 1) {
+            const cell = find()
+            if (cell !== undefined) { (cell.querySelector('button,[role="button"]') || cell).click(); return true }
+            await new Promise((r) => setTimeout(r, 100))
+          }
+          return false
+        } catch (e) { return false }
+      }
+
+      /** The lines themselves (no state of their own: the tail below holds it). `status[id]`: busy | undone | gone | failed. */
+      function NotedLines({ notes, status, onOpen, onUndo }) {
+        const shown = notes.slice(0, NOTED_SHOWN)
+        if (shown.length === 0) return null
+        return h('div', { className: 'kbmem-noted-wrap', 'data-kbmem': 'noted' }, shown.map((n) => {
+          const st = status[n.id]
+          const name = notedLine(noteParts(n.item.content).name)
+          const lead = st === 'undone' ? kt('Défait : ', 'Undone: ') : st === 'gone' ? kt('Déjà retiré : ', 'Already removed: ') : kt('Noté : ', 'Noted: ')
+          const closed = st === 'undone' || st === 'gone'
+          return h('div', { key: 'n' + String(n.id), className: 'kbmem-noted', 'data-kbmem': 'noted-line', 'data-state': st === undefined ? 'ready' : st },
+            h('span', { className: 'kbmem-noted-text' }, lead + name),
+            st === 'failed' ? h('span', { className: 'kbmem-noted-err' }, kt('Impossible de défaire pour l’instant.', 'Could not undo just now.')) : null,
+            closed ? null : h('button', { type: 'button', 'data-act': 'noted-open', disabled: st === 'busy', onClick: () => onOpen(n) }, kt('Ouvrir', 'Open')),
+            closed ? null : h('button', { type: 'button', 'data-act': 'noted-undo', disabled: st === 'busy', onClick: () => onUndo(n) }, kt('Défaire', 'Undo')))
+        }))
+      }
+
+      /** At the end of the last answer of a chat: what was noted from THIS chat (a light read of the host for this chat only; an absent route or a signed-out account draws nothing). */
+      function NotedTail(props) {
+        const sid = props !== null && props !== undefined && typeof props.sessionId === 'string' ? props.sessionId : ''
+        const seq = notedSeq(props)
+        const [last, setLast] = useState(typeof seq !== 'number' ? true : (notedStore.max.get(sid) === undefined ? true : notedStore.max.get(sid) === seq))
+        const [notes, setNotes] = useState([])
+        const [status, setStatus] = useState({})
+        const alive = useRef(true)
+        useEffect(() => () => { alive.current = false }, [])
+        useEffect(() => {
+          if (typeof seq !== 'number' || sid === '') return undefined
+          const refresh = () => setLast(notedStore.max.get(sid) === seq)
+          notedStore.subs.add(refresh)
+          if (seq > (notedStore.max.get(sid) === undefined ? -1 : notedStore.max.get(sid))) { notedStore.max.set(sid, seq); notedStore.subs.forEach((f) => { try { f() } catch (e) { /* one listener must not stop the others */ } }) }
+          setLast(notedStore.max.get(sid) === seq)
+          return () => { notedStore.subs.delete(refresh) }
+        }, [sid, seq])
+        useEffect(() => {
+          if (sid === '' || last !== true) return undefined
+          let stopped = false
+          const read = async () => {
+            const r = await api('/kybernos-cloud/memory/noted?sessionId=' + encodeURIComponent(sid))
+            if (stopped || alive.current !== true || r === null || r.ok !== true || !Array.isArray(r.notes)) return
+            const mine = notedClaim(notedStore, sid, seq, r.notes.map((n) => n.id))
+            // What the person undid here stays on the line (« Undone: … ») though the account no longer holds it; a note that vanished any other way is not shown.
+            setNotes((prev) => r.notes.filter((n) => mine.indexOf(n.id) >= 0).concat(prev.filter((n) => !r.notes.some((m) => m.id === n.id) && n.kept === true)))
+          }
+          const timers = NOTED_POLLS.map((ms) => setTimeout(read, ms))
+          return () => { stopped = true; timers.forEach(clearTimeout) }
+        }, [sid, last, seq])
+        if (last !== true || notes.length === 0) return null
+        const mark = (n, v, keep) => {
+          setStatus((m) => ({ ...m, [n.id]: v }))
+          if (keep === true) setNotes((prev) => prev.map((x) => (x.id === n.id ? { ...x, kept: true } : x)))
+        }
+        const onUndo = async (n) => {
+          mark(n, 'busy')
+          const v = await undoNoted(n.id)
+          if (alive.current === true) mark(n, v, v !== 'failed')
+        }
+        const onOpen = async (n) => {
+          notedOpen.give(n.item)
+          const opened = await openMemorySettings()
+          if (opened !== true) { notedOpen.pending = null; if (alive.current === true) mark(n, 'failed') }
+        }
+        return h(NotedLines, { notes, status, onOpen, onUndo })
       }
 
       // ═══════════════════════════════════════════════════════════════
@@ -2267,13 +2058,21 @@ window.__ModuleLoader__.load({
       return {
         inject: ['slots'],
         // Pure pieces and the page, exposed for test-client.mjs and the live check.
-        __test: { planLabelOf, lessonCluster, suggestSkill, importCounts, importWords, importCountWords, importError, IMPORT_SHOWN, sentMarks, selfStatus, connectAccount, capNote, LESSONS_CAP, LESSONS_NEAR, PAGE_TITLE, studyWords, mapMatches, mapZoom, mapPan, mapClamp, mapLabelSpots, mapWords, MAP_FIT, teamLockedWords, teamReasonOf, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, tidyRanNotice, TIDY_MODES: tidyModes(), TIDY_SCHEDULES: tidySchedules(), whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
+        __test: { noteDate, noteParts, noteName, parseImport, importResult, switchState, switchPatches, recentlyRemoved, groupLessons, crc32, zipFiles, exportFiles, NOTE_MAX_CHARS, suggestSkill, importCounts, importWords, importCountWords, importError, IMPORT_SHOWN, connectAccount, PAGE_TITLE, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, TIDY_MODES: tidyModes(), tidySettingsOf, tidyBrain, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, onEscape, planOf, ageLabel, listUrl, defaultFilters, friendlyError, api, Page, css, notedLine, notedSeq, notedClaim, notedUndoState, undoNoted, notedOpen, NotedLines, NotedTail, NOTED_SHOWN },
         apply(ctx) {
           if (ctx === null || ctx === undefined || ctx.slots === null || ctx.slots === undefined) return
           ctx.effect(() => styles.insert(css), 'kybernos-memory: styles')
+          navLabel = pageTitle()
           ctx.effect(() => ctx.slots.inject('settings.section', () => ctx.slots.register(
             { name: 'settings.section', id: 'kybernos-memory', order: 3, label: pageTitle() },
             (props) => h(Page, props))), 'kybernos-memory: memory & lessons settings section')
+          // At the end of the last answer of a chat: what Kaby just noted from THIS chat. A failure here never touches the settings section above.
+          try {
+            ctx.effect(() => ctx.slots.inject('conversation.chat.turnTail', () => ctx.slots.register(
+              { name: 'conversation.chat.turnTail', id: 'kybernos-memory-noted', order: 58 }, NotedTail)), 'kybernos-memory: « Noted » line under the last answer')
+          } catch (notedMountError) {
+            try { console.warn('[kybernos-memory] the Noted line is not mounted', notedMountError) } catch (e2) { /* console unavailable */ }
+          }
         },
       }
     } catch (kbMemBootError) {

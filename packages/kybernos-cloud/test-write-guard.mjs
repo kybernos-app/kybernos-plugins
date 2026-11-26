@@ -171,6 +171,8 @@ try {
     ['/kybernos-cloud/computer/open', {}],
     ['/kybernos-cloud/computer/resume', {}],
     ['/kybernos-cloud/computer/suspend', {}],
+    // The person's press that moves THIS cloud computer onto the newest version (nothing is sent: the guard answers first).
+    ['/kybernos-cloud/computer/update/start', {}],
     // A single-use link that opens the account's console, and the two payment pages.
     ['/kybernos-cloud/console/link', {}],
     ['/kybernos-cloud/billing/checkout', { workspace_id: WS, plan: 'team' }],

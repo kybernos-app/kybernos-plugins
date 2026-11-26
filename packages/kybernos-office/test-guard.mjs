@@ -3,7 +3,7 @@
 //
 //   node packages/kybernos-office/test-guard.mjs
 import { listParts, readPart, readText } from './zip-lite.mjs'
-import { FORMATS, formatOf, inspect } from './office-guard.mjs'
+import { FORMATS, TEXT_MAX, formatOf, inspect } from './office-guard.mjs'
 import { docx, xlsx, zip, md, pdf } from './lib-test-files.mjs'
 
 let failed = 0
@@ -83,6 +83,19 @@ const levels = (r) => Object.fromEntries(r.losses.map((l) => [l.code, l.level]))
   check('md: the count says how many tags (an element has two)', inspect('md', md({ html: true })).losses.find((l) => l.code === 'html').count === 2)
   check('md: an empty file is a valid note', inspect('md', Buffer.alloc(0)).ok === true)
   check('md: bytes that are not UTF-8 text are refused', inspect('md', Buffer.from([0x68, 0x00, 0x69])).reason === 'not-text' && inspect('md', Buffer.from([0xff, 0xfe, 0x41])).reason === 'not-text')
+}
+
+// ── the guard: plain text, CSV and JSON ──────────────────────────────────────────
+{
+  check('text, CSV and JSON files open, in any case', ['a.txt', 'A.TXT', 'x.rst', 'c.yaml', 'c.YML', 'c.toml'].every((n) => formatOf(n) === 'text') && formatOf('o.csv') === 'csv' && formatOf('o.TSV') === 'csv' && formatOf('c.json') === 'json')
+  check('they have the one editor of their own, and each its media type', FORMATS.text.editor === 'text' && FORMATS.csv.editor === 'text' && FORMATS.json.editor === 'text' && FORMATS.json.type === 'application/json' && FORMATS.csv.type === 'text/csv')
+  check('lookalikes and formats with a light editor of their own are not taken for text', formatOf('a.txt.exe') === null && formatOf('a.rtf') === null && formatOf('a.html') === null && formatOf('a.js') === null && formatOf('a.docx') === 'docx' && formatOf('a.md') === 'md')
+  const t = inspect('text', Buffer.from('\uFEFFname,qty\r\n"a, b",1\r\n', 'utf8'))
+  check('text: a UTF-8 file (with a byte-order mark and CRLF) opens with nothing to say', t.ok === true && t.losses.length === 0 && t.block === false, JSON.stringify(t))
+  check('text: an empty file is a valid file', inspect('csv', Buffer.alloc(0)).ok === true && inspect('json', Buffer.alloc(0)).ok === true)
+  check('text: a NUL byte or bytes that are not UTF-8 are refused (a binary file, or a Latin-1 text the editor would corrupt)', inspect('text', Buffer.from([0x68, 0x00, 0x69])).reason === 'not-text' && inspect('csv', Buffer.from([0x63, 0x61, 0x66, 0xe9])).reason === 'not-text')
+  check('text: a file over the limit is refused with its own reason, one byte under it opens', inspect('json', Buffer.alloc(TEXT_MAX + 1, 0x61)).reason === 'text-too-big' && inspect('json', Buffer.alloc(TEXT_MAX, 0x61)).ok === true)
+  check('text: a non-buffer is refused and never throws', inspect('text', 'x').ok === false)
 }
 
 // ── the guard: PDF ───────────────────────────────────────────────────────────────

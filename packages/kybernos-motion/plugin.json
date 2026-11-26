@@ -42,6 +42,7 @@
   },
   "help": "help.json",
   "suite": {
-    "default": "on"
+    "default": "on",
+    "stage": "alpha"
   }
 }

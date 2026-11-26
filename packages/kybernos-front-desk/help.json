@@ -27,7 +27,7 @@
     "page": true
   },
   "good": {
-    "fr": "Il ne fait que ce que tu as autorisé, sous un plafond de dépense. Kaby ne peut changer ni l’argent ni les limites : c’est toi. Il tourne sur cet ordinateur : DSH fermé, il ne répond pas.",
-    "en": "It only does what you allowed, under a spending cap. Kaby cannot change the money or the limits: that is you. It runs on this computer: with DSH closed, it does not answer."
+    "fr": "Il ne fait que ce que tu as autorisé, sous un plafond de dépense. Kaby ne peut changer ni l’argent ni les limites : c’est toi. Il tourne sur cet ordinateur : Kybernos fermé, il ne répond pas.",
+    "en": "It only does what you allowed, under a spending cap. Kaby cannot change the money or the limits: that is you. It runs on this computer: with Kybernos closed, it does not answer."
   }
 }

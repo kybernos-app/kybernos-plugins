@@ -1,7 +1,7 @@
 {
   "what": {
-    "fr": "Branche des modèles de langage gratuits sur DSH, sans compte ni clé API, en passant par la couche gratuite d’OpenCode Zen.",
-    "en": "Wires free language models into DSH with no account or API key, through OpenCode Zen’s free tier."
+    "fr": "Branche des modèles de langage gratuits sur Kybernos, sans compte ni clé API, en passant par la couche gratuite d’OpenCode Zen.",
+    "en": "Wires free language models into Kybernos with no account or API key, through OpenCode Zen’s free tier."
   },
   "steps": [
     {
@@ -9,8 +9,8 @@
       "en": "The page lists the free models available right now, read straight from OpenCode."
     },
     {
-      "fr": "Coche « J’ai compris que mes prompts peuvent être conservés », puis « Brancher sur DSH » : le fournisseur et ses modèles sont créés.",
-      "en": "Tick “I understand my prompts may be retained”, then “Connect to DSH”: the provider and its models are created."
+      "fr": "Coche « J’ai compris que mes prompts peuvent être conservés », puis « Brancher sur Kybernos » : le fournisseur et ses modèles sont créés.",
+      "en": "Tick “I understand my prompts may be retained”, then “Connect to Kybernos”: the provider and its models are created."
     },
     {
       "fr": "« Revérifier » vérifie que la couche gratuite répond encore, et l’affiche en clair — y compris quand OpenCode la verrouille.",

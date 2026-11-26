@@ -12,7 +12,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 window.__ModuleLoader__.load({
-  id: '@local/kybernos-miniapps/client',
+  id: '@local/kybernos-miniapps',
   factory () {
     const ID_STYLE = 'kbmini-style'
     const CLASSE_BOUTON = 'kbmini-btn'
@@ -176,8 +176,11 @@ window.__ModuleLoader__.load({
     // Returns null when nothing does; the export then falls back to a still snapshot of the panel.
     async function sourceModule (marque) {
       const echappe = marque.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      // A bundle registers under its package name (`@local/kybernos-bricks`), which is what both engines accept; the older
+      // `@local/kybernos-bricks/client` is still read, so a copy of the module cached before that change is still found.
+      const paquet = marque.replace(/\/client$/, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       const definit = (texte) => typeof texte === 'string' &&
-        new RegExp('__ModuleLoader__\\s*\\.\\s*load\\s*\\(\\s*\\{\\s*id\\s*:\\s*[\'"]@local/' + echappe + '[\'"]').test(texte)
+        new RegExp('__ModuleLoader__\\s*\\.\\s*load\\s*\\(\\s*\\{\\s*id\\s*:\\s*[\'"]@local/' + paquet + '(?:/client)?[\'"]').test(texte)
       const adresses = []
       for (const s of Array.from(window.document.scripts)) {
         if (s.src) {
@@ -438,7 +441,7 @@ window.__ModuleLoader__.load({
       if (btn === null) {
         btn = window.document.createElement('button')
         btn.className = CLASSE_BOUTON
-        btn.title = kt('Petite fenêtre autonome, toujours au-dessus, qui survit à la fermeture de DSH.', 'A standalone little window, always on top, that survives closing DSH.')
+        btn.title = kt('Petite fenêtre autonome, toujours au-dessus, qui survit à la fermeture de Kybernos.', 'A standalone little window, always on top, that survives closing Kybernos.')
         if (conf.flottant === true) {
           // A mini-app has no head of its own: the button is a strip of its own ABOVE the player, right-aligned, in the flow. Floated
           // over the corner (top 8 px, right 8 px) it covered the primary button of the Quiz and Cards players (« Check », « Replay »):
@@ -462,7 +465,7 @@ window.__ModuleLoader__.load({
           const ex = await pageExport(conf)
           const html = ex.html
           const r = await post('/kybernos-miniapps/install', { id: conf.id, titre: ex.titre, html, largeur: conf.l, hauteur: conf.h, auto: false })
-          if (r && r.ok === true) { installe.set(conf.id, { auto: false }); toast(kt('Mini-app installée — elle vit hors de DSH.', 'Mini-app installed — it lives outside DSH.')) }
+          if (r && r.ok === true) { installe.set(conf.id, { auto: false }); toast(kt('Mini-app installée — elle vit hors de Kybernos.', 'Mini-app installed — it lives outside Kybernos.')) }
           else toast(messageEchecInstallation(r), 'miniapps-install-error')
         } catch { toast(messageEchecInstallation(null), 'miniapps-install-error') }
         btn.disabled = false

@@ -244,7 +244,7 @@ export function monterSuite (webServer, deps, liens = {}) {
     if (corps === undefined) return undefined
     if (corps.confirm !== true) return envoyer(res, 400, { ok: false, error: 'confirmation-required' })
     // Restarting DSH while an installer writes the profile would cut it in the middle (the robot survives, but the boot check it runs would meet a DSH that is going down).
-    if (estOccupe()) return envoyer(res, 409, { ok: false, error: 'busy', detail: 'An installation is running: wait until it ends, then restart DSH.' })
+    if (estOccupe()) return envoyer(res, 409, { ok: false, error: 'busy', detail: 'An installation is running: wait until it ends, then restart Kybernos.' })
     let r
     try { r = await deps.relancer({ port: req?.socket?.localPort }) } catch (e) { return envoyer(res, 500, { ok: false, error: 'relaunch-failed', detail: String(e?.message ?? e) }) }
     return envoyer(res, r?.ok === true ? 200 : 500, r?.ok === true ? { ok: true } : { ok: false, error: r?.error ?? 'relaunch-failed' })

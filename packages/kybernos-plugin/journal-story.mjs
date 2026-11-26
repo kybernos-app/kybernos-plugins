@@ -98,6 +98,11 @@ export function classifyTool(name) {
   if (name === 'edit' || name === 'write') return { kind: 'work', group: 'edit' }
   if (name === 'read' || name === 'read_image' || name === 'glob' || name === 'grep') return { kind: 'work', group: 'read' }
   if (name === 'web_fetch' || name === 'web_search') return { kind: 'work', group: 'web' }
+  const wkr = /^subagent_([a-z0-9_]+)$/.exec(name)
+  if (wkr !== null && wkr[1] !== 'fork') {
+    const id = wkr[1].replace(/_/g, '-')
+    return { kind: 'worker', worker: { id: id, name: id, tool: name } }
+  }
   if (/^(spawn_teammate|send_message|wait_agent|list_agents|team_task_|subagent)/.test(name) === true) return { kind: 'work', group: 'crew' }
   return { kind: 'work', group: 'other' }
 }
@@ -365,8 +370,16 @@ export function deriveStory(events, opts) {
       const m = push({
         kind: cls.kind, at: at, seq: seq, endAt: null, durMs: null, tool: name, callId: callId, status: 'running',
         connector: cls.connector !== undefined ? cls.connector : null, op: cls.op !== undefined ? cls.op : null,
+        worker: cls.worker !== undefined ? {
+          id: cls.worker.id,
+          name: cls.worker.name,
+          instanceId: str(args !== null ? (args.instanceId || args.workerId) : null) || cls.worker.id,
+          model: str(args !== null ? args.model : null),
+          reason: str(args !== null ? args.reason : null),
+          cacheHitPct: null,
+        } : null,
         input: args !== null ? clip(JSON.stringify(args), MAX_TEXT) : clip(str(data.arguments), MAX_TEXT),
-        subject: clip(str(args !== null ? (args.name || args.title || args.query || args.url || args.prompt || args.content || args.objective || null) : null), 200),
+        subject: clip(str(args !== null ? (args.name || args.title || args.query || args.url || args.prompt || args.task || args.content || args.objective || null) : null), 200),
         output: null, error: null, links: [],
       })
       if (callId !== null) pending[callId] = { moment: m }
@@ -442,6 +455,37 @@ export function deriveStory(events, opts) {
     a.signed = a.seal === 'valid'
   }
 
+  // Enrich external worker moments with metadata-only RunBinding records when available (optional, silent fallback).
+  const workerRuns = Array.isArray(o.workerRuns) === true ? o.workerRuns.filter((r) => isObj(r) === true) : []
+  if (workerRuns.length > 0) {
+    const usedRuns = new Set()
+    for (let i = 0; i < moments.length; i += 1) {
+      const m = moments[i]
+      if (m.kind !== 'worker' || isObj(m.worker) === false) continue
+      let bestIdx = -1
+      let bestDiff = Infinity
+      for (let k = 0; k < workerRuns.length; k += 1) {
+        if (usedRuns.has(k)) continue
+        const r = workerRuns[k]
+        const rDriver = str(r.driverId)
+        const rWorker = str(r.workerId)
+        if (rDriver !== m.worker.id && rWorker !== m.worker.id && rWorker !== m.worker.instanceId) continue
+        const rAt = typeof r.startedAt === 'string' ? Date.parse(r.startedAt) : num(r.startedAt)
+        const diff = m.at !== null && Number.isFinite(rAt) ? Math.abs(rAt - m.at) : 0
+        if (diff < bestDiff && diff <= 30000) { bestDiff = diff; bestIdx = k }
+      }
+      if (bestIdx >= 0) {
+        usedRuns.add(bestIdx)
+        const r = workerRuns[bestIdx]
+        if (str(r.workerId) !== null) m.worker.instanceId = str(r.workerId)
+        if (str(r.label) !== null) m.worker.name = str(r.label)
+        if (str(r.modelId) !== null) m.worker.model = str(r.modelId)
+        if (str(r.reason) !== null) m.worker.reason = str(r.reason)
+        if (num(r.cacheHitPct) !== null) m.worker.cacheHitPct = num(r.cacheHitPct)
+      }
+    }
+  }
+
   // A connector call that failed and was later repeated with success is « recovered », not an open error.
   for (let i = 0; i < moments.length; i += 1) {
     const m = moments[i]
@@ -493,15 +537,26 @@ export function deriveStory(events, opts) {
   const waits = moments.filter((m) => m.kind === 'handover' && m.waitMs !== null).map((m) => [m.at, m.at + m.waitMs])
   const waitingMs = unionMs(waits)
   const crewMs = unionMs(crews.map((c) => [c.startedAt, c.endedAt !== null ? c.endedAt : nowMs]))
+  const workerSpans = kept.filter((m) => m.kind === 'worker' && m.at !== null).map((m) => [m.at, m.endAt !== null ? m.endAt : (m.durMs !== null ? m.at + m.durMs : nowMs)])
+  const workerMs = unionMs(workerSpans)
   const running = turns.length > 0 && turns[turns.length - 1].end === null
 
   const counts = {}
   for (let i = 0; i < kept.length; i += 1) counts[kept[i].kind] = (counts[kept[i].kind] || 0) + 1
   const connectors = {}
+  const workersMap = {}
   let connectorErrors = 0
   let connectorOpenErrors = 0
+  let workerErrors = 0
   for (let i = 0; i < kept.length; i += 1) {
     const m = kept[i]
+    if (m.kind === 'worker' && isObj(m.worker) === true) {
+      const wid = m.worker.instanceId || m.worker.id
+      if (workersMap[wid] === undefined) workersMap[wid] = { id: wid, driverId: m.worker.id, name: m.worker.name || wid, calls: 0, errors: 0 }
+      workersMap[wid].calls += 1
+      if (m.status === 'error') { workersMap[wid].errors += 1; workerErrors += 1 }
+      continue
+    }
     if (m.kind !== 'connector') continue
     const id = m.connector.id
     if (connectors[id] === undefined) connectors[id] = { id: id, name: m.connector.name, via: m.connector.via, calls: 0, errors: 0 }
@@ -522,8 +577,8 @@ export function deriveStory(events, opts) {
     chat: { id: str(o.sessionId), title: title, startedAt: firstAt, endedAt: lastAt, running: running, userMessage: firstUser, messages: userMessages },
     trigger: trigger,
     stats: {
-      activeMs: activeMs, waitingMs: waitingMs, crewMs: crewMs, moments: kept.length, counts: counts,
-      errors: connectorErrors + crewFailed, openErrors: connectorOpenErrors + crewFailed, llmErrors: llmErrors, llmRetries: llmRetries,
+      activeMs: activeMs, waitingMs: waitingMs, crewMs: crewMs, workerMs: workerMs, moments: kept.length, counts: counts,
+      errors: connectorErrors + crewFailed + workerErrors, openErrors: connectorOpenErrors + crewFailed + workerErrors, llmErrors: llmErrors, llmRetries: llmRetries,
       handovers: handovers.length, handoversWaiting: handovers.filter((h) => h.outcome === 'waiting').length,
       tokens: { input: tokIn, output: tokOut, cacheRead: tokCache, crews: crewTokens }, costEur: costEur, unpriced: unpriced,
       toolCalls: toolTotal, deliverables: deliverables.length,
@@ -531,6 +586,7 @@ export function deriveStory(events, opts) {
     series: thin,
     models: Object.keys(models).map((k) => models[k]).sort((a, b) => b.tokens - a.tokens),
     connectors: Object.keys(connectors).map((k) => connectors[k]),
+    workers: Object.keys(workersMap).map((k) => workersMap[k]),
     crews: crews,
     moments: kept,
     droppedMoments: dropped,

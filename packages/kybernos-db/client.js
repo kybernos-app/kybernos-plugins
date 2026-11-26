@@ -2687,7 +2687,7 @@ window.__ModuleLoader__.load({
             h('p', { className: 'kbtb-note' }, kt('Kaby propose les tables et les liens dans un chat. Rien n’est créé avant ton accord.', 'Kaby proposes the tables and the links in a chat. Nothing is created before you approve.')),
             tpl.length > 0 ? h('section', { className: 'kbtb-sec', 'data-kb': 'apps-templates' },
               h('h4', { className: 'kbtb-sh' }, kt('Partir d’un modèle', 'Start from a template')),
-              h('p', { className: 'kbtb-sub' }, kt('Un modèle est une app prête pour un métier, avec des lignes d’exemple. Il peut aussi apporter son tableau de bord, ses automatisations, ses skills et son équipe d’agents.', 'A template is a ready-made app for a trade, with sample rows. It can also bring its dashboard, automations, skills and agent team.')),
+              h('p', { className: 'kbtb-sub' }, kt('Un modèle est une app prête pour un métier, avec des lignes d’exemple. Il peut aussi apporter son tableau de bord, ses automatisations, ses skills et son équipe d’agents IA.', 'A template is a ready-made app for a trade, with sample rows. It can also bring its dashboard, automations, skills and AI agent team.')),
               h('div', { className: 'kbtb-gal' }, tpl.map((t) => h(TemplateCard, { key: t.id, p, t })))) : null,
             h('section', { className: 'kbtb-sec', 'data-kb': 'apps-starts' },
               h('h4', { className: 'kbtb-sh' }, kt('Départs simples', 'Simple starts')),

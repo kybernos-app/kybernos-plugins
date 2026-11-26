@@ -222,7 +222,7 @@ window.__ModuleLoader__.load({
       'kb.cp.form.envname': { fr: 'Nom', en: 'Name' },
       'kb.cp.form.envvalue': { fr: 'valeur ou $SECRET', en: 'value or $SECRET' },
       'kb.cp.form.addrow': { fr: 'Ajouter une ligne', en: 'Add row' },
-      'kb.cp.form.saved': { fr: 'Serveur enregistré. DSH le charge dans quelques secondes.', en: 'Server saved. DSH loads it in a few seconds.' },
+      'kb.cp.form.saved': { fr: 'Serveur enregistré. Kybernos le charge dans quelques secondes.', en: 'Server saved. Kybernos loads it in a few seconds.' },
       'kb.cp.form.saving': { fr: 'Enregistrement…', en: 'Saving…' },
       'kb.cp.refresh': { fr: 'Rafraîchir', en: 'Refresh' },
       'kbui.sort.az': { fr: 'A → z', en: 'A → z' },
@@ -281,20 +281,20 @@ window.__ModuleLoader__.load({
       // ── key panel: what is saved, whether Composio accepts it, whether the agents hold it ──
       'composio.keyset': { fr: 'Clé enregistrée sur cette machine', en: 'Key saved on this machine' },
       'composio.keyunset': { fr: 'Aucune clé enregistrée', en: 'No key saved' },
-      'composio.keyenv': { fr: 'Clé fournie par l’environnement de lancement de DSH (à changer là-bas)', en: 'Key provided by the environment DSH was started with (change it there)' },
+      'composio.keyenv': { fr: 'Clé fournie par l’environnement de lancement de Kybernos (à changer là-bas)', en: 'Key provided by the environment Kybernos was started with (change it there)' },
       'composio.accepted': { fr: 'Composio l’accepte', en: 'Composio accepts it' },
       'composio.rejected': { fr: 'Composio refuse cette clé', en: 'Composio rejects this key' },
       'composio.unchecked': { fr: 'Composio ne répond pas bien : clé non vérifiée', en: 'Composio is not answering well: key not checked' },
       'composio.agentsSame': { fr: 'Les agents du chat l’utilisent', en: 'The chat agents use it' },
-      'composio.agentsLater': { fr: 'Les agents du chat l’utiliseront après un redémarrage de DSH', en: 'The chat agents will use it after DSH restarts' },
-      'composio.hostunknown': { fr: 'État de la clé inconnu : le plugin hôte ne répond pas. S’il vient d’être mis à jour, redémarre DSH.', en: 'Key state unknown: the host plugin does not answer. If it was just updated, restart DSH.' },
-      'kb.cp.hostold': { fr: 'Le plugin hôte tourne encore dans sa version précédente : redémarre DSH pour activer les nouveautés. En attendant, la liste est en lecture seule.', en: 'The host plugin is still running its previous version: restart DSH to activate the changes. Meanwhile the list is read only.' },
+      'composio.agentsLater': { fr: 'Les agents du chat l’utiliseront après un redémarrage de Kybernos', en: 'The chat agents will use it after Kybernos restarts' },
+      'composio.hostunknown': { fr: 'État de la clé inconnu : le plugin hôte ne répond pas. S’il vient d’être mis à jour, redémarre Kybernos.', en: 'Key state unknown: the host plugin does not answer. If it was just updated, restart Kybernos.' },
+      'kb.cp.hostold': { fr: 'Le plugin hôte tourne encore dans sa version précédente : redémarre Kybernos pour activer les nouveautés. En attendant, la liste est en lecture seule.', en: 'The host plugin is still running its previous version: restart Kybernos to activate the changes. Meanwhile the list is read only.' },
       'composio.migrate': { fr: 'Une clé de l’ancienne version est dans ce navigateur. L’enregistrer sur cette machine ?', en: 'A key from the previous version is in this browser. Save it on this machine?' },
       'composio.err.invalid': { fr: 'Une clé Composio commence par ck_ et ne contient pas d’espace.', en: 'A Composio key starts with ck_ and has no spaces.' },
       'composio.err.rejected': { fr: 'Composio a refusé cette clé : elle n’a pas été enregistrée.', en: 'Composio rejected this key: it was not saved.' },
-      'composio.err.inherited': { fr: 'La clé vient de l’environnement de lancement de DSH : change-la là-bas.', en: 'The key comes from the environment DSH was started with: change it there.' },
+      'composio.err.inherited': { fr: 'La clé vient de l’environnement de lancement de Kybernos : change-la là-bas.', en: 'The key comes from the environment Kybernos was started with: change it there.' },
       'composio.err.write': { fr: 'La clé n’a pas pu être enregistrée.', en: 'The key could not be saved.' },
-      'composio.saved': { fr: 'Clé enregistrée. Les agents l’utiliseront après un redémarrage de DSH.', en: 'Key saved. The agents will use it after DSH restarts.' },
+      'composio.saved': { fr: 'Clé enregistrée. Les agents l’utiliseront après un redémarrage de Kybernos.', en: 'Key saved. The agents will use it after Kybernos restarts.' },
       'composio.savedlive': { fr: 'Clé enregistrée.', en: 'Key saved.' },
       'composio.savedunchecked': { fr: 'Clé enregistrée, mais Composio ne répond pas : elle n’a pas pu être vérifiée.', en: 'Key saved, but Composio does not answer: it could not be checked.' },
       // ── the MCP servers tab ──
@@ -316,9 +316,9 @@ window.__ModuleLoader__.load({
       'kb.cp.st.failed': { fr: 'Échec du chargement', en: 'Failed to load' },
       'kb.cp.st.off': { fr: 'Désactivé', en: 'Disabled' },
       'kb.cp.st.notloaded': { fr: 'Pas encore chargé', en: 'Not loaded yet' },
-      'kb.cp.st.stale': { fr: 'Non chargé : redémarre DSH', en: 'Not loaded: restart DSH' },
+      'kb.cp.st.stale': { fr: 'Non chargé : redémarre Kybernos', en: 'Not loaded: restart Kybernos' },
       'kb.cp.st.hint.noTools': { fr: 'Le serveur est configuré mais n’a enregistré aucun outil : il n’a sans doute pas pu démarrer. Teste-le pour voir pourquoi.', en: 'The server is configured but registered no tools: it probably could not start. Test it to see why.' },
-      'kb.cp.st.hint.stale': { fr: 'DSH n’a pas rechargé sa configuration. Redémarre DSH pour que ce serveur soit chargé.', en: 'DSH did not reload its configuration. Restart DSH for this server to load.' },
+      'kb.cp.st.hint.stale': { fr: 'L’appli n’a pas rechargé sa configuration. Redémarre-la pour que ce serveur soit chargé.', en: 'The app did not reload its configuration. Restart it for this server to load.' },
       'kb.cp.act.test': { fr: 'Tester', en: 'Test' },
       'kb.cp.act.edit': { fr: 'Modifier', en: 'Edit' },
       'kb.cp.act.del': { fr: 'Supprimer', en: 'Delete' },
@@ -335,8 +335,8 @@ window.__ModuleLoader__.load({
       'kb.cp.terr.403': { fr: 'Le serveur interdit l’accès (403).', en: 'The server forbids access (403).' },
       'kb.cp.terr.404': { fr: 'Adresse introuvable (404). Vérifie l’URL.', en: 'Address not found (404). Check the URL.' },
       'kb.cp.terr.429': { fr: 'Le serveur limite le débit (429).', en: 'The server is rate limiting (429).' },
-      'kb.cp.terr.oauth': { fr: 'Ce serveur demande une autorisation OAuth, que DSH ne gère pas : seul un en-tête fixe est possible.', en: 'This server asks for OAuth authorization, which DSH does not handle: only a fixed header is possible.' },
-      'kb.cp.terr.sse': { fr: 'Cette adresse est un ancien point d’accès SSE (/sse) que DSH ne lit pas. Cherche l’adresse « HTTP streamable » du serveur : souvent la même avec /mcp à la place.', en: 'This address is an old SSE endpoint (/sse) that DSH does not read. Look for the server’s “streamable HTTP” address: often the same with /mcp instead.' },
+      'kb.cp.terr.oauth': { fr: 'Ce serveur demande une autorisation OAuth, que Kybernos ne gère pas : seul un en-tête fixe est possible.', en: 'This server asks for OAuth authorization, which Kybernos does not handle: only a fixed header is possible.' },
+      'kb.cp.terr.sse': { fr: 'Cette adresse est un ancien point d’accès SSE (/sse) que Kybernos ne lit pas. Cherche l’adresse « HTTP streamable » du serveur : souvent la même avec /mcp à la place.', en: 'This address is an old SSE endpoint (/sse) that Kybernos does not read. Look for the server’s “streamable HTTP” address: often the same with /mcp instead.' },
       'kb.cp.terr.timeout': { fr: 'Pas de réponse à temps.', en: 'No answer in time.' },
       'kb.cp.terr.offline': { fr: 'Serveur injoignable.', en: 'Server unreachable.' },
       'kb.cp.terr.bad-response': { fr: 'La réponse n’est pas du MCP (une page web ? une mauvaise adresse ?).', en: 'The answer is not MCP (a web page? a wrong address?).' },
@@ -349,7 +349,7 @@ window.__ModuleLoader__.load({
       'kb.cp.del.confirm': { fr: 'Supprimer {name} du profil ? Une sauvegarde du profil est gardée. Les secrets que le formulaire a gardés pour lui sont retirés de cette machine s’ils ne servent à rien d’autre.', en: 'Delete {name} from the profile? A backup of the profile is kept. The secrets the form kept for it are removed from this machine unless something else uses them.' },
       'kb.cp.del.go': { fr: 'Supprimer', en: 'Delete' },
       'kb.cp.del.cancel': { fr: 'Annuler', en: 'Cancel' },
-      'kb.cp.del.done': { fr: 'Serveur supprimé. DSH le décharge dans quelques secondes.', en: 'Server deleted. DSH unloads it in a few seconds.' },
+      'kb.cp.del.done': { fr: 'Serveur supprimé. Kybernos le décharge dans quelques secondes.', en: 'Server deleted. Kybernos unloads it in a few seconds.' },
       'kb.cp.err.del': { fr: 'Le serveur n’a pas pu être supprimé', en: 'The server could not be deleted' },
       'kb.cp.err.toggle': { fr: 'Le serveur n’a pas pu être modifié', en: 'The server could not be changed' },
       // ── the form ──
@@ -370,7 +370,7 @@ window.__ModuleLoader__.load({
       'kb.cp.form.noname': { fr: 'Donne un nom au serveur.', en: 'Give the server a name.' },
       'kb.cp.cmd.use': { fr: 'Utiliser {path}', en: 'Use {path}' },
       'kb.cp.cmd.allow': { fr: 'Autoriser {dir} et utiliser {path}', en: 'Allow {dir} and use {path}' },
-      'kb.cp.cmd.explain': { fr: 'Ce dossier n’est pas dans la liste de confiance. DSH lancera ce programme à chaque démarrage : ne confirme que si tu le reconnais.', en: 'This folder is not on the trusted list. DSH will run this program every time it starts: confirm only if you recognise it.' },
+      'kb.cp.cmd.explain': { fr: 'Ce dossier n’est pas dans la liste de confiance. Kybernos lancera ce programme à chaque démarrage : ne confirme que si tu le reconnais.', en: 'This folder is not on the trusted list. Kybernos will run this program every time it starts: confirm only if you recognise it.' },
       'kb.cp.cmd.none': { fr: 'Aucun programme de ce nom n’a été trouvé sur cette machine.', en: 'No program of that name was found on this machine.' },
       // ── pasting JSON ──
       'kb.cp.imp.title': { fr: 'Coller du JSON', en: 'Paste JSON' },
@@ -383,13 +383,13 @@ window.__ModuleLoader__.load({
       'kb.cp.imp.go': { fr: 'Importer la sélection', en: 'Import the selection' },
       'kb.cp.imp.hint': { fr: 'Rien n’est écrit avant « Importer ». Les valeurs secrètes ne repassent jamais à l’écran.', en: 'Nothing is written before "Import". Secret values never come back to the screen.' },
       'kb.cp.imp.exists': { fr: 'Un serveur de ce nom existe déjà : l’importer le remplace.', en: 'A server of that name exists: importing replaces it.' },
-      'kb.cp.imp.sse': { fr: 'Transport SSE : DSH ne gère que HTTP streamable ou une commande locale.', en: 'SSE transport: DSH only handles streamable HTTP or a local command.' },
+      'kb.cp.imp.sse': { fr: 'Transport SSE : Kybernos ne gère que HTTP streamable ou une commande locale.', en: 'SSE transport: Kybernos only handles streamable HTTP or a local command.' },
       'kb.cp.imp.badname': { fr: 'Nom corrigé en « {name} » (minuscules, chiffres et tirets).', en: 'Name changed to "{name}" (lowercase letters, digits and dashes).' },
       'kb.cp.imp.notfound': { fr: '« {cmd} » est introuvable sur cette machine.', en: '"{cmd}" was not found on this machine.' },
       'kb.cp.imp.relative': { fr: '« {cmd} » n’est pas un chemin absolu : {path} est présent sur cette machine.', en: '"{cmd}" is not an absolute path: {path} exists on this machine.' },
       'kb.cp.imp.allow': { fr: 'Autoriser {dir}', en: 'Allow {dir}' },
       'kb.cp.imp.secret': { fr: '{what} : la valeur sera gardée sur cette machine et remplacée par ${name}.', en: '{what}: the value is kept on this machine and replaced by ${name}.' },
-      'kb.cp.imp.done': { fr: '{n} serveur(s) importé(s). DSH les charge dans quelques secondes.', en: '{n} server(s) imported. DSH loads them in a few seconds.' },
+      'kb.cp.imp.done': { fr: '{n} serveur(s) importé(s). Kybernos les charge dans quelques secondes.', en: '{n} server(s) imported. Kybernos loads them in a few seconds.' },
       'kb.cp.imp.failed': { fr: 'Échec pour {name} : {why}', en: 'Failed for {name}: {why}' },
       'kb.cp.imp.none': { fr: 'Rien à importer.', en: 'Nothing to import.' },
       'kb.cp.kc.mode.label': { fr: 'Mode', en: 'Mode' },
@@ -498,7 +498,14 @@ window.__ModuleLoader__.load({
       'kb.cp.kc.err.other': { fr: 'Réponse inattendue du serveur ({code}).', en: 'Unexpected answer from the server ({code}).' },
       // Discover: the known apps get their own section, same cards.
       'kb.cp.needBy': { fr: 'Demandé par {who}', en: 'Needed by {who}' },
-      'kb.cp.needLater': { fr: 'Pas maintenant', en: 'Not now' },
+      'kb.cp.needLater': { fr: 'Pas maintenant (7 jours)', en: 'Not now (7 days)' },
+      'kb.cp.needNever': { fr: 'Ne plus proposer', en: 'Don’t suggest again' },
+      'kb.cp.needConnect': { fr: 'Connecter {app}', en: 'Connect {app}' },
+      'kb.cp.needMore': { fr: '{who} et {n} de plus', en: '{who} and {n} more' },
+      'kb.cp.needLoss.run.1': { fr: 'Si tu refuses, elle reste à l’arrêt.', en: 'If you refuse, it stays stopped.' },
+      'kb.cp.needLoss.run.n': { fr: 'Si tu refuses, elles restent à l’arrêt.', en: 'If you refuse, they stay stopped.' },
+      'kb.cp.needLoss.set.1': { fr: 'Si tu refuses, Kaby ne peut pas la mettre en route.', en: 'If you refuse, Kaby cannot set it up.' },
+      'kb.cp.needLoss.set.n': { fr: 'Si tu refuses, Kaby ne peut pas les mettre en route.', en: 'If you refuse, Kaby cannot set them up.' },
       'kb.cp.needAria': { fr: 'À connecter', en: 'To connect' },
       // Settings › Connectors: which service connects the apps for the agents.
       'kb.cp.pv.lead': { fr: 'Quel service relie tes apps (Gmail, Slack, Notion…) pour tes agents. Un seul à la fois : tes agents voient celui que tu choisis ici.', en: 'Which service connects your apps (Gmail, Slack, Notion…) for your agents. One at a time: your agents see the one you choose here.' },
@@ -798,6 +805,11 @@ window.__ModuleLoader__.load({
       pencil: ['M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z'],
       info: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M12 16v-5', 'M12 8h.01'],
       chev: ['m6 9 6 6 6-6'],
+      // the add menu's rows (Lucide: text-cursor-input, braces, globe, sparkles)
+      form: ['M5 4h1a3 3 0 0 1 3 3 3 3 0 0 1 3-3h1', 'M13 20h-1a3 3 0 0 1-3-3 3 3 0 0 1-3 3H5', 'M5 16H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h1', 'M13 8h7a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-7', 'M9 7v10'],
+      braces: ['M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1', 'M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1'],
+      globe: ['M2 12a10 10 0 1 0 20 0 10 10 0 1 0-20 0', 'M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20', 'M2 12h20'],
+      sparkles: ['M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z', 'M20 3v4', 'M22 5h-4', 'M4 17v2', 'M5 18H3'],
     }
     // ── Kybernos connections: the second mode of "Yours" (ADR 0008 of the Kybernos server) ──────────────────────
     // The person's apps, linked once to their Kybernos account through the server's own Composio project: every agent
@@ -835,6 +847,59 @@ window.__ModuleLoader__.load({
     /** What Settings › Connectors shows as selected: what was chosen, else the default of kbCpModeEffective. Pure. */
     const kbCpProviderEffective = (chosen, offered, keyConfigured) => (chosen === 'composio' || chosen === 'kybernos' ? chosen : kbCpModeEffective(null, offered, keyConfigured) === 'kybernos' ? 'kybernos' : 'composio')
     const kbCpModeSet = (m) => { try { localStorage.setItem(KB_CP_MODE, m === 'kybernos' ? 'kybernos' : 'personal') } catch (e) { /* a convenience only */ } }
+    // ── The last list of « Yours », kept in this browser ─────────────────────────────────────────────────────────
+    // The page used to open on an empty list and fill it two seconds later (the host and the cloud half had to answer first). It now opens on what it saw
+    // last time, draws that at once and refreshes behind it; only a first visit (nothing kept) shows skeleton cards. What is kept is a convenience, never
+    // an authority: it is cleaned on the way in and every answer of the host or the cloud half replaces it.
+    const KB_CP_YOURS = 'kbcp.yours.v1'
+    /** A kept snapshot as the page may use it, or null. Anything unexpected is dropped, never drawn. Pure. */
+    const kbCpYoursClean = (raw) => {
+      if (raw === null || raw === undefined || typeof raw !== 'object' || raw.v !== 1) return null
+      const conns = {}
+      const src = raw.conns !== null && typeof raw.conns === 'object' ? raw.conns : {}
+      for (const slug of Object.keys(src)) {
+        const c = src[slug]
+        if (c === null || typeof c !== 'object' || Array.isArray(c.accounts) !== true) continue
+        conns[slug] = { status: String(c.status || ''), accounts: c.accounts.filter((a) => a !== null && typeof a === 'object').map((a) => ({ id: String(a.id || ''), label: String(a.label || ''), status: String(a.status || '') })) }
+      }
+      let kc = null
+      const k = raw.kc
+      if (k !== null && k !== undefined && typeof k === 'object') {
+        if (k.offered === false) kc = { offered: false }
+        else if (k.offered === true && Array.isArray(k.connections) === true) {
+          const list = k.connections.filter((c) => c !== null && typeof c === 'object' && typeof c.id === 'string')
+          kc = { offered: true, connected: k.connected !== false, connections: list, limit: Number.isFinite(k.limit) ? k.limit : null, entitled: typeof k.entitled === 'boolean' ? k.entitled : null, web: typeof k.web === 'string' && k.web.length > 0 ? k.web : null, count: Number.isFinite(k.count) ? Math.max(k.count, list.length) : list.length, stale: false, error: null, details: {} }
+        }
+      }
+      const rows = (Array.isArray(raw.rows) ? raw.rows : []).filter((r) => r !== null && typeof r === 'object' && typeof r.s === 'string' && r.s.length > 0)
+        .map((r) => ({ s: r.s, n: String(r.n || r.s), c: Array.isArray(r.c) ? r.c.filter((x) => typeof x === 'string') : [], d: typeof r.d === 'string' ? r.d : '' }))
+      return { conns: conns, hostCfg: typeof raw.hostCfg === 'boolean' ? raw.hostCfg : null, kc: kc, rows: rows }
+    }
+    /** What to keep: the connections, whether the host holds a key, the Kybernos view, and the catalogue rows of the connected apps (their names). Pure. */
+    const kbCpYoursSnap = (apps, conns, hostCfg, kc) => {
+      const want = new Set(Object.keys(conns).filter((s) => ((conns[s] || {}).accounts || []).length > 0))
+      if (kc !== null && kc.offered === true) for (const c of kc.connections) if (typeof c.toolkit === 'string') want.add(c.toolkit)
+      const rows = []
+      for (const a of apps) if (a !== null && typeof a === 'object' && want.has(a.s) === true) rows.push({ s: a.s, n: a.n, c: Array.isArray(a.c) ? a.c : [], d: typeof a.d === 'string' ? a.d : '' })
+      return { v: 1, conns: conns, hostCfg: hostCfg, kc: kc, rows: rows }
+    }
+    /** The catalogue rows with the kept ones added behind them (the kept ones only fill what the catalogue does not hold yet). Pure. */
+    const kbCpYoursApps = (list, kept) => {
+      if (kept === null || kept === undefined || kept.rows.length === 0) return list
+      const have = new Set(list.map((a) => a.s))
+      const extra = kept.rows.filter((r) => have.has(r.s) !== true)
+      return extra.length === 0 ? list : list.concat(extra)
+    }
+    const kbCpYoursRead = () => { try { return kbCpYoursClean(JSON.parse(localStorage.getItem(KB_CP_YOURS) || 'null')) } catch (e) { return null } }
+    const kbCpYoursWrite = (snap) => { try { localStorage.setItem(KB_CP_YOURS, JSON.stringify(snap)) } catch (e) { /* a convenience only */ } }
+    /** Whether « Yours » holds anything: an app with an account on the person's own key, or a connection of the Kybernos account. Pure. */
+    const kbCpYoursHas = (conns, kc) => {
+      const own = Object.keys(conns || {}).some((s) => ((conns[s] || {}).accounts || []).length > 0)
+      const cloud = kc !== null && kc !== undefined && kc.offered === true && Number.isFinite(kc.count) && kc.count > 0
+      return own === true || cloud === true
+    }
+    /** The sub-tab the page opens on (list item 26): Discover first, but « Yours » when it already holds something. Pure. */
+    const kbCpFirstTab = (hasYours) => (hasYours === true ? 'yours' : 'discover')
     /**
      * What GET /kybernos-cloud/connections says, as the page uses it. null when the cloud half does not answer in that shape
      * (an older host, or no cloud plugin): the mode is hidden. `connected` false means « sign in first ».
@@ -872,22 +937,54 @@ window.__ModuleLoader__.load({
     }
     // ── The apps the person's automations ask for ───────────────────────────────────────────────────────────────────────────
     // The Automations page and the menu publish what the suggestions and the switched-on automations need (`window.__KB_MENU_STATE__`, key `tasks`,
-    // `needs: { slug: [names] }`). This watcher, which lives outside the page, reads which of those apps are connected (the person's own key and the
-    // Kybernos connections both count) and publishes the rest as `connectors: { need, slugs, by }`: a pulse and a number on the menu row, and the apps the
-    // page puts first. « Not now » on an app silences its pulse (this browser only); the page still lists it.
+    // `needs: { slug: [names] }`, and `needsKind: { slug: 'run' | 'set' }`). This watcher, which lives outside the page, reads which of those apps are connected
+    // (the person's own key and the Kybernos connections both count) and publishes the rest as `connectors: { need, slugs, by, refused }`: a pulse and a number
+    // on the menu row, and the apps the page puts first. A refusal is real (list item 03): « Not now » hides the app for 7 days, « Don't suggest again » for good,
+    // and neither the card nor the pulse comes back meanwhile. It is kept on this device first (an account-side copy is a later step).
     const KB_CP_NEED_OFF = 'kybernos.composio.needDismissed'
+    const KB_CP_NEED_LATER_MS = 7 * 24 * 3600 * 1000
     const kbCpMenuStore = () => { try { const st = window.__KB_MENU_STATE__; return st !== undefined && st !== null && typeof st.get === 'function' ? st : null } catch (e) { return null } }
     const kbCpNeeds = () => { const st = kbCpMenuStore(); const v = st === null ? null : st.get('tasks'); return v !== null && v !== undefined && v.needs !== null && typeof v.needs === 'object' ? v.needs : {} }
-    const kbCpNeedOff = () => { try { const a = JSON.parse(localStorage.getItem(KB_CP_NEED_OFF) || '[]'); return Array.isArray(a) ? a.filter((x) => typeof x === 'string') : [] } catch (e) { return [] } }
+    const kbCpNeedKinds = () => { const st = kbCpMenuStore(); const v = st === null ? null : st.get('tasks'); return v !== null && v !== undefined && v.needsKind !== null && typeof v.needsKind === 'object' ? v.needsKind : {} }
+    /** What was refused, as { slug: until } (until: a time in ms, or 'never'), expired ones dropped. The old format, a list of slugs (« Not now » then, which only quieted the pulse), becomes 7 days from now. Pure. */
+    const kbCpNeedOffMap = (raw, now) => {
+      const out = {}
+      if (Array.isArray(raw)) { for (const sl of raw) if (typeof sl === 'string' && sl !== '') out[sl] = now + KB_CP_NEED_LATER_MS; return out }
+      if (raw !== null && typeof raw === 'object') for (const sl of Object.keys(raw)) { const u = raw[sl]; if (u === 'never' || (Number.isFinite(u) === true && u > now)) out[sl] = u }
+      return out
+    }
+    const kbCpNeedOffWrite = (map) => { try { localStorage.setItem(KB_CP_NEED_OFF, JSON.stringify(map)) } catch (e) { /* a convenience only */ } }
+    const kbCpNeedOff = () => {
+      let raw = null
+      try { raw = JSON.parse(localStorage.getItem(KB_CP_NEED_OFF) || 'null') } catch (e) { raw = null }
+      const map = kbCpNeedOffMap(raw, Date.now())
+      if (Array.isArray(raw) === true) kbCpNeedOffWrite(map)
+      return map
+    }
     let kbCpActiveSet = null
-    /** What the watcher publishes, from what is wanted, what is known connected and what the person silenced. Pure. */
+    /** What the watcher publishes, from what is wanted, what is known connected and what the person refused (a list of slugs). Pure. */
     const kbCpNeedView = (needs, active, off) => {
       const wanted = Object.keys(needs !== null && typeof needs === 'object' ? needs : {})
       const pending = wanted.filter((sl) => active === null || active.has(sl) !== true)
-      return { need: pending.filter((sl) => (off || []).indexOf(sl) < 0).length, slugs: pending, by: needs }
+      const refused = pending.filter((sl) => (off || []).indexOf(sl) >= 0)
+      const slugs = pending.filter((sl) => refused.indexOf(sl) < 0)
+      return { need: slugs.length, slugs: slugs, by: needs, refused: refused }
     }
-    const kbCpNeedPublish = () => { const st = kbCpMenuStore(); if (st !== null) st.set('connectors', kbCpNeedView(kbCpNeeds(), kbCpActiveSet, kbCpNeedOff())) }
-    const kbCpNeedDismiss = (slug) => { try { const a = kbCpNeedOff(); if (a.indexOf(slug) < 0) a.push(slug); localStorage.setItem(KB_CP_NEED_OFF, JSON.stringify(a.slice(-50))) } catch (e) { /* a convenience only */ } kbCpNeedPublish() }
+    /** The names that ask for an app, shortened to two and a count, so the line fits a phone card. Pure. */
+    const kbCpNeedWho = (names, t) => {
+      const list = (Array.isArray(names) ? names : []).filter((x) => typeof x === 'string' && x !== '')
+      return list.length <= 2 ? list.join(', ') : t('kb.cp.needMore').replace('{who}', list.slice(0, 2).join(', ')).replace('{n}', String(list.length - 2))
+    }
+    /** What a refusal costs, as the key of the sentence: automations that are on stay stopped, suggestions cannot be set up. Pure. */
+    const kbCpNeedLossKey = (kind, count) => 'kb.cp.needLoss.' + (kind === 'run' ? 'run' : 'set') + (count > 1 ? '.n' : '.1')
+    const kbCpNeedPublish = () => { const st = kbCpMenuStore(); if (st !== null) st.set('connectors', kbCpNeedView(kbCpNeeds(), kbCpActiveSet, Object.keys(kbCpNeedOff()))) }
+    /** The refusal of an app: how = 'later' (7 days) or 'never'. Remembered on this device, then the card and the pulse go at once. */
+    const kbCpNeedDismiss = (slug, how) => {
+      const map = kbCpNeedOff()
+      map[slug] = how === 'never' ? 'never' : Date.now() + KB_CP_NEED_LATER_MS
+      kbCpNeedOffWrite(map)
+      kbCpNeedPublish()
+    }
     const kbCpNeedRead = async () => {
       const wanted = Object.keys(kbCpNeeds())
       if (wanted.length === 0) { kbCpActiveSet = new Set(); kbCpNeedPublish(); return }
@@ -1186,7 +1283,9 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
 /* ── MCP servers tab: list rows whose actions appear on hover, add menu, JSON import ── */
 .kbcp-addwrap{position:relative;display:inline-flex;flex:none}
 .kbcp-menu{position:absolute;right:0;top:calc(100% + 6px);min-width:260px;background:var(--dsw-alias-bg-layer-2,#232324);border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.35));border-radius:12px;padding:6px;z-index:30;box-shadow:0 12px 32px rgba(0,0,0,.35)}
-.kbcp-menu button{display:flex;flex-direction:column;align-items:flex-start;width:100%;gap:1px;padding:8px 10px;border:0;background:transparent;color:inherit;border-radius:8px;text-align:left;cursor:pointer;font:inherit;font-size:13px}
+.kbcp-menu button{display:flex;align-items:flex-start;width:100%;gap:10px;padding:8px 10px;border:0;background:transparent;color:inherit;border-radius:8px;text-align:left;cursor:pointer;font:inherit;font-size:13px}
+.kbcp-menu button>svg{flex:none;margin-top:2px}
+.kbcp-mtxt{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;flex:1 1 auto}
 .kbcp-menu button:hover{background:rgba(128,128,128,.16)}
 .kbcp-menu small{opacity:.6;font-size:11.5px}
 .kbcp-mlist{display:flex;flex-direction:column;gap:10px;max-width:1180px}
@@ -1346,11 +1445,23 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
 .kb7-pill.pop{color:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}
 /* « For your field »: the field's colour (--kb7-fld, set from the pack) is the dot and the goal tag's outline; the rest is the page's own. */
 .kb7-fdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--kb7-fld);flex:none;margin-inline-end:6px}
-.kbcp-needgrid .kb7-card{border-style:dashed;border-color:color-mix(in srgb,var(--dsw-alias-brand-primary) 55%,var(--dsw-alias-border-l1));background:color-mix(in srgb,var(--dsw-alias-brand-primary) 4%,var(--dsw-alias-bg-layer-1))}
-.kbcp-needwrap{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0}
-.kbcp-needlater{align-self:flex-start;font-size:12px;opacity:.8}
-.kbcp-needtag{display:inline-flex;align-items:center;gap:2px}
-.kbcp-needtag .kb-ping{margin:0 8px 0 2px}
+/* The proposal card of a connection: the app, then why (who asks), what a refusal costs, and the three answers. One dashed frame around all of it. */
+.kbcp-needwrap{position:relative;display:flex;flex-direction:column;gap:0;min-width:0;border:1px dashed color-mix(in srgb,var(--dsw-alias-brand-primary) 55%,var(--dsw-alias-border-l1));border-radius:14px;background:color-mix(in srgb,var(--dsw-alias-brand-primary) 4%,var(--dsw-alias-bg-layer-1))}
+.kbcp-needwrap .kb7-card,.kbcp-needwrap .kb7-row{border-color:transparent;background:transparent}
+/* The card's own footer (connected / popular pills) has nothing to say about an app that is not connected yet: it only left a blank band between the description and the why. */
+.kbcp-needwrap .kb7-foot{display:none}
+.kbcp-needwhy{display:flex;flex-direction:column;gap:6px;min-width:0;padding:2px 14px 12px}
+.kbcp-needby{display:flex;align-items:flex-start;gap:0;min-width:0;font-size:13px;line-height:18px;font-weight:600;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.kbcp-needby .kb-ping{margin:6px 8px 0 2px;flex:none}
+.kbcp-needloss{font-size:12.5px;line-height:18px;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}
+.kbcp-needacts{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.kbcp-needacts .kbcp-btn{min-height:36px;max-width:100%;overflow-wrap:anywhere}
+.kbcp-needgo{font-weight:600}
+.kbcp-needlater{font-size:12.5px;opacity:.9}
+.kbcp-needtag{display:inline-flex;align-items:center;gap:2px;min-width:0;max-width:100%}
+.kbcp-needtag .kb-ping{margin:0 8px 0 2px;flex:none}
+.kbcp-needtxt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kb7-card .kb7-pill.fld,.kb7-row .kb7-pill.fld{max-width:100%;min-width:0}
 .kb7-card .kb7-pill.fld,.kb7-row .kb7-pill.fld{background:transparent;color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l1);font-weight:500}
 .kb7-emptyart{display:flex;align-items:center;justify-content:center;color:var(--dsw-alias-label-tertiary,#8a8f98);padding-bottom:2px}
 /* ── Settings page (Settings ▸ Connectors): same card language as the skills page ── */
@@ -2379,7 +2490,11 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       const setQFb = p1[1]
       const chipFb = p2[0]
       const setChipFb = p2[1]
-      const p3 = React.useState({})
+      // What was seen last time, read once: drawn at once, refreshed behind (kbCpYoursRead); null on a first visit.
+      const keptRef = React.useRef(undefined)
+      if (keptRef.current === undefined) keptRef.current = kbCpYoursRead()
+      const kept = keptRef.current
+      const p3 = React.useState(kept !== null ? kept.conns : {})
       const conns = p3[0]
       const setConns = p3[1]
       const p4 = React.useState(false)
@@ -2394,7 +2509,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       const p8 = React.useState(1)
       const page = p8[0]
       const setPage = p8[1]
-      const p9 = React.useState(CATALOG)
+      const p9 = React.useState(() => kbCpYoursApps(CATALOG, kept))
       const apps = p9[0]
       const setApps = p9[1]
       const p9b = React.useState(CATALOG.length > 0)
@@ -2417,16 +2532,20 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       const p14 = React.useState(null)
       const cxNote = p14[0]
       const setCxNote = p14[1]
-      // (29/09) Current sub-tab: "yours" (Yours) by default,
-      // "discover" (Discover) for the catalog.
-      const p15 = React.useState('yours')
+      // (29/09) Current sub-tab: "discover" (the catalog) or "yours" (what is connected), see below.
+      // Discover comes first (list item 26); « Yours » opens by default only when it holds something (the kept list tells at once,
+      // the answers of the host and the cloud half confirm it a moment later, once, unless the person already chose a tab).
+      const p15 = React.useState(kbCpFirstTab(kept !== null && kbCpYoursHas(kept.conns, kept.kc)))
       const vtab = p15[0]
+      const tabPicked = React.useRef(false)
       // The page follows what the watcher publishes (an app got connected, a suggestion needs one).
       const needBump = React.useState(0)[1]
       React.useEffect(() => { const st = kbCpMenuStore(); return st === null ? undefined : st.subscribe(() => needBump((n) => n + 1)) }, [])
-      const setVtab = p15[1]
+      const setVtabRaw = p15[1]
+      /** Any move to a tab, a click or an action of the page, is the person's choice: the automatic opening on « Yours » then stops. */
+      const setVtab = (t) => { tabPicked.current = true; setVtabRaw(t) }
       // Whether the host has a Composio key: null until it has answered, so the "add your key" banner never flashes.
-      const p17 = React.useState(null)
+      const p17 = React.useState(kept !== null ? kept.hostCfg : null)
       const hostCfg = p17[0]
       const setHostCfg = p17[1]
       // The MCP servers tab: what the host said about the list, the add menu, the JSON window, and the servers saved a moment ago.
@@ -2441,7 +2560,12 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       const [recent, setRecent] = React.useState({})
       // Kybernos connections, the second mode of "Yours": null until the cloud half has answered, { offered: false } when this server
       // (or an older cloud half on this machine) does not offer it, and then the mode is not shown at all.
-      const [kc, setKc] = React.useState(null)
+      const [kc, setKc] = React.useState(kept !== null ? kept.kc : null)
+      // True once the connections were read (or a kept list is on screen); until then a first visit shows skeleton cards, not an empty list. `waited`: the answers
+      // are slow, so stop pretending and say what is known.
+      const [connsLoaded, setConnsLoaded] = React.useState(kept !== null)
+      const [waited, setWaited] = React.useState(false)
+      React.useEffect(() => { const t = setTimeout(() => setWaited(true), 6000); return () => clearTimeout(t) }, [])
       const [mode, setModeState] = React.useState(kbCpModeGet())
       // The field of work the person chose (`window.__KB_DOMAIN__`, published by kybernos-plugin): its apps open Discover and its word for this page
       // is the title. A change of the saved field redraws the page; without the seam nothing changes.
@@ -2463,6 +2587,11 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
         return view
       }, [])
       React.useEffect(() => { reloadKc(false) }, [reloadKc])
+      // Keep the list for the next visit (only once there is something real to keep: a list that was read or a kept one, and the cloud half's answer).
+      React.useEffect(() => {
+        if (connsLoaded !== true || kc === null) return
+        kbCpYoursWrite(kbCpYoursSnap(apps, conns, hostCfg, kc))
+      }, [connsLoaded, conns, hostCfg, kc, apps])
       const patchKc = React.useCallback((conn) => setKc((prev) => (prev === null || prev.offered !== true ? prev : Object.assign({}, prev, { connections: prev.connections.map((c) => (c.id === conn.id ? conn : c)) }))), [])
       // The choice also reaches the host (Settings › Connectors reads it, and kybernos-cloud stops offering its tools when Composio is chosen).
       const setMode = (m) => { setModeState(m); kbCpModeSet(m); kbCpHost('/provider', 'POST', { provider: m === 'kybernos' ? 'kybernos' : 'composio' }).catch(() => { /* a convenience: the page keeps its own state */ }) }
@@ -2514,7 +2643,8 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
             }
           } catch (e) {
             setErr(kbt('kb.cp.err.catalog') + ': ' + String((e && e.message) || e))
-            setConns({})
+            // What is on screen (the kept list) stays: a failed read is not « nothing connected ».
+            setConnsLoaded(true)
             return null
           }
         }
@@ -2546,8 +2676,10 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
             }
           }
         }
-        setConns(acc)
-        setHostCfg(configured)
+        // A failed read that brought nothing keeps the list already on screen (the kept one): an error is not « nothing connected ».
+        setConns((prev) => (failure !== null && Object.keys(acc).length === 0 ? prev : acc))
+        setHostCfg((prev) => (configured === null ? prev : configured))
+        setConnsLoaded(true)
         if (failure !== null) setErr(kbCpErrText(failure))
         setBusy(false)
         return configured
@@ -2558,7 +2690,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
         kbCpCatalog().then((list) => {
           if (alive === false) return
           setReady(true)
-          setApps((prev) => (prev.length > list.length ? prev : list))
+          setApps((prev) => (prev.length > list.length ? prev : kbCpYoursApps(list, { rows: prev.filter((a) => (a.n !== undefined && CAT_BY_SLUG[a.s] === undefined)) })))
           // The whole server catalogue, for everyone (no sign-in needed to look); then, for someone with a key of their own, which of those apps are connected.
           Promise.all([refresh(list), loadAll(true)]).then((res) => { if (alive === true && res[0] === true && res[1] !== null) refresh(res[1]) })
         }).catch((e2) => { if (alive === true) { setReady(true); setErr(kbt('kb.cp.err.catalog') + ': ' + String((e2 && e2.message) || e2)) } })
@@ -2667,6 +2799,8 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       const effMode = kbCpModeEffective(mode, kc !== null && kc.offered === true, hostCfg)
       const kcMode = effMode === 'kybernos'
       const kcReady = kc !== null && kc.offered === true && kc.connected === true
+      // « Yours » says « nothing connected » only once the host and the cloud half have both answered (or the answers are late); before that, a first visit shows skeleton cards.
+      const yoursReady = (connsLoaded === true && kc !== null) || waited === true
       // In that mode the cards show the account's connections (the Kybernos ones), not the ones of a key that may not exist here.
       const kcAccs = {}
       if (kcMode === true && kcReady === true) for (const c of kc.connections) (kcAccs[c.toolkit] = kcAccs[c.toolkit] || []).push({ id: c.id, label: String(c.alias || (c.accountType === 'api_key' ? kbt('kb.cp.kc.type.api_key') : 'OAuth')), status: c.status === 'active' ? 'ACTIVE' : 'PENDING' })
@@ -2731,7 +2865,9 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       try { fieldInfo = fieldSeam !== null ? fieldSeam.field() : null; fieldWant = fieldInfo !== null ? fieldSeam.connectors() : [] } catch (e) { fieldInfo = null; fieldWant = [] }
       // The apps the automations need and that are not connected come first, then the field's, then the popular ones: one list, no section titles.
       const needView = (() => { const st = kbCpMenuStore(); const v = st === null ? null : st.get('connectors'); return v !== null && v !== undefined && Array.isArray(v.slugs) ? v : { need: 0, slugs: [], by: {} } })()
-      const needTag = (sl) => h('span', { className: 'kbcp-needtag' }, h('i', { className: 'kb-ping', 'aria-hidden': 'true' }), kbt('kb.cp.needBy').replace('{who}', ((needView.by || {})[sl] || []).join(', ')))
+      const needBy = (sl) => kbt('kb.cp.needBy').replace('{who}', kbCpNeedWho((needView.by || {})[sl], kbt))
+      const needTag = (sl) => h('span', { className: 'kbcp-needtag' }, h('i', { className: 'kb-ping', 'aria-hidden': 'true' }), h('span', { className: 'kbcp-needtxt' }, needBy(sl)))
+      const needLoss = (sl) => kbt(kbCpNeedLossKey(((kbCpMenuStore() !== null ? kbCpNeedKinds() : {})[sl]), ((needView.by || {})[sl] || []).length))
       const needApps = needView.slugs.map((sl) => apps.find((a) => a.s === sl)).filter((a) => a !== undefined)
       const fieldList = popSplit ? fieldWant.map((w) => ({ a: list.find((a) => a.s === w.app), goal: w.goal })).filter((x) => x.a !== undefined && needView.slugs.indexOf(x.a.s) < 0) : []
       const inField = (sl) => fieldList.some((x) => x.a.s === sl)
@@ -2742,6 +2878,8 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       const cur = Math.min(page, pages)
       const shown = mainList.slice((cur - 1) * PAGE, cur * PAGE)
       const totalConn = Object.values(conns).reduce((n, v) => n + ((v && v.accounts) ? v.accounts.length : 0), 0)
+      const yoursHas = kbCpYoursHas(conns, kc)
+      React.useEffect(() => { if (tabPicked.current !== true && yoursReady === true && yoursHas === true) setVtabRaw((t) => (t === 'discover' ? 'yours' : t)) }, [yoursReady, yoursHas])
 
       const openApp = (a) => setOpen(a)
       const closeApp = () => setOpen(null)
@@ -2893,13 +3031,13 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       const addWrap = h('div', { className: 'kbcp-addwrap' },
               h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'connector-create', 'aria-haspopup': 'menu', 'aria-expanded': menuOpen ? 'true' : 'false', style: { flex: 'none', height: 38, padding: '0 14px', fontSize: 13, borderRadius: 10 }, disabled: hostOld, onClick: () => setMenuOpen(!menuOpen) }, Icon('plus', 16), kbt('kb.cp.add'), Icon('chev', 14)),
               menuOpen ? h('div', { className: 'kbcp-menu', role: 'menu' },
-                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-form', onClick: () => { setMenuOpen(false); setCxForm({ initial: null }) } }, kbt('kb.cp.add.form'), h('small', null, kbt('kb.cp.add.formhint'))),
-                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-json', onClick: () => { setMenuOpen(false); setImportOpen(true) } }, kbt('kb.cp.add.json'), h('small', null, kbt('kb.cp.add.jsonhint'))),
+                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-form', onClick: () => { setMenuOpen(false); setCxForm({ initial: null }) } }, Icon('form', 16), h('span', { className: 'kbcp-mtxt' }, kbt('kb.cp.add.form'), h('small', null, kbt('kb.cp.add.formhint')))),
+                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-json', onClick: () => { setMenuOpen(false); setImportOpen(true) } }, Icon('braces', 16), h('span', { className: 'kbcp-mtxt' }, kbt('kb.cp.add.json'), h('small', null, kbt('kb.cp.add.jsonhint')))),
                 h('hr', null),
-                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-api', onClick: () => { setMenuOpen(false); setApiOpen(true) } },
-                  h('span', { style: { display: 'flex', width: '100%', alignItems: 'center', gap: 8 } }, kbt('kb.cp.add.api'), h('span', { className: 'kbcp-new' }, kbt('kb.cp.add.new'))), h('small', null, kbt('kb.cp.add.apihint'))),
-                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-ai', onClick: () => { setMenuOpen(false); setAiOpen(true) } },
-                  h('span', { style: { display: 'flex', width: '100%', alignItems: 'center', gap: 8 } }, kbt('kb.cp.add.ai'), h('span', { className: 'kbcp-new' }, kbt('kb.cp.add.new'))), h('small', null, kbt('kb.cp.add.aihint')))) : null)
+                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-api', onClick: () => { setMenuOpen(false); setApiOpen(true) } }, Icon('globe', 16),
+                  h('span', { className: 'kbcp-mtxt' }, h('span', { style: { display: 'flex', width: '100%', alignItems: 'center', gap: 8 } }, kbt('kb.cp.add.api'), h('span', { className: 'kbcp-new' }, kbt('kb.cp.add.new'))), h('small', null, kbt('kb.cp.add.apihint')))),
+                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-ai', onClick: () => { setMenuOpen(false); setAiOpen(true) } }, Icon('sparkles', 16),
+                  h('span', { className: 'kbcp-mtxt' }, h('span', { style: { display: 'flex', width: '100%', alignItems: 'center', gap: 8 } }, kbt('kb.cp.add.ai'), h('span', { className: 'kbcp-new' }, kbt('kb.cp.add.new'))), h('small', null, kbt('kb.cp.add.aihint'))))) : null)
       // No items on the tab: no bar (the template), and the action alone keeps its place.
       const barShown = vtab === 'mcp' ? cx.length + apis.length > 0 : (vtab === 'discover' ? apps.length > 0 : (kcMode ? kc.connections.length > 0 : yoursPool.length > 0))
       // The animated help of the page (the Suite publishes window.__KB_HELP__.Intro): it opens the first time the page is visited, and the card
@@ -2950,10 +3088,10 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
         // and same position as the other pages, the content varies by tab.
         h('div', { className: 'kb7-ctlrow' },
           h('div', { className: 'kb7-subtabs', role: 'tablist' },
-            h('button', { type: 'button', role: 'tab', 'aria-selected': vtab === 'yours' ? 'true' : 'false', className: 'kb7-subtab' + (vtab === 'yours' ? ' on' : ''), 'data-kb': 'subtab-yours', onClick: () => setVtab('yours') },
-              kbt('kb.cp.tab.yours'), (kcMode ? kc.count : totalConn) > 0 ? h('span', { className: 'kb7-cxcount' }, String(kcMode ? kc.count : totalConn)) : null),
             h('button', { type: 'button', role: 'tab', 'aria-selected': vtab === 'discover' ? 'true' : 'false', className: 'kb7-subtab' + (vtab === 'discover' ? ' on' : ''), 'data-kb': 'subtab-discover', onClick: () => setVtab('discover') },
               kbt('kb.cp.tab.discover'), apps.length > 0 ? h('span', { className: 'kb7-cxcount' }, String(apps.length)) : null),
+            h('button', { type: 'button', role: 'tab', 'aria-selected': vtab === 'yours' ? 'true' : 'false', className: 'kb7-subtab' + (vtab === 'yours' ? ' on' : ''), 'data-kb': 'subtab-yours', onClick: () => setVtab('yours') },
+              kbt('kb.cp.tab.yours'), (kcMode ? kc.count : totalConn) > 0 ? h('span', { className: 'kb7-cxcount' }, String(kcMode ? kc.count : totalConn)) : null),
             h('button', { type: 'button', role: 'tab', 'aria-selected': vtab === 'mcp' ? 'true' : 'false', className: 'kb7-subtab' + (vtab === 'mcp' ? ' on' : ''), 'data-kb': 'subtab-mcp', onClick: () => setVtab('mcp') },
               kbt('kb.cp.tab.mcp'), cx.length + apis.length > 0 ? h('span', { className: 'kb7-cxcount' }, String(cx.length + apis.length)) : null)),
           // Refresh and « load the full catalog » belong to Discover: on the tabs' row, so the bar stays the same on every tab.
@@ -2963,7 +3101,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
             apps.length <= CATALOG.length && fullTried === true ? h('button', { type: 'button', className: 'kbcp-btn kb7-more', disabled: loadingAll, onClick: reloadAll }, loadingAll ? kbt('kb.cp.loading') : kbt('kb.cp.loadall')) : null) : null),
         // (01/10) The status banners go UNDER the control row: their
         // appearance no longer moves the title or the row (tab parity).
-        (vtab === 'yours' && kcMode === false && ready === true && hostCfg === false && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-nokey' }, Icon('key', 15), kbt('kb.cp.nokey')) : null,
+        (vtab === 'yours' && kcMode === false && ready === true && yoursReady === true && hostCfg === false && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-nokey' }, Icon('key', 15), kbt('kb.cp.nokey')) : null,
         err !== null && (vtab !== 'yours' || kcMode === false) ? h('div', { className: 'kbcp-err', role: 'alert' }, err) : null,
         // ── Tes connexions ──────────────────────────────────────────────────
         vtab === 'yours' ? h('div', { className: 'kb7-panel' },
@@ -2974,10 +3112,17 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
             h('span', { className: 'kbcp-help2' }, kbt(kcMode ? 'kb.cp.kc.mode.hint.kybernos' : 'kb.cp.kc.mode.hint.personal'))) : null,
           // The apps the automations ask for and that are not connected come first, in dashed cards that pulse: connecting them is the next step.
           needApps.length > 0 ? h('div', { className: gridCls + ' kbcp-needgrid', 'data-kb': 'yours-need' },
-            needApps.map((a) => h('div', { key: 'nd-' + a.s, className: 'kbcp-needwrap' }, appItem(a, true, needTag(a.s)),
-              h('button', { type: 'button', className: 'kbcp-btn kbcp-needlater', 'data-kb': 'need-later', onClick: () => kbCpNeedDismiss(a.s) }, kbt('kb.cp.needLater'))))) : null,
+            needApps.map((a) => h('div', { key: 'nd-' + a.s, className: 'kbcp-needwrap', 'data-kb': 'need-card', 'data-app': a.s },
+              appItem(a, true),
+              h('div', { className: 'kbcp-needwhy' },
+                h('div', { className: 'kbcp-needby', 'data-kb': 'need-by' }, h('i', { className: 'kb-ping', 'aria-hidden': 'true' }), h('span', null, needBy(a.s))),
+                h('div', { className: 'kbcp-needloss', 'data-kb': 'need-loss' }, needLoss(a.s)),
+                h('div', { className: 'kbcp-needacts' },
+                  h('button', { type: 'button', className: 'kbcp-btn primary kbcp-needgo', 'data-kb': 'need-connect', onClick: () => openApp(a) }, kbt('kb.cp.needConnect').replace('{app}', a.n)),
+                  h('button', { type: 'button', className: 'kbcp-btn kbcp-needlater', 'data-kb': 'need-later', onClick: () => kbCpNeedDismiss(a.s, 'later') }, kbt('kb.cp.needLater')),
+                  h('button', { type: 'button', className: 'kbcp-btn kbcp-needlater', 'data-kb': 'need-never', onClick: () => kbCpNeedDismiss(a.s, 'never') }, kbt('kb.cp.needNever'))))))) : null,
           kcMode ? h(KybernosPanel, { kc: kc, reload: reloadKc, patch: patchKc, flash: flash, note: cxNote, query: qn }) : yoursList.length === 0
-            ? (ready === true ? h('div', { className: 'kb7-emptybox' },
+            ? (ready === true && yoursReady === true ? h('div', { className: 'kb7-emptybox' },
                 // Mini illustration (plain inline SVG, no image) when NOTHING is
                 // connected yet: a plug, plus the existing sentence and the
                 // "browse the catalog" action.
@@ -3527,7 +3672,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       // exposed for the Resources tab of the kybernos bundle; the pure parts (webUrl, carteHtml,
       // carteAccepter, errText, hostState) and the MCP timeout are exposed so test-client.mjs can
       // reach them without a DOM.
-      composio: { needView: kbCpNeedView, modeEffective: kbCpModeEffective, providerEffective: kbCpProviderEffective, cloudView: kbCpCloudView, cloudMerge: kbCpCloudMerge, cloudErr: kbCpCloudErr, connState: kbCpConnState, connActions: kbCpConnActions, failedText: kbCpFailedText, appsMatch: kbCpAppsMatch, fullRows: kbCpFullRows, topCats: kbCpTopCats, logoUrl: kbCpLogoUrl, modeGet: kbCpModeGet, modeSet: kbCpModeSet, page: ComposioPage, settingsPage: ComposioSettingsPage, hostIsOld: kbCpHostIsOld, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, httpUrl: kbCpHttpUrl, tN: kbtN, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
+      composio: { needOffMap: kbCpNeedOffMap, needWho: kbCpNeedWho, needLossKey: kbCpNeedLossKey, needDismiss: kbCpNeedDismiss, needOff: kbCpNeedOff, yoursHas: kbCpYoursHas, firstTab: kbCpFirstTab, yoursClean: kbCpYoursClean, yoursSnap: kbCpYoursSnap, yoursApps: kbCpYoursApps, needView: kbCpNeedView, modeEffective: kbCpModeEffective, providerEffective: kbCpProviderEffective, cloudView: kbCpCloudView, cloudMerge: kbCpCloudMerge, cloudErr: kbCpCloudErr, connState: kbCpConnState, connActions: kbCpConnActions, failedText: kbCpFailedText, appsMatch: kbCpAppsMatch, fullRows: kbCpFullRows, topCats: kbCpTopCats, logoUrl: kbCpLogoUrl, modeGet: kbCpModeGet, modeSet: kbCpModeSet, page: ComposioPage, settingsPage: ComposioSettingsPage, hostIsOld: kbCpHostIsOld, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, httpUrl: kbCpHttpUrl, tN: kbtN, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
     }
   },
 })

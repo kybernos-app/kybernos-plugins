@@ -43,6 +43,10 @@ for (const path of ['/modeles-locaux/installer', '/modeles-locaux/annuler']) {
   check(path + ': the right Origin and the real cookie -> the route answers (' + real + ')', real === 200 || real === 400, real)
   check(path + ': GET stays "method not allowed" (405), whatever the headers', await hit(path, 'GET', browserHeaders()) === 405)
 }
+// A hosted model is not installed here, even with the real session: the answer is 400 before anything is spawned (a regression would run `ollama pull`).
+for (const id of ['glm-5.3:cloud', 'gpt-oss:120b-cloud']) {
+  check('/modeles-locaux/installer: ' + id + ' (hosted by Ollama) -> 400, nothing started', await hit('/modeles-locaux/installer', 'POST', browserHeaders(), { cible: id }) === 400)
+}
 // A-16: the two writes whose caller is the Local models page — the signed catalogue refresh ({op:'refresh'} downloads and verifies the
 // online catalogue) and the "Re-check" scan (it stores the ids seen last time). An unknown op / no Ollama server answers without side effects.
 for (const [path, body] of [['/modeles-locaux/catalogue', {}], ['/modeles-locaux/decouvrir', {}]]) {

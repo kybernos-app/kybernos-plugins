@@ -1,926 +1,1508 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kybernos — la carte</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2308151b'/%3E%3Cpath d='M11 8.4v15.2M13.7 15.55L21.2 8.4M13.7 16.45L21.2 23.6' stroke='%234fe3c1' stroke-width='2.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+<title>Kybernos — the platform story</title>
 <style>
 :root{
-  --bg:#0a0e13; --panel:#111822; --panel-2:#0e141c; --line:#22303f;
-  --ink:#e8eef7; --ink-2:#9fb0c6; --ink-3:#6c7f95;
-  --teal:#4fe3c1; --violet:#a78bfa; --amber:#fbbf24; --blue:#67b8ff; --rose:#fb7185; --slate:#8fa3ba;
-  --shadow:0 18px 50px rgba(0,0,0,.45);
-  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
-  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  --bg:#f7f6f2; --panel:#ffffff; --panel-2:#f1efe8; --line:#d9d6cc; --line-2:#b9b6ab;
+  --ink:#1f1e1b; --ink-2:#55534c; --ink-3:#77746a;
+  --purple-bg:#eeedfe; --purple-line:#534ab7; --purple-ink:#3c3489;
+  --gray-bg:#f1efe8; --gray-line:#888780; --gray-ink:#444441;
+  --coral-bg:#faece7; --coral-line:#993c1d; --coral-ink:#712b13;
+  --st-done:#0f6e56; --st-half:#854f0b; --st-todo:#77746a;
+  --focus:#185fa5; --shadow:0 10px 30px rgba(31,30,27,.14);
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
-body[data-theme="light"]{
-  --bg:#f3f6fa; --panel:#ffffff; --panel-2:#f7f9fc; --line:#d8e1ec;
-  --ink:#0d1723; --ink-2:#4c5f76; --ink-3:#7b8da4;
-  --teal:#0e9f86; --violet:#6d4bd8; --amber:#b06a00; --blue:#1f6fd0; --rose:#c2384c; --slate:#5b6f86;
-  --shadow:0 18px 44px rgba(16,32,52,.14);
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#16151a; --panel:#1f1e24; --panel-2:#26252c; --line:#36343d; --line-2:#4a4854;
+    --ink:#ecebe6; --ink-2:#b5b3aa; --ink-3:#8c8a82;
+    --purple-bg:#26215c; --purple-line:#7f77dd; --purple-ink:#cecbf6;
+    --gray-bg:#2a2a28; --gray-line:#6a6963; --gray-ink:#d3d1c7;
+    --coral-bg:#3a1f15; --coral-line:#d85a30; --coral-ink:#f5c4b3;
+    --st-done:#5dcaa5; --st-half:#efae3c; --st-todo:#8c8a82;
+    --focus:#85b7eb; --shadow:0 10px 30px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16151a; --panel:#1f1e24; --panel-2:#26252c; --line:#36343d; --line-2:#4a4854;
+  --ink:#ecebe6; --ink-2:#b5b3aa; --ink-3:#8c8a82;
+  --purple-bg:#26215c; --purple-line:#7f77dd; --purple-ink:#cecbf6;
+  --gray-bg:#2a2a28; --gray-line:#6a6963; --gray-ink:#d3d1c7;
+  --coral-bg:#3a1f15; --coral-line:#d85a30; --coral-ink:#f5c4b3;
+  --st-done:#5dcaa5; --st-half:#efae3c; --st-todo:#8c8a82;
+  --focus:#85b7eb; --shadow:0 10px 30px rgba(0,0,0,.5);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{
-  background:
-    radial-gradient(1100px 600px at 12% -10%, color-mix(in srgb, var(--teal) 9%, transparent), transparent 60%),
-    radial-gradient(900px 500px at 88% -15%, color-mix(in srgb, var(--violet) 10%, transparent), transparent 60%),
-    var(--bg);
-  color:var(--ink); font:13px/1.45 var(--sans); overflow:hidden;
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--sans);min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:inherit}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+code{font:12px var(--mono);color:var(--ink-2);word-break:break-word}
+
+#top{position:sticky;top:0;z-index:30;background:var(--bg);border-bottom:1px solid var(--line)}
+.bar{display:flex;align-items:center;gap:10px;padding:10px 16px;max-width:1320px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:10px;flex:none}
+.brand svg{width:26px;height:26px;display:block}
+.brand h1{font-size:15px;font-weight:600;line-height:1.2}
+.brand p{font-size:12px;color:var(--ink-3);line-height:1.2}
+.search{flex:1;max-width:320px;margin-left:auto;display:flex;align-items:center;gap:7px;height:32px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink-3)}
+.search svg{width:14px;height:14px;flex:none}
+.search input{flex:1;min-width:0;background:none;border:0;color:var(--ink);font:inherit;outline:0}
+.search:focus-within{border-color:var(--focus)}
+.hbtn{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink-2);font-size:13px;white-space:nowrap;flex:none}
+.hbtn:hover{color:var(--ink);border-color:var(--line-2)}
+.hbtn[aria-pressed="true"]{color:var(--ink);border-color:var(--focus)}
+.hbtn svg{width:15px;height:15px}
+#filters{display:flex;align-items:center;gap:8px 20px;flex-wrap:wrap;padding:6px 16px 10px;max-width:1320px;margin:0 auto}
+#filters .hits .chip{font-size:12px;padding:2px 8px}
+#filters .hits .none{font-size:12px;color:var(--ink-3)}
+.fg{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.fl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-right:2px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:99px;border:1px solid var(--line);font-size:12.5px;color:var(--ink-2);background:var(--panel);white-space:nowrap;flex:none}
+.chip:hover{color:var(--ink);border-color:var(--line-2)}
+.chip[aria-pressed="false"]{opacity:.5;text-decoration:line-through}
+.chip[data-chip-kaby][aria-pressed="false"]{opacity:1;text-decoration:none}
+.chip[data-chip-kaby][aria-pressed="true"]{border-color:var(--coral-line);color:var(--coral-ink);background:var(--coral-bg)}
+.chip .dot{width:9px;height:9px;border-radius:3px;border:1.5px solid var(--c);background:var(--b)}
+.chip .n{font:11px var(--mono);color:var(--ink-3)}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:20px;max-width:1320px;margin:0 auto;padding:16px}
+#main{min-width:0}
+#side{position:sticky;top:132px;align-self:start;max-height:calc(100vh - 150px);overflow:auto}
+#story{border:1px solid var(--focus);background:var(--panel);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+body.story-on #sheet{display:none}
+#story .sn{font:12px var(--mono);color:var(--ink-3)}
+#story h2{font-size:17px;font-weight:600;margin:2px 0 6px}
+#story p{color:var(--ink-2);max-width:68ch}
+#story .sb{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}
+#story .dots{display:flex;gap:6px;margin:0 6px}
+#story .dots i{width:8px;height:8px;border-radius:50%;background:var(--line-2)}
+#story .dots i.on{background:var(--focus)}
+.btn{display:inline-flex;align-items:center;height:30px;padding:0 13px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);font-size:13px;color:var(--ink)}
+.btn:hover{border-color:var(--line-2)}
+.btn[disabled]{opacity:.4;cursor:default}
+
+#boardwrap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px}
+#board{display:block;width:100%;max-width:900px;margin:0 auto;height:auto}
+.frame rect.fr{stroke-width:.75}
+.frame.purple rect.fr{fill:var(--purple-bg);stroke:var(--purple-line)}
+.frame.gray rect.fr{fill:var(--gray-bg);stroke:var(--gray-line)}
+.frame.dash rect.fr{fill:none;stroke:var(--line-2);stroke-dasharray:6 4}
+.frame.purple .ft,.frame.purple .fs,.frame.purple .fn{fill:var(--purple-ink)}
+.frame.gray .ft,.frame.gray .fs,.frame.gray .fn{fill:var(--gray-ink)}
+.frame.dash .ft,.frame.dash .fs,.frame.dash .fn{fill:var(--ink-2)}
+.ft{font:600 14px var(--sans)} .fs{font:12px var(--sans);opacity:.85} .fn{font:12px var(--sans);opacity:.85} .fn.b{font-weight:600;opacity:1}
+.frame.gray rect.bd{fill:none;stroke:var(--gray-line);stroke-width:.75;stroke-dasharray:1 0;opacity:.8}
+.frame [data-frame]{cursor:pointer}
+.eye{cursor:pointer;color:var(--ink-3)} .eye:hover{color:var(--ink)}
+.eye .hitr{fill:transparent}
+.eye path,.eye circle{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.node{cursor:pointer;transition:opacity .15s}
+.node rect.nb{fill:var(--panel);stroke:var(--line-2);stroke-width:.75}
+.node.dashed rect.nb{stroke-dasharray:4 3}
+.node.kaby rect.nb{fill:var(--coral-bg);stroke:var(--coral-line)}
+.node .nt{font:600 14px var(--sans);fill:var(--ink)}
+.node .ns{font:12px var(--sans);fill:var(--ink-2)}
+.node.kaby .nt{fill:var(--coral-ink)} .node.kaby .ns{fill:var(--coral-ink);opacity:.82}
+.node.install rect.nb{fill:var(--purple-bg);stroke:var(--purple-line)}
+.node.install .nt{fill:var(--purple-ink)} .node.install .ns{fill:var(--purple-ink);opacity:.82}
+.node:hover rect.nb{stroke:var(--ink-2)}
+.node.sel rect.nb{stroke:var(--focus);stroke-width:2}
+.node:focus-visible{outline:none}
+.node:focus-visible rect.nb{stroke:var(--focus);stroke-width:2}
+.mk{stroke-width:1.5} .mk.done{fill:var(--st-done);stroke:var(--st-done)}
+.mk.half{fill:var(--panel);stroke:var(--st-half)} .mk.todo{fill:var(--panel);stroke:var(--st-todo)}
+.mkh{fill:var(--st-half)}
+.lk{cursor:pointer;transition:opacity .15s}
+.lk .hit{stroke:transparent;stroke-width:14;fill:none}
+.lk .ln{fill:none;stroke:var(--ink-3);stroke-width:1.5}
+.lk.dash .ln{stroke-dasharray:5 4}
+.lk.dot .ln{stroke-dasharray:1.5 4.5;stroke-linecap:round}
+.lk.kaby .ln{stroke:var(--coral-line)}
+.lk .ll{font:12px var(--sans);fill:var(--ink-2)}
+.lk.sel .ln{stroke-width:2.5}
+.lk:focus-visible{outline:none} .lk:focus-visible .ln{stroke:var(--focus);stroke-width:2.5}
+.dim{opacity:.22}
+
+#list{display:flex;flex-direction:column;gap:12px}
+.mframe{border:1px solid var(--line-2);border-radius:14px;padding:12px}
+.mframe.purple{background:var(--purple-bg);border-color:var(--purple-line);color:var(--purple-ink)}
+.mframe.gray{background:var(--gray-bg);border-color:var(--gray-line);color:var(--gray-ink)}
+.mframe.dash{border-style:dashed;color:var(--ink-2)}
+.mframe header{display:flex;align-items:flex-start;gap:8px}
+.mframe h2{font-size:14.5px;font-weight:600;flex:1;line-height:1.3}
+.mframe .msub,.mframe .mnote{font-size:12.5px;opacity:.9;margin-top:4px}
+.mframe .mg{font-size:12px;letter-spacing:.04em;text-transform:uppercase;margin:12px 0 6px;opacity:.85}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.tile{position:relative;display:block;width:100%;border:1px solid var(--line-2);border-radius:10px;background:var(--panel);color:var(--ink);padding:9px 10px 9px 10px;min-height:54px}
+.tile.dashed{border-style:dashed}
+.tile.kaby{background:var(--coral-bg);border-color:var(--coral-line);color:var(--coral-ink)}
+.tile.install{background:var(--purple-bg);border-color:var(--purple-line);color:var(--purple-ink)}
+.tile .tt{display:block;font-weight:600;font-size:13.5px;line-height:1.25;padding-right:16px}
+.tile .ts{display:block;font-size:12px;opacity:.85;line-height:1.3;margin-top:2px}
+.tile .tm{position:absolute;top:8px;right:8px;font-size:12px}
+.tile.sel{outline:2px solid var(--focus)}
+.tm.done,.pill.done{color:var(--st-done)} .tm.half,.pill.half{color:var(--st-half)} .tm.todo,.pill.todo{color:var(--st-todo)}
+.mlinks{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--panel)}
+.mlinks h2{font-size:13px;font-weight:600;margin-bottom:6px}
+.lrow{display:block;width:100%;padding:7px 0;border-top:1px solid var(--line);font-size:13px;color:var(--ink-2)}
+.lrow:first-of-type{border-top:0}
+.lrow b{color:var(--ink);font-weight:600}
+.lrow.dim{opacity:.3}
+
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:10px;font-size:12.5px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend svg{width:34px;height:14px;flex:none}
+.legend .sw{width:14px;height:14px;border-radius:4px;border:1px solid var(--coral-line);background:var(--coral-bg)}
+
+#sheet{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+#sheet h2{font-size:18px;font-weight:600;line-height:1.25;margin:4px 0 2px}
+#sheet h3{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:16px 0 6px;font-weight:600}
+#sheet p{color:var(--ink-2)} #sheet p.sub{color:var(--ink-3);margin-bottom:8px}
+#sheet ul{list-style:none} #sheet li{padding:6px 0;border-top:1px solid var(--line);color:var(--ink-2)}
+#sheet li:first-child{border-top:0}
+#sheet li .it{color:var(--ink);font-weight:600}
+#sheet li small{display:block;color:var(--ink-3);font-size:12px}
+.sh-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600}
+.where{font-size:12px;color:var(--ink-3)}
+.note{margin:10px 0 0;padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink-2);font-size:13px}
+.note.half{border-color:var(--st-half)} .note.todo{border-color:var(--st-todo)}
+.jump{display:block;width:100%;padding:6px 0;border-top:1px solid var(--line);color:var(--ink-2)}
+.jump:first-of-type{border-top:0} .jump:hover{color:var(--ink)} .jump b{color:var(--ink);font-weight:600}
+.xbtn{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);display:none;align-items:center;justify-content:center;background:var(--panel-2)}
+.counts{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0}
+.counts span{display:inline-flex;gap:6px;align-items:center;font-weight:600}
+.keys{font-size:12.5px;color:var(--ink-3);margin-top:12px}
+kbd{font:11.5px var(--mono);border:1px solid var(--line-2);border-radius:5px;padding:0 5px;color:var(--ink-2);background:var(--panel-2)}
+
+.pd{fill:var(--focus);stroke:var(--panel);stroke-width:1.5}
+.tile .tp{position:absolute;top:9px;right:27px;font-size:9px;line-height:1;color:var(--focus)}
+.when{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:99px;border:1px solid var(--focus);color:var(--focus);font-size:11.5px;font-weight:600;line-height:1;white-space:nowrap}
+.when.now{background:var(--focus);color:var(--bg)} .when.later{border-style:dashed}
+#sheet li .when{margin-left:8px;vertical-align:1px}
+.priv{margin-top:14px;padding:2px 12px 8px;border-radius:10px;border:1px dashed var(--focus);background:var(--panel-2)}
+#sheet .priv h3{margin-top:12px;color:var(--focus)}
+#sheet .priv li{border-top-color:var(--line-2)}
+#sheet small.privn{color:var(--focus)}
+.privtag{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 11px;border-radius:8px;border:1px dashed var(--focus);color:var(--focus);font-size:12.5px;font-weight:600;white-space:nowrap;flex:none}
+.privtag svg{width:14px;height:14px}
+#story p.privs{margin-top:8px;padding:6px 10px;border-radius:8px;border:1px dashed var(--focus);color:var(--ink)}
+
+#tip{position:fixed;z-index:60;max-width:300px;pointer-events:none;background:var(--panel);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:8px 10px;box-shadow:var(--shadow);font-size:12.5px;line-height:1.4}
+#tip b{font-weight:600} #tip .st{font-weight:600;margin-left:6px} #tip .when{margin-left:6px;height:18px;font-size:11px} #tip p{color:var(--ink-2);margin-top:3px} #tip p.pl{color:var(--focus)}
+footer{max-width:1320px;margin:0 auto;padding:4px 16px 28px;font-size:12px;color:var(--ink-3)}
+
+@media (max-width:1000px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  #side{position:static;max-height:none;overflow:visible}
+  #sheet{position:fixed;left:0;right:0;bottom:0;top:auto;max-height:68vh;overflow:auto;border-radius:14px 14px 0 0;z-index:40;box-shadow:var(--shadow);display:none;padding-top:44px}
+  body.sheet-open #sheet{display:block}
+  .xbtn{display:flex}
+  body.sheet-open footer{padding-bottom:70vh}
+  body.story-on #story{position:fixed;left:0;right:0;bottom:0;z-index:41;margin:0;border-radius:14px 14px 0 0;box-shadow:var(--shadow);max-height:50vh;overflow:auto}
+  body.story-on footer{padding-bottom:50vh}
 }
-button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
-button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:8px}
-
-header{
-  position:fixed;inset:0 0 auto 0;height:58px;z-index:40;display:flex;align-items:center;gap:14px;padding:0 18px;
-  background:color-mix(in srgb, var(--bg) 82%, transparent);border-bottom:1px solid var(--line);backdrop-filter:blur(14px);
-}
-.brand{display:flex;align-items:center;gap:10px;min-width:0}
-.brand .mark{width:27px;height:27px;flex:none}
-.brand .mark svg{width:100%;height:100%;display:block;filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))}
-.brand h1{font-size:14px;font-weight:650;letter-spacing:-.01em;white-space:nowrap}
-.brand p{font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-header .spacer{flex:1}
-.hbtn{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px;border-radius:9px;
-  border:1px solid var(--line);color:var(--ink-2);font-size:11.5px;background:var(--panel-2)}
-.hbtn:hover{color:var(--ink);border-color:color-mix(in srgb,var(--ink-2) 40%, transparent)}
-.hbtn[aria-pressed="true"]{color:var(--ink);border-color:color-mix(in srgb,var(--teal) 55%, transparent);
-  background:color-mix(in srgb,var(--teal) 12%, var(--panel-2))}
-.hbtn svg{width:14px;height:14px}
-#railBtn{display:none}
-
-#app{display:flex;height:100vh;height:100dvh;overflow:hidden}
-
-#rail{width:286px;flex:none;margin-top:58px;height:calc(100% - 58px);border-right:1px solid var(--line);
-  background:color-mix(in srgb,var(--panel) 55%, transparent);display:flex;flex-direction:column;overflow:hidden}
-#rail .rh{padding:14px 16px 8px;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3)}
-#rail .list{overflow:auto;padding:0 10px 8px;display:flex;flex-direction:column;gap:3px;scrollbar-width:thin}
-.pill{display:flex;gap:9px;align-items:flex-start;text-align:left;width:100%;padding:8px 9px;
-  border-radius:11px;border:1px solid transparent;color:var(--ink-2);line-height:1.3}
-.pill:hover{background:var(--panel-2);color:var(--ink)}
-.pill[aria-current="true"]{background:color-mix(in srgb,var(--teal) 11%, var(--panel));
-  border-color:color-mix(in srgb,var(--teal) 42%, transparent);color:var(--ink)}
-.pill .num{width:18px;flex:none;font:10.5px/1.5 var(--mono);color:var(--ink-3);padding-top:1px}
-.pill[aria-current="true"] .num{color:var(--teal)}
-.pill .tt{font-size:11.8px;font-weight:560;display:block}
-.pill .pitch{display:block;font-size:10.4px;color:var(--ink-3);margin-top:2px;font-weight:400}
-.pill .wit{display:inline-block;margin-top:4px;font-size:9px;letter-spacing:.04em;text-transform:uppercase;
-  color:var(--amber);border:1px solid color-mix(in srgb,var(--amber) 40%, transparent);padding:0 6px;border-radius:99px}
-#rail .steps[hidden]{display:none}
-#rail .steps{display:flex;flex-direction:column;gap:1px;margin:1px 6px 5px 27px;padding-left:9px;
-  border-left:1px solid color-mix(in srgb,var(--teal) 40%, transparent)}
-#rail .step{text-align:left;font-size:10.4px;line-height:1.3;color:var(--ink-3);padding:3px 5px;border-radius:6px}
-#rail .step b{font-weight:600;color:var(--ink-2)}
-#rail .step:hover{background:var(--panel-2);color:var(--ink-2)}
-#rail .step[aria-current="true"]{background:color-mix(in srgb,var(--teal) 13%, transparent);color:var(--ink)}
-#rail .step[aria-current="true"] b{color:var(--ink)}
-#rail .legend{padding:9px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:5px}
-#rail .legend b{font-size:9.6px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
-.lg{display:flex;align-items:center;gap:8px;font-size:10.8px;color:var(--ink-2)}
-.lg i{width:22px;height:0;border-top:2px solid;flex:none;border-radius:2px}
-#rail .foot{padding:8px 16px 12px;font-size:10.3px;color:var(--ink-3);line-height:1.5}
-#rail .foot code{font:9.8px var(--mono);color:var(--ink-2)}
-
-#stage{position:relative;flex:1;margin-top:58px;height:calc(100% - 58px);
-  display:flex;flex-direction:column;overflow:hidden;min-width:0}
-#scroll{flex:1;overflow:hidden;padding:10px 8px 0;display:flex;justify-content:center;align-items:center}
-#canvas{position:relative;width:1120px;flex:none;transform-origin:top center;padding-bottom:8px}
-
-.zone{position:absolute;border:1px solid var(--line);border-radius:18px;
-  background:linear-gradient(180deg, color-mix(in srgb,var(--panel) 94%, transparent), color-mix(in srgb,var(--panel-2) 94%, transparent));
-  box-shadow:0 1px 0 color-mix(in srgb,var(--ink) 4%, transparent) inset;
-  display:flex;flex-direction:column;overflow:hidden}
-.zone::before{content:"";position:absolute;inset:0;border-radius:18px;pointer-events:none;
-  background:radial-gradient(420px 180px at 50% -40%, color-mix(in srgb, var(--zt) 15%, transparent), transparent 70%)}
-.zone[data-tone="teal"]{--zt:var(--teal)} .zone[data-tone="violet"]{--zt:var(--violet)}
-.zone[data-tone="amber"]{--zt:var(--amber)} .zone[data-tone="blue"]{--zt:var(--blue)}
-.zone[data-tone="rose"]{--zt:var(--rose)}
-.zone>.zh{position:relative;padding:12px 14px 4px;flex:none}
-.zone .zh h2{font-size:11.6px;font-weight:650;letter-spacing:-.005em;display:flex;align-items:center;gap:8px}
-.zone .zh h2::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--zt);flex:none;
-  box-shadow:0 0 10px color-mix(in srgb,var(--zt) 70%, transparent)}
-.zone .zh p{font-size:10.2px;color:var(--ink-3);margin-left:15px}
-.zone>.zb{position:relative;padding:5px 10px 0;display:flex;flex-direction:column;gap:7px;flex:1;overflow:hidden}
-.zone.row>.zb{flex-direction:row;gap:9px;align-items:stretch}
-.zone.row>.zb .node{flex:1;min-width:0}
-.zone>.zn{position:relative;flex:none;margin:7px 14px 10px;font-size:9.7px;line-height:1.4;color:var(--ink-3);
-  border-top:1px dashed color-mix(in srgb,var(--line) 80%, transparent);padding-top:6px}
-
-.node{position:relative;width:100%;text-align:left;border-radius:12px;border:1px solid var(--line);
-  background:color-mix(in srgb,var(--panel) 88%, var(--bg));padding:7px 9px 7px 34px;
-  transition:opacity .25s, transform .25s, border-color .2s, box-shadow .25s, filter .25s; --nt:var(--slate)}
-
-/* la couleur est réservée aux flux : une carte reste neutre, la zone porte son teint */
-.node:hover{border-color:color-mix(in srgb,var(--nt) 55%, var(--line));transform:translateY(-1px);z-index:2}
-.node .nt{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;letter-spacing:-.005em;line-height:1.25}
-.node .ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--ink-3);display:inline-flex;transition:color .2s}
-.node .ico svg{width:100%;height:100%;display:block}
-.node:hover .ico{color:var(--ink-2)}
-.node[data-live] .ico{color:var(--ink)}
-.node .nt .tag{margin-left:auto;flex:none;font-size:8.3px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);
-  border:1px solid var(--line);border-radius:99px;padding:0 5px;line-height:1.55;font-weight:500}
-.node .ns{display:block;font-size:10.3px;color:var(--ink-2);margin-top:1px;line-height:1.3}
-.node .nb{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
-.node .badge{font-size:8.6px;letter-spacing:.02em;border-radius:99px;padding:0 5px;line-height:1.6;
-  color:var(--amber);border:1px solid color-mix(in srgb,var(--amber) 45%, transparent);
-  background:color-mix(in srgb,var(--amber) 10%, transparent)}
-.node[data-hero="1"]{padding:9px 10px 9px 38px}
-.node[data-hero="1"] .nt{font-size:13.2px}
-.node[data-hero="1"] .ns{font-size:10.8px}
-.node[data-dim]{opacity:.33;filter:saturate(.35)}
-.node[data-on]{border-color:color-mix(in srgb,var(--nt) 50%, var(--line))}
-.node[data-live]{background:color-mix(in srgb,var(--nt) 13%, var(--panel));
-  box-shadow:0 0 0 1.5px color-mix(in srgb,var(--nt) 62%, transparent), 0 0 26px -10px color-mix(in srgb,var(--nt) 85%, transparent)}
-
-#wires{position:absolute;inset:0;width:1120px;height:782px;pointer-events:none;overflow:visible;z-index:9}
-#wires path{fill:none;stroke-linecap:round;transition:opacity .25s, stroke-width .2s}
-#wires path[data-kind="local"]{stroke:var(--teal)} #wires path[data-kind="server"]{stroke:var(--violet)}
-#wires path[data-kind="e2e"]{stroke:var(--blue)} #wires path[data-kind="ext"]{stroke:var(--amber)}
-#wires path[data-kind="hook"]{stroke:var(--rose)}
-#wires path.base{opacity:.42;stroke-width:1.1;stroke-dasharray:2 5}
-#app[data-scen="1"] #wires path.base{opacity:.09}
-#wires path.bus{stroke:var(--ink-3);opacity:.28;stroke-width:1;stroke-dasharray:1 7}
-
-#wires path.halo{stroke:var(--bg);stroke-width:8;opacity:.62}
-#wires path.hot{opacity:1;stroke-width:2.4;stroke-dasharray:8 7;animation:march .95s linear infinite}
-#wires path.hot.is-live{stroke-width:3;filter:drop-shadow(0 0 8px currentColor)}
-@keyframes march{to{stroke-dashoffset:-26}}
-#dot{fill:var(--teal);filter:drop-shadow(0 0 8px var(--teal));opacity:0;transition:opacity .2s}
-
-#stepbar{flex:none;margin:6px auto 10px;width:min(880px, calc(100% - 36px));
-  background:color-mix(in srgb,var(--panel) 94%, transparent);border:1px solid var(--line);border-radius:15px;
-  box-shadow:var(--shadow);padding:8px 13px;z-index:20}
-#stepbar .top{display:flex;align-items:center;gap:9px;font-size:10.4px;color:var(--ink-3)}
-#stepbar .top .who{color:var(--ink-2)}
-#stepbar .top .n{font-family:var(--mono);font-size:10.4px;color:var(--ink-2)}
-#stepbar .bar{display:flex;gap:4px;margin:6px 0 7px}
-#stepbar .bar i{height:3px;flex:1;border-radius:2px;background:var(--line)}
-#stepbar .bar i.done{background:color-mix(in srgb,var(--teal) 70%, var(--line))}
-#stepbar .bar i.cur{background:var(--teal)}
-#stepbar .txt{font-size:12px;line-height:1.4;min-height:29px}
-#stepbar .txt b{font-weight:600}
-#stepbar .txt span{display:block;font-size:10.9px;color:var(--ink-2);margin-top:2px}
-#stepbar .ctl{display:flex;align-items:center;gap:6px;margin-top:6px}
-#stepbar .ctl .sp{flex:1}
-.sb{height:26px;padding:0 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);
-  color:var(--ink-2);font-size:10.8px;display:inline-flex;align-items:center;gap:6px}
-.sb:hover{color:var(--ink);border-color:color-mix(in srgb,var(--ink-2) 45%, transparent)}
-.sb[disabled]{opacity:.32;cursor:default}
-.sb.primary{background:color-mix(in srgb,var(--teal) 16%, var(--panel-2));border-color:color-mix(in srgb,var(--teal) 45%, transparent);color:var(--ink)}
-
-#sheet{position:fixed;top:58px;right:0;bottom:0;width:392px;z-index:60;background:var(--panel);
-  border-left:1px solid var(--line);box-shadow:var(--shadow);transform:translateX(102%);
-  transition:transform .28s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column}
-#sheet[data-open]{transform:none}
-#sheet .sh{display:flex;align-items:flex-start;gap:10px;padding:15px 16px 11px;border-bottom:1px solid var(--line)}
-#sheet .sh .tt{flex:1;font-size:14.6px;font-weight:650;letter-spacing:-.01em}
-#sheet .sh .st{font-size:10.8px;color:var(--ink-2);margin-top:2px}
-#sheet .x{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);display:grid;place-items:center;color:var(--ink-2)}
-#sheet .sb2{padding:13px 16px 18px;overflow:auto;display:flex;flex-direction:column;gap:13px}
-#sheet .row{display:flex;gap:6px;flex-wrap:wrap}
-#sheet .tag{font-size:9.2px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);
-  border:1px solid var(--line);border-radius:99px;padding:1px 7px}
-#sheet .badge{font-size:9.2px;border-radius:99px;padding:1px 7px;color:var(--amber);
-  border:1px solid color-mix(in srgb,var(--amber) 45%, transparent);background:color-mix(in srgb,var(--amber) 9%, transparent)}
-#sheet h3{font-size:9.6px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);font-weight:550;margin-bottom:3px}
-#sheet p{font-size:11.8px;color:var(--ink-2);line-height:1.5}
-#sheet ul{list-style:none;display:flex;flex-direction:column;gap:4px}
-#sheet li{font-size:11.8px;color:var(--ink-2);line-height:1.45;padding-left:12px;position:relative}
-#sheet li::before{content:"";position:absolute;left:2px;top:7px;width:4px;height:4px;border-radius:50%;
-  background:color-mix(in srgb,var(--ink-3) 70%, transparent)}
-#sheet .src{font:10.2px/1.5 var(--mono);color:var(--ink-3);word-break:break-word}
-#sheet .links{display:flex;flex-wrap:wrap;gap:6px}
-#sheet .links button{font-size:10.2px;border:1px solid var(--line);border-radius:99px;padding:2px 8px;color:var(--ink-2)}
-#sheet .links button:hover{color:var(--teal);border-color:color-mix(in srgb,var(--teal) 45%, transparent)}
-#backdrop{position:fixed;inset:58px 0 0;z-index:55;background:rgba(4,8,12,.35);opacity:0;pointer-events:none;transition:opacity .25s}
-#backdrop[data-open]{opacity:1;pointer-events:auto}
-
-@media (max-width:1280px){ #rail{width:262px} #stepbar{width:min(760px, calc(100% - 24px))} }
-@media (max-width:1240px){ #railBtn{display:inline-flex} }
-@media (max-width:760px){
-  header{gap:8px;padding:0 10px}
+@media (max-width:640px){
   .brand p{display:none}
-  header .hbtn .lbl{display:none}
-  header .hbtn{width:32px;padding:0;justify-content:center}
-  #stepbar{width:calc(100vw - 16px);padding:7px 10px}
-  #stepbar .ctl{flex-wrap:wrap}
-  #stepbar .ctl .sp{display:none}
-  .sb{padding:0 8px}
-  #prev,#next{font-size:0}
-  #prev::after{content:"←";font-size:14px}
-  #next::after{content:"→";font-size:14px}
-  #clear{display:none}
-  #rail .foot{display:none}
+  .bar{flex-wrap:wrap;gap:8px}
+  .search{order:5;max-width:none;flex-basis:100%;margin-left:0}
+  .hbtn .lbl,.privtag .lbl{display:none}
+  #filters{flex-wrap:nowrap;overflow-x:auto;gap:8px 16px;padding-bottom:8px}
+  .fg{flex-wrap:nowrap}
 }
-@media (max-width:1240px){
-  #rail{position:fixed;left:0;top:58px;bottom:0;z-index:35;width:276px;transform:translateX(-102%);
-    transition:transform .25s;box-shadow:var(--shadow);background:var(--panel)}
-  #rail[data-open]{transform:none}
-}
-@media (max-width:980px){
-  body{overflow:auto}
-  #app{display:block;height:auto;overflow:visible}
-  #stage{margin-top:58px;height:auto;overflow:visible}
-  #scroll{overflow:visible;padding:10px 0 0}
-  #canvas{width:100%;min-height:0;padding:0 10px 150px}
-  #wires{display:none}
-  .zone{position:static;width:auto;margin:0 0 10px;overflow:visible}
-  .zone.row>.zb{flex-wrap:wrap}
-  .zone.row>.zb .node{flex:1 1 46%}
-  #stepbar{position:sticky;bottom:8px;width:calc(100vw - 24px);margin:10px auto 12px;left:0;transform:none}
-  #sheet{width:100%;top:58px}
-  #backdrop{inset:58px 0 0}
-}
-@media (prefers-reduced-motion: reduce){
-  *{animation:none!important;transition:none!important}
-  #wires path.hot{stroke-dasharray:none}
-  #dot{display:none}
-}
+@media (prefers-reduced-motion:reduce){.node,.lk{transition:none}}
 </style>
 </head>
-<body data-theme="dark" data-truth="on">
-<header>
-  <div class="brand">
-    <div class="mark" aria-hidden="true"><svg class="logo" viewBox="0 0 32 32" role="img" aria-label="Kybernos">
-  <defs><linearGradient id="kbg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-    <stop stop-color="#4fe3c1"/><stop offset=".55" stop-color="#67b8ff"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs>
-  <rect x="1" y="1" width="30" height="30" rx="9.5" fill="url(#kbg)"/>
-  <path d="M11 8.4v15.2" stroke="#08151b" stroke-width="2.35" stroke-linecap="round"/>
-  <path d="M13.7 15.55L21.2 8.4M13.7 16.45L21.2 23.6" stroke="#08151b" stroke-width="2.35" stroke-linecap="round"/>
-  <circle cx="21.2" cy="16" r="1.75" fill="#08151b"/>
-</svg></div>
-    <div>
-      <h1>Kybernos — la carte</h1>
-      <p>Ce qui tourne chez toi, ce qui tourne sans toi, et ce qui sort.</p>
+<body>
+<header id="top">
+  <div class="bar">
+    <div class="brand">
+      <svg viewBox="-3 -1 38.5 38" role="img" aria-label="Kybernos"><g fill="#f2372a"><rect x="0" y="0" width="13" height="36"/><polygon points="21,0 31,0 13,28.3 13,12.6"/><polygon points="13,22 22,36 32.5,36 20.3,16.8 13,16.8"/></g><g fill="#fff"><circle cx="6.5" cy="7.5" r="3.3"/><circle cx="6.5" cy="18" r="3.3"/><circle cx="6.5" cy="28.5" r="3.3"/></g></svg>
+      <div><h1>Kybernos</h1><p>the platform, in one story</p></div>
     </div>
+    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+      <input id="q" type="search" placeholder="Search a brick  ( / )" aria-label="Search a brick" autocomplete="off" spellcheck="false"></label>
+    <button class="hbtn" id="storyBtn" data-act="story" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg><span class="lbl">Tell the story</span></button>
+    <button class="hbtn" data-act="theme" aria-label="Switch light or dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg></button>
+    <span class="privtag" id="privTag" hidden title="roadmap.private.js is loaded: this view holds private notes. Do not publish it."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><span class="lbl">Private view</span></span>
   </div>
-  <div class="spacer"></div>
-  <button class="hbtn" id="railBtn" aria-label="Ouvrir les parcours"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span class="lbl">Parcours</span></button>
-
-  <button class="hbtn" id="themeBtn" aria-label="Basculer clair / sombre">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
-    <span class="lbl" id="themeLbl">Sombre</span>
-  </button>
+  <div id="filters" role="group" aria-label="Filters"></div>
 </header>
 
-<div id="app">
-  <aside id="rail" aria-label="Parcours et légende">
-    <div class="rh" id="railH">8 parcours</div>
-    <div class="list" id="scen"></div>
-    <div class="legend">
-      <b>Ce que la ligne veut dire</b>
-      <div class="lg"><i style="border-color:var(--teal)"></i>reste sur ta machine</div>
-      <div class="lg"><i style="border-color:var(--violet)"></i>parle à ton serveur (token)</div>
-      <div class="lg"><i style="border-color:var(--blue)"></i>chiffré de bout en bout</div>
-      <div class="lg"><i style="border-color:var(--amber)"></i>sort vers un fournisseur</div>
-      <div class="lg"><i style="border-color:var(--rose)"></i>webhook entrant</div>
-    </div>
-    <div class="foot" id="railFoot"></div>
-  </aside>
-
-  <main id="stage">
-    <div id="scroll">
-      <div id="canvas">
-        <svg id="wires" viewBox="0 0 1120 782" aria-hidden="true">
-          <defs>
-            <marker id="arw-local" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="var(--teal)"/></marker>
-            <marker id="arw-server" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="var(--violet)"/></marker>
-            <marker id="arw-e2e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="var(--blue)"/></marker>
-            <marker id="arw-ext" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="var(--amber)"/></marker>
-            <marker id="arw-hook" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="var(--rose)"/></marker>
-          </defs>
-          <g id="baseWires"></g><g id="busWires"></g><g id="haloWires"></g><g id="hotWires"></g><circle id="dot" r="4.5"></circle>
-        </svg>
-      </div>
-    </div>
-    <div id="stepbar" role="status" aria-live="polite">
-      <div class="top"><span class="n" id="sbN">1 / 3</span><span class="who" id="sbWho"></span></div>
-      <div class="bar" id="sbBar"></div>
-      <div class="txt" id="sbTxt"></div>
-      <div class="ctl">
-        <button class="sb" id="prev">← Précédent</button>
-        <button class="sb primary" id="next">Suivant →</button>
-        <button class="sb" id="play">▶ Lecture</button>
-        <span class="sp"></span>
-        <button class="sb" id="clear">Vue d'ensemble</button>
-      </div>
+<div class="layout">
+  <main id="main">
+    <div id="boardwrap">
+      <svg id="board" role="group" aria-label="Kybernos, its server and what is outside" viewBox="0 0 680 1388"></svg>
+      <div id="list" hidden></div>
+      <div class="legend" id="legend"></div>
     </div>
   </main>
+  <aside id="side">
+    <section id="story" hidden aria-live="polite"></section>
+    <div id="sheet" aria-live="polite"></div>
+  </aside>
 </div>
+<footer id="foot"></footer>
+<div id="tip" hidden></div>
 
-<div id="backdrop"></div>
-<aside id="sheet" aria-hidden="true" aria-label="Détail de la brique">
-  <div class="sh">
-    <div style="flex:1"><div class="tt" id="shT"></div><div class="st" id="shS"></div></div>
-    <button class="x" id="shX" aria-label="Fermer">✕</button>
-  </div>
-  <div class="sb2" id="shB"></div>
-</aside>
-
+<!-- Optional private overlay (horizons, blockers, vendor names): a sibling file that is never committed. Absent, this tag fails quietly and the page is the public one. -->
+<script src="roadmap.private.js"></script>
 <script>
-"use strict";
-/* Données : chaque « limite » est tirée d'un document du dépôt (champ source). */
-const ZONES = [
-  { id:"toi", tone:"teal", x:14, y:14, w:250, h:620, title:"Chez toi", sub:"le poste de travail",
-    note:"Rien ne sort d'ici sans une action : un modèle choisi, un canal relié, un serveur appairé." },
-  { id:"serv", tone:"violet", x:274, y:14, w:430, h:620, title:"Ton serveur Kybernos", sub:"le tien, ou celui d'une entreprise",
-    note:"Un seul serveur actif. Un fichier de connexion par serveur : changer de serveur ne déconnecte personne." },
-  { id:"cloud", tone:"amber", x:714, y:14, w:392, h:620, title:"Les machines qui tournent sans toi", sub:"ordinateur cloud · sandboxes",
-    note:"Elles ont leur DSH, leur volume, leur politique réseau — et jamais tes secrets." },
-  { id:"world", tone:"blue", x:14, y:646, w:1092, h:122, row:true, title:"Le reste du monde", sub:"fournisseurs et canaux — chaque flèche qui arrive ici est une sortie réseau",
-    note:"" }
-];
+'use strict';
+/*DATA:START*/
+const RAW = {
+  asof: "2026-11-23 · server origin/dev dbe3a9f2 (the server claims were read there on 2026-11-22) · plugins dev ac332215",
+  serverRef: "dbe3a9f2",
 
-const NODES = [
-  /* Chez toi */
-  { id:"phone", zone:"toi", tone:"blue", tag:"télécommande", badge:"relais non déployé",
-    t:"Téléphone", s:"PWA Kybernos, appairée par QR",
-    role:"Le téléphone n'exécute pas une copie : il ouvre la page du DSH de ton Mac, à travers un relais chiffré de bout en bout.",
-    cross:["QR : un identifiant de canal (26 caractères), un code à usage unique et la clé d'identité — le code ne quitte jamais le navigateur.","Le trafic DSH, chiffré ; le relais transporte, il ne lit pas."],
-    limits:["Mac éteint = « hors ligne », aucune file d'attente.","3 téléphones au maximum (réglage du serveur) ; un seul appairage par origine.","Le relais est construit côté serveur mais pas déployé."],
-    where:"Menu du compte › Téléphone et canaux", source:"docs/dev/mobile-remote.md" },
-  { id:"desk", zone:"toi", tone:"teal", tag:"local", badge:"",
-    t:"Navigateur desktop", s:"la GUI DSH sur 127.0.0.1:3080",
-    role:"La surface de travail : composer, panneaux, pages. L'authentification est un cookie signé de 30 jours.",
-    cross:["Appels aux routes hôte, en même origine."],
-    limits:["Sans token ni cookie : 401 (et c'est voulu).","DSH refuse d'écouter sur le réseau : un hébergement passe par une porte."],
-    where:"dsh web", source:"README.md · docs/dev/live-testing.md" },
-  { id:"local", zone:"toi", tone:"teal", hero:true, tag:"local", badge:"",
-    t:"Kybernos local — DSH + la suite", s:"le cerveau qui tourne chez toi",
-    role:"Sessions, outils, fichiers, skills, mémoire, workers, automations : tout le travail réel se passe ici, et la mémoire comme les leçons restent sur le disque.",
-    cross:["Prompts vers le modèle choisi (serveur ou clé perso).","Écritures sur le disque : ~/.dsh."],
-    limits:["Tes fichiers, ta mémoire et tes leçons restent sur ta machine ; le serveur ne les voit pas.","Le mode de permission décide de ce que l'agent peut toucher (workspace-write par défaut sur Kaby)."],
-    where:"~/.dsh · profil web", source:"README.md · AGENTS.md" },
-  { id:"kaby", zone:"toi", tone:"violet", tag:"produit", badge:"",
-    t:"Kaby (chat local)", s:"une vraie conversation DSH, avec ta mémoire",
-    role:"Un chat DSH ordinaire + l'identité Kaby injectée dans le prompt + la mémoire du compte. Le sélecteur d'ordinateur règle où répondent ses canaux (Telegram) ; le chat local, lui, tourne toujours sur cette machine.",
-    cross:["Chaque tour fini est aussi écrit sur ton fil Kaby côté serveur.","Les derniers mots dits sur Telegram reviennent dans le prompt : un assistant, deux corps."],
-    limits:["Le chat est créé en workspace-write : il demande avant d'agir.","Un chat DSH ne peut pas encore être envoyé à l'ordinateur cloud : l'option du composer est grisée.","Aucun gabarit de nouveau chat au-dessus de son composer."],
-    where:"Menu Kaby · bandeau canaux/ordinateur", source:"packages/kybernos-kyber/README.md" },
-  { id:"auto", zone:"toi", tone:"teal", tag:"local", badge:"",
-    t:"Automations locales", s:"cron, une fois, webhook",
-    role:"Le scheduler tick toutes les 30 s et lit tasks.json (0600). Une automation stable peut devenir une skill.",
-    cross:["Le prompt + les outils de la session.","Si le mode est « ask » : une carte d'approbation avant d'agir."],
-    limits:["Pas de coût par run sur le board (le plugin Usage possède les tokens).","Un run en retard de plus de 3 minutes signale un scheduler arrêté."],
-    where:"Page Automations · skill automation-creator", source:"packages/kybernos-plugin/README.md § automations" },
-  { id:"workers", zone:"toi", tone:"slate", tag:"local", badge:"",
-    t:"Workers", s:"sous-agents : Claude Code, Codex, Gemini…",
-    role:"Des agents de code externes pilotés comme des sous-agents : état vérifié, installation et exposition depuis une page dédiée.",
-    cross:["Le brief part au worker, sa réponse revient dans la session."],
-    limits:["Chaque worker garde ses propres permissions.","Rien ne s'installe sans un clic."],
-    where:"Settings › Agents › Workers", source:"packages/kybernos-workers/README.md" },
-  { id:"voice", zone:"toi", tone:"rose", tag:"local", badge:"jamais joué en direct",
-    t:"Worker vocal", s:"le Python qui écoute un appel",
-    role:"Lancé par l'hôte, il rejoint la room LiveKit et transforme ce qu'il entend en un vrai tour de la session.",
-    cross:["Audio entrant → texte → tour réel → texte → voix."],
-    limits:["Aucun appel complet avec un vrai modèle et un micro n'a encore été joué : tout le reste est testé.","La vidéo reste éteinte tant qu'aucune clé LiveAvatar n'est posée."],
-    where:"Settings › Calls (santé, fournisseurs)", source:"packages/kybernos-call/README.md § Known limits" },
-
-  /* Ton serveur */
-  { id:"server", zone:"serv", tone:"violet", hero:true, tag:"ton serveur", badge:"",
-    t:"Serveur Kybernos", s:"compte, modèles, quota, Kaby, canaux",
-    role:"Le seul serveur actif à la fois : Kybernos Cloud intégré, ou le serveur d'une entreprise. Il tient le compte, le catalogue de modèles, le quota, le fil Kaby et la porte des canaux.",
-    cross:["Token d'appareil, requêtes de compte, catalogue, quota, dispatch des canaux.","L'en-tête de l'espace actif décide quel espace paie un appel."],
-    limits:["Le contenu de tes sessions locales ne monte pas par défaut.","Un refus de quota s'affiche « Request quota exhausted » côté moteur, mais la carte et la notice disent la vraie raison."],
-    where:"Settings › Servers · ~/.dsh/kybernos/servers.json", source:"docs/dev/servers.md" },
-  { id:"custom", zone:"serv", tone:"violet", tag:"ton serveur", badge:"",
-    t:"Serveur custom (entreprise)", s:"une adresse, ton compte, pas de licence",
-    role:"Même contrat, même code : on colle l'adresse, le serveur publie /.well-known/kybernos-server.json, DSH vérifie que le profil lui convient.",
-    cross:["Profil : api, web, console, service LLM, endpoint des apps connectées.","Appairage par code d'appareil contre l'api de ce serveur."],
-    limits:["Un champ présent mais invalide refuse tout le profil : jamais de repli sur un autre serveur.","Le jeton d'un serveur ne part jamais vers un autre.","Peut ne pas offrir de LLM : cas normal."],
-    where:"Settings › Servers › Ajouter", source:"docs/dev/servers.md § discovery" },
-  { id:"acct", zone:"serv", tone:"violet", tag:"compte", badge:"",
-    t:"Compte, plan, quota", s:"l'espace qui paie",
-    role:"La facturation se règle par espace : personnel ou équipe. La route du modèle porte l'en-tête de l'espace actif, et le catalogue se lit avec le même en-tête.",
-    cross:["Plan, fenêtres de quota en pourcentage, état de paiement, date de reset."],
-    limits:["Aucun montant d'argent ni nombre de tokens dans la carte Cloud.","Une équipe sans plan le dit « No plan », pas « quota épuisé »."],
-    where:"Carte Cloud sous le composer · console", source:"docs/dev/servers.md § billing" },
-  { id:"chan", zone:"serv", tone:"violet", tag:"canal", badge:"défaut : off",
-    t:"Porte canaux (Telegram)", s:"bot du serveur, tours hébergés",
-    role:"Un message Telegram devient un tour hébergé pour la personne ; les approbations arrivent en trois boutons.",
-    cross:["Message, pièces jointes, identité du canal.","Approbations en trois boutons sur un tour hébergé — pas sur un tour exécuté par l'ordinateur."],
-    limits:["Le tour exécuté sur l'ordinateur tourne en accès complet, sans demande : la machine est la frontière, et les approbations de canal ne sont pas construites.","Le tour sur l'ordinateur est derrière un switch propriétaire, à 0 par défaut.","Le bot est celui du serveur : pas de tunnel ni de port ouvert."],
-    where:"Telegram (QR ou lien) · Settings › Phone and channels", source:"packages/messaging/README.md · étude WhatsApp § 2" },
-  { id:"relay", zone:"serv", tone:"blue", tag:"télécommande", badge:"pas déployé",
-    t:"Relais télécommande", s:"/v1/remote/* · WebSocket chiffré",
-    role:"Il garde une connexion pour chaque ordinateur et transporte le trafic du téléphone : il ne détient que le condensat de l'identifiant de canal.",
-    cross:["Tickets à usage unique (une heure), rôle hôte, trames chiffrées."],
-    limits:["Construit côté serveur, pas encore déployé ; l'hôte du téléphone reste à décider.","Le téléphone n'a pas de compte : il ne peut ni ouvrir un ordinateur cloud ni lire le plan."],
-    where:"Sans objet côté personne (production)", source:"docs/dev/mobile-remote.md" },
-  { id:"driver", zone:"serv", tone:"amber", tag:"orchestration", badge:"",
-    t:"Driver des ordinateurs", s:"créer, réveiller, endormir, compter",
-    role:"Le registre et le cycle de vie des ordinateurs cloud, le compteur d'heures, le jeton restreint de la machine et le réveil à l'heure planifiée.",
-    cross:["Ordres de cycle de vie, ticket d'accès à usage unique.","Le jeton de la machine est limité à une courte liste de routes."],
-    limits:["Le plan Free ne donne pas la main : manual_control = false, pas de bouton de réveil."],
-    where:"Côté serveur (invisible)", source:"docs/dev/computers.md · cloud-computer-run-on.md" },
-  { id:"hooks", zone:"serv", tone:"rose", tag:"webhook", badge:"",
-    t:"Webhooks", s:"POST /v1/hooks/{id}?secret=…",
-    role:"Un événement extérieur réveille l'ordinateur si besoin et le transmet à /kybernos/hooks, qui lance une automation existante avec l'événement ajouté au prompt.",
-    cross:["Le secret du hook, l'événement — jamais des instructions à exécuter."],
-    limits:["60 appels par heure par défaut.","Aucune route n'écrit tasks.json à distance : l'automation doit déjà exister sur la machine."],
-    where:"Automations de l'ordinateur (URL du hook)", source:"docs/dev/cloud-computer-run-on.md" },
-  { id:"mcp", zone:"serv", tone:"slate", tag:"apps connectées", badge:"",
-    t:"Apps connectées (MCP)", s:"le serveur sert le catalogue Composio",
-    role:"Le mode « connexions Kybernos » passe par l'endpoint MCP du serveur, sur la même origine que l'api (le token d'appareil y va).",
-    cross:["Appels d'outils de l'app connectée, catalogue d'apps."],
-    limits:["Absent = non offert (serveur ancien, ou sans Composio).","Adresse hors origine refusée."],
-    where:"Page Connectors", source:"docs/dev/servers.md" },
-
-  /* Machines sans toi */
-  { id:"cloud", zone:"cloud", tone:"amber", hero:true, tag:"ordinateur cloud", badge:"",
-    t:"Ordinateur cloud (Fly)", s:"ton DSH qui continue quand le Mac dort",
-    role:"Une machine à toi : l'image DSH + la suite + la porte, un volume persistant (profil, sessions, skills, automations), réveillée à la demande ou à l'heure planifiée.",
-    cross:["Un jeton restreint (routes limitées), le modèle via la route du serveur, ton profil restauré."],
-    limits:["Rien de secret n'entre : ni mot de passe, ni clé de connecteur, ni clé de modèle.","Changer d'image = un rebuild (clone au build, rien ne se télécharge ensuite)."],
-    where:"Kaby › ordinateur · Cloud Computer", source:"docs/dev/computers.md" },
-  { id:"cloudAuto", zone:"cloud", tone:"amber", tag:"automations", badge:"",
-    t:"Automations sur l'ordinateur", s:"le tasks.json de son volume",
-    role:"Elles existent parce qu'on les a créées dans la page de la machine. La plateforme réveille la machine à next_wake_at ; un webhook peut aussi la réveiller.",
-    cross:["Le prompt, les outils, le journal du run."],
-    limits:["Aucune route n'écrit tasks.json à distance.","Un chat DSH ne peut pas encore être envoyé à cet ordinateur : le composer le montre désactivé."],
-    where:"Page de l'ordinateur › Automations", source:"docs/dev/cloud-computer-run-on.md" },
-  { id:"access", zone:"cloud", tone:"blue", tag:"accès", badge:"",
-    t:"Accès (ticket + porte)", s:"ticket à usage unique (mot de passe en dev)",
-    role:"Un ticket à usage unique ouvre la porte ; la page DSH de la machine s'ouvre derrière, comme un site hébergé. Le mot de passe n'existe que pour une machine de développement — décision du 19/10 : pas de login séparé pour un ordinateur cloud.",
-    cross:["Ticket à usage unique, cookie de session DSH remis par la porte."],
-    limits:["Ce n'est pas une session locale : le chat vit sur la machine.","Qui peut ouvrir : son propriétaire ; owners et admins si l'accès l'autorise."],
-    where:"Bouton d'ouverture de l'ordinateur", source:"packages/kybernos-gate/README.md · computers.md" },
-  { id:"volume", zone:"cloud", tone:"slate", tag:"données", badge:"",
-    t:"Volume persistant", s:"/data/dsh · /data/work",
-    role:"Sessions, mémoire, skills, automations et fichiers survivent au redémarrage, à un cold start et au réveil.",
-    cross:["Écritures des tours, tâches, fichiers du workspace."],
-    limits:["La plateforme doit garder le volume sur un stockage persistant, sinon tout repart à zéro."],
-    where:"Côté plateforme", source:"docs/dev/computers.md" },
-  { id:"egress", zone:"cloud", tone:"rose", tag:"réseau", badge:"",
-    t:"Politique de sortie (egress)", s:"closed · list · public",
-    role:"Les règles sont tenues par la machine elle-même (nftables), pour tous ses processus : « closed » ne laisse sortir que l'adresse de la plateforme.",
-    cross:["Uniquement la politique appliquée ; elle échoue fermée."],
-    limits:["Fly ne contrôle pas la sortie par processus : la règle vaut pour la machine entière.","KYBERNOS_EGRESS_GUARD=off existe pour un poste de développement, et le journal le dit."],
-    where:"Variables de la machine", source:"docs/dev/computers.md" },
-  { id:"chatcloud", zone:"cloud", tone:"slate", tag:"non construit", badge:"désactivé",
-    t:"Chat → ordinateur cloud", s:"l'option du composer, grisée",
-    role:"Le composer liste « Cloud Computer » et l'explique : un chat DSH n'a pas d'adresse côté serveur, donc il ne peut pas encore être envoyé à la machine.",
-    cross:["Rien : c'est le manque qui est montré, avec sa raison."],
-    limits:["Ce qui manque : computer_id dans la route de dispatch, une route hôte de tour, puis le composer.","La décision de facturation et d'approbation reste au propriétaire."],
-    where:"Composer › environnement", source:"docs/dev/cloud-computer-run-on.md" },
-  { id:"e2b", zone:"cloud", tone:"teal", tag:"sandbox", badge:"BYOK",
-    t:"E2B — ordinateurs éphémères", s:"une microVM jetable pour l'agent",
-    role:"Pour exécuter du code sans toucher la machine : l'agent crée, écrit, exécute et jette une sandbox (4 au plus, 15 minutes par défaut).",
-    cross:["La clé E2B est un secret de facturation : elle vit dans le magasin de credentials, jamais renvoyée par une route."],
-    limits:["Facturé sur TON compte E2B, pas par Kybernos.","La clé est requise : sans elle, la sandbox ne démarre pas."],
-    where:"Settings › Cloud computers", source:"packages/kybernos-computers/README.md" },
-
-  /* Le reste du monde */
-  { id:"llm", zone:"world", tone:"violet", tag:"modèles", badge:"",
-    t:"Modèles", s:"la route du serveur, ou tes clés",
-    role:"Deux voies : la route « kybernos » du serveur (la consommation est comptée par espace) ou une clé personnelle, appelée directement.",
-    cross:["Prompt, outils, images ; réponse en flux."],
-    limits:["Un refus de quota arrive au moteur comme « quota épuisé » : la vraie raison est dans la notice et la carte.","Changer de serveur nettoie d'abord la route de l'ancien."],
-    where:"Settings › Models & routing", source:"docs/dev/servers.md" },
-  { id:"telegram", zone:"world", tone:"blue", tag:"canal", badge:"",
-    t:"Telegram (Bot API)", s:"deux portes, pas une",
-    role:"(a) Le bot du serveur : un tour hébergé pour Kaby. (b) Le daemon local messaging : ton DSH local répond, en sortie seulement (long polling), sans tunnel ni port ouvert.",
-    cross:["Messages, pièces jointes, réponses et progression."],
-    limits:["La porte locale répond avec un DSH headless : ce n'est pas Kaby.","La porte serveur dépend du bot du serveur et de ses routes d'appairage."],
-    where:"Kaby › canaux · packages/messaging", source:"packages/messaging/README.md" },
-  { id:"whatsapp", zone:"world", tone:"amber", tag:"canal", badge:"beta, dev seulement",
-    t:"WhatsApp", s:"un numéro Kybernos partagé, en beta",
-    role:"Un seul numéro Kybernos, relié par Baileys dans le serveur (décision du 19/10) : c'est un pont de beta, pas encore l'API Cloud officielle.",
-    cross:["Un webhook sans état sur le serveur déjà hébergé ; les tours de Kaby y arrivent comme sur Telegram."],
-    limits:["Relié sur le serveur de dev (20/10), annoncé `available:false` : pas ouvert aux personnes.","Baileys sur le compte de chaque personne reste écarté (CGU, credentials, bannissement de son numéro).","L'API Cloud officielle de Meta est la cible, et elle est bloquée par la politique « assistants généralistes »."],
-    where:"Côté serveur (pont beta)", source:"docs/etudes/2026-10-19-kaby-phase-1-decisions-et-plan.md §1 · whatsapp-door-study §1" },
-  { id:"livekit", zone:"world", tone:"rose", tag:"voix", badge:"",
-    t:"LiveKit", s:"le transport de la voix et de l'image",
-    role:"Une room par appel ; le worker y entre, la session répond, la voix revient par le TTS du fournisseur choisi.",
-    cross:["Audio (et vidéo si une clé de visage est posée)."],
-    limits:["Les modèles audio déjà présents dans tes Modèles ne sont pas encore branchés sur les appels."],
-    where:"Settings › Calls › Providers", source:"packages/kybernos-call/README.md" }
-];
-
-const EDGES = [
-  { a:"desk",  b:"local",  kind:"local"  },
-  { a:"phone", b:"relay",  kind:"e2e"    },
-  { a:"relay", b:"local",  kind:"e2e"    },
-  { a:"local", b:"server", kind:"server" },
-  { a:"local", b:"custom", kind:"server" },
-  { a:"driver",b:"cloud",  kind:"server" },
-  { a:"hooks", b:"cloud",  kind:"hook"   }
-];
-
-const SCENARIOS = [
-  { id:"all", title:"Vue d'ensemble", pitch:"Tout allumé, rien de sélectionné", wit:"", steps:[] },
-  { id:"s1", title:"Une automation se déclenche", pitch:"Sur ce Mac, à l'heure dite", wit:"",
-    steps:[
-      { a:"auto", b:"auto", kind:"local", t:"Le scheduler tick",
-        d:"Toutes les 30 secondes, le scheduler relit tasks.json et regarde si un cron, une date ou un webhook correspond. Le fichier est verrouillé pendant l'écriture." },
-      { a:"auto", b:"local", kind:"local", t:"Une session DSH démarre",
-        d:"L'automation ouvre une session avec son prompt et ses outils. En mode « ask » (le défaut), la session passe en workspace-write : elle demandera avant d'agir." },
-      { a:"local", b:"llm", kind:"server", t:"Le modèle est appelé",
-        d:"Le prompt part par la route du serveur (comptée par espace) ou par ta clé personnelle. La réponse revient dans la session, outil après outil." },
-      { a:"local", b:"auto", kind:"local", t:"Le run est daté",
-        d:"Le résultat est écrit dans l'historique de tasks.json (20 derniers runs). Le board lit le journal de la session pour l'état réel : il ne prétend jamais « réussi » quand il ne peut pas le lire." }
-    ] },
-  { id:"s2", title:"Automation sur l'ordinateur cloud", pitch:"Quand ton Mac est fermé", wit:"",
-    steps:[
-      { a:"driver", b:"cloud", kind:"server", t:"La plateforme réveille la machine",
-        d:"next_wake_at est atteint : le driver sort la machine du sommeil (0,5 à 0,7 s mesurées après le premier démarrage)." },
-      { a:"cloudAuto", b:"cloud", kind:"local", t:"Son propre tasks.json tire",
-        d:"La machine a son DSH et son volume : l'automation se déclenche là-bas exactement comme chez toi. C'est pour cela qu'aucune route n'a besoin d'écrire tasks.json à distance." },
-      { a:"cloud", b:"llm", kind:"server", t:"Elle appelle le modèle",
-        d:"Via la route du serveur, avec le jeton restreint de la machine : rien de secret n'est stocké dedans." },
-      { a:"hooks", b:"cloud", kind:"hook", t:"Ou un webhook la réveille",
-        d:"POST /v1/hooks/{id}?secret=… : la plateforme réveille la machine et transmet l'événement à /kybernos/hooks, qui lance une automation existante avec l'événement ajouté au prompt." },
-      { a:"cloud", b:"server", kind:"server", t:"Le run reste chez elle",
-        d:"Le journal vit sur son volume ; le serveur garde l'état de la machine. Ce qui n'existe pas : envoyer un chat DSH à cette machine aujourd'hui." }
-    ] },
-  { id:"s3", title:"Kaby depuis Telegram", pitch:"Un message, un tour hébergé", wit:"défaut : off",
-    steps:[
-      { a:"telegram", b:"chan", kind:"ext", t:"Le message arrive au bot",
-        d:"Bot du serveur, pas de tunnel : l'appel vient de Telegram vers la porte des canaux." },
-      { a:"chan", b:"driver", kind:"server", t:"hosted.dispatch",
-        d:"Le message devient un tour pour la personne (thread Kaby), avec l'identité du canal et les approbations en trois boutons." },
-      { a:"driver", b:"cloud", kind:"server", t:"Le tour part sur SON ordinateur",
-        d:"Le service sait exécuter le tour sur l'ordinateur cloud de la personne — mais seulement si le switch propriétaire channel_computer_turns_enabled est ouvert (0 par défaut)." },
-      { a:"cloud", b:"llm", kind:"server", t:"La machine répond",
-        d:"Son DSH exécute le tour avec ses outils et ses permissions ; la réponse repart par la porte des canaux." },
-      { a:"chan", b:"telegram", kind:"ext", t:"La réponse revient dans le chat",
-        d:"Le dernier mot dit là-bas est aussi rappelé dans le prompt du Kaby local : un assistant, une mémoire, deux corps." }
-    ] },
-  { id:"s4", title:"La télécommande (téléphone)", pitch:"Ton Mac dans ta poche, chiffré", wit:"relais non déployé",
-    steps:[
-      { a:"phone", b:"relay", kind:"e2e", t:"Le QR ouvre un canal",
-        d:"Le QR porte l'identifiant de canal, un code à usage unique et la clé d'identité. Tout ce qui suit le # reste dans le navigateur du téléphone." },
-      { a:"relay", b:"local", kind:"e2e", t:"Le relais transporte",
-        d:"Une connexion par ordinateur ; le serveur ne garde qu'un condensat de l'identifiant de canal, et le trafic est chiffré de bout en bout." },
-      { a:"local", b:"phone", kind:"e2e", t:"Le téléphone rend TON DSH",
-        d:"Pas une copie, pas un cloud : la page réelle de ton Mac. Mac éteint = « hors ligne », et la page réessaie seule — aucune file d'attente." }
-    ] },
-  { id:"s5", title:"Ouvrir l'ordinateur cloud", pitch:"Un ticket, une porte, une page", wit:"",
-    steps:[
-      { a:"desk", b:"server", kind:"server", t:"Un ticket est demandé",
-        d:"POST …/computers/{id}/ticket : ticket à usage unique, pour qui a le droit d'ouvrir (son propriétaire ; owners et admins si l'accès l'autorise)." },
-      { a:"server", b:"access", kind:"server", t:"La porte s'ouvre",
-        d:"La machine tourne derrière la porte Kybernos : un ticket à usage unique, une session signée, un reverse proxy HTTP/SSE/WebSocket. Le mot de passe ne sert qu'à une machine de développement." },
-      { a:"access", b:"cloud", kind:"server", t:"Tu es dans SON DSH",
-        d:"La page, ses assets et /api répondent comme une session locale — mais le chat, les fichiers et les automations sont ceux de la machine." },
-      { a:"driver", b:"cloud", kind:"server", t:"Elle peut dormir et se réveiller",
-        d:"Sommeil 3,0–3,7 s, réveil 0,5–0,7 s (mesuré). Sur le plan Free, le serveur dit manual_control = false : pas de bouton." }
-    ] },
-  { id:"s6", title:"Un appel vocal", pitch:"Tu parles, la session répond", wit:"",
-    steps:[
-      { a:"desk", b:"local", kind:"local", t:"Le bouton d'appel d'une session",
-        d:"L'appel appartient à la session, pas à une équipe : téléphone ou caméra dans l'en-tête du chat." },
-      { a:"local", b:"livekit", kind:"ext", t:"Une room LiveKit",
-        d:"Le transport porte la voix ; le worker Python de l'hôte y entre." },
-      { a:"livekit", b:"voice", kind:"ext", t:"Le worker écoute",
-        d:"ASR, puis ce qu'il entend devient un vrai tour de la session." },
-      { a:"voice", b:"local", kind:"local", t:"Le tour réel répond",
-        d:"Même modèle, mêmes outils, mêmes permissions que le chat : la réponse est la réponse de la session." },
-      { a:"local", b:"livekit", kind:"ext", t:"La voix revient",
-        d:"TTS du fournisseur choisi ; la vidéo reste éteinte sans clé de visage." }
-    ] },
-  { id:"s7", title:"Ajouter un serveur custom", pitch:"Une adresse, pas un installateur", wit:"",
-    steps:[
-      { a:"desk", b:"custom", kind:"server", t:"Tu colles l'adresse",
-        d:"La page lit /.well-known/kybernos-server.json : il répond, il publie un profil, il convient à ce DSH. Trois étapes, 8 secondes au plus." },
-      { a:"custom", b:"local", kind:"server", t:"Le profil est accepté (ou refusé)",
-        d:"Le registre servers.json est écrit, puis vérifié ; si le profil ne convient pas, le fichier est remis exactement comme avant. Un champ invalide refuse tout." },
-      { a:"local", b:"server", kind:"server", t:"La bascule nettoie l'ancien",
-        d:"La route du modèle de l'ancien serveur est retirée d'abord, puis le catalogue du nouveau est importé s'il est connecté. Idempotent." },
-      { a:"local", b:"llm", kind:"server", t:"Le nouveau catalogue sert",
-        d:"Chaque serveur garde son fichier de connexion : personne n'est déconnecté, et un jeton ne traverse jamais la frontière." }
-    ] },
-  { id:"s8", title:"Ce que le serveur voit de toi", pitch:"Compte, plan, quota — et le reste", wit:"",
-    steps:[
-      { a:"local", b:"server", kind:"server", t:"L'appairage",
-        d:"Un code d'appareil, un token : c'est tout. Pas de licence, pas de clé par défaut." },
-      { a:"server", b:"llm", kind:"server", t:"L'espace actif paie",
-        d:"La route du modèle porte l'en-tête de l'espace : un membre d'équipe consomme la réserve de l'équipe, pas la sienne." },
-      { a:"server", b:"local", kind:"server", t:"Le quota remonte",
-        d:"GET /kybernos-cloud/quota : ce qui a arrêté le dernier appel et combien il reste, en pourcentage. La carte se relit à l'apparition, au focus, toutes les 2 minutes et après un refus." },
-      { a:"local", b:"server", kind:"server", t:"Le reste ne monte pas",
-        d:"Ni fichiers, ni mémoire, ni leçons, ni sessions : ils sont sur ton disque. Seuls les tours que tu envoies (Telegram, Kaby) et les lectures de compte traversent." }
-    ] }
-];
-
-/* ── rendu ─────────────────────────────────────────────── */
-const $ = (s) => document.querySelector(s);
-const canvas = $("#canvas"), baseWires = $("#baseWires"), busWires = $("#busWires"), haloWires = $("#haloWires"), hotWires = $("#hotWires"), dot = $("#dot");
-const nodeEls = new Map();
-let rects = new Map();
-let current = { scen:"all", step:0 };
-let playTimer = null, rafDot = null, dotPath = null, dotStart = 0;
-
-const ICONS = {phone:"<rect x=\"7\" y=\"2.6\" width=\"10\" height=\"18.8\" rx=\"2.7\"/><path d=\"M10.4 18.4h3.2\"/>",browser:"<rect x=\"3\" y=\"4.4\" width=\"18\" height=\"15.2\" rx=\"2.7\"/><path d=\"M3 9.2h18\"/><circle cx=\"6.2\" cy=\"6.8\" r=\".85\" fill=\"currentColor\" stroke=\"none\"/>",terminal:"<rect x=\"3\" y=\"4.4\" width=\"18\" height=\"15.2\" rx=\"2.7\"/><path d=\"M7 9.8l3 2.6-3 2.6M12.6 15.2h4.4\"/>",kaby:"<path d=\"M20.4 11.3a8.4 8.4 0 10-3.4 6.6l3.4 1.4-1.1-3.3a8.4 8.4 0 001.1-4.7z\"/><path d=\"M12 8.6l.85 2.05 2.05.85-2.05.85L12 14.4l-.85-2.05L9.1 11.5l2.05-.85z\" fill=\"currentColor\" stroke=\"none\"/>",clock:"<circle cx=\"12\" cy=\"12\" r=\"8.4\"/><path d=\"M12 7.4V12l3 2.1\"/>",workers:"<circle cx=\"6.2\" cy=\"17.2\" r=\"2.4\"/><circle cx=\"17.8\" cy=\"17.2\" r=\"2.4\"/><circle cx=\"12\" cy=\"6.4\" r=\"2.4\"/><path d=\"M7.5 15l2.7-6.4M16.5 15l-2.7-6.4M8.6 17.2h6.8\"/>",mic:"<rect x=\"9.2\" y=\"3\" width=\"5.6\" height=\"10\" rx=\"2.8\"/><path d=\"M5.6 11.4a6.4 6.4 0 0012.8 0M12 17.9v3.1\"/>",cloud:"<path d=\"M7.4 18.4a4.2 4.2 0 01-.4-8.4 6 6 0 0111.5 1.1 3.9 3.9 0 01-.4 7.3z\"/><path d=\"M9.4 14.3h5.2\"/>",bolt:"<path d=\"M13.4 2.8L5.6 13.6h4.9l-1 7.6 7.9-11h-5z\"/>",key:"<circle cx=\"8.2\" cy=\"12\" r=\"3.3\"/><path d=\"M11.5 12H21M18.2 12v3M15.2 12v2.2\"/>",volume:"<ellipse cx=\"12\" cy=\"6.4\" rx=\"7\" ry=\"2.9\"/><path d=\"M5 6.4v11.2c0 1.6 3.1 2.9 7 2.9s7-1.3 7-2.9V6.4\"/><path d=\"M5 12c0 1.6 3.1 2.9 7 2.9s7-1.3 7-2.9\"/>",shield:"<path d=\"M12 3l7.6 3.2v5.4c0 4.4-3.1 7.7-7.6 8.6-4.5-.9-7.6-4.2-7.6-8.6V6.2z\"/><path d=\"M8.6 12h5.8M12.2 9.4l2.6 2.6-2.6 2.6\"/>",webhook:"<path d=\"M4.2 7.2v9.6M19.8 7.2v9.6\"/><path d=\"M4.2 12h4.6\"/><path d=\"M12.4 12h7.4m-3-3l3 3-3 3\"/>",mcp:"<circle cx=\"6\" cy=\"12\" r=\"2.2\"/><circle cx=\"18\" cy=\"6.2\" r=\"2.2\"/><circle cx=\"18\" cy=\"17.8\" r=\"2.2\"/><path d=\"M8 11l8-3.8M8 13l8 3.8\"/>",server:"<rect x=\"4\" y=\"4\" width=\"16\" height=\"6.4\" rx=\"2\"/><rect x=\"4\" y=\"13.6\" width=\"16\" height=\"6.4\" rx=\"2\"/><path d=\"M7.6 7.2h.02M7.6 16.8h.02\"/>",serverplus:"<rect x=\"3.4\" y=\"6\" width=\"13.6\" height=\"5.6\" rx=\"1.9\"/><rect x=\"3.4\" y=\"14.4\" width=\"13.6\" height=\"5.6\" rx=\"1.9\"/><path d=\"M6.6 8.8h.02M6.6 17.2h.02\"/><path d=\"M19.6 3.6v4.6M17.3 5.9h4.6\"/>",account:"<rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"2.7\"/><circle cx=\"8.8\" cy=\"11.4\" r=\"2\"/><path d=\"M5.8 16.2c.7-1.5 1.7-2.2 3-2.2s2.3.7 3 2.2M14.2 10.4h4M14.2 13.4h4\"/>",spark:"<path d=\"M12 3.2l1.85 5.15L18.9 10l-5.05 1.65L12 16.8l-1.85-5.15L5.1 10l5.05-1.65z\"/><circle cx=\"18.4\" cy=\"17.6\" r=\"1.5\"/>",telegram:"<path d=\"M21 4.6L3.4 11.3l5.2 2 1.9 4.9 3.1-3.6 4.6 1.9z\"/><path d=\"M8.6 13.3l12.4-8.7-7.4 11\"/>",whatsapp:"<path d=\"M20.4 11.4a8.4 8.4 0 10-3.3 6.5l3.4 1.5-1.2-3.4a8.4 8.4 0 001.1-4.6z\"/><circle cx=\"8.9\" cy=\"11.4\" r=\".95\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"12.2\" cy=\"11.4\" r=\".95\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"15.5\" cy=\"11.4\" r=\".95\" fill=\"currentColor\" stroke=\"none\"/>",wave:"<path d=\"M3.8 12h2.2M8.2 8.2v7.6M12 5.4v13.2M15.8 8.8v6.4M19.8 11.2v1.6\"/>",cube:"<path d=\"M12 3.2l8 4.5v8.6L12 20.8l-8-4.5V7.7z\"/><path d=\"M4 7.7l8 4.5 8-4.5M12 12.2v8.6\"/>",plug:"<path d=\"M9 3.4v5M15 3.4v5\"/><rect x=\"6\" y=\"8.4\" width=\"12\" height=\"4.8\" rx=\"2\"/><path d=\"M12 13.2v7.4\"/>",book:"<path d=\"M4 5.6c3-1.4 5.3-1.4 8 0 2.7-1.4 5-1.4 8 0v12.8c-3-1.4-5.3-1.4-8 0-2.7-1.4-5-1.4-8 0z\"/><path d=\"M12 5.6v12.8\"/>",relay:"<path d=\"M4 8.4h13.2l-3.2-3.2M20 15.6H6.8l3.2 3.2\"/>",driver:"<circle cx=\"12\" cy=\"12\" r=\"8.4\"/><path d=\"M12 12l4.1-3.4\"/><circle cx=\"12\" cy=\"12\" r=\"1.4\" fill=\"currentColor\" stroke=\"none\"/>",chatcloud:"<path d=\"M20.2 10.2a7.2 7.2 0 10-2.8 5.6l2.9 1.2-1-2.9a7.2 7.2 0 00.9-3.9z\"/><path d=\"M8.2 10.2h6.4M12.2 7.6l2.6 2.6-2.6 2.6\"/>"};
-const ICO = {phone:"phone",desk:"browser",local:"terminal",kaby:"kaby",auto:"clock",workers:"workers",voice:"mic",server:"server",custom:"serverplus",acct:"account",chan:"telegram",relay:"relay",driver:"driver",hooks:"webhook",mcp:"mcp",cloud:"cloud",cloudAuto:"bolt",access:"key",volume:"volume",egress:"shield",chatcloud:"chatcloud",e2b:"cube",llm:"spark",telegram:"telegram",whatsapp:"whatsapp",livekit:"wave"};
-const icon = (name) => `<span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg></span>`;
-const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html !== undefined) n.innerHTML = html; return n; };
-
-function build(){
-  for (const z of ZONES){
-    const zone = el("section","zone" + (z.row ? " row" : ""));
-    zone.dataset.tone = z.tone;
-    zone.dataset.zone = z.id;
-    zone.style.cssText = `left:${z.x}px;top:${z.y}px;width:${z.w}px;height:${z.h}px`;
-    z.el = zone;
-    zone.appendChild(el("div","zh", `<h2>${z.title}</h2><p>${z.sub}</p>`));
-    const body = el("div","zb");
-    for (const n of NODES.filter(n => n.zone === z.id)){
-      const b = el("button","node");
-      b.type = "button"; b.dataset.id = n.id; b.dataset.tone = n.tone;
-      if (n.hero) b.dataset.hero = "1";
-      b.setAttribute("aria-label", n.t + " — " + n.s);
-      b.innerHTML = `${icon(ICO[n.id] || 'server')}<span class="nt"><span>${n.t}</span><span class="tag">${n.tag}</span></span><span class="ns">${n.s}</span>
-        ${n.badge ? `<span class="nb"><span class="badge">${n.badge}</span></span>` : ""}`;
-      b.addEventListener("click", () => openNode(n.id));
-      body.appendChild(b); nodeEls.set(n.id, b);
+  FRAMES: [
+    {
+      id: "engine", short: "Kybernos", tone: "purple", h: 514,
+      title: "Kybernos: AI agent platform, open source",
+      sub: "An engine plus plugins. Four ways to install it.",
+      role: "Kybernos is an open source AI agent platform: an engine (DSH) with plugins on top. The same engine and the same plugin set come as a desktop app, a browser tab, a server you run yourself and a phone app. Every package carries the engine and the plugins; the server is optional.",
+      limits: [
+        "Same plugin set, not yet the same version: the desktop app is pinned to suite v0.1.1 while 0.1.2 is published, the cloud computer image is built from a checkout and not from the signed suite, and the phone app needs a new native build.",
+        "The engine has no MCP server of its own: the door for outside tools is Kaby MCP."
+      ],
+      where: "Kybernos app · suite of plugins", source: "README.md · AGENTS.md",
+      groups: [
+        { id: "installs", label: "" },
+        { id: "link", label: "Plugins that link out", y: 152 },
+        { id: "work", label: "Plugins that do the work", y: 356 }
+      ],
+      notes: [
+        { t: "Same plugin set everywhere, not yet the same version", x: 340, y: 126, anchor: "middle" },
+        { t: "They run wherever the engine runs", x: 340, y: 496, anchor: "middle" }
+      ]
+    },
+    {
+      id: "server", short: "Server", tone: "gray", h: 580,
+      title: "Kybernos Server: shared, or white-label",
+      sub: "",
+      role: "The optional server. Shared (Kybernos Cloud) or white-label: a company runs its own with the same contract, and the engine adds it from its address. It has two sides. The admin side is what a company's IT looks at: the team console and the owner's admin page. The user side is the account page, the cloud computers and the relay. Below sit the task queue and Kaby's doors, next to the outside.",
+      limits: [
+        "A company (on-premises) server has no Connections and no Remote control relay: those are services of the cloud.",
+        "The active server is one at a time; one server's token never goes to another.",
+        "The admin side is read from the server's routes and documents; no running console was opened for this page.",
+        "Company sign-in (SSO, SCIM) is planned and has no code."
+      ],
+      where: "Settings › Servers", source: "docs/dev/servers.md · packages/kybernos-servers/README.md",
+      groups: [
+        { id: "team", label: "Admin side: team admin, the console" },
+        { id: "owner", label: "Admin side: owner, the admin page" },
+        { id: "user", label: "User side" },
+        { id: "queue", label: "The task queue" },
+        { id: "doors", label: "Doors into the queue" },
+        { id: "services", label: "Services the engine reaches", y: 504 }
+      ],
+      bands: [{ x: 32, y: 44, w: 288, h: 290 }, { x: 328, y: 44, w: 320, h: 290 }],
+      notes: [
+        { t: "Admin side: what IT looks at", x: 44, y: 60, b: true, nolist: true },
+        { t: "Team admin · the console", x: 44, y: 80, nolist: true },
+        { t: "Owner · the admin page", x: 44, y: 208, nolist: true },
+        { t: "User side", x: 340, y: 60, b: true, nolist: true }
+      ]
+    },
+    {
+      id: "outside", short: "Outside", tone: "dash", h: 182,
+      title: "Outside",
+      sub: "",
+      role: "What Kybernos does not own: the model providers, the apps people connect, the messengers where Kaby answers, the AI tools that give Kaby tasks, the developers and model marketplaces, the customers of a business that runs Kybernos, the phone and e-mail provider and the app stores.",
+      limits: ["Each one has its own terms, its own limits and its own way to go down."],
+      where: "", source: "docs/dev/mcp-kaby-contract.md",
+      groups: [{ id: "row", label: "" }],
+      notes: []
     }
-    zone.appendChild(body);
-    if (z.note) zone.appendChild(el("div","zn", z.note));
-    canvas.appendChild(zone);
+  ],
+
+  NODES: [
+    // ── engine: installs ──
+    {
+      id: "desktop", frame: "engine", group: "installs", x: 36, y: 58, w: 134, h: 48,
+      t: "Desktop", s: "Electron app", st: "done",
+      stNote: "Built and checked in CI on macOS, Windows and Linux; seen live on macOS only. Pinned to suite v0.1.1 while 0.1.2 is published.",
+      tip: "The Electron app: the engine and the plugins in one install, one window per team.",
+      role: "The Electron app installs, starts, opens and repairs Kybernos without a terminal. Its payload carries the engine and the plugins; each team has its own window and its own engine.",
+      cross: ["Nothing: the window opens the local engine, on loopback."],
+      limits: ["The payload is pinned to suite v0.1.1 while 0.1.2 is published.", "The window always opens, even with a broken engine: it offers a repair."],
+      where: "The Kybernos app", source: "Desktop repository: README.md and PAYLOAD_REF",
+      inside: [{ t: "The engine (DSH)" }, { t: "The suite of plugins" }, { t: "One window and one engine per team" }]
+    },
+    {
+      id: "web", frame: "engine", group: "installs", x: 194, y: 58, w: 134, h: 48,
+      t: "Web", s: "in a browser", st: "done",
+      tip: "The same engine in a browser tab: this computer's own page, or a cloud computer behind its gate.",
+      role: "The same engine, opened in a browser tab: either the local one (a page on this computer) or a cloud computer behind its gate, opened with a one-time ticket.",
+      cross: ["A one-time ticket; the gate hands the browser the engine's session cookie."],
+      limits: ["A browser tab is not a local session: the chat lives on the machine that runs the engine.", "Who can open a cloud computer: its owner; owners and admins if access allows it."],
+      where: "The computer's open button · a local page", source: "packages/kybernos-gate/README.md · docs/dev/computers.md"
+    },
+    {
+      id: "selfhosted", frame: "engine", group: "installs", x: 352, y: 58, w: 134, h: 48,
+      t: "Self-hosted", s: "your own server", st: "half",
+      stNote: "A recipe measured once (Coolify, a container behind a TLS proxy), with the gate checked live. It is not a one-click install: you set up the container and the proxy yourself.",
+      tip: "The engine and the plugins on a server you run, with the gate in front as its sign-in page.",
+      role: "The engine and the plugins on a server you run (a VPS or a container behind a TLS proxy), with the Kybernos Gate in front of the engine as its sign-in page. A company can also run its own Kybernos Server and add it by its address.",
+      cross: ["The gate hands the browser the engine's session cookie after the password.", "A company server publishes /.well-known/kybernos-server.json; the engine checks its profile against it."],
+      limits: ["Nothing may be exposed without the gate: plugin routes answer before the engine's own sign-in.", "A VPS template that has its own proxy and sign-in does not need the gate."],
+      planned: [
+        { id: "pullHost", t: "A pull host", d: "A machine of your own that calls the server outward and takes its jobs, so no port is open on it." }
+      ],
+      where: "Settings › Servers · the gate's setup", source: "docs/dev/hosted-instances.md · packages/kybernos-gate/README.md · docs/dev/servers.md",
+      inside: [
+        { t: "Your own server", st: "half", d: "A recipe measured once, with the gate checked live; not a one-click install.", src: "docs/dev/hosted-instances.md" },
+        { t: "A company's own machines, driven by the server", st: "todo", d: "A node agent on a host the company owns, so cloud computers can run there. Described in the server's design (ADR 0052), not built." }
+      ]
+    },
+    {
+      id: "mobile", frame: "engine", group: "installs", x: 510, y: 58, w: 134, h: 48,
+      t: "Mobile", s: "iOS, Android", st: "done",
+      stNote: "Proved on a simulator and on a real iPhone. Simple mode was merged on 2026-11-21; the native build is to redo.",
+      tip: "A React Native app that runs the engine and the plugins on the phone. Simple mode needs a new native build.",
+      role: "A React Native app (iOS and Android) runs the engine and the plugins on the phone and shows their interface in a WebView. Two apps, one code base: Kybernos (advanced) and Kaby (Simple mode).",
+      cross: ["Prompts to the chosen model, like any engine."],
+      limits: ["Simple mode is in dev since 2026-11-21; it needs a new native build.", "The remote control link has no meaning there: the phone is the device."],
+      planned: [
+        { id: "nativeBuild", t: "A new native build, for the app stores", d: "Simple mode is in dev; the phone apps need a native build that carries it." }
+      ],
+      where: "The Kybernos and Kaby apps", source: "docs/dev/kaby-mode-shell-contract.md · Mobile repository: README.md"
+    },
+
+    // ── engine: plugins that link out ──
+    {
+      id: "workers", frame: "engine", group: "link", x: 36, y: 162, w: 192, h: 48,
+      t: "Workers", s: "coding agents", st: "done",
+      tip: "Claude Code, Codex, Gemini and other coding agents, driven as sub-agents.",
+      role: "External coding agents (Claude Code, Codex, Gemini and others) driven as sub-agents: their state, install and exposure are managed from a dedicated page.",
+      cross: ["The brief goes to the worker, its answer comes back into the session."],
+      limits: ["Each worker keeps its own permissions.", "Nothing installs without a click."],
+      planned: [
+        { id: "workerPicker", t: "A worker picker in the composer", d: "Choose the coding agent from the box where you write, not only from a settings page." }
+      ],
+      where: "Settings › Agents › Workers", source: "packages/kybernos-workers/README.md"
+    },
+    {
+      id: "localModels", frame: "engine", group: "link", x: 244, y: 162, w: 192, h: 48,
+      t: "Local models", s: "on your device", st: "done",
+      tip: "Measures the machine, recommends models that fit and runs them through Ollama, on your device.",
+      role: "Measures the machine, recommends the models that fit its memory, installs one with Ollama and wires it into the model picker, so an agent can run on your device.",
+      cross: ["The prompt goes to Ollama on this machine."],
+      limits: ["Nothing is downloaded without a click.", "If the machine cannot be measured, the page gives no verdict and installing stays possible."],
+      where: "Settings › Ollama local models", source: "packages/kybernos-modeles-locaux/README.md"
+    },
+    {
+      id: "kyModels", frame: "engine", group: "link", x: 452, y: 162, w: 192, h: 48,
+      t: "Kybernos models", s: "or your own key", st: "done",
+      tip: "The server's model route (counted per workspace), or a personal key called directly.",
+      role: "Two ways to reach a model: the server's own route (usage counted per workspace) or a personal key, called directly.",
+      cross: ["Prompts to the chosen model, through the server or straight to the provider."],
+      limits: ["A quota refusal reaches the engine as quota exhausted; the real reason is in the notice and the card.", "Switching servers first clears the old server's route."],
+      where: "Settings › Models and routing", source: "docs/dev/servers.md"
+    },
+    {
+      id: "apps", frame: "engine", group: "link", x: 36, y: 222, w: 192, h: 48,
+      t: "Connected apps", s: "through Composio", st: "done",
+      tip: "Gmail, Notion and many more, through Composio: your own key, or the server's connections.",
+      role: "Connects the engine to Composio, so agents can use the apps people already have. Two modes: your own Composio key (direct, the default) or Kybernos connections, served by the server with no key on your machine.",
+      cross: ["Tool calls to Composio, with your key or through the server."],
+      limits: ["Kybernos connections exist only when the server announces them: an older or company server has none."],
+      where: "The Connectors page", source: "packages/kybernos-composio/README.md · docs/dev/servers.md"
+    },
+    {
+      id: "mcp", frame: "engine", group: "link", x: 244, y: 222, w: 192, h: 48,
+      t: "MCP servers", s: "plug in any tool", st: "done",
+      tip: "The engine is an MCP client: any MCP server you add becomes tools for the agent.",
+      role: "The engine is an MCP client: any MCP server you add becomes tools for the agent. The engine has no MCP server of its own: the door for outside tools is Kaby MCP.",
+      cross: ["Tool calls and their results, to the MCP server you chose."],
+      limits: ["Each server keeps its own permissions; the engine's approvals still apply."],
+      where: "The engine's MCP settings", source: "The engine (DSH)"
+    },
+    {
+      id: "remote", frame: "engine", group: "link", x: 452, y: 222, w: 192, h: 48,
+      t: "Remote control", s: "phone and browser", st: "half",
+      stNote: "The plugin is built; the relay it needs, on the server, is built but not deployed. A phone cannot reach your computer this way yet.",
+      tip: "A QR code pairs a phone or a browser with your computer, through an end-to-end encrypted relay.",
+      role: "Lets a phone or another browser use the engine of a computer: a QR code pairs them, and the traffic goes through a relay on the server, end-to-end encrypted. The relay carries the traffic and cannot read it.",
+      cross: ["QR: a channel id, a one-time code and the identity key; the code never leaves the browser.", "Engine traffic, encrypted; the relay carries it."],
+      limits: ["Computer off means offline, with no queue.", "At most 3 phones (a server setting).", "Inside the phone app it has no meaning: the phone is the device."],
+      where: "Account menu › Phone and channels", source: "docs/dev/mobile-remote.md · packages/kybernos-mobile/README.md"
+    },
+    {
+      id: "voice", frame: "engine", group: "link", x: 36, y: 282, w: 192, h: 48,
+      t: "Voice", s: "calls", st: "half",
+      stNote: "One real call (voice and model) was played on 2026-10-08, not replayed since. LiveAvatar video, a real ElevenLabs clone, Windows and Linux: not proved.",
+      tip: "A voice worker joins a LiveKit room and turns what it hears into a real session turn.",
+      role: "Started by the host, a Python worker joins the LiveKit room and turns what it hears into a real session turn, then speaks the answer.",
+      cross: ["Incoming audio becomes text, then a real turn, then text, then voice."],
+      limits: ["Only one real call has been played (2026-10-08): everything else is tested, not replayed with a real microphone.", "Video stays off until a LiveAvatar key is set."],
+      planned: [
+        { id: "phoneNumber", t: "A phone number", d: "People could call it. It needs a provider outside (see Phone and e-mail provider)." }
+      ],
+      where: "Settings › Calls", source: "packages/kybernos-call/README.md"
+    },
+    {
+      id: "kaby", frame: "engine", group: "link", x: 244, y: 282, w: 192, h: 48,
+      t: "Kaby", s: "the assistant", st: "done", tone: "kaby", tag: "kaby",
+      tip: "The assistant: a real engine conversation with your memory, reachable from the doors below.",
+      role: "A plain engine chat with the Kaby identity injected into the prompt and your account memory. The computer picker sets where its channels answer; the local chat always runs on this machine.",
+      cross: ["Every finished turn is also written to your Kaby thread on the server.", "The last words said in a messenger come back into the prompt: one assistant, several bodies."],
+      limits: ["The chat is created in workspace-write: it asks before acting.", "A whole chat cannot be sent to the cloud computer: the composer can hand it a mission."],
+      planned: [
+        { id: "kabyEmail", t: "An e-mail address of its own", d: "Whose mailbox it would be is not decided." }
+      ],
+      where: "The Kaby menu · the computer strip", source: "packages/kybernos-kyber/README.md"
+    },
+    {
+      id: "kabyLocal", frame: "engine", group: "link", x: 452, y: 282, w: 192, h: 48,
+      t: "Kaby MCP (local)", s: "AI tools on this computer", st: "half", tone: "kaby", tag: "kaby",
+      stNote: "In dev, off by default. No real task has run on a real model, and connecting an AI tool is still a command to run.",
+      tip: "A door on this computer: an AI tool such as Claude Code gives Kaby a task, always under ask first.",
+      role: "A plugin of every engine (kybernos-door). An AI tool on this computer, such as Claude Code, calls it with a token from your profile: the task becomes a new conversation of this Kybernos, put under ask first before anything is sent.",
+      cross: ["Three tools: kaby_do (a task, or its task id), list_tasks and kaby_stop.", "Loopback only, with a bearer token: the engine serves plugin routes before its own sign-in, so the route is its own fence."],
+      limits: ["It cannot approve anything: a step that needs a yes waits on the Kybernos screen.", "Not built: run_automation, a task's Journal link.", "In no shipped package yet: the desktop is pinned to suite v0.1.1, the cloud image takes the suite at a release tag, the phone has its own payload."],
+      where: "Settings › Kaby MCP", source: "packages/kybernos-door/README.md"
+    },
+
+    // ── engine: plugins that do the work ──
+    {
+      id: "teams", frame: "engine", group: "work", x: 36, y: 366, w: 134, h: 48,
+      t: "Agent teams", s: "lead + agents", st: "half",
+      stNote: "The prompt block is built and merged. The coordination skill is not shipped by the plugin, and the behaviour with a real model is not verified.",
+      tip: "Several teams, each a lead and agents, working in one chat under a Team Lead.",
+      role: "A team is a lead and agents described in a file. Several teams can work in one chat, coordinated by a Team Lead over a flat roster with a seat cap.",
+      cross: ["The lead's brief to each agent and their answers, inside one session."],
+      limits: ["The coordination skill is not shipped by the plugin yet.", "Live behaviour with a real model is not verified."],
+      where: "A team's kyber.yml · the chat", source: "packages/kybernos-plugin/README.md"
+    },
+    {
+      id: "skills", frame: "engine", group: "work", x: 194, y: 366, w: 134, h: 48,
+      t: "Skills", s: "reusable steps", st: "done",
+      tip: "Reusable know-how the agent can load. A team can share a catalogue through the server.",
+      role: "Lists the skills the engine knows and switches them on or off. A stable automation can become a skill. A team can share a catalogue of skills through the server.",
+      cross: ["Skill folders on disk; a team's catalogue goes through the server."],
+      limits: ["A skill is the manual of a tested script: nothing enters the catalogue without a test."],
+      where: "The Skills screen", source: "packages/kybernos-skills/README.md · docs/dev/team-skills-contract.md"
+    },
+    {
+      id: "automations", frame: "engine", group: "work", x: 352, y: 366, w: 134, h: 48,
+      t: "Automations", s: "scheduled runs", st: "done",
+      tip: "Cron, once or webhook runs. They run wherever the engine runs, on a cloud computer too.",
+      role: "Scheduled work: the scheduler ticks every 30 seconds and reads the tasks file; an automation runs on a cron rhythm, once, or on a webhook. It runs on the machine where the engine runs, a cloud computer included.",
+      cross: ["The prompt and the session's tools.", "In ask mode: an approval card before acting."],
+      limits: ["No cost per run is shown on the board (the Usage plugin owns the tokens).", "A run more than 3 minutes late signals a stopped scheduler.", "No route writes the tasks file remotely: an automation exists because it was created on the machine's own page."],
+      planned: [
+        { id: "createAutomation", t: "A create_automation tool", d: "Kaby could set up an automation from the chat; today one exists because it was made on the machine's own page." },
+        { id: "genericTriggers", t: "Generic triggers", d: "Start an automation from an event, not only from a clock or a webhook." }
+      ],
+      where: "The Automations page", source: "packages/kybernos-plugin/README.md · docs/dev/cloud-computer-run-on.md"
+    },
+    {
+      id: "appsBuilder", frame: "engine", group: "work", x: 510, y: 366, w: 134, h: 48,
+      t: "Apps builder", s: "build and publish", st: "half",
+      stNote: "Built on both sides (the Tables plugin and the server's team space), but Publish was not replayed live.",
+      tip: "Tables, small web apps, pages, documents and decks built from the chat; Publish puts them on a cloud computer.",
+      role: "Tables (objects and fields you define), small web apps with their own database, mockups, documents and slide decks, all built from the chat. Publish puts a Tables app into the team space of one of your cloud computers.",
+      cross: ["Publish: the app's files and database go to the server's team space, which puts them on the person's cloud computer."],
+      limits: ["Publish never creates a computer: the person picks among their own.", "The hosted copy becomes the truth; the local folder is only a mirror."],
+      where: "Tables › Publish", source: "docs/dev/apps-hosting-port.md · packages/kybernos-db/README.md",
+      inside: [
+        { t: "Tables", st: "done", d: "Objects and fields you define, with tools for the agent.", src: "packages/kybernos-db/README.md" },
+        { t: "Small web apps", st: "done", d: "Each with its own SQLite base.", src: "packages/kybernos-webapp-creator/README.md" },
+        { t: "Mockups", st: "done", d: "An in-page editor with patches that keep the file intact.", src: "packages/kybernos-maquettes" },
+        { t: "Documents and decks", st: "done", d: "Word, Excel, Markdown, PDF and HTML slide decks.", src: "packages/kybernos-office" },
+        { t: "Publish", st: "half", d: "Built on both sides, not replayed live.", src: "docs/dev/apps-hosting-port.md" }
+      ]
+    },
+
+    {
+      id: "customerAgent", frame: "engine", group: "work", x: 36, y: 426, w: 134, h: 48,
+      t: "Customer agent", s: "Front desk", st: "half",
+      stNote: "The plugin is built and merged, and its service is tested. The service has not been started on a real model, so no visitor has talked to it yet.",
+      tip: "The public assistant of one shop: visitors reach it on a link, in a widget on the shop's site or on Telegram.",
+      role: "The shop's own public assistant (the front desk). Visitors talk to it on a link, in a chat bubble on the shop's site or on Telegram. The owner prepares what it knows, reads the conversations and approves what it asks before it does it. The assistant is a standalone service that the plugin starts and watches on the owner's computer, and Kaby helps to prepare its sheet.",
+      cross: ["The visitor's messages and the assistant's answers, straight to the visitor: the Kybernos Server is not in the path.", "Its own model key, kept apart: never shown to Kaby."],
+      limits: ["Visitors reach it only through a public address (a domain, or a tunnel to the owner's computer); without one the link works on that computer only.", "Nothing changes for visitors before the owner accepts an approval card.", "Money, limits and the sites that may show the chat stay the owner's: the service refuses them for Kaby."],
+      planned: [
+        { id: "whatsappBsp", t: "WhatsApp through a BSP", d: "The shop's customers on WhatsApp, through a BSP and the shop's own number. The adapter runs in the front desk service, never in the plugin." }
+      ],
+      where: "Front desk, in the Business group of the menu", source: "packages/kybernos-front-desk/README.md · packages/front-desk",
+      evidence: [
+        { repo: "plugins", path: "packages/kybernos-front-desk/index.js", has: "front_desk" }
+      ]
+    },
+
+    // ── server: admin side, team admin (the console) ──
+    {
+      id: "members", frame: "server", group: "team", x: 44, y: 88, w: 126, h: 48,
+      t: "Members", s: "Roles and seats", st: "done",
+      tip: "Who is in the team and what each may do: owner, admin or member, with the seats the plan allows.",
+      role: "The members of a workspace and their roles (owner, admin, member), the seats the plan allows, and the team's own provider keys, so a team can bring its own key.",
+      cross: ["Invitations, roles and seat counts, through the team console."],
+      limits: ["Read from the server's routes and documents; no running console was opened for this page.", "A team with no plan says No plan, not quota exhausted."],
+      where: "The team console, opened from Kybernos or in a browser", source: "Server ADR 0004, 0005 and 0025 (team plan, team console, team keys)"
+    },
+    {
+      id: "usage", frame: "server", group: "team", x: 182, y: 88, w: 126, h: 48,
+      t: "Usage", s: "And audit trail", st: "done",
+      tip: "Credits and usage per member, the team's audit trail and its export, and a limit per member.",
+      role: "What each member used, readable by the team's admins, the workspace's audit trail with an export, and a limit that can be set per member.",
+      cross: ["Usage rows from the model route, counted per workspace.", "Audit events of the workspace."],
+      limits: ["Read from the server's routes and documents, not from a running console.", "A team sees its own trail; the owner's dashboards are the other side."],
+      where: "The team console", source: "Server ADR 0003 and 0005"
+    },
+    {
+      id: "teamSkills", frame: "server", group: "team", x: 44, y: 144, w: 126, h: 48,
+      t: "Team skills", s: "Team catalogue", st: "done",
+      tip: "A team's shared catalogue of skills, automations and templates: proposed by a member, approved by an admin.",
+      role: "A member proposes a skill, an owner or admin approves it, and every member installs a copy of their own. The same catalogue holds the team's automations and templates.",
+      cross: ["A skill's files, through the server; the engine's Skills screen has a Team tab."],
+      limits: ["Nothing enters the catalogue without approval.", "A skill a member already has of that name is theirs: the install is refused, not overwritten."],
+      where: "The Skills screen › Team · the team console", source: "docs/dev/team-skills-contract.md · docs/dev/team-automations-contract.md · packages/kybernos-skills/README.md"
+    },
+    {
+      id: "sso", frame: "server", group: "team", x: 182, y: 144, w: 126, h: 48,
+      t: "SSO, SCIM", s: "Not built", st: "todo",
+      stNote: "Company sign-in is planned in the server's documents. There is no SAML or SCIM code; OpenID is used only for the social sign-in of a person.",
+      tip: "A company's own sign-in (SSO) and automatic user lists (SCIM). Planned, with no code yet.",
+      role: "What a company's IT usually asks for: staff sign in with the company's identity provider, and the member list follows the company's directory.",
+      cross: ["Target: the company's identity provider signs people in; a directory feed adds and removes members."],
+      limits: ["Not built: no SAML, no SCIM.", "The team console is where it would be set, next to members and roles."],
+      where: "", source: "Server ADR 0002 § 2 and 0005"
+    },
+
+    // ── server: admin side, owner (the admin page) ──
+    {
+      id: "observability", frame: "server", group: "owner", x: 44, y: 218, w: 126, h: 48,
+      t: "Observability", s: "Audit, Journal", st: "half",
+      stNote: "The audit chain with signed anchors, and the owner's dashboards and journal, are built and tested on dev. Whether the chain's anchors run in production is not verified here.",
+      tip: "What the platform did: a tamper-evident audit chain, dashboards of model calls and the journal of workflows that ran.",
+      role: "The owner sees what the server does: a hash-chained audit trail with signed anchors that can be verified, dashboards with charts of the model calls, and the journal of the workflows that ran, as a graph and as a trajectory. For a company running its own server, the owner is the company.",
+      cross: ["Audit anchors and a verification call.", "The ledger of model calls and the queue of jobs, read as charts."],
+      limits: ["Built, tested; not shown running in production here.", "Behind the owner's sign-in and a second factor."],
+      where: "The owner's admin page", source: "Server ADR 0015, 0019 and 0028 (compliance, audit chain, owner observability)"
+    },
+    {
+      id: "plans", frame: "server", group: "owner", x: 182, y: 218, w: 126, h: 48,
+      t: "Plans", s: "Billing, models", st: "half",
+      stNote: "The plan editor (draft, publish, retire, move subscribers) and the providers settings are built. Live payments in production are not verified here.",
+      tip: "The owner's page for plans and prices, the model providers and the platform's settings.",
+      role: "The owner edits the plans and their prices as drafts and publishes them, chooses the model providers and the platform's settings.",
+      cross: ["Plan drafts and publications; the catalogue the account page shows."],
+      limits: ["A price change is a draft and a publish: the document follows within minutes.", "Live card payments: not verified here."],
+      where: "The owner's admin page", source: "Server ADR 0004 (plans and billing)"
+    },
+    {
+      id: "switches", frame: "server", group: "owner", x: 44, y: 274, w: 126, h: 48,
+      t: "Switches", s: "Doors on or off", st: "done",
+      tip: "Two owner switches decide whether Kaby's doors answer at all: the channels, and Kaby MCP. Both are off by default.",
+      role: "Two owner switches (the channels and Kaby MCP), both off by default, decide whether Kaby's doors answer. An owner turns a door on for the whole server.",
+      cross: ["A setting read on every call to a door."],
+      limits: ["Off by default: Kaby MCP answers 503 until its switch is on.", "A switch does not change what a person has approved."],
+      where: "The owner's admin page", source: "docs/dev/mcp-kaby-contract.md"
+    },
+
+    {
+      id: "commissions", frame: "server", group: "owner", x: 182, y: 274, w: 126, h: 48,
+      t: "Referral commissions", s: "Referral, in money", lines: ["Commissions", "Paid to creators"], st: "todo",
+      stNote: "Not built. Today's referral gives a credit to both people and never pays money. A commission is another programme and has no code.",
+      tip: "A commission in money for the people who bring customers, as the next step of today's referral credit. Target.",
+      role: "The next step of the referral programme. Today the one who invites and the one who is invited each get a credit. A commission would pay the creators who bring paying customers, on rules the owner sets.",
+      cross: ["Target: a referral link in, a commission owed and a payout out."],
+      limits: ["Not built.", "The rules (who is paid, how, for how long, and the tax side) are the owner's decisions and are not settled."],
+      where: "The owner's admin page (target)", source: "Server ADR 0010 (referral)",
+      evidence: [
+        { repo: "server", path: "src/modules/referral/service.ts", absent: "payout" }
+      ]
+    },
+
+    // ── server: user side ──
+    {
+      id: "account", frame: "server", group: "user", x: 340, y: 76, w: 140, h: 60,
+      t: "Account page", s: "Cloud pot, keys", st: "done",
+      tip: "What a person sees: sign-in, plan and credits, personal keys, Kaby's thread and memory, their computers.",
+      role: "Sign-in, the plan and quota, the workspace that pays, personal API keys, Kaby's thread and memory, and the person's cloud computers.",
+      cross: ["A device token, account requests, plan and quota windows.", "Every finished Kaby turn is written to your Kaby thread."],
+      limits: ["The content of your local sessions does not go up by default.", "A personal key is accepted on three model routes only."],
+      where: "Settings › Servers · the account page", source: "docs/dev/servers.md",
+      inside: [
+        { t: "Plan, quota and billing per workspace", st: "done" },
+        { t: "Personal keys (kyk_)", st: "done", d: "Accepted on three OpenAI-shaped model routes only.", src: "docs/dev/servers.md" },
+        { t: "Kaby thread and memory", st: "done" },
+        { t: "Links with no account", st: "half", d: "A chat's Journal and shared dashboards under /s/<id>; a Kaby task's Journal link is built on the plugin side only.", src: "docs/dev/journal-link.md" },
+        { t: "Shop in the chat", st: "half", d: "The server half is an open pull request, not merged; Stripe test mode only.", src: "docs/dev/shop-go-live.md" }
+      ]
+    },
+    {
+      id: "relay", frame: "server", group: "user", x: 340, y: 160, w: 140, h: 60,
+      t: "Remote relay", s: "Not deployed", st: "half",
+      stNote: "Built on the server and tested, not deployed: its public address and the phone's host are still to be decided.",
+      tip: "The encrypted relay behind Remote control. Built, not deployed.",
+      role: "Keeps one connection per computer and carries the phone's traffic. It holds only the hash of the channel id and cannot read what it carries. It is not a general tunnel: its own decision rules that out, so it is not the road for a server door to reach a local install.",
+      cross: ["Opaque encrypted frames between a computer and a phone."],
+      limits: ["The phone has no account: it can neither open a cloud computer nor read the plan.", "Off on a company (on-premises) server: it is a service of the cloud."],
+      where: "Nothing for the person to set", source: "docs/dev/mobile-remote.md"
+    },
+    {
+      id: "ownInstall", frame: "server", group: "user", x: 340, y: 262, w: 140, h: 60,
+      t: "Own install", s: "By calling out", st: "todo", tone: "install", tag: "kaby",
+      stNote: "Target, not built: no code lets a local install take a task from the server. The local door works only for tools on the same computer.",
+      tip: "A Kybernos install on your own computer that takes the server's queued tasks, as a cloud computer does. Target.",
+      role: "A person's own computer, running Kybernos, that takes a queued task the way a cloud computer does. Today the only way to reach it is the local door, from a tool on that same computer.",
+      cross: ["Target: the install claims a queued task, then sends back events and the answer."],
+      limits: ["Not built.", "The road is the one a cloud computer already uses: the install calls the server outward and claims jobs with the runner protocol, so no port is open on the person's machine. The server then reads the task, which the local door never does."],
+      where: "", source: "docs/dev/task-contract.md · docs/dev/mcp-kaby-contract.md"
+    },
+    {
+      id: "cloudComputers", frame: "server", group: "user", x: 492, y: 72, w: 144, h: 250,
+      t: "Cloud computers", s: "A hosted Kybernos", s2: "Metered by the hour", st: "done", tone: "install",
+      stNote: "Updated with one button, seen live on 2026-11-21. The image is built from a checkout and a patch, not from the signed suite.",
+      tip: "Your own hosted Kybernos install: it stays on while your laptop sleeps, runs automations and takes Kaby's tasks.",
+      role: "A machine of your own: a hosted Kybernos install (the engine, the suite, the gate, and a runner that claims the server's jobs) on a persistent volume, woken on demand or at the scheduled time, and metered by the hour. It can also host what you publish.",
+      cross: ["A one-time ticket opens it through its gate.", "The runner claims the server's jobs, such as a Kaby task."],
+      limits: ["Nothing secret goes in: no password, no connector key, no model key.", "The image copies folders from a checkout and patches the core plugin; the server's design plans one image per signed release.", "The engine says of itself that it is experimental and has had no security audit (server ADR 0052): the machine's isolation and its closed outbound policy are what a customer relies on.", "The computer does not serve the sites yet: the platform's web host does.", "A computer runs one turn at a time.", "A stop reaches the engine: the session and its sub-agents are cancelled before the platform is told. It is proven in the tests against stand-ins and was played on the real image (local container, the engine DSH 0.2.2-alpha.2, a stand-in platform and model, `play-stop.mjs`: the model call in flight is closed before the runner says canceled; an image from before the stop fails the same script); no deployed Fly computer carries it yet."],
+      planned: [
+        { id: "vault", t: "A vault for secrets", d: "Today nothing secret goes into a cloud computer: no password, no connector key, no model key." },
+        { id: "localModelsCloud", t: "Local models", d: "Run a model on the cloud computer itself." }
+      ],
+      where: "Kaby › computer · the Cloud Computer page", source: "docs/dev/computers.md · docs/dev/cloud-computer-run-on.md",
+      evidence: [
+        { repo: "plugins", path: "services/computer-image/runner.mjs", has: "limit: 1" },
+        { repo: "plugins", path: "services/computer-image/runner.mjs", has: "status: 'canceled'" },
+        { repo: "plugins", path: "packages/kybernos-cloud/index.js", has: "/kybernos-cloud/turn/stop" },
+        { repo: "plugins", path: "services/computer-image/runner.mjs", has: "/kybernos-cloud/turn/stop" },
+        { repo: "plugins", path: "services/computer-image/play-stop.mjs", has: "the engine stopped first" }
+      ],
+      inside: [
+        { t: "Engine and plugins", st: "done", d: "The same Kybernos, hosted." },
+        { t: "Gate and runner", st: "done", d: "The gate opens it; the runner claims queued tasks.", src: "docs/dev/computers.md" },
+        { t: "Persistent volume", st: "done", d: "Profile, sessions, skills, automations." },
+        { t: "Automations on the computer", st: "done", d: "The platform wakes it at the next scheduled time; a webhook can too.", src: "docs/dev/cloud-computer-run-on.md" },
+        { t: "Connections bridge", st: "done", d: "Takes the tools the server publishes (Composio).", src: "packages/kybernos-cloud/README.md" },
+        { t: "Hosted apps", st: "half", d: "Publish puts an app in the team space of the computer.", src: "docs/dev/apps-hosting-port.md" },
+        { t: "Sites, name.kaby.app", st: "half", d: "In dev; served by the platform's web host today, not by the computer.", src: "docs/dev/site-publish-contract.md" }
+      ]
+    },
+
+    // ── server: the queue and the doors ──
+    {
+      id: "queue", frame: "server", group: "queue", x: 36, y: 350, w: 608, h: 46,
+      t: "Task queue", s: "Every door puts its task here", st: "done", tag: "kaby",
+      stNote: "Built. Kaby MCP and Kaby link both put their turns here through one funnel, and Kaby MCP was seen live on the dev server. The API door does not exist: the target is the same queue behind it.",
+      tip: "A queue of jobs that a runner claims on a cloud computer. Kaby MCP and Kaby link use it; the API door is meant to.",
+      role: "A queue in the server's database: a job is claimed by a runner with a heartbeat, reports events and is acknowledged. Each kind of job is registered with a budget. A task from Kaby MCP, or a message from Telegram or WhatsApp, waits here until the cloud computer's runner claims it. A task is a job: its id is the job's id.",
+      cross: ["A job, its progress events and its final answer."],
+      limits: ["The queue runs nothing itself: the engine on a computer is the executor. A words-only turn can be taken by a platform executor instead, which runs on the dev server only today.", "It is rows in the server's database that a runner polls, about every two seconds, not a message broker.", "A computer runs one turn at a time. The API door does not exist."],
+      planned: [
+        { id: "envelope", t: "A budget envelope per automation", d: "A ceiling on what one automation may spend." }
+      ],
+      where: "Nothing for the person to set", source: "Server ADR 0006 and 0026 (runner queue, job kinds) · docs/dev/task-contract.md · docs/dev/mcp-kaby-contract.md",
+      evidence: [
+        { repo: "server", path: "src/modules/kaby/entry-points.ts", has: "the one funnel of every hosted turn" },
+        { repo: "server", path: "src/modules/hosted/kind.ts", has: 'z.enum(["telegram", "whatsapp", "mcp"])' }
+      ]
+    },
+    {
+      id: "models", frame: "server", group: "services", x: 36, y: 516, w: 112, h: 48,
+      t: "Models", s: "Route, credits", st: "done",
+      tip: "The server's model route: usage counted per workspace, with a quota.",
+      role: "The server's model route: usage is counted per workspace, and the catalogue and the quota are read with the same workspace header.",
+      cross: ["The prompt and the answer, through the server to the provider."],
+      limits: ["A company server may offer no model at all: a normal case.", "With a personal key the prompt does not pass the server."],
+      where: "Settings › Models and routing", source: "docs/dev/servers.md"
+    },
+    {
+      id: "connections", frame: "server", group: "services", x: 160, y: 516, w: 112, h: 48,
+      t: "Connections", s: "Composio apps", st: "done",
+      tip: "The server serves the Composio catalogue, so apps connect with no key on your machine.",
+      role: "The server serves the Composio catalogue and the tools of connected apps, so a person connects Gmail or Notion without a key on their machine.",
+      cross: ["Tool calls to the apps, through the server's endpoint on the same origin as its api."],
+      limits: ["Missing means not offered: an older server, or one with no Composio, such as a company server.", "An off-origin address is refused."],
+      where: "The Connectors page", source: "docs/dev/servers.md"
+    },
+    {
+      id: "kyModel", frame: "server", group: "doors", x: 36, y: 436, w: 136, h: 48,
+      t: "Kybernos model", s: "A team, as a model", st: "todo",
+      stNote: "Not built. It would sit on the API door, which does not exist either: only personal keys on three model routes exist today.",
+      tip: "A model that is really a team: for each task it picks the agents, runs them and returns finished work. Target.",
+      role: "A model-shaped API that does not answer from one model: for each task it composes the agents that fit, runs them through the task queue and returns finished work. People would reach it from model marketplaces, as they reach any model. It is not the Kybernos models plugin, which only chooses where the engine's models come from.",
+      cross: ["Target: a task in, the team's finished work out.", "Target: the team's runs are jobs in the task queue."],
+      limits: ["Not built.", "It needs the API door first: a key scope for tasks and a task route a key may call."],
+      where: "", source: "docs/dev/task-contract.md · docs/dev/mcp-kaby-contract.md",
+      evidence: [
+        { repo: "server", path: "src", absent: "/v1/tasks" }
+      ]
+    },
+    {
+      id: "triggers", frame: "server", group: "doors", x: 184, y: 436, w: 100, h: 48,
+      t: "Triggers", s: "App events", st: "todo", tag: "kaby",
+      stNote: "Not built. The server mints a webhook address for a cloud computer's automation, but no server route answers it yet.",
+      tip: "A fourth input of the task queue: an event from an app, or a webhook, starts a task with no one typing. Target.",
+      role: "The fourth way into the task queue, next to Kaby link, Kaby MCP and the API: something happens in an app, or a webhook is called, and a task is queued for the person as a message would be.",
+      cross: ["Target: an event in (an app's trigger, a webhook call), a queued task out."],
+      limits: ["Not built.", "The receiver on the cloud computer exists; the server route that would feed it does not.", "An event is data, not an instruction: a task started this way must keep the approvals of every other door."],
+      where: "", source: "docs/dev/cloud-computer-run-on.md · docs/dev/task-contract.md",
+      evidence: [
+        { repo: "server", path: "src", absent: 'path: "/v1/hooks' }
+      ]
+    },
+    {
+      id: "kabyLink", frame: "server", group: "doors", x: 296, y: 436, w: 108, h: 48,
+      t: "Kaby link", s: "Messenger bot", st: "half", tone: "kaby", tag: "kaby",
+      stNote: "Telegram works. WhatsApp is a beta bridge linked on the dev server only, and Slack has no code. A message already goes through the same funnel as Kaby MCP, into the same queue; the doors still differ by their own owner switch, and only Kaby MCP has the entrance filter.",
+      tip: "Kaby inside Telegram and WhatsApp. Telegram works, WhatsApp is beta, Slack is not built.",
+      role: "Kaby as a bot inside a messenger: a message becomes a hosted turn for the person, and approvals arrive as buttons in the chat. A person with no account is offered one by the bot first.",
+      cross: ["The message and the answer.", "Approvals decided from the chat, as buttons."],
+      limits: ["The turn on the computer sits behind an owner switch, 0 by default.", "The bot is the server's: no tunnel and no open port on your machine.", "Target: one entrance guard in front of the funnel for every door, with the same ceilings."],
+      planned: [
+        { id: "whatsappStable", t: "WhatsApp, from beta to stable", d: "Today a beta bridge, linked on the dev server only." },
+        { id: "whatsappBsp", t: "WhatsApp through a BSP", d: "Kaby on WhatsApp through an official BSP, on its own number, separate from the shops'. Same adapter code, its own channel." },
+        { id: "slack", t: "Slack", d: "No code yet, only documents." }
+      ],
+      where: "Telegram (QR or link) · Settings › Phone and channels", source: "packages/messaging/README.md · docs/dev/whatsapp-door-study-2026-10-19.md",
+      evidence: [
+        { repo: "server", path: "src/modules/channels/service.ts", has: "deps.hosted.dispatch(" }
+      ]
+    },
+    {
+      id: "kabyMcp", frame: "server", group: "doors", x: 416, y: 436, w: 108, h: 48,
+      t: "Kaby MCP", s: "Server door", st: "done", tone: "kaby", tag: "kaby",
+      stNote: "In dev on both sides, seen live on the dev server. Production is not verified here. Off by default (owner switch).",
+      tip: "The server's door for AI tools: Claude and others give Kaby a task through OAuth and read the result.",
+      role: "An AI tool gives Kaby a task through the server's MCP endpoint, signed in by OAuth. The server puts it in the task queue, the cloud computer's runner claims it, it runs with the person's tools, skills and memory, and the answer comes back: done, pending or waiting for approval. The local door is the same idea for a tool on the same computer.",
+      cross: ["Tools such as kaby_do, plus listing the automations marked callable and their runs."],
+      limits: ["The AI tool cannot approve, run a command or read the person's data.", "Telegram and WhatsApp reach the same funnel without passing through it.", "Two owner switches (channels and Kaby MCP), both 0 by default."],
+      where: "Owner console · the account page, Assistants", source: "docs/dev/mcp-kaby-contract.md"
+    },
+    {
+      id: "api", frame: "server", group: "doors", x: 536, y: 436, w: 108, h: 48,
+      t: "API", s: "Keys, tasks", st: "todo", tag: "kaby",
+      stNote: "Only personal keys (kyk_) exist, accepted on three OpenAI-shaped routes that call models. The routes to start a job, read it, read its events and cancel it exist, but for a signed-in session or a device only: a key is refused there.",
+      tip: "A door for developers: a personal key on three model routes today; tasks and events through an API are the target.",
+      role: "The third door into Kaby, for code: a developer would start a task, follow its events and read the result with a personal key. What exists today is the key and three model routes.",
+      cross: ["Target: a task in, events and a result out, with a personal key."],
+      limits: ["A personal key is refused on every other route, by design (server ADR 0023): the task routes would need their own scope.", "Not built: a key scope for tasks, a task route a key may call, and a real stop that reaches the engine."],
+      where: "The account page, API keys", source: "Server ADR 0023 (personal keys) · docs/dev/task-contract.md · docs/dev/mcp-kaby-contract.md",
+      evidence: [
+        { repo: "server", path: "src/modules/identity/api-keys.ts", has: '"/v1/embeddings"' },
+        { repo: "server", path: "src", absent: "/v1/tasks" }
+      ]
+    },
+
+    // ── outside ──
+    {
+      id: "providers", frame: "outside", group: "row", x: 36, y: 40, w: 112, h: 62,
+      t: "AI models", s: "model providers", st: "done",
+      tip: "The model providers the engine reaches, through the server or directly with your own key.",
+      role: "The model providers the engine reaches: through the server's route, or directly with your own key.",
+      cross: ["Prompts and answers."],
+      limits: ["With your own key the server is not in the path."],
+      where: "Settings › Models and routing", source: "docs/dev/servers.md"
+    },
+    {
+      id: "extApps", frame: "outside", group: "row", x: 160, y: 40, w: 112, h: 62,
+      t: "Apps", s: "Gmail, Notion…", st: "done",
+      tip: "The apps a person connects, reached through Composio.",
+      role: "The apps a person connects (Gmail, Notion and many more), reached through Composio: with a personal key, or through the server's connections.",
+      cross: ["Tool calls and their results."],
+      limits: ["Each app asks for its own consent; reading passes with no tap on a cloud computer, sending and deleting still ask."],
+      where: "The Connectors page", source: "packages/kybernos-cloud/README.md"
+    },
+    {
+      id: "messengers", frame: "outside", group: "row", x: 284, y: 40, w: 112, h: 62,
+      t: "Messengers", s: "Telegram,", s2: "WhatsApp", st: "half", tag: "kaby",
+      stNote: "Telegram works. WhatsApp is a beta bridge, linked on the dev server and not open to people. A BSP is the target, with separate numbers for shops and for Kaby. Slack has no code, only documents.",
+      tip: "Where people talk to Kaby. Telegram works, WhatsApp is a beta, a BSP is the target, Slack is planned.",
+      role: "Where people talk to Kaby: Telegram (the server's bot, or a local daemon on your machine), WhatsApp (a shared Kybernos number in beta; the target is an official BSP, with one number per shop and one for Kaby) and Slack (planned).",
+      cross: ["Messages in, answers and approval buttons out."],
+      limits: ["The local Telegram daemon answers with a headless engine: it is not Kaby.", "The official WhatsApp route goes through a BSP: not built yet, and the assistant's use must fit the provider's policy."],
+      where: "Kaby › channels", source: "packages/messaging/README.md · docs/dev/whatsapp-door-study-2026-10-19.md"
+    },
+    {
+      id: "aiTools", frame: "outside", group: "row", x: 408, y: 40, w: 112, h: 62,
+      t: "AI tools", s: "Claude, Mistral", st: "half", tag: "kaby",
+      stNote: "Claude and Mistral are named in the contract. ChatGPT and Claude Cowork have not been checked.",
+      tip: "Assistants that give Kaby a task. Claude and Mistral are in the contract; ChatGPT and Cowork are unchecked.",
+      role: "Assistants that sign in to Kaby MCP by OAuth, list the automations you marked callable, give Kaby a task and read the result. The contract names Claude, Mistral and a host's own agent.",
+      cross: ["Tasks in, results out; no approval can be given from the outside."],
+      limits: ["It cannot approve, run a command or read the person's data.", "An AI tool on this computer, such as Claude Code, goes through the local door, not through the server."],
+      where: "Account › Assistants", source: "docs/dev/mcp-kaby-contract.md"
+    },
+    {
+      id: "developers", frame: "outside", group: "row", x: 532, y: 40, w: 112, h: 62,
+      t: "Developers and model marketplaces", s: "Call the API", lines: ["Developers", "and model", "marketplaces"], st: "todo", tag: "kaby",
+      stNote: "The API door does not exist yet: only personal keys on three model routes. The Kybernos model, which marketplaces would offer, has no code either.",
+      tip: "People who build on Kaby with code, and the marketplaces that would offer the Kybernos model. Target.",
+      role: "Developers who give Kaby a task from their own code, follow its events and read the result: they need the API door, which is a target. Model marketplaces are the other way in: they would offer the Kybernos model, a team that answers as a model.",
+      cross: ["Target: tasks in, events and results out, with a personal key."],
+      limits: ["Not built: nothing to call yet beyond the three model routes."],
+      where: "", source: "docs/dev/mcp-kaby-contract.md"
+    },
+    {
+      id: "customers", frame: "outside", group: "row", x: 36, y: 118, w: 150, h: 48,
+      t: "Your customers", s: "site, e-mail, phone", st: "half",
+      stNote: "The link, the widget and Telegram exist in the customer agent. E-mail and phone are not built.",
+      tip: "The people who write to a business: visitors of its site and Telegram today, e-mail and phone next.",
+      role: "The customers of a business that runs Kybernos: visitors of its site, people on Telegram and, later, people who write an e-mail or call. They talk to the customer agent, not to Kaby.",
+      cross: ["Messages in, answers out, on the owner's public address."],
+      limits: ["E-mail and phone are not built: they would need a provider outside.", "Without a public address the link works on the owner's computer only."],
+      where: "", source: "packages/kybernos-front-desk/README.md"
+    },
+    {
+      id: "provider", frame: "outside", group: "row", x: 222, y: 118, w: 170, h: 48,
+      t: "Phone and e-mail provider", s: "Carries calls and mail", lines: ["Phone and e-mail", "provider"], st: "todo",
+      stNote: "Not built. Nothing yet carries a phone number or a mailbox for Kaby or for a customer agent.",
+      tip: "The outside service that would give Kaby and the customer agent a phone number and a mailbox. Target.",
+      role: "An outside provider that would carry calls and e-mail: a phone number for Voice, a mailbox for Kaby, and the same two ways in for the customers of a business.",
+      cross: ["Target: calls and mail in, answers out."],
+      limits: ["Not built.", "It is outside: it has its own terms, its own limits and its own way to go down."],
+      where: "", source: "packages/kybernos-call/README.md"
+    },
+    {
+      id: "appStores", frame: "outside", group: "row", x: 508, y: 118, w: 136, h: 48,
+      t: "App stores", s: "iOS, Android", st: "todo",
+      stNote: "Not published. The phone app has run on a simulator and on a real iPhone, and a new native build is still to make.",
+      tip: "Where people would install the phone apps. Not published yet.",
+      role: "The stores through which the Kybernos and Kaby phone apps would reach people. Each store has its own review and its own rules.",
+      cross: ["Target: the signed app in, installs out."],
+      limits: ["Not published.", "The review and the rules are the store's: a rule can refuse an app."],
+      where: "", source: "docs/dev/kaby-mode-shell-contract.md"
+    }
+
+  ],
+
+  LINKS: [
+    {
+      id: "account", kind: "frames", a: "engine", b: "server", x: 340, two: true, label: "optional: one account",
+      t: "Optional: one account",
+      d: "Sign in to a Kybernos Server and the engine gets an account, a model route with a quota, connections and cloud computers. Without a server the engine still works, on your own keys.",
+      cross: ["A device token and account requests.", "The active workspace header decides who pays."]
+    },
+    {
+      id: "publish", kind: "v", a: "appsBuilder", b: "cloudComputers", label: "Publish",
+      t: "Publish",
+      d: "Publish puts a Tables app on one of your cloud computers, in the team space the server manages for it.",
+      cross: ["The app's files and database, to the server's team space, then to the computer."]
+    },
+    {
+      id: "models", kind: "v", a: "models", b: "providers",
+      t: "Model route",
+      d: "The engine asks the server's model route for a model; usage is counted per workspace, and the server calls the provider.",
+      cross: ["The prompt and the answer."]
+    },
+    {
+      id: "connections", kind: "v", a: "connections", b: "extApps",
+      t: "Connections",
+      d: "The server serves the Composio catalogue, so the apps are reached through it with no key on your machine.",
+      cross: ["Tool calls and their results."]
+    },
+    {
+      id: "kabyLinkOut", kind: "v", a: "kabyLink", b: "messengers", two: true, tone: "kaby", tag: "kaby",
+      t: "Kaby in a messenger",
+      d: "A message in Telegram (or WhatsApp) becomes a hosted turn for the person; the answer and the approval buttons go back to the chat.",
+      cross: ["The message and the answer.", "Approvals as buttons in the chat."]
+    },
+    {
+      id: "kabyMcpOut", kind: "v", a: "kabyMcp", b: "aiTools", two: true, tone: "kaby", tag: "kaby",
+      t: "Kaby MCP",
+      d: "An AI tool signs in by OAuth, lists the automations you marked callable, gives Kaby a task and reads the result.",
+      cross: ["Tools such as kaby_do; the AI tool cannot approve anything."]
+    },
+    {
+      id: "apiOut", kind: "v", a: "api", b: "developers", two: true, dash: true, target: true, tag: "kaby",
+      t: "API",
+      d: "Target: a developer starts a task with a personal key, follows its events and reads the result. Only the key and three model routes exist today. Model marketplaces would be another way in, to the Kybernos model.",
+      cross: ["Not built."]
+    },
+    {
+      id: "qMcp", kind: "v", a: "queue", b: "kabyMcp", rev: true, tone: "kaby", tag: "kaby",
+      t: "Kaby MCP to the queue",
+      d: "The server puts the AI tool's task in the task queue; the cloud computer's runner claims it.",
+      cross: ["A job and its payload."]
+    },
+    {
+      id: "qLink", kind: "v", a: "queue", b: "kabyLink", rev: true, tone: "kaby", tag: "kaby",
+      t: "Kaby link to the queue",
+      d: "A message in Telegram or WhatsApp becomes a hosted turn for the person through the same funnel as Kaby MCP: a job in the task queue, which the cloud computer's runner claims. The doors keep their own owner switch, and only Kaby MCP has the entrance filter; one guard for every door is the target.",
+      cross: ["A job and its payload."]
+    },
+    {
+      id: "qApi", kind: "v", a: "queue", b: "api", rev: true, dash: true, target: true, tag: "kaby",
+      t: "Target: API to the queue",
+      d: "A task started through the API would go into the same queue as the other doors.",
+      cross: ["Not built."]
+    },
+    {
+      id: "qCloud", kind: "v", a: "cloudComputers", b: "queue", rev: true, tag: "kaby",
+      t: "The runner claims the task",
+      d: "The runner on the cloud computer claims the queued task, runs it with the person's tools, skills and memory, and sends the events and the answer back.",
+      cross: ["A job, its progress events and the answer."]
+    },
+    {
+      id: "qOwn", kind: "v", a: "ownInstall", b: "queue", rev: true, dash: true, target: true, tone: "kaby", tag: "kaby",
+      t: "Target: a local install claims it too",
+      d: "A person's own install could take a queued task the way a cloud computer does: it calls the server outward and claims the job with the runner protocol, so no port is open on its machine. Not built.",
+      cross: ["Not built."]
+    },
+    {
+      id: "trigQueue", kind: "v", a: "queue", b: "triggers", rev: true, dash: true, target: true, tag: "kaby",
+      t: "Target: triggers to the queue",
+      d: "An event from an app, or a webhook call, would put a task in the same queue as the other doors. Not built.",
+      cross: ["Not built."]
+    },
+    {
+      id: "modelQueue", kind: "v", a: "queue", b: "kyModel", rev: true, dash: true, target: true,
+      t: "Target: the Kybernos model to the queue",
+      d: "A team's runs would be jobs in the same queue as the other doors, claimed by the runner of a cloud computer. Not built.",
+      cross: ["Not built."]
+    },
+    {
+      id: "customerRoad", kind: "elbow", a: "customerAgent", b: "customers", lane: 14, two: true, dash: true, dot: true,
+      t: "Customers reach the customer agent directly",
+      d: "A visitor talks to the customer agent on a link, in a widget on the shop's site or on Telegram: the Kybernos Server is not in the path.",
+      cross: ["The visitor's messages and the assistant's answers."]
+    },
+    {
+      id: "customerChannels", kind: "h", a: "customers", b: "provider", two: true, dash: true, target: true,
+      t: "Target: e-mail and phone",
+      d: "A customer would write an e-mail or call a number, and the provider would carry it to the customer agent. Not built.",
+      cross: ["Not built."]
+    },
+    {
+      id: "stores", kind: "elbow", side: "right", a: "mobile", b: "appStores", dash: true, target: true,
+      t: "Target: the phone apps in the app stores",
+      d: "The Kybernos and Kaby phone apps would be listed in the app stores. Not published yet.",
+      cross: ["Not built."]
+    },
+    {
+      id: "direct", kind: "elbow", a: "engine", ay: 246, b: "providers", lane: 8, dash: true, dot: true,
+      t: "Direct, with your own keys",
+      d: "With a personal model key (or a personal Composio key), the engine calls the provider or the app directly: the server is not in the path.",
+      cross: ["Prompts and answers, straight to the provider."]
+    }
+  ],
+
+  STORY: [
+    {
+      id: "install", title: "One engine, four ways to install",
+      text: "Kybernos is an open source AI agent platform: an engine with plugins on top. You install it as a desktop app, open it in a browser, host it yourself or carry it on a phone. It is the same engine and the same plugin set in all four; the versions are not yet aligned. The phone apps are meant to reach people through the app stores: not published yet.",
+      nodes: ["desktop", "web", "selfhosted", "mobile", "appStores"], links: ["stores"]
+    },
+    {
+      id: "link-out", title: "Plugins that reach other services",
+      text: "Only the plugins that link to something else are drawn here: coding agents, local models, models, apps through Composio, any MCP server, remote control and voice. Models and apps can be reached directly with your own keys.",
+      nodes: ["workers", "localModels", "kyModels", "apps", "mcp", "remote", "voice", "providers", "extApps"], links: ["direct"]
+    },
+    {
+      id: "work", title: "Plugins that do the work",
+      text: "Agent teams, skills, automations and the apps builder are plugins too, and so is the customer agent: the public assistant of one shop, which visitors reach on a link, in a widget on the shop's site or on Telegram. They run wherever the engine runs: on your computer, or on a cloud computer when that is where your Kybernos lives.",
+      nodes: ["teams", "skills", "automations", "appsBuilder", "customerAgent"], links: []
+    },
+    {
+      id: "server", title: "An optional server, with two sides",
+      text: "Sign in once and a Kybernos Server adds what a team needs. The admin side is what a company's IT looks at: the team console (members and roles, usage and audit trail, shared skills; company sign-in is planned) and the owner's admin page (audit and Journal, plans, the switches; a referral commission in money is planned). The user side is the account page, with the model route and the connections to apps. The server is shared (Kybernos Cloud) or white-label: a company runs its own, which has no Connections and no remote control relay.",
+      nodes: ["members", "usage", "teamSkills", "sso", "observability", "plans", "switches", "commissions", "account", "models", "connections", "providers", "extApps"], links: ["account", "models", "connections"]
+    },
+    {
+      id: "computers", title: "Cloud computers: a Kybernos install, hosted",
+      text: "The server also runs cloud computers. Each is a hosted Kybernos install with its own gate and runner, metered by the hour: it stays on while your laptop sleeps, runs your automations and hosts what you publish from the apps builder. Your own computer could take tasks the same way: that is a target, the install would call the server outward as a cloud computer does. The remote control relay, built for the phone, is a separate thing and is not deployed.",
+      nodes: ["cloudComputers", "appsBuilder", "automations", "ownInstall", "relay"], links: ["publish"]
+    },
+    {
+      id: "kaby", title: "Kaby: one assistant, two doors today",
+      text: "Kaby is the assistant. Kaby link puts it inside Telegram and WhatsApp (Slack is only planned). Kaby MCP lets AI tools such as Claude give it tasks through the server, and a local door does the same for tools on your own computer.",
+      nodes: ["kaby", "kabyLocal", "kabyLink", "kabyMcp", "messengers", "aiTools"], links: ["kabyLinkOut", "kabyMcpOut"]
+    },
+    {
+      id: "queue", title: "One queue behind every door",
+      text: "A task from an AI tool, or a message from a messenger, waits in the task queue until the runner on a cloud computer claims it. Both doors go through one funnel today, and a task is a job. An API door for developers is a target, with the same queue behind it. So are two more: triggers (an event from an app, or a webhook, starts a task) and the Kybernos model, a team that answers as a model and that model marketplaces would offer. The aim is one entrance guard and one set of ceilings for every door, with a computer that can be a cloud one or your own.",
+      nodes: ["queue", "kabyLink", "kabyMcp", "api", "triggers", "kyModel", "developers", "cloudComputers", "ownInstall"], links: ["apiOut", "qLink", "qMcp", "qApi", "trigQueue", "modelQueue", "qCloud", "qOwn"]
+    },
+    {
+      id: "customers", title: "Your customers reach it too",
+      text: "A business can give its own customers an assistant. The customer agent talks to visitors on a link, in a widget on the shop's site and on Telegram, on the owner's own public address, with no Kybernos Server in the path. WhatsApp through a BSP is the next way in for a shop's customers, on the shop's own number; e-mail and a phone number follow, and they need a provider outside; Voice and Kaby would use the same one.",
+      nodes: ["customerAgent", "customers", "provider", "voice", "kaby"], links: ["customerRoad", "customerChannels"]
+    },
+    {
+      id: "next", title: "Where we go next",
+      text: "A dashed outline is a brick that is not fully built, and a blue dot says that its sheet lists what is planned there: a worker picker, a tool to create automations and generic triggers, WhatsApp out of beta, WhatsApp through a BSP for Kaby and for the customer agent, Slack, a new phone build, a phone number and an e-mail address, a budget per automation, a vault and local models on cloud computers, and a machine of your own that takes the server's jobs. Company sign-in (SSO, SCIM), the API door, triggers, the Kybernos model, referral commissions, the app stores and the phone and e-mail provider have no code. A local install cannot yet be reached from the server, the remote control relay is not deployed, the local door is off by default, ChatGPT is unchecked, Publish was not replayed live, and neither live payments nor the audit chain are verified in production.",
+      nodes: "ahead", links: []
+    }
+  ]
+};
+/*DATA:END*/
+
+const ST = { done: "Built", half: "Partly built", todo: "Not built" };
+const SYM = { done: "●", half: "◐", todo: "○" };
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const byId = new Map(RAW.NODES.map((n) => [n.id, n]));
+const frameById = new Map(RAW.FRAMES.map((f) => [f.id, f]));
+const linkById = new Map(RAW.LINKS.map((l) => [l.id, l]));
+const GAP = 36, TOP = 20, FX = 20, FW = 640;
+const state = { hidden: new Set(), on: { done: true, half: true, todo: true }, whenOn: { now: true, next: true, later: true }, kaby: false, q: "", sel: null, hover: null, story: null, narrow: false };
+
+/* ── the optional private overlay (roadmap.private.js): horizons, blockers, vendor names, commercial detail ──
+   It sets window.KB_PRIVATE = { asof, home, story: { <step id>: text }, nodes: { <brick id>: { when, planned: { <item id>: { when, note } }, notes: [{ t, d }] } } }.
+   Absent or broken, nothing below changes: the page is the public one, with no When tag and no When filter. */
+const WHEN = { now: "Now", next: "Next", later: "Later" };
+const WHEN_ORDER = ["now", "next", "later"];
+const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+const PRIV = (function () {
+  try {
+    const p = typeof window !== "undefined" ? window.KB_PRIVATE : null;
+    return p && typeof p === "object" && p.nodes && typeof p.nodes === "object" && !Array.isArray(p.nodes) ? p : null;
+  } catch (e) { return null; }
+})();
+const privOf = (n) => (PRIV && has(PRIV.nodes, n.id) && PRIV.nodes[n.id] && typeof PRIV.nodes[n.id] === "object" ? PRIV.nodes[n.id] : null);
+function whenOfItem (n, it) {
+  const p = privOf(n), q = p && p.planned && typeof p.planned === "object" && has(p.planned, it.id) ? p.planned[it.id] : null;
+  return q && has(WHEN, q.when) ? q.when : null;
+}
+function whenOf (n) {
+  const p = privOf(n);
+  if (p && has(WHEN, p.when)) return p.when;
+  let best = null;
+  for (const it of n.planned || []) { const w = whenOfItem(n, it); if (w && (best === null || WHEN_ORDER.indexOf(w) < WHEN_ORDER.indexOf(best))) best = w; }
+  return best;
+}
+for (const n of RAW.NODES) n.when = whenOf(n);
+const HAS_WHEN = RAW.NODES.some((n) => n.when);
+/* a brick is "ahead" when it is not fully built or has something planned in its sheet */
+const ahead = (n) => n.st !== "done" || Boolean(n.planned && n.planned.length);
+
+/* ── geometry ── */
+function geometry () {
+  const fy = {};
+  let y = TOP;
+  for (const f of RAW.FRAMES) { if (state.hidden.has(f.id)) continue; fy[f.id] = y; y += f.h + GAP; }
+  return { fy, height: y - GAP + TOP };
+}
+function box (n, g) { const y = g.fy[n.frame] + n.y; return { x: n.x, y, w: n.w, h: n.h, r: n.x + n.w, b: y + n.h }; }
+function linkVisible (l) {
+  const fr = (id) => (frameById.has(id) ? id : byId.get(id).frame);
+  return !state.hidden.has(fr(l.a)) && !state.hidden.has(fr(l.b));
+}
+function linkGeo (l, g) {
+  if (l.kind === "frames") {
+    const fa = frameById.get(l.a);
+    const y1 = g.fy[l.a] + fa.h + 2, y2 = g.fy[l.b] - 2;
+    return { d: "M" + l.x + " " + y1 + " L" + l.x + " " + y2, lx: l.x + 12, ly: (y1 + y2) / 2 + 4 };
   }
-  for (const e of EDGES){
-    const p = document.createElementNS("http://www.w3.org/2000/svg","path");
-    p.dataset.kind = e.kind; p.classList.add("base"); p.dataset.a = e.a; p.dataset.b = e.b;
-    baseWires.appendChild(p);
+  if (l.kind === "v") {
+    const A = box(byId.get(l.a), g), B = box(byId.get(l.b), g);
+    const x = (Math.max(A.x, B.x) + Math.min(A.r, B.r)) / 2, y1 = A.b + 2, y2 = B.y - 2;
+    const fa = frameById.get(byId.get(l.a).frame);
+    return { d: "M" + x + " " + y1 + " L" + x + " " + y2, lx: x + 8, ly: g.fy[fa.id] + fa.h + GAP / 2 + 4 };
   }
-  SCENARIOS.forEach((s, i) => {
-    const b = el("button","pill", `<span class="num">${i === 0 ? "◉" : String(i).padStart(2,"0")}</span>
-      <span style="flex:1;min-width:0"><span class="tt">${s.title}</span><span class="pitch">${s.pitch}</span>
-      ${s.wit ? `<span class="wit">${s.wit}</span>` : ""}</span>`);
-    b.type = "button"; b.dataset.id = s.id;
-    b.addEventListener("click", () => { stop(); select(s.id, true); });
-    $("#scen").appendChild(b);
-    const box = el("div","steps"); box.hidden = true; box.dataset.for = s.id;
-    $("#scen").appendChild(box);
-  });
-  $("#railFoot").innerHTML = `${NODES.length} briques · ${SCENARIOS.length - 1} parcours · 1 vérité par brique.<br>
-    Sources : docs du dépôt <code>kybernos-plugins</code> (20/10/2026). Chaque fiche cite la sienne.`;
-  $("#railH").textContent = `${SCENARIOS.length - 1} parcours`;
-  layout();
+  if (l.kind === "h") {
+    const A = box(byId.get(l.a), g), B = box(byId.get(l.b), g), y = A.y + A.h / 2;
+    return { d: "M" + (A.r + 2) + " " + y + " L" + (B.x - 2) + " " + y };
+  }
+  const B = box(byId.get(l.b), g), right = l.side === "right", lane = typeof l.lane === "number" ? l.lane : right ? 672 : 8, ey = B.y + B.h / 2, ex = right ? B.r + 2 : B.x - 2;
+  let sx, sy;
+  if (byId.has(l.a)) { const A = box(byId.get(l.a), g); sx = right ? A.r + 2 : A.x - 2; sy = A.y + A.h / 2; } else { sx = right ? FX + FW : FX; sy = g.fy[l.a] + l.ay; }
+  return { d: "M" + sx + " " + sy + " L" + lane + " " + sy + " L" + lane + " " + ey + " L" + ex + " " + ey };
 }
 
-/* routage orthogonal : gouttière entre deux colonnes voisines, bus horizontal sinon */
-let CANVAS_H = 782, BUS_Y = 640;
-const COLS = { toi:0, serv:1, cloud:2, world:3 };
-function zoneOf(id){ const n = NODES.find(x => x.id === id); return n ? n.zone : "toi"; }
-function poly(pts, r){
-  let d = `M ${pts[0][0]} ${pts[0][1]}`;
-  for (let i = 1; i < pts.length; i++){
-    const p0 = pts[i-1], p1 = pts[i], p2 = pts[i+1];
-    if (!p2){ d += ` L ${p1[0]} ${p1[1]}`; continue; }
-    const v1 = [p1[0]-p0[0], p1[1]-p0[1]], v2 = [p2[0]-p1[0], p2[1]-p1[1]];
-    const n1 = Math.hypot(v1[0],v1[1]) || 1, n2 = Math.hypot(v2[0],v2[1]) || 1;
-    const k = Math.min(r, n1/2, n2/2);
-    const a = [p1[0]-v1[0]/n1*k, p1[1]-v1[1]/n1*k];
-    const b = [p1[0]+v2[0]/n2*k, p1[1]+v2[1]/n2*k];
-    d += ` L ${a[0]} ${a[1]} Q ${p1[0]} ${p1[1]} ${b[0]} ${b[1]}`;
-  }
-  return d;
+/* ── drawing: the diagram ── */
+function mark (st, cx, cy) {
+  if (st === "done") return '<circle class="mk done" cx="' + cx + '" cy="' + cy + '" r="5.5"/>';
+  if (st === "half") return '<circle class="mk half" cx="' + cx + '" cy="' + cy + '" r="5.5"/><path class="mkh" d="M' + cx + " " + (cy - 4) + " A4 4 0 0 0 " + cx + " " + (cy + 4) + ' Z"/>';
+  return '<circle class="mk todo" cx="' + cx + '" cy="' + cy + '" r="5.5"/>';
 }
-const gutterRight = (c) => { const z = ZONES.find(z => COLS[z.id] === c); return z ? z.x + z.w + 7 : 0; };
-function pathD(a, b){
-  const A = rects.get(a), B = rects.get(b);
-  if (!A || !B) return "";
-  const cy = r => r.y + r.h/2, cx = r => r.x + r.w/2;
-  if (a === b){ const x = A.x + A.w, y = cy(A); return `M ${x} ${y-6} C ${x+22} ${y-22}, ${x+25} ${y+22}, ${x+2} ${y+12}`; }
-  const za = zoneOf(a), zb = zoneOf(b);
-  const lowA = za === "world", lowB = zb === "world";
-  if (lowA !== lowB){
-    const strip = lowA ? A : B, col = lowA ? B : A, cz = lowA ? zb : za;
-    const gx = gutterRight(COLS[cz]);
-    if (lowA) return poly([[cx(strip), strip.y], [cx(strip), BUS_Y], [gx, BUS_Y], [gx, cy(col)], [col.x + col.w, cy(col)]], 9);
-    return poly([[col.x + col.w, cy(col)], [gx, cy(col)], [gx, BUS_Y], [cx(strip), BUS_Y], [cx(strip), strip.y]], 9);
+const EYE = '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>';
+/* the lines a brick is drawn on: its own `lines` when the title is too long for the box, else title, subtitle and an optional second subtitle */
+const drawn = (n) => n.lines || [n.t, n.s].concat(n.s2 ? [n.s2] : []);
+const planned = (n) => Boolean((n.planned && n.planned.length) || n.when);
+function drawBoard () {
+  const g = geometry();
+  const MS = 'viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"';
+  const MP = 'd="M2 1L8 5L2 9" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"';
+  let s = '<defs><marker id="ma" ' + MS + '><path ' + MP + ' style="stroke:var(--ink-3)"/></marker><marker id="mc" ' + MS + '><path ' + MP + ' style="stroke:var(--coral-line)"/></marker></defs>';
+  for (const f of RAW.FRAMES) {
+    if (state.hidden.has(f.id)) continue;
+    const y = g.fy[f.id];
+    s += '<g class="frame ' + f.tone + '"><rect class="fr" data-frame="' + f.id + '" x="' + FX + '" y="' + y + '" width="' + FW + '" height="' + f.h + '" rx="20"/>';
+    s += '<text class="ft" data-frame="' + f.id + '" x="36" y="' + (y + 26) + '">' + esc(f.title) + "</text>";
+    if (f.sub) s += '<text class="fs" x="36" y="' + (y + 44) + '">' + esc(f.sub) + "</text>";
+    for (const bd of f.bands || []) s += '<rect class="bd" x="' + bd.x + '" y="' + (y + bd.y) + '" width="' + bd.w + '" height="' + bd.h + '" rx="12"/>';
+    for (const gr of f.groups) if (gr.label && typeof gr.y === "number") s += '<text class="fn" x="36" y="' + (y + gr.y) + '">' + esc(gr.label) + "</text>";
+    for (const n of f.notes) s += '<text class="fn' + (n.b ? " b" : "") + '" x="' + n.x + '" y="' + (y + n.y) + '"' + (n.anchor ? ' text-anchor="' + n.anchor + '"' : "") + ">" + esc(n.t) + "</text>";
+    s += '<g class="eye" data-eye="' + f.id + '" role="button" tabindex="0" aria-label="Hide ' + esc(f.short) + '"><rect class="hitr" x="622" y="' + (y + 8) + '" width="30" height="26" rx="6"/><g transform="translate(630 ' + (y + 13) + ') scale(.7)">' + EYE + "</g></g></g>";
   }
-  if (za === "world" && zb === "world"){ return poly([[A.x + A.w, cy(A)], [B.x, cy(B)]].length ? [[A.x + A.w, cy(A)], [(A.x+A.w+B.x)/2, cy(A)], [(A.x+A.w+B.x)/2, cy(B)], [B.x, cy(B)]] : [], 9); }
-  const ca = COLS[za], cb = COLS[zb];
-  if (ca === cb){
-    const gap = B.y > A.y ? B.y - (A.y + A.h) : A.y - (B.y + B.h);
-    if (gap < 26){ const x = cx(A), y1 = (B.y > A.y ? A.y + A.h : A.y), y2 = (B.y > A.y ? B.y : B.y + B.h); return `M ${x} ${y1} L ${x} ${y2}`; }
-    const gx = gutterRight(ca);
-    return poly([[A.x + A.w, cy(A)], [gx, cy(A)], [gx, cy(B)], [B.x + B.w, cy(B)]], 9);
+  for (const l of RAW.LINKS) {
+    if (!linkVisible(l)) continue;
+    const geo = linkGeo(l, g);
+    const mk = l.tone === "kaby" ? "mc" : "ma";
+    s += '<g class="lk' + (l.dash ? " dash" : "") + (l.dot ? " dot" : "") + (l.tone === "kaby" ? " kaby" : "") + '" data-link="' + l.id + '" tabindex="0" role="button" aria-label="' + esc(l.t) + '">';
+    s += '<path class="hit" d="' + geo.d + '"/><path class="ln" d="' + geo.d + '"' + (l.rev ? "" : ' marker-end="url(#' + mk + ')"') + (l.two || l.rev ? ' marker-start="url(#' + mk + ')"' : "") + "/>";
+    if (l.label) s += '<text class="ll" x="' + geo.lx + '" y="' + geo.ly + '">' + esc(l.label) + "</text>";
+    s += "</g>";
   }
-  if (Math.abs(ca - cb) === 1){
-    const right = ca < cb;
-    const gx = right ? (A.x + A.w + B.x) / 2 : (B.x + B.w + A.x) / 2;
-    const p1 = [right ? A.x + A.w : A.x, cy(A)], p2 = [right ? B.x : B.x + B.w, cy(B)];
-    return poly([[p1[0], p1[1]], [gx, p1[1]], [gx, p2[1]], [p2[0], p2[1]]], 9);
+  for (const n of RAW.NODES) {
+    if (state.hidden.has(n.frame)) continue;
+    const b = box(n, g), txt = drawn(n), first = b.y + b.h / 2 - (txt.length - 1) * 8.5, cx = b.x + b.w / 2;
+    s += '<g class="node' + (n.tone ? " " + n.tone : "") + (n.st !== "done" ? " dashed" : "") + '" data-node="' + n.id + '" tabindex="0" role="button" aria-label="' + esc(n.t + ": " + ST[n.st] + (planned(n) ? ", something is planned" : "")) + '">';
+    s += '<rect class="nb" x="' + b.x + '" y="' + b.y + '" width="' + b.w + '" height="' + b.h + '" rx="8"/>';
+    txt.forEach((line, k) => { s += '<text class="' + (k === 0 ? "nt" : "ns") + '" x="' + cx + '" y="' + (first + k * 17) + '" text-anchor="middle" dominant-baseline="central">' + esc(line) + "</text>"; });
+    s += mark(n.st, b.r - 9, b.y);
+    if (planned(n)) s += '<circle class="pd" cx="' + (b.r - 25) + '" cy="' + b.y + '" r="3.5"/>';
+    s += "</g>";
   }
-  // colonnes non voisines : on passe par le bus
-  const ga = gutterRight(ca), gb = gutterRight(cb);
-  return poly([[A.x + A.w, cy(A)], [ga, cy(A)], [ga, BUS_Y], [gb, BUS_Y], [gb, cy(B)], [B.x + B.w, cy(B)]], 9);
+  const el = $("#board");
+  el.setAttribute("viewBox", "0 0 680 " + g.height);
+  el.innerHTML = s;
 }
 
-/* deux passes : on laisse le texte décider de la hauteur des panneaux, puis on met à l'échelle */
-function autoSize(){
-  const cols = ZONES.filter(z => !z.row);
-  for (const z of cols){ z.el.style.height = "auto"; }
-  let maxH = 0;
-  for (const z of cols) maxH = Math.max(maxH, z.el.getBoundingClientRect().height);
-  maxH = Math.ceil(maxH);
-  for (const z of cols) z.el.style.height = maxH + "px";
-  const strip = ZONES.find(z => z.row);
-  strip.el.style.height = "auto";
-  const sh = Math.ceil(strip.el.getBoundingClientRect().height);
-  const sy = 14 + maxH + 12;
-  strip.el.style.top = sy + "px"; strip.el.style.height = sh + "px";
-  CANVAS_H = sy + sh + 14;
-  BUS_Y = sy - 6;
-  canvas.style.height = CANVAS_H + "px";
-  $("#wires").setAttribute("viewBox", `0 0 1120 ${CANVAS_H}`);
-  $("#wires").style.height = CANVAS_H + "px";
-}
-
-function layout(){
-  canvas.style.transform = "";
-  if (window.innerWidth <= 980){
-    for (const z of ZONES){ z.el.style.top = z.el.style.left = z.el.style.width = z.el.style.height = ""; }
-    canvas.style.height = ""; $("#wires").style.height = "";
-    return;
+/* ── drawing: the list (narrow screens) ── */
+function endName (id) { return frameById.has(id) ? frameById.get(id).short : byId.get(id).t; }
+function drawList () {
+  let s = "";
+  for (const f of RAW.FRAMES) {
+    if (state.hidden.has(f.id)) continue;
+    s += '<section class="mframe ' + f.tone + '" data-frame="' + f.id + '"><header><h2>' + esc(f.title) + '</h2><button class="hbtn" style="height:28px;padding:0 9px" data-eye="' + f.id + '" aria-label="Hide ' + esc(f.short) + '"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + EYE + "</svg></button></header>";
+    if (f.sub) s += '<p class="msub">' + esc(f.sub) + "</p>";
+    for (const n of f.notes) if (!n.nolist) s += '<p class="mnote">' + esc(n.t) + "</p>";
+    for (const gr of f.groups) {
+      const ns = RAW.NODES.filter((n) => n.frame === f.id && n.group === gr.id);
+      if (!ns.length) continue;
+      if (gr.label) s += '<p class="mg">' + esc(gr.label) + "</p>";
+      s += '<div class="mgrid">';
+      for (const n of ns) {
+        s += '<button class="tile' + (n.tone ? " " + n.tone : "") + (n.st !== "done" ? " dashed" : "") + '" data-node="' + n.id + '"><span class="tm ' + n.st + '" aria-hidden="true">' + SYM[n.st] + "</span>" + (planned(n) ? '<span class="tp" aria-hidden="true">●</span>' : "") + '<span class="tt">' + esc(n.t) + '</span><span class="ts">' + esc(n.s) + (n.s2 ? " · " + esc(n.s2) : "") + '</span><span class="sr" hidden>' + ST[n.st] + (planned(n) ? ", something is planned" : "") + "</span></button>";
+      }
+      s += "</div>";
+    }
+    s += "</section>";
   }
-  autoSize();
-  const scroll = $("#scroll");
-  let s = 1;
-  if (window.innerWidth > 900){
-    s = Math.min(1.12, (scroll.clientWidth - 12) / 1120, (scroll.clientHeight - 8) / CANVAS_H);
-    s = Math.max(.86, s);
+  const links = RAW.LINKS.filter(linkVisible);
+  if (links.length) {
+    s += '<section class="mlinks"><h2>How they connect</h2>';
+    for (const l of links) s += '<button class="lrow" data-link="' + l.id + '"><b>' + esc(endName(l.a)) + "</b> " + (l.two ? "↔" : "→") + " <b>" + esc(endName(l.b)) + "</b> · " + esc(l.t) + (l.target ? " (target)" : "") + "</button>";
+    s += "</section>";
   }
-  canvas.style.transform = s === 1 ? "" : `scale(${s})`;
-  const cr = canvas.getBoundingClientRect();
-  rects = new Map();
-  for (const [id, n] of nodeEls){
-    const r = n.getBoundingClientRect();
-    rects.set(id, { x: (r.left - cr.left) / s, y: (r.top - cr.top) / s, w: r.width / s, h: r.height / s });
-  }
-  [...baseWires.children].forEach(p => p.setAttribute("d", pathD(p.dataset.a, p.dataset.b)));
-  if (current.scen !== "all") drawHot();
+  $("#list").innerHTML = s;
 }
 
-/* ── parcours ──────────────────────────────────────────── */
-function sc(){ return SCENARIOS.find(s => s.id === current.scen); }
-function select(id, resetStep){
-  current.scen = id;
-  const n = Math.max(0, (SCENARIOS.find(s => s.id === id)?.steps.length || 1) - 1);
-  current.step = resetStep ? 0 : Math.min(current.step, n);
-  document.querySelectorAll(".pill").forEach(p => p.setAttribute("aria-current", p.dataset.id === id ? "true" : "false"));
-  $("#app").dataset.scen = id === "all" ? "0" : "1";
-  if (window.innerWidth <= 1240) $("#rail").removeAttribute("data-open");
-  if (id === "all"){ paintAll(); renderStep(); return; }
-  drawHot(); renderStep();
+function draw () {
+  state.narrow = matchMedia("(max-width:720px)").matches;
+  $("#board").toggleAttribute("hidden", state.narrow);
+  $("#list").hidden = !state.narrow;
+  if (state.narrow) drawList(); else drawBoard();
+  paint();
 }
 
-function drawHot(){
-  hotWires.innerHTML = ""; haloWires.innerHTML = ""; busWires.innerHTML = ""; dotPath = null;
-  const s = sc(); if (s.id === "all") return;
-  const bus = document.createElementNS("http://www.w3.org/2000/svg","path");
-  bus.setAttribute("class","bus"); bus.setAttribute("d", `M 6 ${BUS_Y} H 1114`);
-  busWires.appendChild(bus);
-  s.steps.forEach((step, i) => {
-    const d = pathD(step.a, step.b);
-    const halo = document.createElementNS("http://www.w3.org/2000/svg","path");
-    halo.setAttribute("d", d); halo.setAttribute("class","halo"); haloWires.appendChild(halo);
-    const p = document.createElementNS("http://www.w3.org/2000/svg","path");
-    p.dataset.kind = step.kind; p.classList.add("hot"); p.setAttribute("d", d);
-    p.setAttribute("marker-end", "url(#arw-" + step.kind + ")");
-    if (i === current.step){ p.classList.add("is-live"); dotPath = p; }
-    else { p.style.opacity = "0.42"; p.style.animation = "none"; p.style.strokeDasharray = "3 6"; }
-    hotWires.appendChild(p);
-    p.dataset.step = i;
-  });
-  startDot();
+/* ── what is lit ── */
+function textOf (n) {
+  const p = privOf(n);
+  const pn = p ? (Array.isArray(p.notes) ? p.notes : []).map((x) => (x.t || "") + " " + (x.d || "")).join(" ") + " " + Object.keys(p.planned || {}).map((k) => ((p.planned || {})[k] || {}).note || "").join(" ") : "";
+  return (n.t + " " + n.s + " " + (n.s2 || "") + " " + n.role + " " + (n.inside || []).map((i) => i.t).join(" ") + " " + (n.planned || []).map((i) => i.t).join(" ") + " " + pn).toLowerCase();
 }
-
-function paintNodes(){
-  const s = sc();
-  const used = new Set();
-  s.steps.forEach(st => { used.add(st.a); used.add(st.b); });
-  const st = s.steps[current.step] || {};
-  for (const [id, n] of nodeEls){
-    delete n.dataset.dim; delete n.dataset.on; delete n.dataset.live;
-    if (s.id === "all") continue;
-    if (!used.has(id)) n.dataset.dim = "1"; else n.dataset.on = "1";
-    if (id === st.a || id === st.b) n.dataset.live = "1";
-  }
-}
-function paintAll(){
-  hotWires.innerHTML = ""; haloWires.innerHTML = ""; dot.style.opacity = "0";
-  for (const n of nodeEls.values()){ delete n.dataset.dim; delete n.dataset.on; delete n.dataset.live; }
-  document.querySelectorAll(".pill").forEach(p => p.setAttribute("aria-current", p.dataset.id === "all" ? "true" : "false"));
-}
-
-function renderStep(){
-  const s = sc(), bar = $("#sbBar"), txt = $("#sbTxt");
-  document.querySelectorAll("#scen .steps").forEach(box => {
-    box.hidden = box.dataset.for !== s.id || s.id === "all";
-    if (box.hidden) return;
-    box.innerHTML = s.steps.map((st, i) =>
-      `<button class="step" data-i="${i}" aria-current="${i === current.step}"><b>${i+1}.</b> ${st.t}</button>`).join("");
-    box.querySelectorAll(".step").forEach(btn => btn.addEventListener("click", () => {
-      stop(); current.step = +btn.dataset.i; drawHot(); renderStep();
-    }));
-  });
-  if (s.id === "all"){
-    $("#sbN").textContent = "vue d'ensemble";
-    $("#sbWho").textContent = `${NODES.length} briques · ${SCENARIOS.length - 1} parcours`;
-    bar.innerHTML = "<i class='cur' style='flex:1'></i>";
-    txt.innerHTML = "<b>Choisis un parcours à gauche — ou clique une brique.</b><span>Chaque parcours allume son chemin ; les autres briques restent visibles, en retrait. Les lignes pointillées sont les liens qui existent tout le temps. La pastille orange dit « ce n'est pas construit comme ça », pas « ça marche ».</span>";
-    $("#prev").disabled = $("#next").disabled = $("#play").disabled = true;
-    requestAnimationFrame(layout);
-    return;
-  }
-  const st = s.steps[current.step];
-  $("#sbN").textContent = `${current.step+1} / ${s.steps.length}`;
-  $("#sbWho").textContent = s.title;
-  bar.innerHTML = s.steps.map((_, i) => `<i class="${i < current.step ? "done" : i === current.step ? "cur" : ""}"></i>`).join("");
-  txt.innerHTML = `<b>${st.t}</b><span>${st.d}</span>`;
-  $("#prev").disabled = current.step === 0;
-  $("#next").disabled = current.step === s.steps.length - 1;
-  $("#play").disabled = false;
-  paintNodes();
-  requestAnimationFrame(layout);
-}
-
-function next(){ const s = sc(); if (s.id === "all") return; if (current.step < s.steps.length - 1){ current.step++; drawHot(); renderStep(); } else stop(); }
-function prev(){ if (current.step > 0){ current.step--; drawHot(); renderStep(); } }
-function stop(){ if (playTimer){ clearInterval(playTimer); playTimer = null; } $("#play").textContent = "▶ Lecture"; }
-function play(){
-  if (playTimer){ stop(); return; }
-  if (sc().id === "all") return;
-  current.step = 0; drawHot(); renderStep();
-  $("#play").textContent = "❚❚ Pause";
-  playTimer = setInterval(() => {
-    if (current.step >= sc().steps.length - 1){ stop(); return; }
-    next();
-  }, 3600);
-}
-
-function startDot(){
-  if (rafDot) cancelAnimationFrame(rafDot);
-  if (!dotPath || matchMedia("(prefers-reduced-motion: reduce)").matches){ dot.style.opacity = "0"; return; }
-  dot.style.opacity = "1"; dotStart = performance.now();
-  const len = dotPath.getTotalLength();
-  const tick = (t) => {
-    if (!dotPath){ dot.style.opacity = "0"; return; }
-    const k = ((t - dotStart) % 2600) / 2600;
-    if (dotPath.dataset.kind) dot.style.fill = `var(--${({local:"teal",server:"violet",e2e:"blue",ext:"amber",hook:"rose"})[dotPath.dataset.kind] || "teal"})`;
-    const p = dotPath.getPointAtLength(k * len);
-    dot.setAttribute("cx", p.x); dot.setAttribute("cy", p.y);
-    rafDot = requestAnimationFrame(tick);
+function hitsFor (q) {
+  const count = (x) => (x || "").toLowerCase().split(q).length - 1;
+  const score = (n) => {
+    const p = privOf(n);
+    const pn = p && Array.isArray(p.notes) ? p.notes.map((x) => (x.t || "") + " " + (x.d || "")).join(" ") : "";
+    const pub = n.role + " " + (n.inside || []).map((i) => i.t).join(" ") + " " + (n.planned || []).map((i) => i.t).join(" ");
+    return count(n.t + " " + n.s + " " + (n.s2 || "")) * 10 + count(pub) * 3 + count(pn);
   };
-  rafDot = requestAnimationFrame(tick);
+  return RAW.NODES.filter((n) => textOf(n).includes(q)).sort((a, b) => score(b) - score(a) || RAW.NODES.indexOf(a) - RAW.NODES.indexOf(b));
+}
+function neighbours (id) {
+  const nodes = new Set([id]), links = new Set();
+  for (const l of RAW.LINKS) {
+    if (l.a === id || l.b === id) { links.add(l.id); if (byId.has(l.a)) nodes.add(l.a); if (byId.has(l.b)) nodes.add(l.b); }
+  }
+  return { nodes, links };
+}
+function lit () {
+  if (state.story !== null) {
+    const st = RAW.STORY[state.story];
+    return { nodes: st.nodes === "ahead" ? new Set(RAW.NODES.filter(ahead).map((n) => n.id)) : new Set(st.nodes), links: new Set(st.links) };
+  }
+  const h = state.hover || state.sel;
+  if (h && h.type === "node") return neighbours(h.id);
+  if (h && h.type === "link") {
+    const l = linkById.get(h.id);
+    return { nodes: new Set([l.a, l.b].filter((x) => byId.has(x))), links: new Set([l.id]) };
+  }
+  const q = state.q.trim().toLowerCase();
+  const allSt = state.on.done && state.on.half && state.on.todo;
+  const allWhen = state.whenOn.now && state.whenOn.next && state.whenOn.later;
+  if (allSt && allWhen && !state.kaby && !q) return null;
+  const nodes = new Set(RAW.NODES.filter((n) => state.on[n.st] && (allWhen || (n.when && state.whenOn[n.when])) && (!state.kaby || n.tag === "kaby") && (!q || textOf(n).includes(q))).map((n) => n.id));
+  const links = new Set(RAW.LINKS.filter((l) => {
+    if (state.kaby) return l.tag === "kaby";
+    if (q) return false;
+    const ends = [l.a, l.b].filter((x) => byId.has(x));
+    return ends.every((x) => nodes.has(x));
+  }).map((l) => l.id));
+  return { nodes, links };
+}
+function paint () {
+  const L = lit();
+  for (const el of $$("[data-node]")) {
+    const id = el.dataset.node;
+    el.classList.toggle("dim", Boolean(L) && !L.nodes.has(id));
+    el.classList.toggle("sel", Boolean(state.sel) && state.sel.type === "node" && state.sel.id === id);
+  }
+  for (const el of $$("[data-link]")) {
+    const id = el.dataset.link;
+    el.classList.toggle("dim", Boolean(L) && !L.links.has(id));
+    el.classList.toggle("sel", Boolean(state.sel) && state.sel.type === "link" && state.sel.id === id);
+  }
 }
 
-/* ── fiche ─────────────────────────────────────────────── */
-function openNode(id){
-  const n = NODES.find(x => x.id === id); if (!n) return;
-  $("#shT").textContent = n.t; $("#shS").textContent = n.s;
-  const scs = SCENARIOS.filter(s => s.steps.some(st => st.a === id || st.b === id));
-  $("#shB").innerHTML = `
-    <div class="row"><span class="tag">${n.tag}</span>${n.badge ? `<span class="badge">${n.badge}</span>` : ""}</div>
-    <div><h3>Rôle</h3><p>${n.role}</p></div>
-    <div><h3>Ce qui la traverse</h3><ul>${n.cross.map(x => `<li>${x}</li>`).join("")}</ul></div>
-    <div><h3>Ce qu'elle ne fait pas / limites</h3><ul>${n.limits.map(x => `<li>${x}</li>`).join("")}</ul></div>
-    <div><h3>Où ça se règle</h3><p>${n.where}</p></div>
-    <div><h3>Source</h3><div class="src">${n.source}</div></div>
-    ${scs.length ? `<div><h3>Dans les parcours</h3><div class="links">${scs.map(s => `<button data-jump="${s.id}">${s.title}</button>`).join("")}</div></div>` : ""}`;
-  $("#sheet").setAttribute("data-open",""); $("#sheet").setAttribute("aria-hidden","false");
-  $("#backdrop").setAttribute("data-open","");
-  $("#shB").querySelectorAll("[data-jump]").forEach(b => b.addEventListener("click", () => { closeSheet(); select(b.dataset.jump, true); }));
+/* ── the sheet ── */
+function li (i) {
+  return "<li><span class=\"it\">" + (i.st ? '<span class="pill ' + i.st + '">' + SYM[i.st] + "</span> " : "") + esc(i.t) + "</span>" + (i.d ? "<small>" + esc(i.d) + "</small>" : "") + (i.src ? "<small><code>" + esc(i.src) + "</code></small>" : "") + "</li>";
 }
-function closeSheet(){
-  $("#sheet").removeAttribute("data-open"); $("#sheet").setAttribute("aria-hidden","true");
-  $("#backdrop").removeAttribute("data-open");
+function list (title, items) { return items && items.length ? "<h3>" + title + "</h3><ul>" + items.map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>" : ""; }
+function stepsOf (nid) {
+  return RAW.STORY.map((s, i) => ({ s, i })).filter(({ s }) => (s.nodes === "ahead" ? ahead(byId.get(nid)) : s.nodes.includes(nid)));
+}
+const whenPill = (w) => (w ? '<span class="when ' + w + '">' + WHEN[w] + "</span>" : "");
+function planLi (n, it) {
+  const p = privOf(n), q = p && p.planned && typeof p.planned === "object" && has(p.planned, it.id) ? p.planned[it.id] : null;
+  return '<li><span class="it">' + esc(it.t) + whenPill(whenOfItem(n, it)) + "</span>" + (it.d ? "<small>" + esc(it.d) + "</small>" : "") + (q && q.note ? '<small class="privn">Private: ' + esc(q.note) + "</small>" : "") + "</li>";
+}
+function privBlock (n) {
+  const p = privOf(n), notes = p && Array.isArray(p.notes) ? p.notes.filter((x) => x && x.t) : [];
+  return notes.length ? '<div class="priv"><h3>Private overlay</h3><ul>' + notes.map((x) => '<li><span class="it">' + esc(x.t) + "</span>" + (x.d ? "<small>" + esc(x.d) + "</small>" : "") + "</li>").join("") + "</ul></div>" : "";
+}
+function sheetHome () {
+  const c = (st) => RAW.NODES.filter((n) => n.st === st).length;
+  return '<h2>How to read this</h2><p class="sub">Kybernos is an AI agent platform. This page tells how its bricks fit together, and how far each one is.</p>' +
+    '<div class="counts"><span class="pill done">● ' + c("done") + " built</span><span class=\"pill half\">◐ " + c("half") + " partly built</span><span class=\"pill todo\">○ " + c("todo") + " not built</span></div>" +
+    "<p>Hover a brick to see what it links to, click it for its sheet. <b>Tell the story</b> walks through the platform in " + RAW.STORY.length + " steps. The eye on a frame hides it.</p>" +
+    '<p class="note">Built means merged into dev and exercised. It does not mean live in production.</p>' +
+    "<p>A <b>blue dot</b> on a brick says that its sheet lists what is planned there." + (HAS_WHEN ? " <b>Now</b>, <b>Next</b> and <b>Later</b> come from the private overlay; the <b>When</b> chips keep one horizon." : "") + "</p>" +
+    (PRIV && typeof PRIV.home === "string" ? '<div class="priv"><h3>Private overlay</h3><p>' + esc(PRIV.home) + "</p></div>" : "") +
+    '<p class="keys"><kbd>/</kbd> search · <kbd>←</kbd> <kbd>→</kbd> story steps · <kbd>Esc</kbd> close</p>';
+}
+function sheetNode (n) {
+  const f = frameById.get(n.frame);
+  let h = '<div class="sh-head"><span class="pill ' + n.st + '">' + SYM[n.st] + " " + ST[n.st] + "</span>" + whenPill(n.when) + '<span class="where">' + esc(f.short) + "</span></div><h2>" + esc(n.t) + '</h2><p class="sub">' + esc(n.s) + (n.s2 ? " · " + esc(n.s2) : "") + "</p>";
+  if (n.stNote) h += '<div class="note ' + n.st + '">' + esc(n.stNote) + "</div>";
+  h += "<h3>What it is</h3><p>" + esc(n.role) + "</p>";
+  if (n.inside && n.inside.length) h += "<h3>Inside</h3><ul>" + n.inside.map(li).join("") + "</ul>";
+  if (n.planned && n.planned.length) h += "<h3>Planned</h3><ul>" + n.planned.map((it) => planLi(n, it)).join("") + "</ul>";
+  h += list("What crosses it", n.cross) + list("Limits", n.limits);
+  if (n.where) h += "<h3>Where it is set</h3><p>" + esc(n.where) + "</p>";
+  h += "<h3>Source</h3><p><code>" + esc(n.source) + "</code></p>" + privBlock(n);
+  const ls = RAW.LINKS.filter((l) => l.a === n.id || l.b === n.id);
+  if (ls.length) h += "<h3>Linked to</h3>" + ls.map((l) => '<button class="jump" data-link="' + l.id + '"><b>' + esc(l.t) + "</b> · " + esc(endName(l.a === n.id ? l.b : l.a)) + "</button>").join("");
+  const ss = stepsOf(n.id);
+  if (ss.length) h += "<h3>In the story</h3>" + ss.map(({ s, i }) => '<button class="jump" data-step="' + i + '"><b>' + (i + 1) + ".</b> " + esc(s.title) + "</button>").join("");
+  return h;
+}
+function sheetLink (l) {
+  return '<div class="sh-head"><span class="where">' + esc(endName(l.a)) + (l.two ? " ↔ " : " → ") + esc(endName(l.b)) + "</span></div><h2>" + esc(l.t) + "</h2>" +
+    (l.target ? '<div class="note todo">Not built: this is the target.</div>' : "") +
+    "<h3>What it is</h3><p>" + esc(l.d) + "</p>" + list("What crosses it", l.cross) +
+    '<h3>Ends</h3><button class="jump" data-node="' + (byId.has(l.a) ? l.a : "") + '"' + (byId.has(l.a) ? "" : " disabled") + ">" + esc(endName(l.a)) + '</button><button class="jump" data-node="' + (byId.has(l.b) ? l.b : "") + '"' + (byId.has(l.b) ? "" : " disabled") + ">" + esc(endName(l.b)) + "</button>";
+}
+function sheetFrame (f) {
+  return '<div class="sh-head"><span class="where">Frame</span></div><h2>' + esc(f.title) + "</h2>" + "<h3>What it is</h3><p>" + esc(f.role) + "</p>" + list("Limits", f.limits) +
+    (f.where ? "<h3>Where it is set</h3><p>" + esc(f.where) + "</p>" : "") + "<h3>Source</h3><p><code>" + esc(f.source) + "</code></p>" +
+    "<h3>Holds</h3>" + RAW.NODES.filter((n) => n.frame === f.id).map((n) => '<button class="jump" data-node="' + n.id + '"><span class="pill ' + n.st + '">' + SYM[n.st] + "</span> <b>" + esc(n.t) + "</b> · " + esc(n.s) + "</button>").join("");
+}
+function renderSheet () {
+  const s = state.sel;
+  let h = '<button class="xbtn" data-act="close-sheet" aria-label="Close">×</button>';
+  if (!s) h += sheetHome();
+  else if (s.type === "node") h += sheetNode(byId.get(s.id));
+  else if (s.type === "link") h += sheetLink(linkById.get(s.id));
+  else h += sheetFrame(frameById.get(s.id));
+  const el = $("#sheet");
+  el.innerHTML = h;
+  el.scrollTop = 0;
+  document.body.classList.toggle("sheet-open", Boolean(s));
+}
+function select (type, id) {
+  state.sel = type ? { type, id } : null;
+  state.hover = null;
+  renderSheet();
+  paint();
+  hideTip();
 }
 
-/* ── contrôles ─────────────────────────────────────────── */
-$("#next").addEventListener("click", next);
-$("#prev").addEventListener("click", prev);
-$("#play").addEventListener("click", play);
-$("#clear").addEventListener("click", () => { stop(); select("all", true); });
-$("#shX").addEventListener("click", closeSheet);
-$("#backdrop").addEventListener("click", closeSheet);
-$("#themeBtn").addEventListener("click", () => {
-  const light = document.body.dataset.theme === "light";
-  document.body.dataset.theme = light ? "dark" : "light";
-  $("#themeLbl").textContent = light ? "Sombre" : "Clair";
-  requestAnimationFrame(() => layout());
+/* ── the story ── */
+function renderStory () {
+  const el = $("#story"), i = state.story;
+  $("#storyBtn").setAttribute("aria-pressed", String(i !== null));
+  document.body.classList.toggle("story-on", i !== null);
+  if (i === null) { el.hidden = true; return; }
+  const st = RAW.STORY[i];
+  el.hidden = false;
+  el.innerHTML = '<div class="sn">Step ' + (i + 1) + " of " + RAW.STORY.length + "</div><h2>" + esc(st.title) + "</h2><p>" + esc(st.text) + "</p>" + (PRIV && PRIV.story && typeof PRIV.story[st.id] === "string" ? '<p class="privs"><b>Private:</b> ' + esc(PRIV.story[st.id]) + "</p>" : "") + '<div class="sb"><button class="btn" data-act="prev"' + (i === 0 ? " disabled" : "") + '>← Back</button><span class="dots">' + RAW.STORY.map((_, k) => '<i class="' + (k === i ? "on" : "") + '"></i>').join("") + '</span><button class="btn" data-act="next">' + (i === RAW.STORY.length - 1 ? "Done" : "Next →") + '</button><button class="btn" data-act="story-off">Close</button></div>';
+}
+function story (i) {
+  if (i !== null && (i < 0 || i >= RAW.STORY.length)) i = null;
+  state.story = i;
+  if (i !== null) { state.sel = null; renderSheet(); }
+  renderStory();
+  paint();
+}
+
+/* ── filters ── */
+function renderFilters () {
+  const c = (st) => RAW.NODES.filter((n) => n.st === st).length;
+  const dot = { engine: "--purple-line;--purple-bg", server: "--gray-line;--gray-bg", outside: "--line-2;transparent" };
+  let s = '<div class="fg"><span class="fl">Where</span>' + RAW.FRAMES.map((f) => {
+    const [a, b] = dot[f.id].split(";");
+    return '<button class="chip" data-chip-frame="' + f.id + '" aria-pressed="' + !state.hidden.has(f.id) + '"><i class="dot" style="--c:var(' + a + ");--b:" + (b.startsWith("--") ? "var(" + b + ")" : b) + '"></i>' + esc(f.short) + "</button>";
+  }).join("") + "</div>";
+  s += '<div class="fg"><span class="fl">How far</span>' + ["done", "half", "todo"].map((st) => '<button class="chip" data-chip-st="' + st + '" aria-pressed="' + state.on[st] + '"><span class="pill ' + st + '">' + SYM[st] + "</span> " + ST[st] + ' <span class="n">' + c(st) + "</span></button>").join("") + "</div>";
+  if (HAS_WHEN) s += '<div class="fg"><span class="fl">When</span>' + WHEN_ORDER.map((w) => '<button class="chip" data-chip-when="' + w + '" aria-pressed="' + state.whenOn[w] + '">' + WHEN[w] + ' <span class="n">' + RAW.NODES.filter((n) => n.when === w).length + "</span></button>").join("") + "</div>";
+  s += '<div class="fg"><span class="fl">Focus</span><button class="chip" data-chip-kaby aria-pressed="' + state.kaby + '">Kaby</button></div>';
+  const q = state.q.trim().toLowerCase();
+  if (q) {
+    const hits = hitsFor(q);
+    s += '<div class="fg hits"><span class="fl">Hits</span>' + (hits.length
+      ? hits.map((n) => '<button class="chip" data-node="' + n.id + '">' + esc(n.t) + ' <span class="n">' + SYM[n.st] + "</span></button>").join("")
+      : '<span class="none">no brick' + (PRIV ? "" : " (private notes need roadmap.private.js)") + "</span>") + "</div>";
+  }
+  $("#filters").innerHTML = s;
+}
+function toggleFrame (id, only) {
+  if (only) { RAW.FRAMES.forEach((f) => (f.id === id ? state.hidden.delete(f.id) : state.hidden.add(f.id))); }
+  else if (state.hidden.has(id)) state.hidden.delete(id);
+  else if (state.hidden.size < RAW.FRAMES.length - 1) state.hidden.add(id);
+  if (state.sel && state.sel.type === "node" && state.hidden.has(byId.get(state.sel.id).frame)) select(null);
+  renderFilters();
+  draw();
+}
+
+/* ── tooltip ── */
+function tipFor (el) {
+  if (el.dataset.node) { const n = byId.get(el.dataset.node); return "<b>" + esc(n.t) + '</b><span class="st pill ' + n.st + '">' + SYM[n.st] + " " + ST[n.st] + "</span>" + whenPill(n.when) + "<p>" + esc(n.tip) + "</p>" + (n.planned && n.planned.length ? '<p class="pl">Planned: ' + n.planned.map((i) => esc(i.t)).join(" · ") + "</p>" : ""); }
+  if (el.dataset.link) { const l = linkById.get(el.dataset.link); return "<b>" + esc(l.t) + "</b><p>" + esc(l.d) + "</p>"; }
+  if (el.dataset.frame && el.tagName.toLowerCase() === "text") { const f = frameById.get(el.dataset.frame); return "<b>" + esc(f.title) + "</b><p>Click for what it is.</p>"; }
+  if (el.dataset.eye) return "Hide or show this frame";
+  return "";
+}
+function showTip (el, x, y) {
+  const t = $("#tip"), h = tipFor(el);
+  if (!h) return hideTip();
+  t.innerHTML = h; t.hidden = false;
+  const w = t.offsetWidth, hh = t.offsetHeight;
+  t.style.left = Math.max(8, Math.min(innerWidth - w - 8, x + 14)) + "px";
+  t.style.top = Math.max(8, Math.min(innerHeight - hh - 8, y + 16)) + "px";
+}
+function hideTip () { $("#tip").hidden = true; }
+
+/* ── events ── */
+const target = (e) => (e.target.closest ? e.target.closest("[data-eye],[data-act],[data-node],[data-link],[data-frame],[data-step],[data-chip-frame],[data-chip-st],[data-chip-when],[data-chip-kaby]") : null);
+document.addEventListener("click", (e) => {
+  const el = target(e);
+  if (!el) return;
+  const d = el.dataset;
+  if (d.eye) return toggleFrame(d.eye, false);
+  if (d.act) return act(d.act);
+  if (d.chipFrame) return toggleFrame(d.chipFrame, e.shiftKey);
+  if (d.chipSt) { state.on[d.chipSt] = !state.on[d.chipSt]; if (!state.on.done && !state.on.half && !state.on.todo) state.on = { done: true, half: true, todo: true }; renderFilters(); return paint(); }
+  if (d.chipWhen) {
+    if (e.shiftKey) WHEN_ORDER.forEach((w) => { state.whenOn[w] = w === d.chipWhen; }); else state.whenOn[d.chipWhen] = !state.whenOn[d.chipWhen];
+    if (!state.whenOn.now && !state.whenOn.next && !state.whenOn.later) state.whenOn = { now: true, next: true, later: true };
+    renderFilters(); return paint();
+  }
+  if (Object.prototype.hasOwnProperty.call(d, "chipKaby")) { state.kaby = !state.kaby; renderFilters(); return paint(); }
+  if (d.step !== undefined) return story(Number(d.step));
+  if (d.node) { if (state.story !== null) story(null); return select("node", d.node); }
+  if (d.link) { if (state.story !== null) story(null); return select("link", d.link); }
+  if (d.frame) { if (state.story !== null) story(null); return select("frame", d.frame); }
 });
-
-$("#railBtn").addEventListener("click", () => $("#rail").toggleAttribute("data-open"));
+function act (a) {
+  if (a === "story") return story(state.story === null ? 0 : null);
+  if (a === "story-off") return story(null);
+  if (a === "prev") return story(state.story - 1);
+  if (a === "next") return story(state.story + 1 >= RAW.STORY.length ? null : state.story + 1);
+  if (a === "close-sheet") return select(null);
+  if (a === "theme") return setTheme((document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme:dark)").matches ? "dark" : "light")) === "dark" ? "light" : "dark");
+}
+function over (e) {
+  const el = target(e);
+  if (!el || el.dataset.act || el.dataset.chipFrame || el.dataset.chipSt || el.dataset.chipWhen || el.closest("#sheet")) return;
+  if (el.dataset.node) state.hover = { type: "node", id: el.dataset.node };
+  else if (el.dataset.link) state.hover = { type: "link", id: el.dataset.link };
+  else state.hover = null;
+  paint();
+  showTip(el, e.clientX, e.clientY);
+}
+$("#boardwrap").addEventListener("pointerover", over);
+$("#boardwrap").addEventListener("pointermove", (e) => { if (!$("#tip").hidden) { const el = target(e); if (el) showTip(el, e.clientX, e.clientY); } });
+$("#boardwrap").addEventListener("pointerleave", () => { state.hover = null; paint(); hideTip(); });
+$("#boardwrap").addEventListener("focusin", (e) => {
+  const el = target(e);
+  if (!el || !(el.dataset.node || el.dataset.link)) return;
+  state.hover = el.dataset.node ? { type: "node", id: el.dataset.node } : { type: "link", id: el.dataset.link };
+  paint();
+  const r = el.getBoundingClientRect();
+  showTip(el, r.left + r.width / 2, r.top + r.height);
+});
+$("#boardwrap").addEventListener("focusout", () => { state.hover = null; paint(); hideTip(); });
+$("#boardwrap").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const el = target(e);
+  if (el && (el.dataset.node || el.dataset.link || el.dataset.eye)) { e.preventDefault(); el.dispatchEvent(new MouseEvent("click", { bubbles: true })); }
+});
+let lastHit = "";
+function onQuery () {
+  state.q = $("#q").value;
+  renderFilters();
+  paint();
+  const q = state.q.trim().toLowerCase();
+  const first = q ? hitsFor(q)[0] : null;
+  const id = first ? first.id : "";
+  if (id && id !== lastHit) { const el = $('#board [data-node="' + id + '"], #list [data-node="' + id + '"]'); if (el && el.scrollIntoView) el.scrollIntoView({ block: "center", behavior: "smooth" }); }
+  lastHit = id;
+}
+$("#q").addEventListener("input", onQuery);
+$("#q").addEventListener("search", onQuery);
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape"){ closeSheet(); return; }
-  if (e.key === "ArrowRight") next();
-  if (e.key === "ArrowLeft") prev();
-  if (e.key === " "){ e.preventDefault(); play(); }
-  const n = Number(e.key);
-  if (n >= 1 && n <= 8){ stop(); select(SCENARIOS[n].id, true); }
+  const typing = e.target === $("#q");
+  if (e.key === "/" && !typing) { e.preventDefault(); $("#q").focus(); return; }
+  if (e.key === "Escape") {
+    if (typing && $("#q").value) { $("#q").value = ""; state.q = ""; renderFilters(); paint(); return; }
+    if (state.story !== null) return story(null);
+    if (state.sel) return select(null);
+    return;
+  }
+  if (typing || state.story === null) return;
+  if (e.key === "ArrowRight") { e.preventDefault(); act("next"); }
+  if (e.key === "ArrowLeft") { e.preventDefault(); act("prev"); }
 });
-let rz;
-window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(layout, 140); });
 
-build();
-select("s1", true);
+/* ── theme and start ── */
+function setTheme (t) {
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem("kb-story-theme", t); } catch (e) { /* private window: the page still works */ }
+}
+function legend () {
+  const line = (dash, col) => '<svg viewBox="0 0 34 14" aria-hidden="true"><path d="M2 7h26" fill="none" stroke="' + col + '" stroke-width="1.5"' + (dash ? ' stroke-dasharray="' + dash + '"' : "") + '/><path d="M24 3l5 4-5 4" fill="none" stroke="' + col + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  return '<span><b class="pill done">●</b> built</span><span><b class="pill half">◐</b> partly built</span><span><b class="pill todo">○</b> not built</span>' +
+    '<span><svg viewBox="0 0 34 14" aria-hidden="true"><rect x="1" y="1" width="32" height="12" rx="4" fill="none" stroke="var(--line-2)" stroke-dasharray="4 3"/></svg> dashed outline: not fully built</span>' +
+    '<span><svg viewBox="0 0 34 14" aria-hidden="true"><circle cx="17" cy="7" r="3.5" class="pd"/></svg> blue dot: something is planned, see its sheet</span>' +
+    '<span><i class="sw"></i> Kaby</span><span><i class="sw" style="border-color:var(--purple-line);background:var(--purple-bg)"></i> a Kybernos install</span><span>' + line("1.5 4.5", "var(--ink-3)") + " direct: the server is not in the path</span><span>" + line("5 4", "var(--coral-line)") + " target, not built</span>";
+}
+(function start () {
+  try { const t = localStorage.getItem("kb-story-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) { /* default */ }
+  $("#legend").innerHTML = legend();
+  $("#foot").textContent = "Read at " + RAW.asof + ". A reading of the repositories and their documents, not a measure of a running system." + (PRIV ? " Private overlay loaded" + (typeof PRIV.asof === "string" ? " (" + PRIV.asof + ")" : "") + ": do not publish this view." : "");
+  $("#privTag").hidden = !PRIV;
+  renderFilters();
+  renderSheet();
+  draw();
+  matchMedia("(max-width:720px)").addEventListener("change", draw);
+})();
 </script>
 </body>
 </html>

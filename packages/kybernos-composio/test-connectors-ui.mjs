@@ -121,6 +121,11 @@ const catalog = readFileSync(new URL('./catalog.js', import.meta.url), 'utf8')
   ok('page: the on-page switch writes the same choice', /kbCpHost\('\/provider', 'POST', \{ provider: m === 'kybernos' \? 'kybernos' : 'composio' \}\)/.test(src))
 
   ok('add menu: two new entries after the existing ones', /'data-kb': 'add-form'/.test(src) && /'data-kb': 'add-json'/.test(src) && /'data-kb': 'add-api'/.test(src) && /'data-kb': 'add-ai'/.test(src))
+  ok('add menu: every row carries an icon (form, braces, globe, sparkles) from the page\'s own Lucide set, like the Agent Teams menu', () => {
+    const rows = ['add-form', 'add-json', 'add-api', 'add-ai']
+    const icons = ['form', 'braces', 'globe', 'sparkles']
+    return rows.every((r, i) => new RegExp("'data-kb': '" + r + "'[^\\n]*\\} \\}, Icon\\('" + icons[i] + "', 16\\)").test(src)) && icons.every((n) => new RegExp('\\n      ' + n + ': \\[').test(src))
+  })
   ok('api window: the key field is a password field and the key goes in the body only', /id: 'kbcp-api-key', type: 'password', autoComplete: 'off'/.test(src) && !/openapi\?[^']*key/.test(src))
   ok('api window: reads are on by default, writes off', /if \(o\.write !== true && n < 100\) \{ init\[o\.id\] = true/.test(src))
   ok('api window: the host is asked to read, then to add: the page\'s own list is never trusted by the host', /action: 'read'/.test(src) && /action: 'add'/.test(src))

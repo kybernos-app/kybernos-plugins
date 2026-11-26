@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Un petit modèle de langage qui tourne sur le téléphone, sans connexion, pour discuter et poser des questions simples. L’agent complet, qui agit, reste sur ton ordinateur ou dans le cloud.",
+    "en": "A small language model that runs on the phone, with no connection, for chatting and simple questions. The full agent, which acts, stays on your computer or in the cloud."
+  },
+  "steps": [
+    {
+      "fr": "Dans l’application Kybernos, ouvre « Modèles sur ce téléphone » et installe le petit modèle (un téléchargement, que tu lances toi-même).",
+      "en": "In the Kybernos app, open “Models on this phone” and install the small model (one download, which you start yourself)."
+    },
+    {
+      "fr": "Dans une nouvelle conversation, choisis « Sur ce téléphone » : le bon mode (Discussion ou Agent léger) se met tout seul.",
+      "en": "In a new chat, pick “On this phone”: the right mode (Discussion or Light agent) switches on by itself."
+    },
+    {
+      "fr": "Écris ta question. Le premier mot peut prendre quelques secondes, le temps que le modèle se charge.",
+      "en": "Write your question. The first word can take a few seconds while the model loads."
+    }
+  ],
+  "where": {
+    "fr": "Liste des modèles d’une conversation › Sur ce téléphone",
+    "en": "A chat’s model list › On this phone",
+    "page": false
+  },
+  "good": {
+    "fr": "Il ne cherche pas sur le web. En mode Agent léger, il crée un rappel ou propose une automatisation ou une note (tu valides), et lit tes documents. Pour le reste, Kaby sur ton ordinateur ou dans le cloud.",
+    "en": "It does not search the web. In Light agent mode it sets a reminder or proposes an automation or a note (you approve), and reads your documents. For the rest, Kaby on your computer or in the cloud."
+  }
+}

@@ -141,7 +141,7 @@ const POINT_CASES = [
 section('the point: a pack theme file')
 {
   check('THEME_POINT is the shape the registry defines (owner, ownerVersion, data, inert, validate)', THEME_POINT.owner === 'kybernos/theme' && THEME_POINT.ownerVersion === '1.0.0' && THEME_POINT.name === 'theme' && THEME_POINT.version === '1.0' && THEME_POINT.kind === 'data' && THEME_POINT.class === 'inert' && typeof THEME_POINT.validate === 'function')
-  check('A11Y_KEYS is ONE frozen list, shared with the settings vocabulary (not a copy)', A11Y_KEYS === STORE.A11Y_KEYS && Object.isFrozen(A11Y_KEYS) && A11Y_KEYS.length === 6)
+  check('A11Y_KEYS is ONE frozen list, shared with the settings vocabulary (not a copy)', A11Y_KEYS === STORE.A11Y_KEYS && Object.isFrozen(A11Y_KEYS) && A11Y_KEYS.length === 7 && A11Y_KEYS.includes('touch'))
 
   const light = { id: 'soigne', name: 'Soigne', settings: { mode: 'light', acc: '#4d7c0f', evil: 1 } }
   const v = THEME_POINT.validate(light, 'soigne')

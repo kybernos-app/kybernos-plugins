@@ -173,8 +173,12 @@ for (const [bundle, classes] of [
 const BY_DESIGN = [
   { prefix: 'kbf', bundles: ['kybernos-cloud', 'kybernos-plugin'], why: 'the core lays the sidebar footer out as a grid (display:contents on .kbf-root, rows and columns of .kbf-wsrow / .kbf-idrow) over the Cloud footer it does not draw' },
   { prefix: 'kbsl', bundles: ['kybernos-mobile', 'kybernos-slash'], why: 'the phone layout (mobile.css) re-lays out the Slash actions row' },
+  // The phone look is one `@media (max-width: 600px)` block (test-host pins the only rules outside it): it takes the engine's outlines off and widens the touch
+  // targets of the classes the core, Composio and the other bundles draw. It never declares a class of its own that a bundle also declares (those start with kbmob).
+  { owner: 'kybernos-mobile', why: 'the phone look (mobile.css, phone-width block only) restyles the cards, chips, tabs and buttons of the other bundles: no outline, 44 px targets' },
 ]
-const byDesign = (f) => BY_DESIGN.some((a) => prefixOf(f.selector) === a.prefix && f.bundles.every((b) => a.bundles.includes(b.bundle)))
+const designMatch = (a, f) => (a.prefix === undefined || prefixOf(f.selector) === a.prefix) && (a.owner === undefined ? f.bundles.every((b) => a.bundles.includes(b.bundle)) : f.bundles.some((b) => b.bundle === a.owner))
+const byDesign = (f) => BY_DESIGN.some((a) => designMatch(a, f))
 const collisions = () => shared(ROOT).filter((f) => !f.identical)
 ok('A1-04: no class selector is declared differently by two bundles (a prefix belongs to one bundle)', () => {
   const bad = collisions().filter((f) => !byDesign(f))
@@ -182,7 +186,7 @@ ok('A1-04: no class selector is declared differently by two bundles (a prefix be
 })
 ok('A1-04: every by-design override above is still a live collision (the list does not go stale)', () => {
   const live = collisions()
-  for (const a of BY_DESIGN) assert.ok(live.some((f) => prefixOf(f.selector) === a.prefix && f.bundles.every((b) => a.bundles.includes(b.bundle))), a.prefix + ' no longer collides: drop it from BY_DESIGN')
+  for (const a of BY_DESIGN) assert.ok(live.some((f) => designMatch(a, f)), (a.prefix || a.owner) + ' no longer collides: drop it from BY_DESIGN')
 })
 ok('A1-04: a @keyframes name defined by two bundles has the same body in both (the names are global too)', () => {
   const bad = [...keyframesByBundle(ROOT)].filter(([, per]) => new Set(per.values()).size > 1).map(([name, per]) => name + ' in ' + [...per.keys()].join(', '))

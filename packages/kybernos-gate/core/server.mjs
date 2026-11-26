@@ -7,6 +7,8 @@
 // login in front of everything, and DSH itself only knows a launch token. After a good password the gate also
 // gives the browser DSH's own session cookie (see dsh-session.mjs): one sign-in.
 import http from 'node:http'
+import { readFileSync, statSync } from 'node:fs'
+import { join } from 'node:path'
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { verifyPassword } from './password.mjs'
 import { SESSION_COOKIE, clearCookie, readCookie, serializeCookie, signSession, verifySession } from './session.mjs'
@@ -14,10 +16,13 @@ import { createLimiter } from './limiter.mjs'
 import { createProxy } from './proxy.mjs'
 import { pageCsp, pickLanguage, renderLogin, renderStarting, safeNext } from './page.mjs'
 import { dshCookieName, mintDshCookie, readDshSecret } from './dsh-session.mjs'
+import { readPageToken } from './page-link.mjs'
 
 const PREFIX = '/__gate/'
 const MAX_BODY = 4096
 const MAX_CONCURRENT_LOGINS = 8
+// The biggest page the gate hands out for a link (a Journal page with its logos is a few hundred kilobytes).
+const MAX_PAGE_BYTES = 8 * 1024 * 1024
 const sha256 = (text) => createHash('sha256').update(text, 'utf8').digest()
 
 /**
@@ -221,10 +226,46 @@ export function createGate (config, { limiter = createLimiter(), log = (line) =>
     return sendJson(res, 200, { ok: true }, { 'set-cookie': cookies })
   }
 
+  /**
+   * `GET /__gate/page/<token>`: one page the cloud plugin saved for a link that expires (page-link.mjs), shown with no sign-in and giving none. The token names the file and its end time and is
+   * signed with a key made from the computer's token: a guess is refused like a bad ticket (the same limiter), a link past its end time says so, and nothing else of the computer is reachable by it.
+   */
+  function page (req, res, route) {
+    if (config.pageKey === null) return sendText(res, 404, 'not found')
+    if (req.method !== 'GET' && req.method !== 'HEAD') return sendText(res, 405, 'method not allowed', { allow: 'GET, HEAD' })
+    const key = clientIp(req)
+    const state = limiter.check(key)
+    if (state.locked) return sendText(res, 429, 'too many attempts', { 'retry-after': String(state.retryAfter) })
+    const read = readPageToken(config.pageKey, route.slice('page/'.length), now())
+    if (read === null) {
+      const after = limiter.fail(key)
+      log(`[gate] page link refused from ${key}${after.locked ? ` (locked ${after.retryAfter}s)` : ''}`)
+      return sendText(res, 404, 'not found')
+    }
+    if (read.expired) return sendText(res, 410, 'This link is over: ask for the page again.')
+    const file = join(config.dshHome, 'kybernos', 'journal-pages', read.id + '.html')
+    let body
+    try {
+      if (statSync(file).size > MAX_PAGE_BYTES) return sendText(res, 404, 'not found')
+      body = readFileSync(file)
+    } catch (e) { return sendText(res, 404, 'not found') }
+    res.writeHead(200, {
+      ...baseHeaders,
+      'content-type': 'text/html; charset=utf-8',
+      'content-length': body.byteLength,
+      // The page carries its own policy (a hash for its one script, no network); this one adds what only a header can say, and keeps the page from being framed or indexed.
+      'content-security-policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+      'x-frame-options': 'DENY',
+      'x-robots-tag': 'noindex, nofollow'
+    })
+    res.end(req.method === 'HEAD' ? undefined : body)
+  }
+
   function gateRoute (req, res, url) {
     const route = url.pathname.slice(PREFIX.length)
     if (route === 'health') return req.method === 'GET' || req.method === 'HEAD' ? sendText(res, 200, 'ok') : sendText(res, 405, 'method not allowed')
     if (route === 'ticket') return ticket(req, res, url)
+    if (route.startsWith('page/')) return page(req, res, route)
     if (route === 'login') {
       if (config.verifier === null) return sendText(res, 403, 'This computer is opened from the Kybernos console: use its Open button.')
       if (req.method === 'POST') return login(req, res, url)

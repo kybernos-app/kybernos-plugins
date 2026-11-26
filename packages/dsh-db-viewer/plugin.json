@@ -28,6 +28,7 @@
     "kybernos": ">=0.1.0"
   },
   "permissions": [
+    "ui.slot:conversation.composer.dock",
     "ui.slot:sidebar.right.pane.tab",
     "host.routes:/dsh-db-viewer:read",
     "fs.read:dsh-home"

@@ -208,7 +208,7 @@ window.__ModuleLoader__.load({
       const hostFailure = (down) => ({
         ok: false, down: down,
         error: down === 'absent'
-          ? kt('Les appels ne sont pas encore chargés : relance DSH une fois', 'Calls are not loaded yet: restart DSH once')
+          ? kt('Les appels ne sont pas encore chargés : relance Kybernos une fois', 'Calls are not loaded yet: restart Kybernos once')
           : kt('Impossible de joindre le service d’appel — réessaie', 'Cannot reach the call service — try again')
       })
       // A POST to the host: its JSON answer, or a hostFailure (ok:false, down:'absent'|'unreachable', error: the sentence).
@@ -618,7 +618,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
 @keyframes kbcl-spin{to{transform:rotate(360deg)}}
 .kbcl-prov a{color:${T.brand}}
 /* The page help: the « ? How it works » pill of every other page (the Suite's pill, in kybernos-hub). */
-.kbcl-hl{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.kbcl-hl{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:30px;padding:0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
 .kbcl-hl:hover,.kbcl-hl[aria-expanded="true"]{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}
 .kbcl-hl:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 .kbcl-hq{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
@@ -975,7 +975,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
               (p.slot === 'listen' || p.slot === 'face' || p.slot === 'speak') && !p.clone ? h('button', { key: 'u', type: 'button', className: 'kbcl-btn kbcl-pri', style: { marginLeft: 'auto' }, 'data-act': 'use-' + p.id, disabled: c.busy || (used && typeof p.engine !== 'string') || (p.id === 'models-asr' && !(p.config && p.config.model)), onClick: useIt }, used ? (typeof p.engine === 'string' ? kt('Utiliser cette voix', 'Use this voice') : kt('Utilisé', 'In use')) : kt('Utiliser pour les appels', 'Use for calls')) : null
             ]),
             p.slot === 'speak' && !p.clone ? h('div', { key: 'fb', className: 'kbcl-sub' }, kt('Si ce fournisseur échoue, la voix du Mac prend le relais : l’appel n’est jamais muet.', 'If this provider fails, the Mac voice takes over: a call is never silent.')) : null,
-            p.clone ? h('div', { key: 'cn', className: 'kbcl-sub' }, kt('Sert quand la voix d’une Agent Team est un enregistrement. Crée la voix depuis la carte de l’Agent Team.', 'Used when an Agent Team’s voice is a recording. Create the voice from the Agent Team’s card.')) : null
+            p.clone ? h('div', { key: 'cn', className: 'kbcl-sub' }, kt('Sert quand la voix d’une équipe d’agents IA est un enregistrement. Crée la voix depuis la carte de l’équipe d’agents IA.', 'Used when an AI Agent Team’s voice is a recording. Create the voice from the AI Agent Team’s card.')) : null
           ]
         ])
       }

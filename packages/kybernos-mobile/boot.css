@@ -1,0 +1,26 @@
+/* kybernos-mobile: the engine's loading card, at every width (web and phone alike).
+ *
+ * Apart from mobile.css on purpose: that sheet is "a phone" and changes nothing above it; this card is drawn before any plugin runs, on every
+ * screen. The host half puts it in <head> as a second row (id kbmob-boot), so the first paint already has it. */
+/* The loading card of the engine says "HARNESS" (the engine's own name) and "Loading plugins...". It is drawn before any plugin runs, so
+ * only this sheet, which the host half puts first in <head>, can change it: the word becomes the K of the brand (the same K as kbBrandArt
+ * in the core plugin, 32.5 x 36 units, drawn here as code, never a file), the hint goes. When a plugin fails to load the card swaps the
+ * spinner for "Failed to load plugins" and the names: the K stays and that text is left alone, it is the one thing the person must read. */
+[data-dsh-boot] > :first-child > :first-child {
+  width: 44px;
+  height: 49px;
+  margin-inline: auto;
+  overflow: hidden;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  letter-spacing: 0 !important;
+  color: transparent !important;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32.5 36'><g fill='%23f2372a'><rect width='13' height='36'/><polygon points='21,0 31,0 13,28.3 13,12.6'/><polygon points='13,22 22,36 32.5,36 20.3,16.8 13,16.8'/></g><g fill='%23fff'><circle cx='6.5' cy='7.5' r='2.8'/><circle cx='6.5' cy='18' r='2.8'/><circle cx='6.5' cy='28.5' r='2.8'/></g></svg>") center / contain no-repeat;
+}
+[data-dsh-boot] [data-dsh-boot-spinner] ~ * {
+  display: none !important;
+}
+/* the failure text starts at the screen's edge in the engine's own card: a little air */
+[data-dsh-boot] {
+  padding-inline: 20px;
+}

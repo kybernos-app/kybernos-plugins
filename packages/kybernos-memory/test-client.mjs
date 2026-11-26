@@ -49,7 +49,6 @@ const st = (plan) => ({ ok: true, state: { user: { plan } } })
 check('no user / empty / free → free', T.planOf(null) === 'free' && T.planOf({}) === 'free' && T.planOf(st('')) === 'free' && T.planOf(st('free')) === 'free' && T.planOf(st('FREE')) === 'free')
 check('solo, studio, scale and legacy individual plans → solo', ['solo', 'studio', 'scale', 'pro', 'max'].every((p) => T.planOf(st(p)) === 'solo'))
 check('team-* seats → team', T.planOf(st('team-solo')) === 'team' && T.planOf(st('team-studio')) === 'team' && T.planOf(st('team-scale')) === 'team' && T.planOf(st('team')) === 'team')
-check('the plan line reads the space label the server gave, else the plan key with a capital, else Free (never « Solo » for a Plus or a Pro)', T.planLabelOf({ state: { space_plan: { label: 'Plus' }, user: { plan: 'plus' } } }) === 'Plus' && T.planLabelOf({ state: { user: { plan: 'studio' } } }) === 'Studio' && T.planLabelOf({ state: { space_plan: { label: ' pro ' }, user: { plan: 'studio' } } }) === 'Pro' && T.planLabelOf(null) === 'Free' && T.planLabelOf({ state: { user: {} } }) === 'Free' && T.planLabelOf(st('')) === 'Free')
 
 // ── ages
 console.log('ages')
@@ -58,14 +57,6 @@ check('unknown ages are blank, never "NaN"', T.ageLabel(null) === '' && T.ageLab
 
 // ── pager
 console.log('pager')
-const pp = (total, page, size = 25) => T.pagerPages(total, page, size)
-check('630 rows, page 1: 1 2 3 … 26, range 1–25', JSON.stringify(pp(630, 1).items) === JSON.stringify([1, 2, 3, '…', 26]) && pp(630, 1).from === 1 && pp(630, 1).to === 25)
-check('page 3: 1 2 3 4 … 26', JSON.stringify(pp(630, 3).items) === JSON.stringify([1, 2, 3, 4, '…', 26]))
-check('middle page 13: 1 … 12 13 14 … 26', JSON.stringify(pp(630, 13).items) === JSON.stringify([1, '…', 12, 13, 14, '…', 26]))
-check('last page is partial: 626–630', pp(630, 26).from === 626 && pp(630, 26).to === 630 && JSON.stringify(pp(630, 26).items) === JSON.stringify([1, '…', 24, 25, 26]))
-check('a page beyond the end is clamped; empty list is 0–0 on 1 page', pp(630, 99).page === 26 && pp(0, 1).pages === 1 && pp(0, 1).from === 0 && pp(0, 1).to === 0)
-check('exactly one page → just "1"', JSON.stringify(pp(10, 1).items) === JSON.stringify([1]))
-check('100 per page → 7 pages', pp(630, 1, 100).pages === 7)
 
 // ── URLs
 console.log('urls')
@@ -75,36 +66,20 @@ check('page 3 of 50 → offset 100', T.listUrl('memories', base({ size: 50, page
 check('memory filters and the search are sent, trimmed', T.listUrl('memories', base({ q: '  deploy  ', f: { ...T.defaultFilters(), show: 'pinned', src: 'agent', added: '1h' } })) === '/kybernos-cloud/memory/list?limit=25&offset=0&added=1h&q=deploy&show=pinned&src=agent')
 check('lessons go to the lessons host, kyber/used/added/q', T.listUrl('lessons', base({ q: 'x y', f: { ...T.defaultFilters(), kyber: 'dev-team', status: 'used', added: 'today' } })) === '/kybernos-memory/lessons?limit=25&offset=0&added=today&q=x+y&kyber=dev-team&used=1')
 check('a memory-only filter never leaks into a lessons URL', !/show=|src=/.test(T.listUrl('lessons', base({ f: { ...T.defaultFilters(), show: 'pinned', src: 'agent' } }))))
-check('mode=meaning is sent only with a query, only for memories', T.listUrl('memories', base({ q: 'cafe', mode: 'meaning' })) === '/kybernos-cloud/memory/list?limit=25&offset=0&q=cafe&mode=meaning'
-  && !/mode=/.test(T.listUrl('memories', base({ mode: 'meaning' }))) && !/mode=/.test(T.listUrl('memories', base({ q: 'cafe', mode: 'relevance' }))) && !/mode=/.test(T.listUrl('lessons', base({ q: 'cafe', mode: 'meaning' }))))
+check('the page never asks for a search by meaning: no `mode` goes to the list route, whatever the state says', !/mode=/.test(T.listUrl('memories', base({ q: 'cafe', mode: 'meaning' }))) && !/mode=/.test(T.listUrl('lessons', base({ q: 'cafe', mode: 'meaning' }))))
 
 console.log('search by meaning')
-check('every fallback reason has its own sentence', ['sens_desactive', 'offre_requise', 'sens_indisponible', 'serveur_ancien', 'credits_epuises', 'embedding_invalide'].every((c) => T.meaningWhy(c).length > 10 && T.meaningWhy(c).indexOf('Something went wrong') < 0))
-check('the plan reason names the tier the host sent; with none it says the feature is not in the plan, never a plan name of its own', /Solo plan/.test(T.meaningWhy('offre_requise', 'solo')) && /Team plan/.test(T.meaningWhy('offre_requise', 'team')) && T.meaningWhy('offre_requise') === 'Search by meaning is not included in your plan.' && T.meaningWhy('offre_requise', 'unheard-of') === 'Search by meaning is not included in your plan.')
-check('the switch reason points to Customize', /Customize/.test(T.meaningWhy('sens_desactive')))
-check('an unknown code falls back to the generic words, never to undefined', typeof T.meaningWhy('zzz') === 'string' && /zzz/.test(T.meaningWhy('zzz')) && T.meaningWhy(undefined).length > 0)
-check('« N of M words » only when some of several words were missing', T.wordsLabel(2, 3) === '2 of 3 words' && T.wordsLabel(1, 2) === '1 of 2 words' && T.wordsLabel(3, 3) === null && T.wordsLabel(1, 1) === null && T.wordsLabel(undefined, undefined) === null && T.wordsLabel(0, 3) === null && T.wordsLabel('2', 3) === null)
-check('closeness is « NN% match », clamped, and only for a real number', T.closenessLabel(82) === '82% match' && T.closenessLabel(81.6) === '82% match' && T.closenessLabel(140) === '100% match' && T.closenessLabel(-3) === '0% match'
-  && T.closenessLabel(null) === null && T.closenessLabel(undefined) === null && T.closenessLabel(NaN) === null && T.closenessLabel('82') === null)
 {
   const store = new Map()
   globalThis.window.localStorage = { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => { store.set(k, String(v)) } }
-  check('the search mode defaults to relevance, and the saved choice comes back', T.readMode() === 'relevance' && (T.writeMode('meaning'), T.readMode()) === 'meaning' && (T.writeMode('relevance'), T.readMode()) === 'relevance')
   store.set('kbmem.searchMode', 'garbage')
-  check('a garbage or legacy saved value is relevance', T.readMode() === 'relevance' && (store.set('kbmem.searchMode', 'words'), T.readMode()) === 'relevance')
   globalThis.window.localStorage = { getItem: () => { throw new Error('blocked') }, setItem: () => { throw new Error('blocked') } }
-  check('blocked storage (private window) never throws', T.readMode() === 'relevance' && T.writeMode('meaning') === undefined)
   delete globalThis.window.localStorage
 }
 check('a hostile search is encoded, not concatenated', T.listUrl('memories', base({ q: 'a&limit=9999#x' })).includes('q=a%26limit%3D9999%23x'))
 
 // ── filters
 console.log('filters')
-check('no active filter by default, on either tab', T.activeFilters('memories', T.defaultFilters()).length === 0 && T.activeFilters('lessons', T.defaultFilters()).length === 0)
-const act = T.activeFilters('memories', { ...T.defaultFilters(), added: '1h', src: 'capture' })
-check('each non-default filter is one chip with its own key and default', act.length === 2 && act.every((c) => typeof c.key === 'string' && c.def !== undefined) && act.some((c) => c.text === 'Added: Last hour') && act.some((c) => c.text === 'Source: Auto-capture'))
-check('an agent team filter is a chip too', T.activeFilters('lessons', { ...T.defaultFilters(), kyber: 'audit' }).some((c) => c.key === 'kyber' && c.text === 'Agent Team: audit' && c.def === ''))
-check('the Scope (Mine | Team) is a segmented control of the Lessons tab, no longer a filter group', !T.GROUPS.lessons.some((g) => g.key === 'scope') && T.defaultFilters().scope === 'mine' && /label: 'Scope'/.test(SOURCE))
 
 // ── words
 console.log('words')
@@ -112,7 +87,6 @@ const fe = T.friendlyError
 check('known codes are sentences, unknown ones keep the code', fe('non connecte') === 'Not connected to Kybernos Cloud.' && fe('reconnexion_requise').includes('expired') && fe('reseau').includes('cannot be reached') && fe('refus_503') === 'The server refused the request (503).' && fe('weird_code') === 'Something went wrong (weird_code).' && fe(undefined) === 'Something went wrong.')
 check('input errors are said as input errors', fe('contenu_vide') === 'Write something first.' && fe('contenu_trop_long').includes('2 000') && fe('memoire_desactivee') === 'Memory is switched off.' && fe('lecon_introuvable') === 'That lesson no longer exists.')
 const cw = T.captureWords
-check('capture outcomes', cw({ status: 'ecrit', facts: 2 }) === 'wrote 2 memories' && cw({ status: 'ecrit', facts: 1 }) === 'wrote 1 memory' && cw({ status: 'rien_a_retenir' }) === 'nothing worth keeping' && cw({ status: 'jamais' }).includes('has not run') && cw({ status: 'desactivee' }) === 'switched off' && cw(null) === 'unknown' && cw({ status: 'inedit' }) === 'inedit')
 
 // ── network wrapper
 console.log('network')
@@ -129,15 +103,74 @@ check('a body makes a JSON POST', seen.init.method === 'POST' && seen.init.heade
 fetchImpl = async () => ({ status: 200, json: async () => ({ ok: false, error: 'non connecte', connected: false }) })
 check('the host\'s own refusal passes through untouched', (await T.api('/c')).error === 'non connecte')
 
+// ── the « Noted » line in the chat
+console.log('noted line')
+{
+  const find = (tree, pred, out = []) => { if (Array.isArray(tree)) { if ((typeof tree[0] === 'string' || typeof tree[0] === 'function') && pred(tree)) out.push(tree); tree.forEach((c) => find(c, pred, out)) } return out }
+  const text = (tree) => (Array.isArray(tree) ? (typeof tree[0] === 'string' || typeof tree[0] === 'function' ? tree.slice(2) : tree).map(text).join('') : (typeof tree === 'string' ? tree : ''))
+  const noteOf = (id, content) => ({ id, at: 1, item: { id, content, kind: 'fact', origin: 'capture', createdAt: '2026-11-20 10:00:00+00:00' } })
+  check('a line shows the note\'s name: whitespace folded, a long one cut on a word with an ellipsis', T.notedLine('  You live\n in  Lyon. ') === 'You live in Lyon.' && T.notedLine('') === '' && T.notedLine(undefined) === '' && T.notedLine('word '.repeat(60)).length <= 111 && T.notedLine('word '.repeat(60)).endsWith('…') && !/\s…$/.test(T.notedLine('word '.repeat(60))))
+  check('the turn\'s number is read as the closing sequence, then as `turn`, and is absent when neither is a number', T.notedSeq({ seq: 4 }) === 4 && T.notedSeq({ turn: 7 }) === 7 && T.notedSeq({ seq: 4, turn: 7 }) === 4 && T.notedSeq({ turn: {} }) === undefined && T.notedSeq(null) === undefined)
+  {
+    const store = { claims: new Map() }
+    const a = T.notedClaim(store, 's1', 1, [10, 11])
+    const b = T.notedClaim(store, 's1', 2, [10, 11, 12])
+    check('a note is claimed by the first turn that sees it: the next turn does not repeat it', a.join() === '10,11' && b.join() === '12')
+    check('the same turn sees its notes again (a re-draw), another chat has its own', T.notedClaim(store, 's1', 1, [10, 11]).join() === '10,11' && T.notedClaim(store, 's2', 5, [10]).join() === '10')
+    const loose = { claims: new Map() }
+    check('with no turn number it fails open: every note is shown, nothing is claimed away', T.notedClaim(loose, 's1', undefined, [1, 2]).join() === '1,2' && T.notedClaim(loose, 's1', undefined, [1, 2]).join() === '1,2')
+    const big = { claims: new Map() }
+    for (let i = 0; i < 600; i += 1) T.notedClaim(big, 's', i, [i])
+    check('the claims are bounded', big.claims.size <= 400)
+  }
+  check('Undo: ok → undone; the note already gone (404) → gone; any other refusal → failed (the button stays)', T.notedUndoState({ ok: true }) === 'undone' && T.notedUndoState({ ok: false, error: 'refus_404' }) === 'gone' && T.notedUndoState({ ok: false, error: 'reseau' }) === 'failed' && T.notedUndoState({ ok: false, error: 'non connecte' }) === 'failed' && T.notedUndoState(undefined) === 'failed')
+  fetchImpl = async (url, init) => { seen.url = url; seen.init = init; return { status: 200, json: async () => ({ ok: true, run: 'dx1' }) } }
+  check('Undo is the delete the page uses (its 30 days of « Recently removed » come with it)', (await T.undoNoted(42)) === 'undone' && seen.url === '/kybernos-cloud/memory/delete' && seen.init.body === '{"id":42}')
+  fetchImpl = async () => { throw new Error('offline') }
+  check('Undo with the server away says failed, never throws', (await T.undoNoted(42)) === 'failed')
+  const lines = (notes, status) => T.NotedLines({ notes, status: status === undefined ? {} : status, onOpen: () => {}, onUndo: () => {} })
+  check('nothing noted draws nothing', lines([]) === null)
+  const one = lines([noteOf(7, 'You live in Lyon. The shop is in Paris.')])
+  check('one line: « Noted: » and the name only, one Open and one Undo, quiet (no role=alert, no card)', text(find(one, (n) => n[1] && n[1]['data-kbmem'] === 'noted-line')[0]).startsWith('Noted: You live in Lyon') && !text(one).includes('The shop is in Paris') && find(one, (n) => n[1] && n[1]['data-act'] === 'noted-open').length === 1 && find(one, (n) => n[1] && n[1]['data-act'] === 'noted-undo').length === 1 && JSON.stringify(one).indexOf('"role":"alert"') < 0)
+  check('the buttons say Open and Undo, and are real buttons', find(one, (n) => n[0] === 'button').every((b) => b[1].type === 'button') && text(find(one, (n) => n[1] && n[1]['data-act'] === 'noted-open')[0]) === 'Open' && text(find(one, (n) => n[1] && n[1]['data-act'] === 'noted-undo')[0]) === 'Undo')
+  const five = lines([1, 2, 3, 4, 5].map((i) => noteOf(i, 'Note number ' + String(i) + '.')))
+  check('at most three lines under one answer', find(five, (n) => n[1] && n[1]['data-kbmem'] === 'noted-line').length === T.NOTED_SHOWN && T.NOTED_SHOWN === 3)
+  const done = lines([noteOf(7, 'You live in Lyon.')], { 7: 'undone' })
+  check('undone: « Undone: » and the name, no buttons left', text(done).startsWith('Undone: You live in Lyon') && find(done, (n) => n[0] === 'button').length === 0)
+  const gone = lines([noteOf(7, 'You live in Lyon.')], { 7: 'gone' })
+  check('already removed: it says so, no buttons', text(gone).startsWith('Already removed: You live in Lyon') && find(gone, (n) => n[0] === 'button').length === 0)
+  const failed = lines([noteOf(7, 'You live in Lyon.')], { 7: 'failed' })
+  check('a failed Undo says so in words and keeps the buttons to try again', /could not|couldn.t/i.test(text(failed)) && find(failed, (n) => n[1] && n[1]['data-act'] === 'noted-undo').length === 1 && find(failed, (n) => n[1] && n[1]['data-act'] === 'noted-undo')[0][1].disabled !== true)
+  const busy = lines([noteOf(7, 'You live in Lyon.')], { 7: 'busy' })
+  check('while Undo runs the buttons are off (no second tap)', find(busy, (n) => n[0] === 'button').every((b) => b[1].disabled === true))
+  const calls2 = []
+  const wired = T.NotedLines({ notes: [noteOf(7, 'You live in Lyon.')], status: {}, onOpen: (n) => calls2.push(['open', n.id]), onUndo: (n) => calls2.push(['undo', n.id]) })
+  find(wired, (n) => n[1] && n[1]['data-act'] === 'noted-open')[0][1].onClick()
+  find(wired, (n) => n[1] && n[1]['data-act'] === 'noted-undo')[0][1].onClick()
+  check('Open and Undo hand the note to their handlers', JSON.stringify(calls2) === '[["open",7],["undo",7]]')
+  globalThis.window.__KB_LANG_RESOLVE__ = () => 'fr'
+  const frLine = lines([noteOf(7, 'Tu habites à Lyon.')])
+  check('in French: « Noté : » with Ouvrir and Défaire (the page\'s own word for Undo)', text(find(frLine, (n) => n[1] && n[1]['data-kbmem'] === 'noted-line')[0]).startsWith('Noté : Tu habites à Lyon') && text(find(frLine, (n) => n[1] && n[1]['data-act'] === 'noted-open')[0]) === 'Ouvrir' && text(find(frLine, (n) => n[1] && n[1]['data-act'] === 'noted-undo')[0]) === 'Défaire')
+  delete globalThis.window.__KB_LANG_RESOLVE__
+  // Open: the note travels to the page in a hand-over that expires, and is taken once.
+  T.notedOpen.pending = null
+  T.notedOpen.give({ id: 9, content: 'x' })
+  check('the hand-over is taken once, and only while fresh', T.notedOpen.take().id === 9 && T.notedOpen.take() === null && (() => { T.notedOpen.give({ id: 9 }); T.notedOpen.pending.at = Date.now() - 20000; return T.notedOpen.take() === null })())
+  check('the page asks the hand-over when it opens', /notedOpen\.take\(\)/.test(SOURCE) && /notedOpen\.subs\.add/.test(SOURCE))
+  check('the tail asks only its own chat, from the host, and reads nothing else', /\/kybernos-cloud\/memory\/noted\?sessionId=/.test(SOURCE))
+  check('the line has its own prefixed styles, quiet in both themes (tokens, no fixed colour but the fallbacks of the page\'s own chain)', /\.kbmem-noted\{/.test(SOURCE) && /\.kbmem-noted button\{[^}]*color:var\(--m-acc\)/.test(SOURCE))
+}
+
 // ── mounting
 console.log('mounting')
 const calls = { slot: [], effects: [] }
 const ctx = { slots: { inject: (name, cb) => { cb(); return () => {} }, register: (meta, comp) => { calls.slot.push({ meta, comp }); return () => {} } }, effect: (fn, label) => { const d = fn(); calls.effects.push({ label, d }) } }
 mod.apply(ctx)
-check('registers one settings section (its drawn place is the shell menu grouping\'s: scripts/test-live-checks.mjs)',calls.slot.length === 1 && calls.slot[0].meta.name === 'settings.section' && calls.slot[0].meta.id === 'kybernos-memory' && calls.slot[0].meta.order === 3 && calls.slot[0].meta.label === 'Memory & Lessons')
+check('registers one settings section (its drawn place is the shell menu grouping\'s: scripts/test-live-checks.mjs)',calls.slot.length === 2 && calls.slot[0].meta.name === 'settings.section' && calls.slot[0].meta.name === 'settings.section' && calls.slot[0].meta.id === 'kybernos-memory' && calls.slot[0].meta.order === 3 && calls.slot[0].meta.label === 'Memory & Lessons')
 check('the section renders the page component', typeof calls.slot[0].comp === 'function')
 check('styles are inserted once, tagged with the plugin, and can be removed', tags.length === 1 && tags[0].dataset.plugin === '@local/kybernos-memory' && typeof calls.effects[0].d === 'function')
-check('every effect is labelled (cordis disposers)', calls.effects.length === 2 && calls.effects.every((e) => /^kybernos-memory:/.test(e.label)))
+check('the « Noted » line is registered at the end of an answer (conversation.chat.turnTail)', calls.slot.length === 2 && calls.slot[1].meta.name === 'conversation.chat.turnTail' && calls.slot[1].meta.id === 'kybernos-memory-noted' && typeof calls.slot[1].comp === 'function')
+check('every effect is labelled (cordis disposers)', calls.effects.length === 3 && calls.effects.every((e) => /^kybernos-memory:/.test(e.label)))
 check('apply with no slots service does not throw', (() => { try { mod.apply({}); mod.apply(null); return true } catch (e) { return false } })())
 const broken = definition.factory(() => { throw new Error('react missing') })
 check('a load error disables the plugin, leaves the GUI (apply is a no-op) and logs', typeof broken.apply === 'function' && broken.apply() === undefined && errorsLogged.some((l) => l.includes('load failed')))
@@ -154,9 +187,9 @@ for (const m of T.css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{/g)) 
   if (head.startsWith('@') || head === 'to' || head === 'from' || /^\d+%$/.test(head)) continue
   for (const part of head.split(',')) if (part.indexOf('kbmem-') < 0) unprefixed.push(part.trim())
 }
-check('the lessons have their own « Pick by relevance » row, locked with a reason when its parents are off or the plugin is stale', /LessonsRelevantRow/.test(SOURCE) && /act: 'lessons-relevant'/.test(SOURCE) && /Pick lessons by relevance/.test(SOURCE) && /typeof les\.relevant !== 'boolean'/.test(SOURCE))
 check('every selector of the stylesheet carries the kbmem- prefix (prefixes are shared across bundles)', unprefixed.length === 0, unprefixed)
-const others = ['kybernos-plugin', 'kybernos-cloud', 'kybernos-sessions', 'kybernos-language', 'kybernos-theme', 'kybernos-models', 'kybernos-auto', 'kybernos-hub', 'kybernos-flow'].filter((d) => { try { return /kbmem-/.test(readFileSync(join(HERE, '..', d, 'client.js'), 'utf8')) } catch (e) { return false } })
+const others = ['kybernos-plugin', 'kybernos-cloud', 'kybernos-sessions', 'kybernos-language', 'kybernos-theme', 'kybernos-models', 'kybernos-auto', 'kybernos-hub', 'kybernos-flow'].filter((d) => { try { return /kbmem-/.test(readFileSync(join(HERE, '..', d, 'client.js'), 'utf8').replace(/\/\/ kb-pres:begin[\s\S]*?\/\/ kb-pres:end/g, '')) } catch (e) { return false } })
+// The one exception: the Theme's presentation block (between its `kb-pres:begin` / `kb-pres:end` lines) styles the Settings pages from outside, so it names the balisage of the page (it declares no class of this prefix).
 check('no other bundle uses the kbmem- prefix', others.length === 0, others)
 check('the page never calls a cloud URL directly: only same-origin local routes', !/https?:\/\//.test(SOURCE.replace(/\/\/.*$/gm, '').replace(/<path[^>]*>/g, '')) )
 
@@ -225,25 +258,13 @@ console.log('tidy up')
   const view = (saves, at, log) => ({ ok: true, groups: [], saves, scannedAt: at, total: 10, log: log || [] })
   check('saves add up across both sides, a missing side counts 0', T.tidySaves({ mem: view(3), les: view(2) }) === 5 && T.tidySaves({ mem: null, les: view(2) }) === 2 && T.tidySaves({ mem: null, les: null }) === 0)
   check('the banner is hidden per scan: a new scan changes the key', T.scanKey({ mem: view(1, 'A'), les: view(1, 'B') }) !== T.scanKey({ mem: view(1, 'A2'), les: view(1, 'B') }) && T.scanKey({ mem: null, les: null }) === '|')
-  check('a log line says what happened, in the side\'s own words', T.logWords('mem', { removed: 2 }) === 'Merged 3 memories into 1' && T.logWords('les', { removed: 1, kyber: 'dev-team' }) === 'Merged 2 lessons into 1 · dev-team' && T.logWords('les', { removed: 1, partial: true }) === 'Merged 2 lessons into 1 (partly)')
-  const merged = T.tidyLog({ mem: view(0, 'A', [{ id: 'm1', at: ago(10) }]), les: view(0, 'B', [{ id: 'l1', at: ago(5) }, { id: 'l2', at: ago(60) }]) })
-  check('both logs are merged newest first and tagged with their side', merged.map((l) => l.id + l.src).join(',') === 'l1les,m1mem,l2les', merged)
   check('the limits and endpoints match the hosts', T.TIDY_MAX_REMOVALS === 50 && T.TIDY_SOURCES.mem.base === '/kybernos-cloud/memory/tidy' && T.TIDY_SOURCES.les.base === '/kybernos-memory/tidy' && T.TIDY_SOURCES.les.max === 500)
   check('the host codes of a tidy-up have words', ['a_change', 'groupe_inconnu', 'garde_invalide', 'epingle_protege', 'trop_de_suppressions', 'kyber_plein', 'archive_perimee', 'deja_annule', 'aucun_scan'].every((c) => T.friendlyError(c).indexOf('Something went wrong') < 0))
   const NOW2 = Date.parse('2026-10-05T12:00:00.000Z')
   const inMin = (m) => new Date(NOW2 + m * 60000).toISOString()
-  check('ahead: now / minutes / hours / days', T.whenAhead(inMin(0), NOW2) === 'now' && T.whenAhead(inMin(30), NOW2) === 'in 30 minutes' && T.whenAhead(inMin(120), NOW2) === 'in 2 hours' && T.whenAhead(inMin(1440 * 3), NOW2) === 'in 3 days' && T.whenAhead('garbage', NOW2) === '' && T.whenAhead(inMin(-5), NOW2) === 'now')
-  check('the next run is said in words', T.nextWords({ kind: 'off' }, NOW2) === 'Not scheduled.' && /next start of DSH.*3 days/.test(T.nextWords({ kind: 'start' }, NOW2)) && T.nextWords({ kind: 'at', at: inMin(1440) }, NOW2) === 'Next: in 1 day, if DSH is running.' && /next check/.test(T.nextWords({ kind: 'now' }, NOW2)) && T.nextWords({ kind: 'count', remaining: 30 }, NOW2) === 'Next: after 30 more new items.' && /50 new items are in/.test(T.nextWords({ kind: 'count', remaining: 0 }, NOW2)) && T.nextWords({ kind: 'count', remaining: null }, NOW2) === 'Next: after 50 new items.' && T.nextWords(null, NOW2) === 'Not scheduled.')
   const vw = (extra) => ({ ok: true, groups: [], saves: 0, scannedAt: 'A', total: 5, log: [], ...extra })
   check('the settings shown are the lessons host\'s, else the memories\', else the defaults', T.tidySettingsOf({ mem: vw({ settings: { mode: 'ask', schedule: 'off', brain: false } }), les: vw({ settings: { mode: 'auto', schedule: 'daily', brain: true } }) }).schedule === 'daily' && T.tidySettingsOf({ mem: vw({ settings: { mode: 'ask', schedule: 'off', brain: false } }), les: null }).mode === 'ask' && T.tidySettingsOf({ mem: vw(), les: vw() }).mode === 'auto' && T.tidySettingsOf({ mem: null, les: null }).schedule === 'weekly')
-  check('a host that predates the settings gives the defaults, never a crash', T.tidyNextOf({ mem: vw(), les: vw() }) === null && T.tidyBrain({ mem: vw(), les: vw() }).model === '')
   const ago2 = (m) => new Date(NOW2 - m * 60000).toISOString()
-  const L1 = T.tidyLast({ mem: vw({ last: { at: ago2(5), trigger: 'manual', autoGroups: 2, autoRemoved: 3, found: 4, brainAsked: 1 } }), les: vw({ last: { at: ago2(4), trigger: 'manual', autoGroups: 1, autoRemoved: 1, found: 2, brainAsked: 0 } }) })
-  check('the last run sums the two hosts when they ran together', L1.autoGroups === 3 && L1.found === 6 && L1.brainAsked === 1 && L1.at === ago2(4), L1)
-  const L2 = T.tidyLast({ mem: vw({ last: { at: ago2(60 * 24 * 3), trigger: 'schedule', autoGroups: 9, found: 9 } }), les: vw({ last: { at: ago2(5), trigger: 'manual', autoGroups: 1, found: 2 } }) })
-  check('…but not a run of days ago', L2.autoGroups === 1 && L2.trigger === 'manual', L2)
-  check('no run yet', T.tidyLast({ mem: null, les: vw() }) === null && T.lastWords(null, NOW2) === 'Not run yet.')
-  check('the last run in words: merged by itself, left for you, scheduled', T.lastWords({ at: ago2(120), trigger: 'schedule', autoGroups: 3, found: 5 }, NOW2) === 'Last run 2 hours ago (scheduled): merged 3 groups by itself, 2 left for you.' && T.lastWords({ at: ago2(1), trigger: 'manual', autoGroups: 0, found: 0 }, NOW2) === 'Last run 1 minute ago: nothing merged by itself.' && T.lastWords({ at: ago2(1), trigger: 'manual', autoGroups: 1, found: 1 }, NOW2) === 'Last run 1 minute ago: merged 1 group by itself.')
   const B = T.tidyBrain({ mem: vw({ brain: { model: 'zai/GLM', llm: true }, unclear: 2 }), les: vw({ brain: { model: 'zai/GLM', llm: false }, unclear: 3 }) })
   check('the Study model: its name, whether a model service exists anywhere, the unclear pairs of both sides', B.model === 'zai/GLM' && B.llm === true && B.unclear === 5 && T.tidyBrain({ mem: null, les: vw({ brain: { model: '', llm: false } }) }).llm === false)
   const Ba = T.tidyBrain({ mem: null, les: vw({ brain: { model: 'kybernos/auto', llm: true, auto: true, none: false } }) })
@@ -252,74 +273,23 @@ console.log('tidy up')
   check('« None » is told apart from « nothing found yet »', Bn.none === true && Bn.model === '' && T.tidyBrain({ mem: null, les: vw({ brain: { model: '', llm: true, auto: false, none: false } }) }).none === false, Bn)
   const Bo = T.tidyBrain({ mem: vw({ brain: { model: 'a/b', llm: true } }), les: null })
   check('a host that says nothing of automatic or none (an older build) gives neither', Bo.auto === false && Bo.none === false && Bo.model === 'a/b', Bo)
-  const W1 = T.studyWords({ model: 'kybernos/auto', auto: true, none: false, llm: true })
-  check('automatic: the row says which model it uses and that it was picked for you; nothing blocks it', W1.why === null && /kybernos\/auto/.test(W1.using) && /automatically/.test(W1.using), W1)
-  const W2 = T.studyWords({ model: 'zai/GLM', auto: false, none: false, llm: true })
-  check('your own pick: named, not called automatic', W2.why === null && /zai\/GLM/.test(W2.using) && !/automatically/.test(W2.using), W2)
-  const W3 = T.studyWords({ model: '', auto: false, none: true, llm: true })
-  check('None says it is set to None, not that nothing is set', W3.using === null && /set to None/.test(W3.why) && !/pick one/.test(W3.why), W3)
-  const W4 = T.studyWords({ model: '', auto: false, none: false, llm: true })
-  check('nothing found yet: it says it picks one by itself once a model is connected, not « pick one in Kybernos Settings »', W4.using === null && /by itself/.test(W4.why) && !/No Study model is set/.test(W4.why), W4)
-  const W5 = T.studyWords({ model: 'a/b', auto: true, none: false, llm: false })
-  check('a model with no model service: the service is the problem', /model service is not available/.test(W5.why), W5)
-  check('the words are English, whatever the state', [W1, W2, W3, W4, W5].every((w) => !/[éèêàùç]|\b(le|la|les|des|une?)\b/i.test(String(w.using) + String(w.why))))
   check('the scan error « no Study model » no longer tells to pick one in the Settings', !/pick one in Kybernos Settings/.test(T.friendlyError('pas_de_modele_detude')) && /None|connect/.test(T.friendlyError('pas_de_modele_detude')), T.friendlyError('pas_de_modele_detude'))
   const LOGS = [{ id: 'a', at: ago2(3), by: 'auto', canUndo: true }, { id: 'b', at: ago2(3), by: 'auto', canUndo: false }, { id: 'c', at: ago2(60 * 24), by: 'auto', canUndo: true }, { id: 'd', at: ago2(3), by: 'you', canUndo: true }]
   const ranView = (trigger, autoGroups) => ({ mem: vw({ last: { at: ago2(3), trigger, autoGroups, autoRemoved: 5, found: 5 }, log: LOGS }), les: null })
-  const RN = T.tidyRanNotice(ranView('schedule', 2), '')
-  check('a scheduled run that merged something is announced, with the automatic runs it can undo', RN !== null && RN.groups === 2 && RN.removed === 5 && RN.entries.map((e) => e.id).join() === 'a', RN)
-  check('…once: not again after it was seen', T.tidyRanNotice(ranView('schedule', 2), ago2(3)) === null)
-  check('…not when the user pressed the button (they saw the result), nor when nothing was merged, nor with no run', T.tidyRanNotice(ranView('manual', 2), '') === null && T.tidyRanNotice(ranView('schedule', 0), '') === null && T.tidyRanNotice({ mem: null, les: null }, '') === null)
   // ── team lessons
   const nowT = Date.parse('2026-10-05T12:00:00.000Z')
-  check('team: why Team is not offered when the host did not say (loading, signed out, a host that predates the routes, a network error)',
-    T.teamReasonOf({ loaded: false, ok: false, connected: false }) === 'chargement'
-    && T.teamReasonOf({ loaded: true, ok: false, connected: false, error: 'non connecte' }) === 'non_connecte'
-    && T.teamReasonOf({ loaded: true, ok: false, connected: false, error: 'indisponible' }) === 'hote_ancien'
-    && T.teamLockedWords('hote_ancien')[0] === 'Restart DSH'
-    && T.teamReasonOf({ loaded: true, ok: false, connected: false, error: 'reseau' }) === 'indisponible'
-    && T.teamReasonOf({ loaded: true, ok: false, connected: false, error: 'refus_500' }) === 'indisponible'
-    && T.teamReasonOf({ loaded: true, ok: true, team: { available: false, reason: 'offre_requise' } }) === 'offre_requise'
-    && T.teamReasonOf({ loaded: true, ok: true, team: { available: true, reason: null } }) === 'indisponible'
-    && T.teamReasonOf(undefined) === 'indisponible')
-  check('team: why the Team scope is locked, in words (plan, workspace, sign-in, unknown)', T.teamLockedWords('offre_requise')[0] === 'Team plan' && /Team workspace/.test(T.teamLockedWords('offre_requise')[1]) && T.teamLockedWords('aucun_espace')[0] === 'No team workspace' && T.teamLockedWords('non_connecte')[0] === 'Sign in' && T.teamLockedWords('???')[0] === 'Unavailable')
   check('team: owners and admins are the ones who decide', T.isTeamAdmin('owner') && T.isTeamAdmin('admin') && !T.isTeamAdmin('member') && !T.isTeamAdmin(null) && !T.isTeamAdmin(undefined))
   check('team: minutes since a date, never NaN', T.minutesSince('2026-10-05T11:00:00.000Z', nowT) === 60 && T.minutesSince('2026-10-05T12:30:00.000Z', nowT) === 0 && T.minutesSince('garbage', nowT) === null && T.minutesSince(null, nowT) === null)
   check('team: the status chip says what the proposer sees', JSON.stringify(T.teamStatusChip({ status: 'proposed' })) === '["Waiting for review","warn"]' && T.teamStatusChip({ status: 'approved' })[1] === 'ok' && T.teamStatusChip({ status: 'rejected' })[0] === 'Rejected' && T.teamStatusChip({ status: 'retired' })[0] === 'Retired' && T.teamStatusChip({ status: 'weird' })[0] === 'weird')
   const TL = (o) => Object.assign({ id: 1, text: 'expo start with CI=1 serves a frozen bundle', tags: ['expo'], kyber: 'app-mobile', status: 'approved', proposedName: 'Sara M.', reviewedName: 'Alex R.', createdAt: '2026-10-03T12:00:00.000Z', updatedAt: '2026-10-05T10:00:00.000Z' }, o)
   check('team: the search needs every word, anywhere (text, tag, kyber, names), case-insensitive', T.teamMatches(TL(), 'FROZEN bundle') && T.teamMatches(TL(), 'expo app-mobile') && T.teamMatches(TL(), 'sara alex') && T.teamMatches(TL(), '') && T.teamMatches(TL(), null) && !T.teamMatches(TL(), 'frozen nonsense') && T.teamMatches(TL({ kyber: null }), 'general') && T.teamMatches(TL({ kyber: null, proposedName: null, reviewedName: null }), 'frozen'))
   check('team: the line under a lesson (who proposed, who approved, how long ago)', T.teamMeta(TL(), nowT).join(' | ') === 'Proposed by Sara M. | approved by Alex R. | 2h ago' && T.teamMeta(TL({ status: 'rejected' }), nowT).includes('rejected by Alex R.') && T.teamMeta(TL({ status: 'proposed', reviewedName: null, updatedAt: '2026-10-05T11:59:50.000Z' }), nowT).join(' | ') === 'Proposed by Sara M. | just now' && T.teamMeta(TL({ proposedName: null, reviewedName: null, status: 'proposed', updatedAt: null, createdAt: null }), nowT).length === 0)
-  check('team: the page has its pieces (tab, sheets, review queue, options, status hook) and talks only to the plugin\'s own routes', /const TeamPane/.test(SOURCE) && /const TeamReviewView/.test(SOURCE) && /const ProposeSheet/.test(SOURCE) && /const TeamOpenSheet/.test(SOURCE) && /const TeamRows/.test(SOURCE) && /const useTeam/.test(SOURCE) && ['/kybernos-cloud/team/status', '/kybernos-cloud/team/lessons/add', '/kybernos-cloud/team/lessons/review', "'/kybernos-cloud/team/lessons/' + path"].every((u) => SOURCE.indexOf(u) >= 0) && /act\('retire'/.test(SOURCE) && /act\('delete'/.test(SOURCE) && !/v1\/workspaces/.test(SOURCE))
+  check('team: the page has its pieces (tab, sheets, review queue, status hook) and talks only to the plugin\'s own routes', /const TeamPane/.test(SOURCE) && /const TeamReviewView/.test(SOURCE) && /const ProposeSheet/.test(SOURCE) && /const TeamOpenSheet/.test(SOURCE) && /const useTeam/.test(SOURCE) && ['/kybernos-cloud/team/status', '/kybernos-cloud/team/lessons/add', '/kybernos-cloud/team/lessons/review', "'/kybernos-cloud/team/lessons/' + path"].every((u) => SOURCE.indexOf(u) >= 0) && /act\('retire'/.test(SOURCE) && /act\('delete'/.test(SOURCE) && !/v1\/workspaces/.test(SOURCE))
   check('team: the routes the page calls exist on the host', (() => { const host = readFileSync(join(HERE, '..', 'kybernos-cloud', 'index.js'), 'utf8'); return ['/team/status', '/team/lessons', '/team/lessons/add', '/team/lessons/review', '/team/lessons/retire', '/team/lessons/delete'].every((r) => host.indexOf("path: '/kybernos-cloud" + r + "'") >= 0) })())
   check('team: the host codes have words', ['doublon', 'equipe_pleine', 'trop_de_propositions', 'admin_requis', 'deja_decidee', 'non_approuvee', 'espace_introuvable', 'offre_requise', 'aucun_espace', 'partage_desactive', 'texte_invalide', 'requete_invalide'].every((c) => T.friendlyError(c).indexOf('Something went wrong') < 0))
-  // The map
-  const MN = (extra) => Object.assign({ id: 1, kind: 'fact', content: 'Les préférences de l’utilisateur : réponses courtes', x: 0.5, y: 0.5, cl: 0 }, extra)
-  check('map: « light up what matches » needs every word, ignoring case and accents, and nothing typed matches everything', T.mapMatches(MN(), 'REPONSES courtes') && T.mapMatches(MN(), 'preferences utilisateur') && !T.mapMatches(MN(), 'reponses longues') && T.mapMatches(MN(), '') && T.mapMatches(MN(), '   ') && !T.mapMatches(MN({ content: '' }), 'a'))
-  const fit = T.MAP_FIT
-  const z2 = T.mapZoom(fit, 2)
-  check('map: zooming in halves the view around its centre, keeping the drawing\'s proportions', z2[2] === 500 && z2[3] === 270 && z2[0] === 250 && z2[1] === 135)
-  check('map: zooming around the pointer keeps what is under it in place', (() => { const left = T.mapZoom(fit, 2, 0, 0); const right = T.mapZoom(fit, 2, 1, 1); return left[0] === 0 && left[1] === 0 && right[0] === 500 && right[1] === 270 })())
-  check('map: zooming out of the whole map stays on the whole map; zooming in stops at a readable size', T.mapZoom(fit, 0.5).join() === fit.join() && T.mapZoom(T.mapZoom(fit, 100), 100)[2] === 150 && Math.abs(T.mapZoom(fit, 100)[3] - 150 * 0.54) < 1e-9)
-  check('map: panning never leaves the drawing', T.mapPan(z2, -9999, -9999).slice(0, 2).join() === '0,0' && T.mapPan(z2, 9999, 9999).slice(0, 2).join() === '500,270' && T.mapPan(z2, 10, 20).slice(0, 2).join() === '260,155' && T.mapClamp([900, 500, 500, 270]).slice(0, 2).join() === '500,270')
-  check('map: the names of the clusters go above their highest dot, never over each other, a dot, the search field, the legend or the zoom buttons; no room means no name', (() => {
-    const A = [MN({ x: 0.3, y: 0.5, cl: 0 }), MN({ x: 0.5, y: 0.5, cl: 0 }), MN({ x: 0.52, y: 0.52, cl: 1 }), MN({ x: 0.5, y: 0.95, cl: 2 }), MN({ x: 0.05, y: 0.05, cl: 3 })]
-    const C = [{ id: 0, label: 'database · files', size: 2 }, { id: 1, label: 'expo · simulator', size: 1 }, { id: 2, label: 'stripe', size: 1 }, { id: 3, label: 'top left', size: 1 }, { id: 4, label: 'ghost', size: 0 }, { id: 5, label: '', size: 1 }]
-    const at = T.mapLabelSpots(A, C)
-    const box = (id) => { const w = C[id].label.length * 8.4 + 10; return [at[id].x - w / 2, at[id].y - 12, at[id].x + w / 2, at[id].y + 4] }
-    const apart = (a, b) => a[2] <= b[0] || b[2] <= a[0] || a[3] <= b[1] || b[3] <= a[1]
-    const placed = [0, 1, 2, 3].filter((i) => at[i] !== undefined)
-    const pairs = placed.every((i) => placed.every((j) => i === j || apart(box(i), box(j))))
-    const free = placed.every((i) => apart(box(i), [0, 0, 290, 58]) && apart(box(i), [0, 490, 400, 540]) && apart(box(i), [930, 390, 1000, 540]) && box(i)[0] >= 6 && box(i)[2] <= 994 && box(i)[1] >= 4 && box(i)[3] <= 536)
-    const clear = placed.every((i) => A.every((n) => { const d = [n.x * 1000 - 9, n.y * 540 - 9, n.x * 1000 + 9, n.y * 540 + 9]; return apart(box(i), d) }))
-    return at[0] !== undefined && Math.abs(at[0].y - (0.5 * 540 - 16)) < 1e-9 && pairs && free && clear && at[4] === undefined && at[5] === undefined && at[2] !== undefined && T.mapLabelSpots([], C)[0] === undefined
-  })())
-  check('map: what the map says when it cannot be drawn (switch off, plan, credits, signed out, anything else)', T.mapWords('sens_desactive')[0] === 'The map needs Search by meaning' && /Kybernos embedding model/.test(T.mapWords('sens_desactive')[1]) && T.mapWords('offre_requise', 'solo')[0] === 'The map needs the Solo plan' && T.mapWords('offre_requise')[0] === 'The map is not included in your plan' && T.mapWords('credits_epuises')[0] === 'You are out of credits' && T.mapWords('non connecte')[0] === 'Not connected' && T.mapWords('embedding_invalide')[0] === 'The map could not be drawn' && T.mapWords('indisponible')[0] === 'The map needs a restart' && T.mapWords('reconnexion_requise')[1] === 'Your Kybernos session has expired: reconnect.' && T.mapWords('quelque_chose_d_inconnu')[0] === 'The map could not be drawn')
-  check('map: the page has its pieces and talks only to the plugin\'s own route, which the host serves (GET, same-origin guarded)', /const MapPane/.test(SOURCE) && /'\/kybernos-cloud\/memory\/meaning-map'/.test(SOURCE) && (() => { const host = readFileSync(join(HERE, '..', 'kybernos-cloud', 'index.js'), 'utf8'); return /path: '\/kybernos-cloud\/memory\/meaning-map', method: 'GET', guarded: true/.test(host) })() && !/fetch\('https?:/.test(SOURCE))
-  check('map: the choice is kept only once a map was really drawn, and the lessons never offer it', /onReady: \(\) => writeLayout\('map'\)/.test(SOURCE) && /if \(v === 'list'\) writeLayout\('list'\)/.test(SOURCE) && /const mapOn = mems && layout === 'map'/.test(SOURCE) && /disabled: !mems/.test(SOURCE))
-  check('who merged: automatic or you', T.logWho({ by: 'auto' }) === 'Automatic · 80 %+' && T.logWho({ by: 'you' }) === 'You' && T.logWho({}) === 'You')
+  check('the map is gone: nothing draws it and the page never calls its route', !/MapPane|meaning-map|memory\/map/.test(SOURCE))
   const tidyHost = readFileSync(join(HERE, '..', 'kybernos-cloud', 'tidy.mjs'), 'utf8')
   const listOf = (name) => JSON.parse((new RegExp('export const ' + name + " = (\\[[^\\]]*\\])").exec(tidyHost)[1]).replace(/'/g, '"'))
-  check('the modes and schedules offered are exactly the ones the hosts accept', JSON.stringify(T.TIDY_MODES.map((x) => x[0])) === JSON.stringify(listOf('TIDY_MODES')) && JSON.stringify(T.TIDY_SCHEDULES.map((x) => x[0])) === JSON.stringify(listOf('TIDY_SCHEDULES')))
   check('the host codes of the Study model have words', ['deja_en_cours', 'pas_de_modele_detude', 'llm_indisponible', 'delai_depasse', 'modele_en_erreur', 'valeur_invalide'].every((c) => T.friendlyError(c).indexOf('Something went wrong') < 0))
   check('the limits agree with the host sources', /const TIDY_MAX_REMOVALS = 50/.test(readFileSync(join(HERE, '..', 'kybernos-cloud', 'index.js'), 'utf8')) && /const TIDY_MAX_REMOVALS = 50/.test(readFileSync(join(HERE, 'index.js'), 'utf8')) && /MEMORY_MAX_CONTENT = 2000/.test(readFileSync(join(HERE, '..', 'kybernos-cloud', 'index.js'), 'utf8')) && /LESSON_MAX_CHARS = 500/.test(readFileSync(join(HERE, 'lessons-store.mjs'), 'utf8')))
 }
@@ -336,46 +306,9 @@ console.log('looks after itself')
   const cfg = (extra) => Object.assign({ mode: 'auto', schedule: 'weekly', brain: false }, extra)
   const view = (settings, last) => ({ ok: true, groups: [], saves: 0, scannedAt: null, total: 0, log: [], settings, last: last === undefined ? null : last })
   const tidyOf = (settings, last) => ({ loaded: true, mem: null, les: view(settings, last) })
-  const S = (c, s, t) => T.selfStatus({ status: c, settings: s, tidy: t, now })
 
-  check('while anything is still loading, the line is empty and never says Off', ['status', 'settings', 'tidy'].every((k) => {
-    const all = { status: connected(true), settings: sw(MEM, LES), tidy: tidyOf(cfg()) }
-    all[k] = Object.assign({}, all[k], { loaded: false })
-    const r = T.selfStatus(Object.assign(all, { now }))
-    return r.tone === 'wait' && r.text === ''
-  }))
-  const happy = S(connected(true), sw(MEM, LES), tidyOf(cfg(), { at: ago(3 * 1440), trigger: 'schedule', autoGroups: 0, found: 0 }))
-  check('the defaults working: one line, what is on and when it last tidied', happy.tone === 'ok' && happy.text === 'Memories and lessons are on · Last tidied 3 days ago' && happy.connect === false, happy)
-  check('never tidied yet: it says it tidies itself, and how often', S(connected(true), sw(MEM, LES), tidyOf(cfg())).text === 'Memories and lessons are on · Tidies itself every week'
-    && S(connected(true), sw(MEM, LES), tidyOf(cfg({ schedule: 'daily' }))).text.endsWith('Tidies itself every day')
-    && S(connected(true), sw(MEM, LES), tidyOf(cfg({ schedule: 'start' }))).text.endsWith('Tidies itself when DSH starts')
-    && S(connected(true), sw(MEM, LES), tidyOf(cfg({ schedule: 'n50' }))).text.endsWith('Tidies itself every 50 new items'))
-  check('automatic tidy-up switched off by the person: the line says so, still not « Off »', S(connected(true), sw(MEM, LES), tidyOf(cfg({ schedule: 'off' }))).text === 'Memories and lessons are on · Automatic tidy-up is off')
 
-  // The audit's state (N-04): no account, nothing else touched. Lessons work; the one step is the account.
-  const bare = S(connected(false), sw(MEM, LES), tidyOf(cfg()))
-  check('no account: lessons still work and the line says so, the one step is connecting, and the chip is never Off', bare.tone === 'step' && bare.connect === true
-    && bare.text === 'Lessons are on and stay on this computer · Memories need your account · Tidies itself every week' && !/\bOff\b/i.test(bare.text), bare)
-  check('no account, the cloud plugin silent (memory null): lessons on is still the line', S(connected(false), sw(null, LES), tidyOf(cfg())).text.startsWith('Lessons are on and stay on this computer'))
 
-  check('one half switched off by the person: it is named, the other half is still on', S(connected(true), sw(MEM, Object.assign({}, LES, { lessons: false })), tidyOf(cfg())).text === 'Memories are on · Lessons are off · Tidies itself every week'
-    && S(connected(true), sw(Object.assign({}, MEM, { memories: false }), LES), tidyOf(cfg())).text === 'Lessons are on · Memories are off · Tidies itself every week')
-  check('kept but not sent to the model is said, per half', /Saved memories are not sent to the model/.test(S(connected(true), sw(Object.assign({}, MEM, { context: false }), LES), tidyOf(cfg())).text)
-    && /Lessons are not sent to the model/.test(S(connected(true), sw(MEM, Object.assign({}, LES, { context: false })), tidyOf(cfg())).text))
-  const dead = S(connected(true), sw(Object.assign({}, MEM, { memories: false }), Object.assign({}, LES, { lessons: false })), tidyOf(cfg()))
-  check('everything switched off by the person is the only « off » state', dead.tone === 'off' && dead.text === 'Memory is off' && dead.connect === false, dead)
-  check('…and with no account as well, the step is still there', S(connected(false), sw(MEM, Object.assign({}, LES, { lessons: false })), tidyOf(cfg())).connect === true)
-  check('hosts that say nothing about the tidy-up: no tidy part, no crash', S(connected(true), sw(MEM, LES), { loaded: true, mem: null, les: null }).text === 'Memories and lessons are on')
-  check('garbage in, a line out (never throws)', (() => { try { return typeof T.selfStatus({}).text === 'string' && typeof T.selfStatus(null).text === 'string' && typeof T.selfStatus({ status: connected(true), settings: sw(MEM, LES), tidy: { loaded: true, mem: 5, les: { last: 'x' } }, now }).text === 'string' } catch (e) { return false } })())
-  check('the chip is only « Off » when nothing works, for every combination of the switches', (() => {
-    for (const c of [true, false]) for (const m of [true, false]) for (const l of [true, false]) {
-      const r = S(connected(c), sw(Object.assign({}, MEM, { memories: m }), Object.assign({}, LES, { lessons: l })), tidyOf(cfg()))
-      const works = (c && m) || l
-      if (works && (r.tone === 'off' || /\bOff\b/.test(r.text))) return false
-      if (!works && r.tone !== 'off') return false
-    }
-    return true
-  })())
 
   // Connecting is the host page's own event (the Models page uses it too): never a hard failure when the card is not mounted.
   {
@@ -391,50 +324,23 @@ console.log('looks after itself')
     check('« Connect your account » opens the cloud card through the shared window event, and never throws', sent.join() === 'kybernos-cloud:open' && threw === false, sent)
   }
 
-  // The cap (N-05): a team nearing 50 lessons is tidied by itself; the page says why and what happens at 50.
-  const K = (id, count) => ({ id, count })
-  check('the cap and the near-cap line agree with the host store', T.LESSONS_CAP === 50 && T.LESSONS_NEAR === 40 && /LESSONS_MAX_COUNT = 50/.test(readFileSync(join(HERE, 'lessons-store.mjs'), 'utf8')) && /LESSONS_NEAR_COUNT = 40/.test(readFileSync(join(HERE, 'lessons-store.mjs'), 'utf8')))
-  check('no note while every agent team is under 40 lessons (39 is not near)', T.capNote([K('default', 12), K('dev-team', 39)], cfg()) === null && T.capNote([], cfg()) === null && T.capNote(null, cfg()) === null)
-  check('40 is near: the fullest team is named with its count, and what happens by itself', T.capNote([K('default', 12), K('dev-team', 40)], cfg()) === 'dev-team holds 40 of 50 lessons. Close matches are merged by themselves; when it is full, the least useful lesson goes to the archive, never deleted.')
-  check('two teams near: the fullest first, the other one counted', /^dev-team holds 47 of 50 lessons \(1 other agent team is close\)\./.test(T.capNote([K('default', 41), K('dev-team', 47)], cfg())) && /\(2 other agent teams are close\)/.test(T.capNote([K('a', 41), K('b', 47), K('c', 44)], cfg())))
-  check('a full team says it is full', /^default holds 50 of 50 lessons/.test(T.capNote([K('default', 50)], cfg())) && /when it is full/.test(T.capNote([K('default', 50)], cfg())))
-  check('« Ask me first »: the close matches wait for the person; automatic tidy-up off: the note says where to do it', /Close matches wait for your review\./.test(T.capNote([K('default', 44)], cfg({ mode: 'ask' }))) && /Automatic tidy-up is off: use Clean up now in Customize\./.test(T.capNote([K('default', 44)], cfg({ schedule: 'off' }))))
-  const capView = (trigger, autoGroups) => ({ mem: null, les: view(cfg(), { at: ago(3), trigger, autoGroups, autoRemoved: 3, found: 2 }) })
-  const capLog = [{ id: 'a', at: ago(3), by: 'auto', canUndo: true, src: 'les' }]
-  const capRan = (trigger) => { const v = capView(trigger, 2); v.les.log = capLog; return T.tidyRanNotice(v, '') }
-  check('a run started because a team was nearly full is announced like a scheduled one, with its Undo', capRan('cap') !== null && capRan('cap').groups === 2 && capRan('cap').entries.length === 1 && capRan('manual') === null)
-  check('the last run in words names the reason', T.lastWords({ at: ago(120), trigger: 'cap', autoGroups: 1, found: 1 }, now) === 'Last run 2 hours ago (an agent team was nearly full): merged 1 group by itself.')
 
   // The stylesheet (A3-21): at a phone width DSH's mobile layer grows every button to a finger's height. A pill with a fixed height
   // then lets its buttons run out of it onto the next row. The pills grow with their buttons, the search field wraps its modes.
   const rule = (selector) => { const m = new RegExp('(?:^|\\})\\s*' + selector.replace(/[.\[\]]/g, '\\$&') + '\\s*\\{([^}]*)\\}', 'm').exec(T.css); return m === null ? null : m[1] }
-  const seg = rule('.kbmem-seg'), segSm = rule('.kbmem-seg.sm'), field = rule('.kbmem-field'), modes = rule('.kbmem-modes')
+  const seg = rule('.kbmem-seg'), segSm = rule('.kbmem-seg.sm'), field = rule('.kbmem-field')
   check('the segmented pills have a minimum height, never a fixed one', seg !== null && /min-height:38px/.test(seg) && !/(^|;)height:/.test(seg) && segSm !== null && /min-height:32px/.test(segSm) && !/(^|;)height:/.test(segSm), { seg, segSm })
-  check('the search field has a minimum height, never a fixed one, and its modes wrap under the input instead of over the next control', field !== null && /min-height:36px/.test(field) && !/(^|;)height:/.test(field) && /flex-wrap:wrap/.test(field) && modes !== null, { field })
+  check('the team search field has a minimum height, never a fixed one, and wraps its input instead of squeezing it', field !== null && /min-height:36px/.test(field) && !/(^|;)height:/.test(field) && /flex-wrap:wrap/.test(field), field)
   check('the search field asks for room (a flex basis) so the toolbar wraps instead of squeezing it', /flex:1 1 \d+px/.test(field || ''), field)
 
-  // A status every row shares carries nothing (UX audit 2, pass-1 leftover): the « Sent » chip is
-  // kept for the rows that differ from the majority, and goes away when the list says one truth.
-  const rows = (flags) => flags.map((sent) => ({ sent }))
-  check('a list where every row is sent shows no « Sent » chip at all', T.sentMarks(rows([true, true, true, true])).every((x) => x === false) && T.sentMarks(rows([false, false])).every((x) => x === false))
-  check('a mixed list marks the minority only', JSON.stringify(T.sentMarks(rows([true, true, true, false, false, false, false]))) === JSON.stringify([true, true, true, false, false, false, false]) && JSON.stringify(T.sentMarks(rows([false, false, true]))) === JSON.stringify([false, false, true]))
-  check('an even split marks nothing (either side would be noise)', T.sentMarks(rows([true, false, true, false])).every((x) => x === false))
-  check('an empty list is safe', T.sentMarks([]).length === 0 && T.sentMarks(rows([undefined, null])).every((x) => x === false))
 }
 
-// ── skills made from experience: the status line, the grouping hint, « Make a skill »
+// ── « Make a skill » (a lesson page hands the lesson to the Skills page)
 console.log('skills from lessons')
 {
   const now = Date.parse('2026-10-21T12:00:00Z')
   const base = { status: { loaded: true, connected: true }, settings: { loaded: true, memory: { memories: true, context: true }, lessons: { lessons: true, context: true } }, tidy: { loaded: true, mem: null, les: null }, now }
-  check('the status line counts the skills made from experience, once there is one', T.selfStatus({ ...base, skills: 3 }).text.includes('3 skills made from experience') && T.selfStatus({ ...base, skills: 1 }).text.includes('1 skill made from experience'))
-  check('and says nothing about them before that', !/made from experience/.test(T.selfStatus({ ...base, skills: 0 }).text) && !/made from experience/.test(T.selfStatus({ ...base }).text) && !/made from experience/.test(T.selfStatus({ ...base, skills: null }).text))
   const L = (id, tags) => ({ id, text: 'Lesson ' + id, tags, kyber: 'default' })
-  const c = T.lessonCluster([L(1, ['i18n', 'x']), L(2, ['i18n']), L(3, ['sandbox']), L(4, ['i18n', 'default']), L(5, ['x'])])
-  check('three lessons that share a tag make a group, the most shared tag first', c !== null && c.tag === 'i18n' && c.items.map((l) => l.id).join() === '1,2,4', c)
-  check('two are not a group, and the « default » tag is never one', T.lessonCluster([L(1, ['a']), L(2, ['a'])]) === null && T.lessonCluster([L(1, ['default']), L(2, ['default']), L(3, ['default'])]) === null)
-  check('never more than eight lessons go into one skill', T.lessonCluster(Array.from({ length: 12 }, (_, i) => L(i, ['t']))).items.length === 8)
-  check('garbage in, nothing out (never throws)', T.lessonCluster(null) === null && T.lessonCluster([null, {}, { tags: 'x' }]) === null)
   const sent = []
   fetchImpl = async (url, init) => { sent.push({ url, init }); return { status: 200, json: async () => ({ ok: true, proposal: { name: 'i18n-checklist' } }) } }
   let refreshed = 0
@@ -446,35 +352,94 @@ console.log('skills from lessons')
   check('a host without the Skills page answers « unavailable », in words', (await T.suggestSkill([L(1, ['i18n'])])).error === 'indisponible' && T.friendlyError('indisponible').length > 10)
   check('the refusals of the Skills page have a sentence in both languages', ['already_proposed', 'too_many_pending', 'no_free_name', 'no_lessons'].every((k) => T.friendlyError(k) !== k && T.friendlyError(k).length > 10))
   check('the lesson sheet carries the button, next to « Propose to team »', SOURCE.includes("'data-act': 'make-skill'") && SOURCE.indexOf("'data-act': 'make-skill'") > SOURCE.indexOf("'data-act': 'propose-team'"))
-  check('and the page carries the grouping hint and the link to Skills', SOURCE.includes("'data-note': 'cluster'") && SOURCE.includes("'data-act': 'cluster-skill'") && SOURCE.includes("'data-act': 'open-skills'"))
   delete globalThis.window.__KB_LEARNED__
 }
 
 // ── Kaby's suggested memories (the ledger of the core plugin, kind « memory »)
 console.log('suggested memories')
 {
-  check('the page asks the ledger for the memory kind and draws a dashed block above the list, after the notes', SOURCE.includes("'/kybernos/suggestions?kind=memory'") && SOURCE.includes("'data-sug': 'block'") && SOURCE.indexOf('h(MemSuggest,') > SOURCE.indexOf('teamMode ? null : notes'))
-  check('the block shows on the Memories tab only, never in team mode', SOURCE.includes('teamMode || !mems ? null : h(MemSuggest,'))
+  check('the page asks the ledger for the memory kind and draws a dashed block above the list, after the notes', SOURCE.includes("'/kybernos/suggestions?kind=memory'") && SOURCE.includes("'data-sug': 'block'") && SOURCE.indexOf('h(MemSuggest,') > SOURCE.indexOf('const ManageView') && SOURCE.indexOf('h(MemSuggest,') < SOURCE.indexOf("className: 'kbmem-nsearch'"))
+  check('the block shows on « Your memory » only, never on the Team tab', /tab === 'team' && teamAvail \? h\(TeamPane[^\n]*: mine/.test(SOURCE) && /const mine = \[[\s\S]*?h\(MemSuggest,/.test(SOURCE))
   check('Add keeps the text through the ordinary add route (a fact, not pinned, taught), then tells the ledger and the list', SOURCE.includes("api('/kybernos-cloud/memory/add', { content: it.text, kind: 'fact', pinned: false, source: 'taught' })") && SOURCE.includes("await resolve(it.id); drop(it.id); onChanged()"))
   check('without an account Add and Edit wait (disabled) and the block says why, in both languages', SOURCE.includes("disabled: busy !== '' || connected !== true") && SOURCE.includes("'data-sug': 'account'") && SOURCE.includes('Connect your account to keep them') && SOURCE.includes('Connecte ton compte pour les garder'))
   check('Discard asks nothing of the account: it only resolves the suggestion', /discard = async \(it\) => \{ drop\(it\.id\); await resolve\(it\.id\) \}/.test(SOURCE))
-  check('Edit opens the usual sheet with the text, and the ledger is told only once the memory is saved', SOURCE.includes("onSaved: done }) }), teamMode") && SOURCE.includes("typeof sheet.onSaved === 'function'"))
-}
-
-// T2-30: Customize used to say « The map is not built yet » next to a Map tab that exists
-console.log('Customize')
-{
-  check('the plan note of Customize no longer claims the map is not built (the Map is a tab of the page), in either language', !/map is not built|carte n’est pas encore construite/i.test(SOURCE) && SOURCE.includes("kt('Ton offre : ', 'Your plan: '), h('b', null, planLabelOf(status.raw)), '.'"))
-  check('and the Map the note used to deny is really there: the MapPane and its View switch', SOURCE.includes('const MapPane = (') && SOURCE.includes("{ v: 'map', l: [Ico('map')"))
+  check('Edit puts the text in the box of Manage, and the ledger is told only once the note is added', SOURCE.includes('onEdit: (it, done) => { setSay(it.text); pending.current = done;') && SOURCE.includes('if (pending.current !== null) { pending.current(); pending.current = null }'))
 }
 
 console.log('the page title has no style of its own')
 {
-  check('the Memory & Lessons head is one pageHead: the h1, then the Suite\'s « ? » (the Customize button stays on the right of the row)', /pageHead\(\{ id: 'kybernos-memory', title: pageTitle\(\), as: 'h1', className: 'kbmem-h1' \}\), h\('span', \{ className: 'kbmem-grow' \}\),\s*\n\s*h\('button', \{ type: 'button', className: 'kbmem-btn ghost', 'data-act': 'customize'/.test(SOURCE))
-  check('its three sub-views (proposals, tidy-up, Customize) take the same title through pageHead, with no button', ['Propositions de leçons d’équipe', 'Suggestions de rangement', 'Personnaliser'].every((fr) => new RegExp("pageHead\\(\\{ title: kt\\('" + fr + "'").test(SOURCE)))
-  check('no heading of the page is built by hand any more (every kbmem-h1 goes through pageHead)', (SOURCE.match(/className: 'kbmem-h1'/g) || []).length === 4 && !/h\('h1', \{ className: 'kbmem-h1'/.test(SOURCE))
+  check('the Memory & Lessons head is one pageHead: the h1, then the Suite\'s « ? »', /pageHead\(\{ id: 'kybernos-memory', title: pageTitle\(\), as: 'h1', className: 'kbmem-h1' \}\)/.test(SOURCE))
+  check('its sub-views with a head of their own (proposals, tidy-up) take the same title through pageHead', ['Propositions de leçons d’équipe', 'Suggestions de rangement'].every((fr) => new RegExp("pageHead\\(\\{ title: kt\\('" + fr + "'").test(SOURCE)))
+  check('no heading of the page is built by hand any more (every kbmem-h1 goes through pageHead)', (SOURCE.match(/className: 'kbmem-h1'/g) || []).length === 3 && !/h\('h1', \{ className: 'kbmem-h1'/.test(SOURCE))
   check('no rule of the bundle sizes or weighs the title (.kbmem-h1): the Settings frame sets it', !/\.kbmem-h1\s*[{,]/.test(SOURCE))
   check('the old Help call beside the title is gone', !/id: 'kybernos-memory' \}\) : null/.test(SOURCE))
+}
+
+// ── The new Memory page (slice 2): its pure pieces
+console.log('the new page: names, import, switches, recently removed, export')
+{
+  check('a note\'s name is its first sentence, capitalised, with no final full stop; the rest is what follows', T.noteName('you live in Paris.') === 'You live in Paris' && T.noteName('You want to see a mockup before anything is built.') === 'You want to see a mockup before anything is built' && T.noteName('Time zone: Europe/Paris!') === 'Time zone: Europe/Paris' && T.noteName('') === '' && T.noteName('   ') === '')
+  const two = T.noteParts('You write in French and use “tu”. You like short answers: the result first.')
+  check('a note of two sentences is a name and a rest; one sentence has no rest; a number with a point does not end a sentence', two.name === 'You write in French and use “tu”' && two.rest === 'You like short answers: the result first.' && T.noteParts('Your time zone is Europe/Paris.').rest === '' && T.noteParts('Delivery takes 3.5 days on average here.').name === 'Delivery takes 3.5 days on average here')
+  const longOne = T.noteParts('word '.repeat(20))
+  check('a name is never longer than 60 characters (+ the ellipsis), and then the rest is the whole text', longOne.name.length <= 61 && longOne.name.endsWith('…') && longOne.rest === 'word '.repeat(20).trim() && T.noteName('x'.repeat(100)).length <= 61)
+
+  const pasted = T.parseImport('1. You live in Paris.\r\n- You like short answers.\n\n* ab\n• you like short answers.\n  3) Your shop sells candles\n## Heading line here\n')
+  check('an import is read line by line: bullets and numbers go, short lines go, a repeat in the paste goes', JSON.stringify(pasted) === JSON.stringify(['You live in Paris.', 'You like short answers.', 'Your shop sells candles', 'Heading line here']), pasted)
+  check('an empty or blank paste gives nothing; a paste is cut at 300 lines', T.parseImport('').length === 0 && T.parseImport('  \n \n').length === 0 && T.parseImport(Array.from({ length: 400 }, (_, i) => 'Note number ' + i + ' is here').join('\n')).length === 300)
+  check('a very long line is cut to the 2,000 characters the account accepts', T.parseImport('a'.repeat(5000))[0].length === 2000)
+  check('the import result says what was added, what was already there and what failed', T.importResult({ added: 3, same: 2, failed: 0 }) === 'Added 3 notes. 2 already in your memory.' && T.importResult({ added: 1, same: 0, failed: 0 }) === 'Added 1 note.' && T.importResult({ added: 0, same: 4, failed: 0 }) === 'Nothing added: all 4 are already in your memory.' && T.importResult({ added: 2, same: 0, failed: 1 }) === 'Added 2 notes. 1 could not be added.' && T.importResult({ added: 0, same: 0, failed: 2 }) === '2 could not be added.')
+
+  const mem = { memories: true, context: true, capture: true, sensitive: false }
+  const les = { lessons: true, context: true }
+  check('the three switches read both halves: on when either half does the thing', JSON.stringify(T.switchState(mem, les)) === JSON.stringify({ use: true, learn: true, sensitive: false })
+    && T.switchState({ ...mem, context: false }, { ...les, context: false }).use === false && T.switchState({ ...mem, context: false }, les).use === true
+    && T.switchState(null, les).use === true && T.switchState(null, null).use === false && T.switchState(null, null).learn === false
+    && T.switchState({ ...mem, capture: false }, { ...les, lessons: false }).learn === false && T.switchState({ ...mem, memories: false }, null).learn === false
+    && T.switchState({ ...mem, sensitive: true }, les).sensitive === true && T.switchState(null, les).sensitive === false)
+  check('lessons count only when recording is on: context alone sends nothing', T.switchState(null, { lessons: false, context: true }).use === false)
+  check('turning « Use memory » off cuts what is sent on both halves and nothing else', JSON.stringify(T.switchPatches('use', false, mem, les)) === JSON.stringify({ cloud: { context: false }, lessons: { context: false } }))
+  check('turning it on puts the account notes back in too', JSON.stringify(T.switchPatches('use', true, { ...mem, memories: false, context: false }, { ...les, context: false })) === JSON.stringify({ cloud: { memories: true, context: true }, lessons: { context: true } }))
+  check('« Learn from chats » is the capture of notes and the recording of lessons', JSON.stringify(T.switchPatches('learn', false, mem, les)) === JSON.stringify({ cloud: { capture: false }, lessons: { lessons: false } }) && JSON.stringify(T.switchPatches('learn', true, mem, les)) === JSON.stringify({ cloud: { memories: true, capture: true }, lessons: { lessons: true } }))
+  check('« Include sensitive topics » is only the capture prompt of the account notes', JSON.stringify(T.switchPatches('sensitive', true, mem, les)) === JSON.stringify({ cloud: { sensitive: true }, lessons: null }))
+  check('a half that cannot be reached gets no patch (no account: the lessons side still works)', T.switchPatches('use', false, null, les).cloud === null && T.switchPatches('use', false, mem, null).lessons === null && T.switchPatches('sensitive', true, null, les).cloud === null)
+
+  const NOW = Date.parse('2026-11-20T12:00:00Z')
+  const ago = (min) => new Date(NOW - min * 60000).toISOString()
+  const removed = T.recentlyRemoved({ mem: { log: [
+    { id: 'a', at: ago(30), by: 'you', kind: 'delete', removed: 1, undone: false, canUndo: true, label: 'Quotes as PDF' },
+    { id: 'b', at: ago(60), by: 'auto', removed: 5, undone: false, canUndo: true, label: 'Time zone' },
+    { id: 'c', at: ago(90), by: 'auto', removed: 2, undone: true, canUndo: false, label: 'Already back' },
+    { id: 'd', at: ago(95), by: 'you', removed: 3, undone: false, canUndo: false, label: 'Too old to undo' },
+  ] }, les: { log: [
+    { id: 'e', at: ago(10), by: 'you', kind: 'delete', kyber: 'dev-team', removed: 1, undone: false, canUndo: true, label: 'Check the port' },
+    { id: 'f', at: ago(20), by: 'brain', kind: 'compact', kyber: 'dev-team', removed: 0, undone: false, canUndo: true },
+    { id: 'g', at: ago(120), by: 'brain', removed: 1, kyber: 'ops', undone: false, canUndo: true },
+  ] } }, NOW)
+  check('Recently removed lists what can still be brought back, newest first, from both halves; shortened or retitled lessons are not removals', removed.map((r) => r.id).join() === 'e,a,b,g', removed.map((r) => r.id))
+  check('each line has its name, a plain reason and the button that fits (Restore for a delete, Undo for a merge)', removed[0].name === 'Check the port' && /You deleted it/.test(removed[0].why) && removed[0].button === 'Restore' && removed[0].src === 'les'
+    && removed[2].name === 'Time zone' && /6 notes combined into one/.test(removed[2].why) && removed[2].button === 'Undo' && removed[2].src === 'mem')
+  check('a merge written before names were kept still has a name', removed[3].name.length > 0 && removed[3].button === 'Undo')
+  check('nothing to bring back is an empty list, and a host that cannot be reached is not an error', T.recentlyRemoved({ mem: null, les: null }, NOW).length === 0 && T.recentlyRemoved({ mem: { log: [] }, les: null }, NOW).length === 0)
+
+  const groups = T.groupLessons([{ id: 1, kyber: 'dev-team' }, { id: 2, kyber: 'ops' }, { id: 3, kyber: 'dev-team' }])
+  check('lessons are grouped by team in the order they first appear', groups.length === 2 && groups[0].kyber === 'dev-team' && groups[0].items.length === 2 && groups[1].kyber === 'ops' && T.groupLessons([]).length === 0)
+
+  const T0 = Date.parse('2026-11-20T12:00:00Z')
+  check('a note\'s date is a short day and month, the year only when it is not this one; an unknown age is blank', T.noteDate(60 * 24 * 3, T0) === 'Nov 17' && T.noteDate(0, T0) === 'Nov 20' && /2025/.test(T.noteDate(60 * 24 * 400, T0)) && T.noteDate(null, T0) === '' && T.noteDate(NaN, T0) === '')
+  check('CRC32 matches the standard check value', T.crc32(new TextEncoder().encode('123456789')) === 0xCBF43926 && T.crc32(new Uint8Array(0)) === 0)
+  const zip = T.zipFiles([{ name: 'about-you.txt', text: 'You live in Paris.\nÉté\n' }, { name: 'teams/dev-team.txt', text: 'Check the port.\n' }])
+  const dv = new DataView(zip.buffer, zip.byteOffset, zip.byteLength)
+  const sig = (at) => dv.getUint32(at, true)
+  check('the export is a real zip: local headers, a central directory, an end record counting both files', sig(0) === 0x04034b50 && sig(zip.length - 22) === 0x06054b50 && dv.getUint16(zip.length - 22 + 10, true) === 2)
+  const dir = dv.getUint32(zip.length - 22 + 16, true)
+  check('the central directory starts where the end record says, and names the files in UTF-8', sig(dir) === 0x02014b50 && new TextDecoder().decode(zip.slice(dir + 46, dir + 46 + 13)) === 'about-you.txt' && (dv.getUint16(dir + 8, true) & 0x0800) !== 0)
+  check('the stored size and CRC of a file are those of its text', dv.getUint32(14, true) === T.crc32(new TextEncoder().encode('You live in Paris.\nÉté\n')) && dv.getUint32(18, true) === dv.getUint32(22, true) && dv.getUint32(22, true) === new TextEncoder().encode('You live in Paris.\nÉté\n').length)
+
+  const files = T.exportFiles({ about: [{ content: 'You live in Paris.' }, { content: 'Line one\nline two' }], teams: [{ kyber: 'Dev Team', lessons: [{ text: 'Check the port.' }] }, { kyber: 'dev-team', lessons: [{ text: 'Second.' }] }, { kyber: '???', lessons: [{ text: 'Odd.' }] }, { kyber: 'empty', lessons: [] }] })
+  check('the export is plain text: one note per line, one file about you, one per team', files[0].name === 'about-you.txt' && files[0].text === 'You live in Paris.\nLine one line two\n' && files.length === 4)
+  check('team file names are safe and never collide; an empty team gets no file', files.slice(1).map((f) => f.name).join() === 'teams/dev-team.txt,teams/dev-team-2.txt,teams/team.txt')
+  check('nothing to export is an empty list', T.exportFiles({ about: [], teams: [] }).length === 0)
 }
 
 console.error = realError

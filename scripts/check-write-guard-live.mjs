@@ -77,9 +77,6 @@ const GUARDED = [
   ['POST', '/kybernos-models/annotations/save', {}], ['POST', '/kybernos-models/journal', null], ['POST', '/kybernos-models/key/check', {}],
   ['POST', '/kybernos-models/providers/park', {}], ['POST', '/kybernos-models/providers/take', {}], ['POST', '/kybernos-models/providers/forget', {}],
   ['POST', '/kybernos-models/scores/list', {}],
-  ['POST', '/kybernos-computers/key/set', {}], ['POST', '/kybernos-computers/key/clear', {}], ['POST', '/kybernos-computers/sandboxes/start', {}],
-  ['POST', '/kybernos-computers/sandboxes/exec', {}], ['POST', '/kybernos-computers/sandboxes/write', {}], ['POST', '/kybernos-computers/sandboxes/stop', {}],
-  ['POST', '/kybernos-computers/sandboxes/pause', {}], ['POST', '/kybernos-computers/sandboxes/resume', {}], ['POST', '/kybernos-computers/env/set', { env: 'nope' }],
   ['POST', '/kybernos-cloud/memory/delete', { id: 'zz' }], ['POST', '/kybernos-cloud/members/remove', {}], ['POST', '/kybernos-cloud/team/lessons/delete', { id: 1 }],
   ['POST', '/kybernos-cloud/team/skills/delete', { id: 'zz' }], ['POST', '/kybernos-cloud/team/automations/delete', { id: 'zz' }], ['POST', '/kybernos-cloud/connections/delete', { id: 'zz' }],
   ['POST', '/kybernos-miniapps/install', { id: 'zz-guard-live', html: '<b>x</b>' }], ['POST', '/kybernos-miniapps/uninstall', { id: 'zz-guard-live' }],
@@ -113,7 +110,7 @@ const REFUSAL_ONLY = [
   ['POST', '/kybernos-cloud/telegram/pairing', {}], ['POST', '/kybernos-cloud/whatsapp/pairing', {}],
   ['POST', '/kybernos-cloud/telegram/unlink', {}], ['POST', '/kybernos-cloud/whatsapp/unlink', {}],
   ['POST', '/kybernos-cloud/kyby/computer', { computer_id: null }],
-  ['POST', '/kybernos-cloud/computer/open', {}], ['POST', '/kybernos-cloud/computer/resume', {}], ['POST', '/kybernos-cloud/computer/suspend', {}],
+  ['POST', '/kybernos-cloud/computer/open', {}], ['POST', '/kybernos-cloud/computer/resume', {}], ['POST', '/kybernos-cloud/computer/suspend', {}], ['POST', '/kybernos-cloud/computer/update/start', {}],
   ['POST', '/kybernos/salary-detect', {}], ['POST', '/kybernos/model/auto', {}],
 ]
 
@@ -143,7 +140,7 @@ const ev = async (js) => { const r = await page.evalJs(js, 10000); return r.err 
 // What the browser got back for the page's own requests: the guard must not have refused one (a 401 or 403 here is a page that stopped working).
 const answered = []
 await page.send('Network.enable', {})
-page.on('Network.responseReceived', (p) => { if (p.response && /\/(kybernos-auto|kybernos-memory|kybernos-computers|kybernos-cloud)\//.test(p.response.url)) answered.push({ url: new URL(p.response.url).pathname, status: p.response.status }) })
+page.on('Network.responseReceived', (p) => { if (p.response && /\/(kybernos-auto|kybernos-memory|kybernos-cloud)\//.test(p.response.url)) answered.push({ url: new URL(p.response.url).pathname, status: p.response.status }) })
 // The headers Chrome really puts on the wire for the page's own requests (CDP's ExtraInfo carries them, cookies included).
 const wire = new Map()
 const urlOf = new Map()
@@ -243,38 +240,23 @@ try {
     await shot('write-guard-auto-routing')
     await fromPage('POST', '/kybernos-auto/settings', { autoScope: (autoBefore && autoBefore.scope) || 'all' })
 
-    // Memory & Lessons > Customize: the Lessons system context switch (POST /kybernos-memory/settings/set), No then Yes.
+    // Memory & Lessons: the « Use memory in chats » switch (POST /kybernos-memory/settings/set carries the lessons' context), flipped, then put back.
     await gotoNav('Memory & Lessons')
-    await waitFor(page, `!!document.querySelector('[data-act=customize]')`, 10000)
-    await ev(`document.querySelector('[data-act=customize]').click()`)
-    await waitFor(page, `document.querySelectorAll('.kbmem-srow').length > 5`, 10000)
-    const lessonsRow = await ev(`(() => { const rows = [...document.querySelectorAll('.kbmem-srow')]; const i = rows.findIndex(r => r.textContent.startsWith('Lessons system context')); return i < 0 ? -1 : i })()`)
-    check('Memory & Lessons: the "Lessons system context" row is on the Customize page', typeof lessonsRow === 'number' && lessonsRow >= 0, lessonsRow)
-    const press = (label) => ev(`(() => { const r = [...document.querySelectorAll('.kbmem-srow')][${Number(lessonsRow)}]; const b = r && [...r.querySelectorAll('button')].find(x => x.textContent.trim() === ${q(label)}); if (!b) return false; b.click(); return true })()`)
-    check('Memory & Lessons: clicking No is sent to the host', await press('No') === true)
+    await waitFor(page, `!!document.querySelector('[data-act=use] .kbmem-sw') && !document.querySelector('[data-act=use] .kbmem-sw').disabled`, 10000)
+    const startCtx = await readJson('/kybernos-memory/settings')
+    const was = startCtx !== null && startCtx.settings && startCtx.settings.context === true
+    const flip = () => ev(`(() => { const b = document.querySelector('[data-act=use] .kbmem-sw'); if (!b || b.disabled) return false; b.click(); return true })()`)
+    check('Memory & Lessons: the "Use memory in chats" switch is on the page', (await ev(`!!document.querySelector('[data-act=use] .kbmem-sw')`)) === true)
+    check('Memory & Lessons: flipping it is sent to the host', await flip() === true)
     await sleep(1200)
     check('Memory & Lessons: the browser\'s own POST to /kybernos-memory/settings/set was answered 200', lastStatus('/kybernos-memory/settings/set') === 200, lastStatus('/kybernos-memory/settings/set'))
-    const off = await readJson('/kybernos-memory/settings')
-    check('Memory & Lessons: the host stored context = false', off !== null && off.settings && off.settings.context === false, off)
-    await shot('write-guard-memory-options')
-    check('Memory & Lessons: clicking Yes is sent to the host', await press('Yes') === true)
+    const flipped = await readJson('/kybernos-memory/settings')
+    check('Memory & Lessons: the host stored the lessons\' context the other way round', flipped !== null && flipped.settings && flipped.settings.context === !was, flipped)
+    await shot('write-guard-memory-switch')
+    check('Memory & Lessons: flipping it back is sent to the host', await flip() === true)
     await sleep(1200)
-    const on = await readJson('/kybernos-memory/settings')
-    check('Memory & Lessons: the host stored context = true again', on !== null && on.settings && on.settings.context === true, on)
-
-    // Code sandbox (E2B): a key that is not an E2B key (POST /kybernos-computers/key/set answers cle_invalide; nothing is stored).
-    if (OFF.has('kybernos-computers')) console.log('  ○ Code sandbox (E2B) is off in this frozen build: its page is not played')
-    else {
-    await gotoNav('Code sandbox (E2B)')
-    check('Code sandbox (E2B): the key field is there', await typeInto('input[type=password][placeholder="Paste your E2B key"]', 'not-an-e2b-key') === true)
-    await sleep(300)
-    check('Code sandbox (E2B): "Save" is clicked', await clickButton('Save') === true)
-    await sleep(1500)
-    check('Code sandbox (E2B): the browser\'s own POST to /kybernos-computers/key/set was answered 200 (the route ran, and said no on its own rule)', lastStatus('/kybernos-computers/key/set') === 200, lastStatus('/kybernos-computers/key/set'))
-    const status = await readJson('/kybernos-computers/status')
-    check('Code sandbox (E2B): the host refused the key on its own rule (keyPresent stays false), not the guard\'s', status !== null && status.keyPresent === false, status)
-    await shot('write-guard-cloud-computers')
-    }
+    const back = await readJson('/kybernos-memory/settings')
+    check('Memory & Lessons: the host stored the lessons\' context as it was', back !== null && back.settings && back.settings.context === was, back)
 
     // L3-04: the Account page's custom instructions (the « Kybernos » section of Settings), typed and saved with real clicks. The page's POST to /kybernos-cloud/instructions/save carries the
     // Origin and DSH's session cookie by itself, and the host writes the marked section of THIS instance's AGENTS.md (what every agent reads); the same text sent by a bare program was refused above.

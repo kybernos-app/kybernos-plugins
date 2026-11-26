@@ -8,6 +8,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { entry, execEntry, table } from './lib-i18n-test.mjs'
 
 let pass = 0
 let fail = 0
@@ -19,8 +20,9 @@ const here = dirname(fileURLToPath(import.meta.url))
 const SRC = readFileSync(join(here, 'client.js'), 'utf8')
 
 console.log('no figure of our own')
-check('the hard-coded « 500 credits » is gone from every string of the plugin', !/500 (credits|crédits)/i.test(SRC) && !/crédits chacun/.test(SRC))
-check('there is no fixed subtitle key any more: the subtitle is the offer\'s sentence or nothing', !SRC.includes("'menu.referral.sub'"))
+const DICT_TEXT = Object.values(table()).flatMap((e) => [e.kybernos, e.en]).join('\n') // every sentence of the dictionary (i18n/*.json)
+check('the hard-coded « 500 credits » is gone from every string of the plugin', !/500 (credits|crédits)/i.test(SRC) && !/crédits chacun/.test(SRC) && !/500 (credits|crédits)/i.test(DICT_TEXT) && !/crédits chacun/.test(DICT_TEXT))
+check('there is no fixed subtitle key any more: the subtitle is the offer\'s sentence or nothing', !SRC.includes("'menu.referral.sub'") && entry('menu.referral.sub') === null)
 
 const a = SRC.indexOf('// <kb-referral-offer>')
 const b = SRC.indexOf('// </kb-referral-offer>', a)
@@ -93,7 +95,7 @@ console.log('the link to the referral page')
 
 console.log('the sentences')
 {
-  const key = (k) => new RegExp("'" + k.replace(/\./g, '\\.') + "': \\{ kybernos: '((?:[^'\\\\]|\\\\.)*)', en: '((?:[^'\\\\]|\\\\.)*)' \\}").exec(SRC)
+  const key = (k) => execEntry(k) // [ key, fr, en ] or null, from i18n/*.json
   const offer = key('menu.referral.offer')
   const plain = key('menu.referral.sharetext')
   const shared = key('menu.referral.sharetext.offer')

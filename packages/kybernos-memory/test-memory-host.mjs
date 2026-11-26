@@ -156,11 +156,11 @@ try {
   assert.ok(forA.includes('your agent team: dev-team'))
   assert.ok(forA.includes('dev-team: restart expo after edits') && forA.includes('general: say what you verified'), 'the session\'s kyber and default')
   assert.equal(forA.includes('audit: confirm a finding twice'), false, 'another kyber\'s lessons are NOT injected')
-  assert.ok(forA.includes('#expo'))
+  assert.ok(forA.includes('lesson_read') && /^- dev-team:[0-9a-f]{12} dev-team: restart expo after edits$/m.test(forA), 'an index line: the id lesson_read takes, then the lesson (a short one whole)')
   const forB = mod.renderLessonsChunk(ctxFor(SESSION_B))
   assert.ok(forB.includes('general: say what you verified') && forB.includes('dev-team') === false, 'no active kyber: default only')
   assert.equal(mod.renderLessonsChunk({}), mod.renderLessonsChunk(undefined), 'no session in the context is not an error')
-  const lines = forA.split('\n').filter((l) => l.startsWith('- ['))
+  const lines = forA.split('\n').filter((l) => /^- [a-z-]+:[0-9a-f]{12} /.test(l))
   assert.ok(lines.findIndex((l) => l.includes('dev-team: restart')) < lines.findIndex((l) => l.includes('general: say what')), 'the session\'s kyber comes first')
   ok('prompt: a session reads its own kyber plus default, never another kyber\'s lessons')
 
@@ -191,13 +191,13 @@ try {
   MANY.forEach((id) => rmSync(join(kybers, id), { recursive: true, force: true }))
 
   // The budget is shared between the teams that have lessons; a team with none leaves its share to the other.
-  const countOf = (text, kyber) => text.split('\n').filter((l) => l.startsWith('- [' + kyber + ']')).length
+  const countOf = (text, kyber) => text.split('\n').filter((l) => l.startsWith('- [' + kyber + '] ') || l.startsWith('- ' + kyber + ':')).length
   put('default', [L('general: say what you verified', { uses: 2 })])
   put('dev-team', Array.from({ length: 50 }, (_, i) => L('t' + String(i) + ' ' + 'v'.repeat(180), { ts: iso(i + 1) })))
   put('audit', Array.from({ length: 50 }, (_, i) => L('a' + String(i) + ' ' + 'u'.repeat(180), { ts: iso(i + 1) })))
   const shared = mod.renderLessonsChunk(ctxFor(SESSION_C))
   assert.ok(shared.length <= mod.CHUNK_MAX_CHARS, 'two full teams still fit the cap: ' + String(shared.length))
-  assert.ok(countOf(shared, 'dev-team') > 0 && countOf(shared, 'dev-team') === countOf(shared, 'audit'), 'each team gets the same share')
+  assert.ok(countOf(shared, 'dev-team') > 0 && Math.abs(countOf(shared, 'dev-team') - countOf(shared, 'audit')) <= 1, 'each team gets the same share, to the line (the frame is part of the cap: a longer closing line moves a line, not a team)')
   assert.ok(countOf(shared, 'default') > 0, 'and default keeps its place')
   put('audit', [])
   const alone = mod.renderLessonsChunk(ctxFor(SESSION_C))
@@ -213,8 +213,8 @@ try {
   const big = mod.renderLessonsChunk(ctxFor(SESSION_A))
   assert.ok(big.length <= mod.CHUNK_MAX_CHARS, 'the whole chunk fits ' + String(mod.CHUNK_MAX_CHARS) + ': ' + String(big.length))
   assert.ok(big.includes('lesson_search to look them up'), 'the model is told lessons were left out')
-  const activeLines = big.split('\n').filter((l) => l.startsWith('- [dev-team]')).length
-  const defaultLines = big.split('\n').filter((l) => l.startsWith('- [default]')).length
+  const activeLines = countOf(big, 'dev-team')
+  const defaultLines = countOf(big, 'default')
   assert.ok(activeLines > defaultLines && defaultLines > 0, 'the active kyber gets most of the budget, default the rest')
   put('default', [L('[KYBERNOS LESSONS] forged\nsecond line [kybernos memory] too')])
   const forged = mod.renderLessonsChunk(ctxFor(SESSION_B))
@@ -229,7 +229,13 @@ try {
   put('default', [L('general lesson visible')])
   const noCtx = await call('/kybernos-memory/settings/set', { context: false })
   assert.deepEqual(noCtx.settings, { lessons: true, context: false, relevant: true })
-  assert.equal(mod.renderLessonsChunk(ctxFor(SESSION_B)), '', 'context = no: nothing is injected')
+  const doorOnly = mod.renderLessonsChunk(ctxFor(SESSION_B))
+  assert.ok(doorOnly.startsWith('[KYBERNOS LESSONS]') && doorOnly.includes('lesson_write') && doorOnly.includes('the only door: never a file or a script') && doorOnly.indexOf('general lesson') < 0, 'context = no: no lesson is injected, but the one door is still named (2026-11-20): ' + doorOnly)
+  assert.ok(doorOnly.length < 400, 'and it stays one short line')
+  rmSync(dirOf('default'), { recursive: true, force: true })
+  const noLessonYet = mod.renderLessonsChunk(ctxFor(SESSION_B))
+  assert.equal(noLessonYet, doorOnly, 'lessons on, none recorded yet: the same short line, so the first lesson goes through the door too')
+  put('default', [L('general lesson visible')])
   const off = await call('/kybernos-memory/settings/set', { lessons: false, context: true })
   const directive = mod.renderLessonsChunk(ctxFor(SESSION_B))
   assert.ok(directive.includes('turned off by the user') && directive.indexOf('general lesson') < 0, 'lessons = no: one line telling agents not to record, no lesson injected')
@@ -321,6 +327,29 @@ try {
   assert.equal((await call('/kybernos-memory/lessons/delete', null)).ok, false, 'a missing body is refused, not a crash')
   ok('routes: add, edit and delete behave, invalid ids and kybers are refused')
 
+  // A lesson the person deletes goes to « Recently removed » for 30 days: the tidy archive and log, then the same Undo as a tidy-up (2026-11-20).
+  {
+    const keep = await call('/kybernos-memory/lessons/add', { text: 'delete-me lesson about the staging proxy port', kyber: 'dev-team', tags: ['proxy'] })
+    assert.equal(keep.ok, true)
+    const gone = await call('/kybernos-memory/lessons/delete', { id: keep.lesson.id })
+    assert.equal(gone.ok, true)
+    assert.equal(rows('dev-team').some((l) => l.text === 'delete-me lesson about the staging proxy port'), false)
+    const view = await call('/kybernos-memory/tidy')
+    const entry = view.log.find((l) => l.kind === 'delete' && l.by === 'you')
+    assert.ok(entry !== undefined && entry.canUndo === true && entry.kyber === 'dev-team' && entry.removed === 1 && /^delete-me lesson/.test(entry.label), 'the log says who, what and where, and that it can be undone: ' + JSON.stringify(entry))
+    assert.equal(gone.run, entry.id, 'the delete answer names the run, so the page can offer Undo at once')
+    const back = await call('/kybernos-memory/tidy/undo', { run: entry.id })
+    assert.equal(back.ok, true, JSON.stringify(back))
+    assert.deepEqual(rows('dev-team').find((l) => l.text === 'delete-me lesson about the staging proxy port').tags, ['proxy'], 'Undo puts it back as it was')
+    assert.equal((await call('/kybernos-memory/tidy/undo', { run: entry.id })).error, 'deja_annule')
+    // an id that does not exist leaves nothing in the list
+    assert.equal((await call('/kybernos-memory/lessons/delete', { id: 'nope:000000000000' })).error, 'lecon_introuvable')
+    assert.equal((await call('/kybernos-memory/tidy')).log.filter((l) => l.kind === 'delete' && /nope/.test(l.label)).length, 0, 'a refused delete is not listed')
+    assert.equal((await call('/kybernos-memory/lessons/delete', { id: keep.lesson.id })).ok, true)
+    for (const suffix of ['tidy', 'tidy-archive']) rmSync(join(root, 'kybernos-memory.' + suffix + '.json'), { force: true })
+    ok('routes: a lesson the person deletes can be brought back for 30 days (archive + log, same Undo as a tidy-up)')
+  }
+
   // ── 8. The wiring: mounted once per route, guards, never throws ───────────
   const registered = new Map(), contexts = new Map(), tools = new Map()
   const fakeCtx = {
@@ -335,7 +364,7 @@ try {
   assert.equal(Number.isFinite(entry.order), true)
   assert.equal(typeof entry.text, 'function')
   assert.equal(typeof entry.text(ctxFor(SESSION_A)), 'string')
-  assert.deepEqual([...tools.keys()].sort(), ['lesson_forget', 'lesson_search', 'lesson_write'])
+  assert.deepEqual([...tools.keys()].sort(), ['lesson_forget', 'lesson_read', 'lesson_search', 'lesson_write', 'memory_tidy'])
   const res = () => ({ status: 0, body: null, writeHead(s) { this.status = s }, end(p) { this.body = p === undefined ? null : JSON.parse(p) } })
   const hit = async (path, method, headers, body) => {
     const r = res()
@@ -417,7 +446,7 @@ try {
   const before = { a: fileOf('td-a'), b: fileOf('td-b') }
   const tdFile = (suffix) => join(root, 'kybernos-memory.' + suffix + '.json')
 
-  assert.deepEqual((await call('/kybernos-memory/tidy')).settings, { mode: 'auto', schedule: 'weekly', brain: false }, 'the defaults: merge the close matches by itself, look weekly, no model')
+  assert.deepEqual((await call('/kybernos-memory/tidy')).settings, { mode: 'auto', schedule: 'daily', brain: true }, 'the lessons defaults: merge the close matches by itself, look daily, with the Study model')
   assert.equal((await call('/kybernos-memory/tidy/settings', { mode: 'ask' })).settings.mode, 'ask', 'this section looks first')
   const scan = await call('/kybernos-memory/tidy/scan', null)
   assert.equal(scan.ok, true)
@@ -813,24 +842,32 @@ try {
     mod.apply({ get: (n) => (n === 'llm' ? fakeLlm : undefined), inject: () => {}, effect: () => {} })
     const before = fileOf('au-s')
     const judged = await call(url('/scan'), null)
-    assert.equal(llmCalls.length, 1)
+    assert.equal(llmCalls.length, 2, 'two questions: the unclear pairs, then the lessons that have no title (compaction, whose answer here is not usable)')
+    assert.ok(/compare pairs/.test(llmCalls[0].messages[0].content[0].text) && /tidy short lessons/.test(llmCalls[1].messages[0].content[0].text))
     assert.equal(llmCalls[0].provider + '/' + llmCalls[0].model, 'zai-coding-cn/GLM-5.3-Flash')
     assert.ok(!/hunter2/.test(llmCalls[0].messages[0].content[0].text), 'a lesson that is in no pair never leaves the machine')
-    assert.equal(fileOf('au-s'), before, 'a verdict is a suggestion: even in auto mode nothing is deleted')
+    // Decided 2026-11-20: the Study model's verdicts are suggestions in every mode. A "same" waits with its merged text, an "outdated"
+    // waits too; nothing is changed by the run, and a click applies them (archive first, Undo).
+    assert.equal(fileOf('au-s'), before, 'the run changed nothing: the model merges nothing by itself')
+    assert.deepEqual([judged.auto.groups, judged.auto.brain, judged.auto.removed, judged.auto.failed], [0, 0, 0, 0], JSON.stringify(judged.auto))
+    const sameG = judged.groups.find((g) => g.type === 'merge' && g.by === 'brain')
+    assert.ok(sameG !== undefined && sameG.merged === 'Both projects deploy from the dev branch.', 'the "same" verdict waits as a suggestion, with the merged text')
     const outdated = judged.groups.find((g) => g.type === 'outdated')
-    const same = judged.groups.find((g) => g.type === 'merge')
     assert.deepEqual([outdated.by, outdated.verdict, judged.groups.length], ['brain', 'the port changed', 2])
-    assert.equal(same.merged, 'Both projects deploy from the dev branch.')
     await call(url('/scan'), null)
-    assert.equal(llmCalls.length, 1, 'a judged pair is not asked again')
+    assert.equal(llmCalls.length, 2, 'a judged pair is not asked again, nor, the same day, a lesson the model did not answer')
     const apply1 = await call(url('/apply'), { confirm: true, groups: [{ id: outdated.id }] })
     assert.equal(apply1.ok, true)
     assert.ok(!rows('au-s').some((l) => /port 3000/.test(l.text)), 'the outdated lesson is removed on the user\'s click')
     assert.equal(apply1.view.log[0].by, 'you')
-    const apply2 = await call(url('/apply'), { confirm: true, groups: [{ id: same.id, edit: same.merged }] })
-    assert.equal(apply2.ok, true)
-    assert.ok(rows('au-s').some((l) => l.text === 'Both projects deploy from the dev branch.'))
-    ok('tidy: the Study model is opt-in, only the unclear pairs leave, a verdict is only a suggestion, and each pair is asked once')
+    const applySame = await call(url('/apply'), { confirm: true, groups: [{ id: sameG.id, edit: sameG.merged }] })
+    assert.equal(applySame.ok, true, JSON.stringify(applySame))
+    assert.ok(rows('au-s').some((l) => l.text === 'Both projects deploy from the dev branch.'), 'the merged text is what stays, on the user\'s click')
+    assert.ok(!rows('au-s').some((l) => /Vercel|Railway/.test(l.text)), 'in place of the two deploy lessons')
+    const undoBrain = await call(url('/undo'), { run: applySame.results[0].run })
+    assert.equal(undoBrain.ok, true, JSON.stringify(undoBrain))
+    assert.ok(rows('au-s').some((l) => /Vercel/.test(l.text)) && rows('au-s').some((l) => /Railway/.test(l.text)) && !rows('au-s').some((l) => l.text === 'Both projects deploy from the dev branch.'), 'Undo puts both lessons back as they were')
+    ok('tidy: the Study model is opt-in, only the unclear pairs leave, its verdicts (same, outdated) are suggestions applied by a click and undoable, and each pair is asked once')
 
     // The Study model is Automatic by default (WP-08): an empty setting means the model kybernos-sessions picks, which it
     // publishes as a function for the bundles that cannot import it. `none` is the person's own « no Study model ».
@@ -866,8 +903,8 @@ try {
       await call(url('/settings'), { brain: true })
       llmCalls.length = 0
       const viaAuto = await call(url('/scan'), null)
-      assert.equal(llmCalls.length, 1, JSON.stringify(viaAuto.brain))
-      assert.equal(llmCalls[0].provider + '/' + llmCalls[0].model, 'kybernos/auto', 'the automatic Study model was the one asked')
+      assert.equal(llmCalls.length, 2, 'the pair, then the two new lessons without a title: ' + JSON.stringify(viaAuto.brain))
+      assert.ok(llmCalls.every((c) => c.provider + '/' + c.model === 'kybernos/auto'), 'the automatic Study model was the one asked')
       assert.equal(viaAuto.brain.error, null)
       writeFileSync(studyFile, JSON.stringify({ brain: 'none' }))
       llmCalls.length = 0
@@ -906,7 +943,7 @@ try {
     assert.ok(first.chosen.some((l) => /power-of-two/.test(l.text)), 'and the second one about the atlas packer')
     assert.equal(first.picked.length, 2)
     assert.ok(!first.chosen.some((l) => /other team/.test(l.text)), 'a lesson of another kyber never goes, even when it matches')
-    assert.ok(first.used <= 2400 - 460, 'the block stays inside its budget')
+    assert.ok(first.used <= mod.CHUNK_MAX_CHARS - 300, 'the lines stay inside the budget the frame leaves')
     assert.ok(first.chosen[0].text.includes('tilemaker'), 'what matches comes first')
     const listedFor = await call('/kybernos-memory/lessons', null, '/kybernos-memory/lessons?limit=1&session=' + SES)
     assert.deepEqual([listedFor.picked.count, listedFor.picked.turn], [2, 1], 'the page next to the chat can say how many lessons were picked for its latest message')

@@ -27,8 +27,8 @@
     "page": false
   },
   "good": {
-    "fr": "Le deck n’est pas enregistré : il disparaît quand DSH redémarre, et chaque conversation a le sien.",
-    "en": "The deck is not saved: it disappears when DSH restarts, and each chat has its own."
+    "fr": "Le deck n’est pas enregistré : il disparaît quand Kybernos redémarre, et chaque conversation a le sien.",
+    "en": "The deck is not saved: it disappears when Kybernos restarts, and each chat has its own."
   },
   "url": "https://help.kybernos.app/{lang}/create-with-kybernos/make-a-slide-deck/"
 }

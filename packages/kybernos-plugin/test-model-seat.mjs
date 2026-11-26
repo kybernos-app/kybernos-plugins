@@ -25,8 +25,8 @@ const start = source.indexOf('// KB-MODELSEL-PURE-BEGIN')
 const end = source.indexOf('// KB-MODELSEL-PURE-END')
 assert.ok(start > 0 && end > start, 'the seat\'s pure block is marked in client.js')
 const block = source.slice(start, end)
-const rules = new Function(block + '\nreturn { kbSelSay, kbSelOrder, kbSelFilter, kbSelBand, kbSelEfforts, kbSelGroupName, KB_SEL_KYBERNOS }')()
-const { kbSelOrder, kbSelFilter, kbSelBand, kbSelEfforts, kbSelGroupName } = rules
+const rules = new Function(block + '\nreturn { kbSelSay, kbSelOrder, kbSelFilter, kbSelBand, kbSelEfforts, kbSelGroupName, kbSelShellSignin, KB_SEL_KYBERNOS }')()
+const { kbSelOrder, kbSelFilter, kbSelBand, kbSelEfforts, kbSelGroupName, kbSelShellSignin } = rules
 
 const group = (id, name, models) => ({ id, name, models })
 const model = (id, name, extra) => Object.assign({ id, name }, extra || {})
@@ -81,6 +81,16 @@ console.log('the Kybernos line at the top')
   check('a malformed host answer never throws', kbSelBand([DEEPSEEK], { connected: true, state: 'nope' }).kind === 'plan')
 }
 
+console.log('the signed-out phone: the line says « Sign in for more models » and the button is the shell\'s own door')
+{
+  const APP = 'Mozilla/5.0 (iPhone) KybernosHost/0.1.0 (ios)'
+  check('listed in the app\'s user agent → the shell\'s door', kbSelShellSignin(APP + ' KabyMode/1 KybernosCaps/account,plans,signin') === true && kbSelShellSignin(APP + ' KybernosCaps/signin') === true)
+  check('not listed, no list, a browser that carries the words, nothing at all → the line and the button are the ones they always were', kbSelShellSignin(APP + ' KabyMode/1 KybernosCaps/account,plans') === false && kbSelShellSignin(APP + ' KabyMode/1') === false && kbSelShellSignin('Mozilla/5.0 KybernosCaps/signin') === false && kbSelShellSignin('') === false && kbSelShellSignin(undefined) === false && kbSelShellSignin(null) === false)
+  check('a malformed list is not read (upper case, a stray character, a longer name)', kbSelShellSignin(APP + ' KybernosCaps/SIGNIN') === false && kbSelShellSignin(APP + ' KybernosCaps/signin;x') === false && kbSelShellSignin(APP + ' KybernosCaps/signing') === false)
+  const seat = source.slice(source.indexOf('const KbModelSeat = '))
+  check('only the signed-out line changes: « Sign in for more models » (the sentence below is dropped, it would say « them »), and the button opens `kybernos://signin`; connected, the band is none or the plan line, untouched', /const nativeSignin = band\.kind === 'signin' && kbSelShellSignin\(/.test(seat) && /nativeSignin \? say\(\['Connecte-toi pour plus de modèles', 'Sign in for more models'\]\)/.test(seat) && /if \(nativeSignin\) \{ try \{ window\.location\.assign\('kybernos:\/\/signin'\)/.test(seat) && /nativeSignin \? null : h\('div', \{ className: 'kbmsl-band-s' \}/.test(seat))
+}
+
 console.log('reasoning levels')
 {
   const withEfforts = model('reasoner', 'Reasoner', { reasoning: { efforts: [{ id: 'low', name: 'Low' }, { id: 'high', name: 'High' }], defaultEffort: 'low' } })
@@ -111,6 +121,11 @@ console.log('the wiring (read from the shipped source)')
   check('the Kybernos account state is read lazily, once, when the menu opens', /if \(open !== true \|\| cloud !== null\) return undefined/.test(seat) && /fetch\('\/kybernos-cloud\/status'/.test(seat))
   check('the sign-in button opens Settings ON the models page (the Kybernos Cloud card lives there)', /kbOpenSettingsPage\(\['kybernos-models', 'models'\]\)/.test(seat))
   check('the seat draws no model list of its own: no provider endpoint is called', /fetch\('\/kybernos-models/.test(seat) === false && /modelCatalog/.test(seat) === false)
+  check('the search field takes the focus on open only where there is no touch screen (a phone\'s keyboard would cover half of the list)', (() => {
+    const at = seat.indexOf('searchRef.current.focus()')
+    const before = seat.slice(Math.max(0, at - 420), at)
+    return at > 0 && /pointer: coarse/.test(before) && /if \(touch === true\) return/.test(before)
+  })())
   check('its styles are inserted under their own prefix', /\.kbmsl-trigger\{/.test(source) && /'kybers: styles of the model seat'/.test(source))
   check('every visible string has a French AND an English row', (() => {
     // A row is `say(['fr', 'en'])`: exactly one separator between two quoted texts (a comma INSIDE a
@@ -118,6 +133,32 @@ console.log('the wiring (read from the shipped source)')
     const rows = seat.match(/say\(\[[^\]]*\]\)/g) || []
     return rows.length >= 8 && rows.every((r) => r.split("', '").length === 2)
   })())
+}
+
+console.log('the model name in the chip shows whole: it steps down from 15 to 12 px, and only then keeps the ellipsis')
+{
+  const fitSrc = source.slice(source.indexOf('const kbSelFitLabel = '), source.indexOf('const KbModelSeat = '))
+  const fit = new Function('window', fitSrc + '\nreturn kbSelFitLabel')({ getComputedStyle: (el) => ({ fontSize: el.css + 'px' }) })
+  // A fake label: its text is `perPx` wide per pixel of font size, the box is `box` wide; the inline size (set with !important) wins over the stylesheet's.
+  const label = (box, perPx, css) => {
+    const el = { css, inline: null, box, style: {} }
+    el.style.removeProperty = (n) => { if (n === 'font-size') el.inline = null }
+    el.style.setProperty = (n, v, prio) => { if (n === 'font-size' && prio === 'important') el.inline = parseFloat(v) }
+    Object.defineProperty(el, 'clientWidth', { get: () => el.box })
+    Object.defineProperty(el, 'scrollWidth', { get: () => Math.ceil(perPx * (el.inline !== null ? el.inline : el.css)) })
+    return el
+  }
+  const roomy = label(200, 10.9, 15)
+  check('a name that fits at 15 px is left alone (no inline size)', fit(roomy) === '' && roomy.inline === null)
+  const cut = label(150, 10.9, 15)
+  check('a name cut at 15 px (the phone shows 15 as ~17) steps down until it fits: 13 px here', fit(cut) === '13px' && cut.inline === 13, String(cut.inline))
+  const tooLong = label(100, 10.9, 15)
+  check('a name too long even at 12 px stops at 12 px and keeps the ellipsis', fit(tooLong) === '12px' && tooLong.inline === 12, String(tooLong.inline))
+  const back = label(200, 10.9, 15)
+  back.inline = 12
+  check('a later render with room takes the inline size off again, back to the Theme\'s 15 px', fit(back) === '' && back.inline === null)
+  check('no element, or a hidden one (width 0), is never touched', fit(null) === '' && fit(label(0, 10.9, 15)) === '')
+  check('the size is set inline with !important so it beats the Theme\'s !important 15 px, and the label stays one line with an ellipsis', /setProperty\('font-size', s \+ 'px', 'important'\)/.test(fitSrc) && /\.kbmsl-label\{[^}]*overflow:hidden;text-overflow:ellipsis;white-space:nowrap/.test(source))
 }
 
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)

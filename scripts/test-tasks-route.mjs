@@ -17,6 +17,9 @@ const dshHome = mkdtempSync(join(tmpdir(), 'kb-tasks-route-'))
 process.env.HOME = dshHome
 process.env.DSH_HOME = dshHome
 mkdirSync(join(dshHome, 'kybernos'), { recursive: true })
+// The core automation (packages/kybernos-plugin/automation-core.mjs) is made at boot in an empty store. This file counts tasks, so its home
+// says the person deleted it once; scripts/test-core-automation.mjs proves the core automation itself.
+writeFileSync(join(dshHome, 'kybernos', 'core-automations.json'), JSON.stringify({ 'memory-tidy': { deletedAt: '2026-01-01T00:00:00.000Z' } }))
 const file = join(dshHome, 'kybernos', 'tasks.json')
 // DSH keeps one secret per machine and signs its browser cookie with it; the route checks that cookie.
 const b64u = (b) => b.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
@@ -681,7 +684,7 @@ writeFileSync(file, good)
 
 /* ── The MCP gate: only the sessions of an ask automation, and their sub-agents ── */
 {
-  eq('the plugin installs three tools/pre-execute listeners: the MCP gate first, then the sub-agent limit, then the refusal of DSH\'s schedule_create (automation_remind is the way)', (listeners['tools/pre-execute'] || []).length, 3)
+  eq('the plugin installs five tools/pre-execute listeners: the MCP gate first, then the sub-agent limit, then the refusal of DSH\'s schedule_create (automation_remind is the way), then the card that asks before automation_remind sets a reminder, then the Workers execution guard', (listeners['tools/pre-execute'] || []).length, 5)
   const gate = listeners['tools/pre-execute'][0]
   const ALLOW = { kind: 'allow' }
   const run = (agent, name, args) => gate({ name, arguments: args, agent, callId: 'c1' }, async () => ALLOW)

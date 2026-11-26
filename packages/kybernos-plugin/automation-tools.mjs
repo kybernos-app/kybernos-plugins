@@ -38,7 +38,7 @@ const WHY = {
   'personal data': 'the text contains an address, a phone number or a secret: write patterns, not people',
   'too long': 'the text is too long',
   empty: 'the text is empty',
-  'already waiting': 'that was already suggested',
+  'already waiting': 'the same suggestion is still waiting for the person\'s answer, so nothing was added',
   'too many waiting': 'too many suggestions of that kind already wait: the person has to answer some first',
   'empty title': 'the title is empty',
   'no evidence': 'an initiative needs what you measured: a count of at least 1 and where you saw it, without names',
@@ -82,9 +82,17 @@ const initiativeListText = (items, cap) => {
   }
   return 'Waiting for the person (' + list.length + (list.length >= bound ? ', full' : '') + '): ' + list.map(one).join('; ') + '. Nothing ran.'
 }
+/**
+ * What a memory or instructions suggestion answers, worded to be said as it is (a small model copies a result word for word): what was suggested and where it waits, in the second person. The first
+ * wording, « Waiting for the person's approval … not saved yet », was answered with « Nothing was set » (a suggestion DOES wait in Memory), the one before with « Okay, I'll remember that »; the one that named the buttons (« …: Add, Edit or Discard ») was answered with « Added: … » (the model turns a button name into a verb), so no button is named.
+ */
+const waiting = (what, value) => {
+  const text = value.item !== null && typeof value.item === 'object' && typeof value.item.text === 'string' ? Array.from(value.item.text.replace(/\s+/g, ' ')).slice(0, 160).join('') : ''
+  return 'Suggested for ' + (what === 'memory' ? 'Memory' : 'Custom instructions') + (text !== '' ? ': “' + text + '”' : '') + '. It waits for your answer there.'
+}
 const say = (value, what) => (value !== null && typeof value === 'object' && value.ok === true
   ? (what === 'memory' || what === 'instructions'
-    ? 'Suggested: it waits for the person\'s Add in ' + (what === 'memory' ? 'Memory' : 'Custom instructions') + '. It is NOT saved yet.'
+    ? waiting(what, value)
     : what === 'suggest'
     ? 'Suggested: “' + String(value.task.name) + '” waits for the person\'s Add in Automations. It is switched OFF and will not run before that.'
     : what === 'initiative'

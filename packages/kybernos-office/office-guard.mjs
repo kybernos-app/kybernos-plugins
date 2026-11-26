@@ -9,13 +9,17 @@ export const FORMATS = {
   docx: { editor: 'doc', root: 'word/document.xml', type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
   xlsx: { editor: 'sheet', root: 'xl/workbook.xml', type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
   md: { editor: 'md', root: null, type: 'text/markdown' },
+  // Plain text, JSON and delimited files share one frame (`text`); the frame tells them apart by the file's name.
+  text: { editor: 'text', root: null, type: 'text/plain' },
+  csv: { editor: 'text', root: null, type: 'text/csv' },
+  json: { editor: 'text', root: null, type: 'application/json' },
   pdf: { editor: 'pdf', root: null, type: 'application/pdf' },
   deck: { editor: 'deck', root: null, type: 'text/html' },
 }
 // The file suffixes (lower case) and the format each one is.
-const SUFFIXES = { docx: 'docx', xlsx: 'xlsx', md: 'md', markdown: 'md', pdf: 'pdf' }
+const SUFFIXES = { docx: 'docx', xlsx: 'xlsx', md: 'md', markdown: 'md', pdf: 'pdf', txt: 'text', rst: 'text', yaml: 'text', yml: 'text', toml: 'text', csv: 'csv', tsv: 'csv', json: 'json' }
 
-/** `docx`, `xlsx`, `md`, `pdf` or `deck` (a `.deck.html` slide deck, the only HTML the editors open) for a file name the light editors can open; null for anything else. */
+/** `docx`, `xlsx`, `md`, `pdf`, `deck` (a `.deck.html` slide deck, the only HTML the editors open), `text` (.txt .rst .yaml .yml .toml), `csv` (.csv .tsv) or `json` for a file name the light editors can open; null for anything else. */
 export const formatOf = (name) => {
   if (/\.deck\.html$/i.test(String(name || ''))) return 'deck'
   const m = /\.([A-Za-z0-9]+)$/.exec(String(name || ''))
@@ -99,6 +103,16 @@ const markdown = (bytes) => {
   return { ok: true, losses: out, block: out.some((l) => l.level === 'loss') }
 }
 
+// Plain text, JSON and delimited files: the editor shows the text itself and puts back the byte-order mark, the line ends and the final newline, so nothing is dropped and
+// there is nothing to warn about. Only what is not text is refused, and what the text box cannot hold without slowing the page (5 MB).
+export const TEXT_MAX = 5 * 1024 * 1024
+const plainText = (bytes) => {
+  if (!(bytes instanceof Uint8Array) || bytes.includes(0)) return { ok: false, reason: 'not-text' }
+  if (bytes.length > TEXT_MAX) return { ok: false, reason: 'text-too-big' }
+  try { new TextDecoder('utf-8', { fatal: true }).decode(bytes) } catch (e) { return { ok: false, reason: 'not-text' } }
+  return { ok: true, losses: [], block: false }
+}
+
 // A slide deck: one HTML file written by the deck builder (deck-build.mjs). The editor reads it as data, never runs it: what is not a slide (a script, a frame, an
 // event handler) is not kept when it saves, so the guard says so before. The marker and the slides' container are what make the file a deck.
 const deck = (bytes) => {
@@ -132,12 +146,13 @@ const pdf = (bytes) => {
 /**
  * `{ ok: true, losses: [{ code, level, count }], block }` for a file a light editor may open (`block`: some loss is certain, ask first), or
  * `{ ok: false, reason }` — 'not-a-zip', 'zip64', 'part-too-big', 'too-many-parts' (the container), `not-a-<format>` (a zip without the part that makes it one),
- * 'not-text' (a Markdown or deck file that is not UTF-8 text), 'not-a-deck' (HTML without the deck marker) or 'not-a-pdf'.
+ * 'not-text' (a Markdown, deck, plain-text, CSV or JSON file that is not UTF-8 text), 'text-too-big' (more than 5 MB of text), 'not-a-deck' (HTML without the deck marker) or 'not-a-pdf'.
  */
 export const inspect = (format, bytes) => {
   const spec = FORMATS[format]
   if (spec === undefined) return { ok: false, reason: 'unsupported-format' }
   if (format === 'md') return markdown(bytes)
+  if (spec.editor === 'text') return plainText(bytes)
   if (format === 'pdf') return pdf(bytes)
   if (format === 'deck') return deck(bytes)
   try {

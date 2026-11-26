@@ -22,6 +22,32 @@ window.__ModuleLoader__.load({
     const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
     // Inside the Kybernos phone app (user agent `KybernosHost/<v> (ios|android)`) the app offers no sign-up (store rules, kybernos-host/STORES.md item 6): the footer says "Sign in" only.
     const inPhoneApp = typeof navigator !== 'undefined' && /\bKybernosHost\/\S+ \((ios|android)\)/.test(String(navigator.userAgent))
+    // What the phone's shell says it can open (`KybernosCaps/<list>` in the user agent, docs/dev/kaby-mode-shell-contract.md §1b). `signin` (§1c): the shell has its own sign-in door, `kybernos://signin`.
+    const shellCan = (name) => {
+      try {
+        if (inPhoneApp !== true) return false
+        const m = /(?:^|\s)KybernosCaps\/([a-z][a-z0-9,-]{0,63})(?=\s|$)/.exec(String(navigator.userAgent))
+        return m !== null && m[1].split(',').indexOf(name) >= 0
+      } catch (e) { return false }
+    }
+    // The signed-out phone's padlocks (Step 6 part 3). Which rows of the drawer are locked while nobody is signed in is the locked Simple preset's business (`options.padlock` of the Theme plugin,
+    // read through `window.__KB_THEME_LOCKED__`, only in Kaby mode: the html class `kb-kaby`); this bundle knows whether somebody is signed in, so it draws the padlock and the sheet. No list, an
+    // unreadable preset, or Kaby mode off = no padlock, and the drawer is exactly the full app's. Only the rows that have a sentence below can be locked.
+    const PADLOCK_ROWS = Object.freeze(['tasks', 'connectors'])
+    const padlockRows = () => {
+      try {
+        if (typeof document === 'undefined' || !document.documentElement.classList.contains('kb-kaby')) return []
+        const l = window.__KB_THEME_LOCKED__
+        const o = l !== undefined && l !== null && typeof l.options === 'function' ? l.options('locked-simple') : null
+        const list = o !== null && typeof o === 'object' && Array.isArray(o.padlock) ? o.padlock : []
+        return PADLOCK_ROWS.filter((id) => list.indexOf(id) >= 0)
+      } catch (e) { return [] }
+    }
+    const PADLOCK_ICON = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect width='18' height='11' x='3' y='11' rx='2'/><path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg>"
+    const PADLOCK_CSS = (() => {
+      const mask = 'url("data:image/svg+xml,' + encodeURIComponent(PADLOCK_ICON) + '") center / contain no-repeat'
+      return PADLOCK_ROWS.map((id) => 'html[data-kb-padlock~="' + id + '"] [data-kb-row="' + id + '"]').map((row) => row + '{position:relative}\n' + row + '::after{content:"";position:absolute;inset-inline-end:14px;top:50%;width:16px;height:16px;margin-top:-8px;background:currentColor;opacity:.62;pointer-events:none;-webkit-mask:' + mask + ';mask:' + mask + '}').join('\n')
+    })()
 
     // Same local contract as kybernos-plugin: insert(css) → dispose.
     const styles = (() => {
@@ -47,10 +73,10 @@ window.__ModuleLoader__.load({
         connectorAskWaiting: 'En attente d’approbation',
         connectorAskReject: 'Refuser',
         connectorAskAllow: 'Autoriser une fois',
-        subtitle: 'Connecte DSH à ton compte Kybernos.',
+        subtitle: 'Connecte cette appli à ton compte Kybernos.',
         connect: 'Connecter Kybernos Cloud',
         pairingTitle: 'Appairage en cours',
-        pairingBody: 'Ouvre la page d\'activation : le code est copié, colle-le là-bas pour confirmer. DSH se connectera tout seul.',
+        pairingBody: 'Ouvre la page d\'activation : le code est copié, colle-le là-bas pour confirmer. Kybernos se connectera tout seul.',
         openPage: 'Ouvrir la page d\'activation',
         copyCode: 'Copier le code',
         copied: 'Code copié',
@@ -62,7 +88,7 @@ window.__ModuleLoader__.load({
         // DSH already says « Teams » (AI Teams): the same word here, not two
         // vocabularies for the same thing.
         workspaces: 'Teams',
-        kybers: 'Agent Teams',
+        kybers: 'AI Agent Teams',
         // ── the workspace: the footer row becomes a selector, and its page ──
         spaceTitle: 'Équipe',
         wsSwitchTitle: 'Changer d\'équipe',
@@ -118,6 +144,10 @@ window.__ModuleLoader__.load({
         profCompte: 'Compte',
         profParrain: 'Parrainage',
         profApparence: 'Apparence',
+        menuDisplay: 'Affichage',
+        displayAuto: 'Auto',
+        displaySimple: 'Simple',
+        displayComplete: 'Complet',
         profLogout: 'Se déconnecter',
         spaceMark: 'actif',
         spaceUnknown: 'Équipe inconnue — rien n\'a été changé.',
@@ -129,11 +159,11 @@ window.__ModuleLoader__.load({
         revokedTitle: 'Reconnexion requise',
         revokedBody: 'Cette session a été révoquée depuis Kybernos.',
         errorTitle: 'Connexion impossible',
-        errNet: 'DSH ne joint pas le serveur Kybernos. Vérifie la connexion, puis réessaie.',
+        errNet: 'L’appli ne joint pas le serveur Kybernos. Vérifie la connexion, puis réessaie.',
         errBusy: 'Trop de tentatives en peu de temps. Attends une minute, puis réessaie.',
         errStart: 'Le serveur Kybernos n\'a pas accepté la demande de connexion. Réessaie dans un instant.',
         errProfile: 'Ton compte n\'a pas pu être lu à l\'instant. Réessaie dans un instant.',
-        errUnreadable: 'Le serveur a répondu quelque chose que DSH ne comprend pas. Réessaie ; si cela dure, vérifie l\'adresse du serveur.',
+        errUnreadable: 'Le serveur a répondu quelque chose que Kybernos ne comprend pas. Réessaie ; si cela dure, vérifie l\'adresse du serveur.',
         pairingExpires: 'Code valable jusqu\'à',
         pairingDenied: 'La connexion a été refusée dans le navigateur. Recommence si c\'était une erreur.',
         pairingExpired: 'Le code a expiré avant d\'être confirmé. Recommence.',
@@ -151,7 +181,7 @@ window.__ModuleLoader__.load({
         footEnded: 'Ta session est terminée',
         sessionEnded: 'Ta session est terminée : le serveur ne reconnaît plus cet appareil. Reconnecte-toi pour continuer.',
         footUnreadable: 'Session impossible à lire',
-        sessionUnreadable: 'Le fichier de connexion de ce DSH n\'a pas pu être lu (il est abîmé ou illisible), donc DSH te croit déconnecté. Reconnecte-toi pour continuer.',
+        sessionUnreadable: 'Le fichier de connexion de cette appli n\'a pas pu être lu (il est abîmé ou illisible), donc elle te croit déconnecté. Reconnecte-toi pour continuer.',
         // ── Footer rework (30/09, « Open menu » mockup) ──
         notifTitle: 'Notifications',
         notifEmpty: 'Rien de neuf pour l’instant.',
@@ -181,14 +211,16 @@ window.__ModuleLoader__.load({
         quotaBackUnknown: 'à mesure que l\'usage ancien sort de cette fenêtre, et il est entier {window} après ton dernier appel',
         quotaMoreSolo: ' Passe à une formule supérieure ou ajoute des crédits pour continuer maintenant.',
         quotaMoreSoloWait: ' Passe à une formule supérieure pour continuer maintenant, ou attends.',
-        rowNoAdapter: 'Ce modèle vient de ton compte Kybernos, et ce DSH n\'y est plus connecté. Reconnecte-toi pour l\'utiliser.',
-        rowTeamGone: 'Tu n\'es plus dans l\'équipe à laquelle ce chat était facturé, donc le message n\'est pas parti. DSH met tes équipes à jour : renvoie-le dans un instant.',
-        rowTeamGoneNow: 'Tu n\'es plus dans l\'équipe à laquelle ce chat était facturé, donc le message n\'est pas parti. DSH est maintenant dans {name} : renvoie-le.',
+        rowNoAdapter: 'Ce modèle vient de ton compte Kybernos, et cette appli n\'y est plus connectée. Reconnecte-toi pour l\'utiliser.',
+        rowPhoneNoProcess: 'Cette action a besoin d’un programme externe qui ne peut pas tourner sur ce téléphone. Connecte ou choisis un ordinateur Kybernos distant ou cloud pour l’exécuter.',
+        rowPhoneConnectComputer: 'Connecter un ordinateur',
+        rowTeamGone: 'Tu n\'es plus dans l\'équipe à laquelle ce chat était facturé, donc le message n\'est pas parti. Kybernos met tes équipes à jour : renvoie-le dans un instant.',
+        rowTeamGoneNow: 'Tu n\'es plus dans l\'équipe à laquelle ce chat était facturé, donc le message n\'est pas parti. Kybernos est maintenant dans {name} : renvoie-le.',
         rowRouteStale: 'Tes messages seraient facturés à {name}. Réessaie.',
         rowTeamLeft: 'Tu n\'es plus dans cette équipe, donc le message n\'est pas parti. Cette fenêtre reste liée à cette équipe : ouvre Personal pour continuer.',
         rowTeamLeftOpen: 'Ouvrir Personal',
         teamLeftName: 'Équipe quittée',
-        rowRetryDown: 'Le serveur Kybernos « {name} » ({host}) ne répond pas : DSH continue d\'essayer',
+        rowRetryDown: 'Le serveur Kybernos « {name} » ({host}) ne répond pas : l’appli continue d\'essayer',
         quotaNoPlan: '{name} n\'a pas encore de formule : personne ne peut y utiliser les modèles.',
         quotaNoPlanAdmin: ' Choisis-en une pour les activer.',
         quotaNoPlanMember: ' Demande à un propriétaire ou à un admin de {name} d\'en choisir une.',
@@ -218,6 +250,13 @@ window.__ModuleLoader__.load({
         spaceSwitching: 'Changement en cours…',
         teamDshStarting: 'Démarrage…',
         teamDshFailed: 'Impossible d\'ouvrir {name} pour le moment. Réessaie dans un instant.',
+        teamDshPhone: 'Les équipes ne sont pas encore disponibles sur le téléphone.',
+        padlockTasksTitle: 'Les automatisations demandent un compte',
+        padlockTasksText: 'Connecte-toi pour programmer des automatisations.',
+        padlockAppsTitle: 'Les apps demandent un compte',
+        padlockAppsText: 'Connecte-toi pour relier tes apps.',
+        padlockSignIn: 'Se connecter',
+        padlockLater: 'Pas maintenant',
         teamDshReady: '{name} est prête dans sa propre fenêtre.',
         teamDshOpen: 'Ouvrir',
         winTeam: 'Équipe',
@@ -342,9 +381,9 @@ window.__ModuleLoader__.load({
         kyImport: 'Importer les modèles',
         kyReimport: 'Réimporter',
         kyImporting: 'Import…',
-        kyChatsTitle: 'Chats DSH',
-        kyChatsNote: 'Envoie le titre et la date de tes conversations DSH (jamais leur contenu) à ton compte Kybernos, pour qu’elles apparaissent dans la liste « Conversations DSH » de l’application web. Rien n’est envoyé sans ta confirmation.',
-        kyChatsSend: 'Envoyer les chats DSH',
+        kyChatsTitle: 'Chats Kybernos',
+        kyChatsNote: 'Envoie le titre et la date de tes conversations Kybernos (jamais leur contenu) à ton compte Kybernos, pour qu’elles apparaissent dans la liste « Conversations DSH » de l’application web. Rien n’est envoyé sans ta confirmation.',
+        kyChatsSend: 'Envoyer les chats Kybernos',
         kyChatsAsk: 'Envoyer la liste maintenant ?',
         kyChatsYes: 'Oui, envoyer',
         kyChatsNo: 'Annuler',
@@ -360,10 +399,10 @@ window.__ModuleLoader__.load({
         connectorAskWaiting: 'Waiting for approval',
         connectorAskReject: 'Reject',
         connectorAskAllow: 'Allow once',
-        subtitle: 'Connect DSH to your Kybernos account.',
+        subtitle: 'Connect this app to your Kybernos account.',
         connect: 'Connect Kybernos Cloud',
         pairingTitle: 'Pairing in progress',
-        pairingBody: 'Open the activation page: the code is copied, paste it there to confirm. DSH will connect on its own.',
+        pairingBody: 'Open the activation page: the code is copied, paste it there to confirm. Kybernos will connect on its own.',
         openPage: 'Open activation page',
         copyCode: 'Copy code',
         copied: 'Code copied',
@@ -375,7 +414,7 @@ window.__ModuleLoader__.load({
         // DSH already says « Teams » (AI Teams): the same word here, not two
         // vocabularies for the same thing.
         workspaces: 'Teams',
-        kybers: 'agent teams',
+        kybers: 'AI agent teams',
         spaceTitle: 'Team',
         wsSwitchTitle: 'Switch team',
         wsPageTitle: 'Team',
@@ -430,6 +469,10 @@ window.__ModuleLoader__.load({
         profCompte: 'Account',
         profParrain: 'Referral',
         profApparence: 'Appearance',
+        menuDisplay: 'Display',
+        displayAuto: 'Auto',
+        displaySimple: 'Simple',
+        displayComplete: 'Complete',
         profLogout: 'Sign out',
         spaceMark: 'active',
         spaceUnknown: 'Unknown team — nothing was changed.',
@@ -441,11 +484,11 @@ window.__ModuleLoader__.load({
         revokedTitle: 'Reconnection required',
         revokedBody: 'This session was revoked from Kybernos.',
         errorTitle: 'Could not connect',
-        errNet: 'DSH cannot reach the Kybernos server. Check the connection, then try again.',
+        errNet: 'The app cannot reach the Kybernos server. Check the connection, then try again.',
         errBusy: 'Too many attempts in a short time. Wait a minute, then try again.',
         errStart: 'The Kybernos server did not accept the connection request. Try again in a moment.',
         errProfile: 'Your account could not be read just now. Try again in a moment.',
-        errUnreadable: 'The server answered something DSH cannot read. Try again; if it keeps happening, check the address of the server.',
+        errUnreadable: 'The server answered something Kybernos cannot read. Try again; if it keeps happening, check the address of the server.',
         pairingExpires: 'Code valid until',
         pairingDenied: 'The connection was refused in the browser. Start again if it was a mistake.',
         pairingExpired: 'The code expired before it was confirmed. Start again.',
@@ -463,7 +506,7 @@ window.__ModuleLoader__.load({
         footEnded: 'Your session ended',
         sessionEnded: 'Your session ended: the server no longer recognises this device. Sign in again to carry on.',
         footUnreadable: 'Session could not be read',
-        sessionUnreadable: 'This DSH\'s connection file could not be read (it is damaged or unreadable), so DSH takes you for signed out. Sign in again to carry on.',
+        sessionUnreadable: 'This app\’s connection file could not be read (it is damaged or unreadable), so it takes you for signed out. Sign in again to carry on.',
         notifTitle: 'Notifications',
         notifEmpty: 'Nothing new so far.',
         notifClear: 'Clear all',
@@ -492,14 +535,16 @@ window.__ModuleLoader__.load({
         quotaBackUnknown: 'as older use leaves that window, and is whole again {window} after your last call',
         quotaMoreSolo: ' Upgrade or add credits to go on now.',
         quotaMoreSoloWait: ' Upgrade to go on now, or wait.',
-        rowNoAdapter: 'This model comes from your Kybernos account, and this DSH is not signed in to it any more. Sign in again to use it.',
-        rowTeamGone: 'You are no longer in the team this chat was billed to, so the message was not sent. DSH is updating your teams: send it again in a moment.',
-        rowTeamGoneNow: 'You are no longer in the team this chat was billed to, so the message was not sent. DSH is now in {name}: send it again.',
+        rowNoAdapter: 'This model comes from your Kybernos account, and this app is not signed in to it any more. Sign in again to use it.',
+        rowPhoneNoProcess: 'This task needs an external program that cannot run on this phone. Connect or choose a remote or cloud Kybernos computer to run it.',
+        rowPhoneConnectComputer: 'Connect a computer',
+        rowTeamGone: 'You are no longer in the team this chat was billed to, so the message was not sent. Kybernos is updating your teams: send it again in a moment.',
+        rowTeamGoneNow: 'You are no longer in the team this chat was billed to, so the message was not sent. Kybernos is now in {name}: send it again.',
         rowRouteStale: 'Your messages would be billed to {name}. Try again.',
         rowTeamLeft: 'You are no longer in this team, so the message was not sent. This window stays with that team: open Personal to carry on.',
         rowTeamLeftOpen: 'Open Personal',
         teamLeftName: 'Team you left',
-        rowRetryDown: 'The Kybernos server “{name}” ({host}) is not answering: DSH keeps retrying',
+        rowRetryDown: 'The Kybernos server “{name}” ({host}) is not answering: the app keeps retrying',
         quotaNoPlan: '{name} has no plan yet, so nobody in it can use the models.',
         quotaNoPlanAdmin: ' Choose a plan to turn them on.',
         quotaNoPlanMember: ' Ask an owner or admin of {name} to choose one.',
@@ -529,6 +574,13 @@ window.__ModuleLoader__.load({
         spaceSwitching: 'Switching…',
         teamDshStarting: 'Starting…',
         teamDshFailed: 'Could not open {name} right now. Try again in a moment.',
+        teamDshPhone: 'Teams are not available on the phone yet.',
+        padlockTasksTitle: 'Automations need an account',
+        padlockTasksText: 'Sign in to set up automations.',
+        padlockAppsTitle: 'Apps need an account',
+        padlockAppsText: 'Sign in to connect your apps.',
+        padlockSignIn: 'Sign in',
+        padlockLater: 'Not now',
         teamDshReady: '{name} is ready in its own window.',
         teamDshOpen: 'Open',
         winTeam: 'Team',
@@ -651,9 +703,9 @@ window.__ModuleLoader__.load({
         kyImport: 'Import models',
         kyReimport: 'Re-import',
         kyImporting: 'Importing…',
-        kyChatsTitle: 'DSH chats',
-        kyChatsNote: 'Sends the title and date of your DSH chats (never what is said in them) to your Kybernos account, so they appear in the “DSH conversations” list of the web app. Nothing is sent until you confirm.',
-        kyChatsSend: 'Send DSH chats',
+        kyChatsTitle: 'Kybernos chats',
+        kyChatsNote: 'Sends the title and date of your Kybernos chats (never what is said in them) to your Kybernos account, so they appear in the “DSH conversations” list of the web app. Nothing is sent until you confirm.',
+        kyChatsSend: 'Send Kybernos chats',
         kyChatsAsk: 'Send the list now?',
         kyChatsYes: 'Yes, send',
         kyChatsNo: 'Cancel',
@@ -1009,6 +1061,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
 .kbl-advbody{display:flex;flex-direction:column;gap:14px}
 @media (prefers-reduced-motion: reduce){.kbl-advc{transition:none}}
 .kbl-ok{font-size:13px;color:var(--dsw-alias-label-secondary)}
+${PADLOCK_CSS}
 `
 
     /** Phone (paired device) — Lucide stroke, like the rest of the footer. */
@@ -1122,6 +1175,13 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
     const LinkIcon = (props) => svgIcon(() => [
       h('path', { key: 'a', d: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' }),
       h('path', { key: 'b', d: 'M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' }),
+    ], props)
+
+    // Display (the mode: Auto, Simple, Complete): two sliders.
+    const DisplayIcon = (props) => svgIcon(() => [
+      h('path', { key: 'a', d: 'M4 8h8M18 8h2M4 16h2M12 16h8', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round' }),
+      h('circle', { key: 'b', cx: 15, cy: 8, r: 3, stroke: 'currentColor', strokeWidth: 1.75 }),
+      h('circle', { key: 'c', cx: 9, cy: 16, r: 3, stroke: 'currentColor', strokeWidth: 1.75 }),
     ], props)
 
     const ContrastIcon = (props) => svgIcon(() => [
@@ -1327,6 +1387,22 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
     // (the server's `used_percent`, relayed by the host as `usage`): never tokens, never dollars. Pure: facts and a translator in, a sentence out.
     // `null` means no fact explains it (the server did not answer, or nothing is used up or close to it): the caller then keeps DSH's own words.
     const quotaFill = (text, values) => String(text).replace(/\{(\w+)\}/g, (m, k) => (values[k] !== undefined ? String(values[k]) : m))
+    // A short notice on the page itself (not in a card nor a sheet that may be closed or not drawn: the phone's footer card is not). One at a time, it goes by itself, a tap puts it away. It
+    // takes the colours of DSH's toasts and keeps clear of the home bar.
+    const pageToast = (text) => {
+      const old = document.querySelector('[data-kb="kc-toast"]')
+      if (old !== null) old.remove()
+      const el = document.createElement('div')
+      el.setAttribute('data-kb', 'kc-toast')
+      el.setAttribute('role', 'status')
+      el.setAttribute('aria-live', 'polite')
+      el.textContent = String(text)
+      el.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(var(--kb-sab, env(safe-area-inset-bottom, 0px)) + 20px);z-index:2147483000;box-sizing:border-box;max-width:420px;margin:0 auto;padding:12px 16px;border-radius:12px;font:inherit;font-size:14px;line-height:1.4;background:var(--dsw-alias-toast-bg, #2b3445);color:var(--dsw-alias-toast-label, #fff);box-shadow:0 6px 24px rgba(0,0,0,.28)'
+      const gone = () => { try { el.remove() } catch (e) { /* gone */ } }
+      el.addEventListener('click', gone)
+      document.body.appendChild(el)
+      window.setTimeout(gone, 7000)
+    }
     // A count with its noun: the « 1 » twin of the row (« 1 hour ») when n is 1 and the translator has one, the plural row otherwise.
     const quotaCount = (t, key, n, more) => {
       const one = n === 1 ? t(key + '1') : key + '1'
@@ -1765,6 +1841,14 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             : { value: '', fallback: false }
         }
 
+        // A dialog is drawn on <body>, never inside the slot that renders it. The footer slot is hidden on a phone (mobile.css keeps it at 0 x 0 and
+        // `visibility:hidden`, the account menu being drawn by the phone layer) and the drawer column is itself a fixed, transformed box: a scrim drawn inside
+        // either is invisible or only covers the drawer. On a desktop nothing changes (the scrim was `position:fixed; inset:0` already).
+        const onBody = (node) => {
+          try { if (typeof document !== 'undefined' && document.body !== null && document.body !== undefined) return ReactDOM.createPortal(node, document.body) } catch (e) { /* no DOM: drawn in place */ }
+          return node
+        }
+
         const Row = (props) => h('div', { className: 'kbc-row' },
           h('span', { className: 'kbc-k' }, props.label),
           h('span', {
@@ -1949,10 +2033,10 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
               down !== null && down.canSwitch === true ? h('button', { type: 'button', className: 'kbc-btn-ghost', 'data-kb': 'card-switch-server', onClick: () => { props.onClose(); openServersPage() } }, t('srvSwitch')) : null))
           }
 
-          return h('div', { className: 'kbc-scrim', onClick: (e) => { if (e.target === e.currentTarget) props.onClose() } },
+          return onBody(h('div', { className: 'kbc-scrim', onClick: (e) => { if (e.target === e.currentTarget) props.onClose() } },
             h('div', { className: 'kbc-card', role: 'dialog', 'aria-label': t('menu') },
               header,
-              h('div', null, body)))
+              h('div', null, body))))
         }
 
         // ── THE LIST OF SPACES (the account menu's top, or its « Switch team » panel) ────────────────────────────────────────────────
@@ -2059,7 +2143,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             setErreur(t('wsNewErr') + (res !== null && typeof res.status === 'number' && res.status > 0 ? ' (' + String(res.status) + ')' : ''))
           }
 
-          return h('div', { className: 'kbc-scrim', onClick: (e) => { if (e.target === e.currentTarget) props.onClose() } },
+          return onBody(h('div', { className: 'kbc-scrim', onClick: (e) => { if (e.target === e.currentTarget) props.onClose() } },
             h('div', { className: 'kbc-card', role: 'dialog', 'aria-label': t('wsNewTitle'), 'data-kb': 'new-team', style: { maxWidth: '340px' } },
               // The card's own header (title, then the cross at the far end): the title used to run under a bare button.
               h('div', { className: 'kbc-head' },
@@ -2077,7 +2161,27 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                 hosted !== null
                   ? h('a', { className: 'kbws-link', href: hosted, target: '_blank', rel: 'noreferrer' }, t('wsNewHosted'))
                   : h('button', { type: 'button', className: 'kbc-btn-primary', disabled: busy || nom.trim() === '', onClick: () => { void creer() } }, t('wsNewCreate')),
-                erreur !== '' ? h('div', { className: 'kbc-note kbc-warn' }, erreur) : null)))
+                erreur !== '' ? h('div', { className: 'kbc-note kbc-warn' }, erreur) : null))))
+        }
+
+        // ── The padlock's sheet (Step 6 part 3): a row of the drawer that needs an account, tapped while nobody is signed in. One sentence about the ACCOUNT (not about what a model can do), « Sign in » and « Not now ». ──
+        const PadlockSheet = (props) => {
+          React.useEffect(() => {
+            const onKey = (ev) => { if (ev.key === 'Escape') props.onClose() }
+            window.addEventListener('keydown', onKey)
+            return () => window.removeEventListener('keydown', onKey)
+          }, [props.onClose])
+          const apps = props.row === 'connectors'
+          const title = t(apps ? 'padlockAppsTitle' : 'padlockTasksTitle')
+          return onBody(h('div', { className: 'kbc-scrim', 'data-kb': 'padlock-scrim', onClick: (e) => { if (e.target === e.currentTarget) props.onClose() } },
+            h('div', { className: 'kbc-card', role: 'dialog', 'aria-modal': 'true', 'aria-label': title, 'data-kb': 'padlock-sheet', 'data-row': props.row, style: { maxWidth: '340px' } },
+              h('div', { className: 'kbc-head' },
+                h('span', { className: 'kbc-title' }, title),
+                h('button', { type: 'button', className: 'kbc-x', onClick: props.onClose, 'aria-label': t('close') }, '\u00d7')),
+              h('div', { className: 'kbc-body', 'data-kb': 'padlock-text' }, t(apps ? 'padlockAppsText' : 'padlockTasksText')),
+              h('div', { className: 'kbc-actions' },
+                h('button', { type: 'button', className: 'kbc-btn-primary', 'data-kb': 'padlock-signin', autoFocus: true, onClick: props.onSignIn }, t('padlockSignIn')),
+                h('button', { type: 'button', className: 'kbc-btn-ghost', 'data-kb': 'padlock-later', onClick: props.onClose }, t('padlockLater'))))))
         }
 
         // ── JOINING A TEAM WITH AN INVITATION LINK (the row under « Create a team ») ─────────────────────────────────────────────────
@@ -2143,7 +2247,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
 
           const roleWord = preview !== null ? t(preview.role === 'owner' ? 'roleOwner' : (preview.role === 'admin' ? 'roleAdmin' : 'roleMember')).toLowerCase() : ''
           const mismatch = preview !== null && typeof props.email === 'string' && props.email !== '' && typeof preview.email === 'string' && preview.email !== '' && preview.email.toLowerCase() !== props.email.toLowerCase()
-          return h('div', { className: 'kbc-scrim', onClick: (e) => { if (e.target === e.currentTarget) props.onClose() } },
+          return onBody(h('div', { className: 'kbc-scrim', onClick: (e) => { if (e.target === e.currentTarget) props.onClose() } },
             h('div', { className: 'kbc-card', role: 'dialog', 'aria-label': t('joinRow'), 'data-kb': 'join-team', 'data-step': step, style: { maxWidth: '380px' } },
               h('div', { className: 'kbc-head' },
                 h('span', { className: 'kbc-title' }, t('joinRow')),
@@ -2168,7 +2272,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
               note !== '' ? h('div', { className: 'kbc-note kbc-warn', role: 'alert', 'data-kb': 'join-note', style: { marginTop: '10px' } }, note) : null,
               exit !== null
                 ? h('div', { style: { marginTop: '10px' } }, h('a', { className: 'kbws-link', 'data-kb': 'join-browser', href: exit, target: '_blank', rel: 'noopener noreferrer' }, t('joinBrowser')))
-                : null))
+                : null)))
         }
 
         // ── THE UNIFIED CARD MENU (30/09 rework, « Open menu » mockup)
@@ -2283,6 +2387,17 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           opts !== undefined && opts.ext === true ? h('span', { className: 'kbfp-mext', 'aria-hidden': 'true' }, h(ExtIcon, { size: 16 })) : null)
         // The light/dark segment of the menus. It follows the scheme the core plugin publishes (attribute + window event) and a
         // choice applies at once, the menu staying open.
+        // The Display row (Auto, Simple, Complete): next to Appearance, it opens the sheet the Mobile bundle keeps (`window.__KB_MODE__`, published by kybernos-mobile). Without that seam (the bundle is off) there is no row.
+        // The tail says the person's choice. The menu is closed first, like any entry.
+        const displayRow = (entree) => {
+          try {
+            const seam = window.__KB_MODE__
+            if (seam === undefined || seam === null || typeof seam.openSheet !== 'function' || typeof seam.state !== 'function') return null
+            const pref = seam.state().pref
+            const word = pref === 'simple' ? t('displaySimple') : (pref === 'complete' ? t('displayComplete') : t('displayAuto'))
+            return entree('display', h(DisplayIcon, { size: 18 }), t('menuDisplay'), () => { try { seam.openSheet() } catch (e) { /* the sheet is not there */ } }, { tail: word })
+          } catch (e) { return null }
+        }
         const AppearanceRow = () => {
           const schemaPair = React.useState(() => {
             try {
@@ -2403,6 +2518,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           h('div', { className: 'kbfp-msep' }),
           h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-account' },
             h(AppearanceRow, null),
+            displayRow(entree),
             entree('settings', h(GearIcon, { size: 18 }), t('menuSettingsApp'), ouvrirReglagesDsh)),
           h('div', { className: 'kbfp-msep' }),
           h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-links' },
@@ -2425,13 +2541,13 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
         const upFeatureText = (k) => { if (UP_FEATURES[k] !== undefined) return t(UP_FEATURES[k]); const w = String(k).replace(/[._]/g, ' '); return w.charAt(0).toUpperCase() + w.slice(1) }
         // <up-feat:end>
         const upLocale = () => { const l = lang(); return l === 'en' ? 'en-US' : l === 'fr' ? 'fr-FR' : l }
-        /** What a top-up pack grants, in the words the server's shape allows: credits when it says so, money
-         *  when it only carries `grant_usd` (both shapes are in the fixtures), nothing when it carries neither. */
+        /** What a top-up pack grants, in dollars when the server gives them (`grant_usd`): the person sees money, never the internal credits unit.
+         *  A pack that only carries `grant_credits` (an older shape, in the fixtures) still says its credits; nothing when it carries neither. */
         const upGrantText = (pack) => {
+          const usd = pack === null || pack === undefined ? null : pack.grant_usd
+          if (typeof usd === 'string' && usd !== '') return upMoney(usd, 'USD')
           const credits = pack === null || pack === undefined ? null : pack.grant_credits
           if (Number.isInteger(credits) && credits > 0) return Number(credits).toLocaleString(upLocale()) + ' ' + t('upCreditsUnit')
-          const usd = pack === null || pack === undefined ? null : pack.grant_usd
-          if (typeof usd === 'string' && usd !== '') return upMoney(usd, 'USD') + ' ' + t('upCreditsUnit')
           return ''
         }
         const upMoney = (amount, currency) => {
@@ -2695,7 +2811,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                 pr.retry === true && typeof action.again === 'function' ? h('button', { type: 'button', className: 'kbup-go', 'data-kb': 'upgrade-retry', onClick: action.again }, t('upRetry')) : null))
           }
 
-          return h('div', { className: 'kbup-scrim', 'data-kb': 'upgrade-dialog', onClick: (e) => { if (e.target === e.currentTarget) props.onClose() } },
+          return onBody(h('div', { className: 'kbup-scrim', 'data-kb': 'upgrade-dialog', onClick: (e) => { if (e.target === e.currentTarget) props.onClose() } },
             h('div', { className: 'kbup', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('upTitle'), tabIndex: -1, ref: rootRef },
               h('div', { className: 'kbup-head' },
                 h('div', null,
@@ -2703,7 +2819,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                   wsName !== '' ? h('p', { className: 'kbup-sub' }, t('upFor') + ' ' + wsName) : null),
                 h('button', { type: 'button', className: 'kbc-x', 'aria-label': t('close'), 'data-kb': 'upgrade-close', onClick: props.onClose }, '✕')),
               banner,
-              body))
+              body)))
         }
         const UserMenu = (props) => {
           React.useEffect(() => {
@@ -2773,7 +2889,10 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           const subPos = posPair[0]
           const setSubPos = posPair[1]
           // Collapsed rail: the menu leaves the column (see railMenuBox). Read from the card when it renders: the card does not move while the menu is open.
-          const anchor = props.narrow === true && props.toggleRef !== undefined ? props.toggleRef.current : null
+          // A phone (the app's drawer, a narrow window) takes the same way out: the sidebar column is a fixed box of its own, and a menu left inside it can never rise over what the page
+          // draws on <body> (the dimmed page behind a sheet, the sheet layer of the phone app); measured on a phone, the menu stayed under the dim and the drawer went with it.
+          const phoneBox = (() => { try { return typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 700px), (max-height: 500px) and (pointer: coarse)').matches === true } catch (e) { return false } })()
+          const anchor = (props.narrow === true || phoneBox === true) && props.toggleRef !== undefined ? props.toggleRef.current : null
           const railBox = anchor !== null && anchor !== undefined ? railMenuBox(anchor.getBoundingClientRect(), window.innerWidth, window.innerHeight) : null
           React.useEffect(() => {
             if (switchOpen !== true) { setSubPos(null); return undefined }
@@ -2834,7 +2953,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           },
             maj !== null
               ? h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-update' },
-                  entree('update', h(UpdateIcon, { size: 18 }), t('menuUpdate'), () => envoyer('update'), { amber: true, tail: (maj.kind === 'moteur' ? 'DSH ' : '') + (typeof maj.version === 'string' ? maj.version : maj.cible) }),
+                  entree('update', h(UpdateIcon, { size: 18 }), t('menuUpdate'), () => envoyer('update'), { amber: true, tail: (maj.kind === 'moteur' ? 'Kybernos ' : '') + (typeof maj.version === 'string' ? maj.version : maj.cible) }),
                   h('div', { className: 'kbfp-msep' }))
               : null,
             h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-teams', 'data-mode': mode },
@@ -2850,7 +2969,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                   h('span', { className: 'kbfp-mheadname', title: vueEspace.name }, vueEspace.name),
                   h('span', { className: 'kbfp-mheadsub' }, t('wsSwitchTitle'))),
                 h(SwapIcon, { size: 14 })),
-              mode === 'inline' ? h('div', { className: 'kbfp-msep' }) : null,
+              // the rule between the list of teams and the plan card has a hook of its own: when a preset hides the teams (the phone), the rule goes with them
+              mode === 'inline' ? h('div', { className: 'kbfp-msep', 'data-kb': 'menu-teams-sep' }) : null,
               planCard,
               upgradeEntry ? entree('upgrade', h(UpgradeIcon, { size: 18 }), t('menuPlanCta'), props.onUpgradePage, { ext: true }) : null,
               // "Teams settings" = the former "Workspace settings" (same action).
@@ -2866,7 +2986,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             // What is the account's (Account, Referral) stops here; what is the app's (Appearance, Phone and channels, Settings) starts below the rule.
             h('div', { className: 'kbfp-msep' }),
             // Appearance is a CONTROL, not a page of the account: it gets its own block, between the account and the console.
-            h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-appearance' }, h(AppearanceRow, null)),
+            h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-appearance' }, h(AppearanceRow, null), displayRow(entree)),
             h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-console' },
               // Phone and channels (kybernos-mobile's window): the phone link and the messaging apps, on one screen. Offered whenever that bundle is there; what the
               // screen can do on this server and this plan it says itself.
@@ -3002,7 +3122,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             type: 'button', className: 'kbf-maj', 'data-kb': 'foot-update', onClick: ouvrirMaj,
           }, h('span', { className: 'kbf-maj-dot', 'aria-hidden': 'true' }),
             h('span', { className: 'kbf-maj-t' }, t('menuUpdate')),
-            h('span', { className: 'kbf-maj-v' }, (majInfo.kind === 'moteur' ? 'DSH ' : '') + (typeof majInfo.version === 'string' ? majInfo.version : majInfo.cible)))
+            h('span', { className: 'kbf-maj-v' }, (majInfo.kind === 'moteur' ? 'Kybernos ' : '') + (typeof majInfo.version === 'string' ? majInfo.version : majInfo.cible)))
           // REAL width of the slot: in a collapsed rail the row must change
           // shape, otherwise it overflows (measured: 167 px in a 60 px rail).
           const racineRef = React.useRef(null)
@@ -3068,7 +3188,11 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           React.useEffect(() => {
             if (flash === '') return undefined
             const id = window.setTimeout(() => { setFlash(''); setFlashSwitch(false); setFlashAct(null) }, flashSwitch === true || flashAct !== null ? 12000 : 7000)
-            return () => window.clearTimeout(id)
+            // On a phone the footer card is not drawn (the avatar opens its menu as a sheet, which closes on the choice): the notice would be set in a place nobody sees. It is then said by a toast of the
+            // page, which does not depend on the sheet.
+            // « Not seen » is read where the notice really is: a box with a size can still sit below the screen (a drawer that is shut), so the point at its centre must be on the screen AND be the notice's own.
+            const look = window.setTimeout(() => { try { const el = document.querySelector('[data-kb="foot-flash"]'); const r = el !== null ? el.getBoundingClientRect() : null; const cx = r !== null ? r.left + r.width / 2 : -1; const cy = r !== null ? r.top + r.height / 2 : -1; const on = r !== null && r.width > 0 && r.height > 0 && cx >= 0 && cy >= 0 && cx < window.innerWidth && cy < window.innerHeight && el.contains(document.elementFromPoint(cx, cy)); if (on !== true) pageToast(flash) } catch (e) { /* no toast */ } }, 80)
+            return () => { window.clearTimeout(id); window.clearTimeout(look) }
           }, [flash])
           // The account page of the SERVER, in the system browser: signed in through the single-use console link the host asks for.
           const openAccountPage = (section, workspaceId) => {
@@ -3162,7 +3286,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             const address = res !== null && res.ok === true ? (typeof res.signed_url === 'string' && res.signed_url !== '' ? res.signed_url : res.url) : null
             if (typeof address !== 'string' || address === '') {
               setFlashSwitch(false)
-              setFlash(quotaFill(t('teamDshFailed'), { name: name }))
+              // `dsh_not_found`: this host has no DSH to start a team in (the phone's embedded engine): trying again will not help, so the notice says so instead of « try again ».
+              setFlash(res !== null && res.error === 'dsh_not_found' ? t('teamDshPhone') : quotaFill(t('teamDshFailed'), { name: name }))
               return { ok: false, error: res !== null && typeof res.error === 'string' ? res.error : 'failed' }
             }
             const windowName = personal === true ? 'kybernos-personal' : 'kybernos-team-' + id
@@ -3361,6 +3486,36 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
 
           const openAndConnect = () => { setPairNote(null); setAutoStart(true); setOpen(true) }
           const openCard = () => { setAutoStart(false); setOpen(true) }
+          // « Sign in » from the signed-out menu and from a padlock's sheet: the shell's own door when it lists `signin` (`kybernos://signin`, contract §1c), else the device-code card as ever.
+          const signInHere = () => {
+            if (shellCan('signin') === true) { try { window.location.assign('kybernos://signin'); return } catch (e) { /* the card below */ } }
+            openAndConnect()
+          }
+          // The padlocks of the signed-out phone: the rows the locked preset lists carry a padlock (CSS, by the html attribute below) and a tap opens a sheet instead of the page.
+          const [padlockTick, setPadlockTick] = React.useState(0)
+          const [padlockSheet, setPadlockSheet] = React.useState(null)
+          React.useEffect(() => {
+            const again = () => setPadlockTick((n) => n + 1)
+            try { window.addEventListener('kb-locked-presets-ready', again) } catch (e) { return undefined }
+            return () => { try { window.removeEventListener('kb-locked-presets-ready', again) } catch (e) { /* gone */ } }
+          }, [])
+          React.useEffect(() => {
+            const rows = phase === 'disconnected' || phase === 'pairing' ? padlockRows() : []
+            const root = document.documentElement
+            if (rows.length === 0) { root.removeAttribute('data-kb-padlock'); setPadlockSheet(null); return undefined }
+            root.setAttribute('data-kb-padlock', rows.join(' '))
+            const tap = (ev) => {
+              const row = ev.target !== null && ev.target !== undefined && typeof ev.target.closest === 'function' ? ev.target.closest('[data-kb-row]') : null
+              if (row === null) return
+              const id = row.getAttribute('data-kb-row')
+              if (rows.indexOf(id) < 0) return
+              ev.preventDefault()
+              ev.stopPropagation()
+              setPadlockSheet(id)
+            }
+            document.addEventListener('click', tap, true)
+            return () => { document.removeEventListener('click', tap, true); root.removeAttribute('data-kb-padlock') }
+          }, [phase, padlockTick])
           // The failure row of a turn (a team without a plan) asks for the plan page: the footer owns the console link, so it opens it.
           React.useEffect(() => {
             const plan = (ev) => { const id = ev !== null && ev !== undefined && ev.detail !== null && ev.detail !== undefined && typeof ev.detail.workspace_id === 'string' ? ev.detail.workspace_id : undefined; openAccountPage('plan', id) }
@@ -3563,7 +3718,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                   toggleRef: gearRef,
                   signupUrl: (serverInfo !== null && typeof serverInfo.web === 'string' && serverInfo.web !== '' ? serverInfo.web : (serverInfo !== null && typeof serverInfo.api === 'string' ? serverInfo.api : '')),
                   onClose: () => setMenuOpen(false),
-                  onConnect: pairing ? openCard : openAndConnect,
+                  onConnect: pairing ? openCard : signInHere,
                 })
                 : null)
           }
@@ -3591,6 +3746,9 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                 email: typeof user.email === 'string' ? user.email : '',
                 onJoined: (res) => { void load(); refreshThenLoad(HOST_REFRESH_ACTION_GAP_MS); announceJoined(res) },
               })
+              : null,
+            padlockSheet !== null
+              ? h(PadlockSheet, { row: padlockSheet, onClose: () => setPadlockSheet(null), onSignIn: () => { setPadlockSheet(null); signInHere() } })
               : null,
             open === true
               ? h(CloudCard, {
@@ -3799,6 +3957,38 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
         // The host refused a turn whose model route still names the previous team (a switch made while the server did not answer, recette L3-76): its sentence is « Your messages would be
         // billed to <team>. Try again. », word for word, so the row can say it in the person's language.
         const KB_ROUTE_STALE = /^Your messages would be billed to (.+)\. Try again\.$/
+        // Phone runtime (kybernos-no-process): its own signatures are safe to recognise anywhere. A bare EPERM is not: on a computer it can be an OS, filesystem or sandbox refusal.
+        const KB_PHONE_NO_PROCESS = /\bkybernos-no-process\b|this device cannot create processes|no processes on this device|cannot run on this phone|cannot start external programs/i
+        const phoneRuntime = () => {
+          try {
+            const nav = typeof window !== 'undefined' && window.navigator !== undefined && window.navigator !== null ? window.navigator : (typeof navigator !== 'undefined' ? navigator : null)
+            const ua = nav !== null ? String(nav.userAgent || '') : ''
+            if (/\bKybernosHost\/\S+ \((ios|android)\)/.test(ua)) return true
+            return typeof window !== 'undefined' && window.__KB_APP__ !== undefined && window.__KB_APP__ !== null
+          } catch (e) { return false }
+        }
+        // Opens the native « where Kybernos runs » screen ONLY when a real door is declared: either the Kaby bridge lists `where` in shell().screens with openSettings('where'),
+        // or the app user agent declares `where` in KybernosCaps and `kybernos://where` can be opened. Returns null otherwise (never a dead button, never automatic routing).
+        const whereScreenDoor = () => {
+          try {
+            const app = typeof window !== 'undefined' ? window.__KB_APP__ : null
+            if (app !== undefined && app !== null && typeof app.shell === 'function' && typeof app.openSettings === 'function') {
+              const sh = app.shell()
+              const screens = sh !== undefined && sh !== null && Array.isArray(sh.screens) ? sh.screens : []
+              if (screens.indexOf('where') >= 0) return () => { try { app.openSettings('where') } catch (e) { /* shell unavailable */ } }
+            }
+          } catch (e) { /* bridge unavailable */ }
+          try {
+            const nav = typeof window !== 'undefined' && window.navigator !== undefined && window.navigator !== null ? window.navigator : (typeof navigator !== 'undefined' ? navigator : null)
+            const ua = nav !== null ? String(nav.userAgent || '') : ''
+            const onApp = /\bKybernosHost\/\S+ \((ios|android)\)/.test(ua)
+            const m = onApp ? /(?:^|\s)KybernosCaps\/([a-z][a-z0-9,-]{0,63})(?=\s|$)/.exec(ua) : null
+            const hasWhere = m !== null && m[1].split(',').indexOf('where') >= 0
+            const canAssign = typeof window !== 'undefined' && window.location !== undefined && window.location !== null && typeof window.location.assign === 'function'
+            if (hasWhere && canAssign) return () => { try { window.location.assign('kybernos://where') } catch (e) { /* deep link unavailable */ } }
+          } catch (e) { /* deep link unavailable */ }
+          return null
+        }
         // The failure is recent enough to be worth a read of the account (an old row in a chat's history is only worded, never acted on).
         const failureIsRecent = (data) => { const at = typeof data.time === 'number' ? data.time : Date.parse(String(data.time)); return Number.isFinite(at) ? Date.now() - at < 10 * 60 * 1000 : true }
         const turnErrorRow = (Shipped) => {
@@ -3807,6 +3997,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             const noAdapter = typeof data.message === 'string' && KB_NO_ADAPTER.test(data.message)
             const teamGone = typeof data.message === 'string' && KB_TEAM_GONE.test(data.message)
             const staleRoute = typeof data.message === 'string' ? KB_ROUTE_STALE.exec(data.message) : null
+            const phoneNoProcess = (typeof data.message === 'string' && KB_PHONE_NO_PROCESS.test(data.message)) || (data.code === 'EPERM' && phoneRuntime())
             const quotaRefused = data.code === 'QUOTA'
             const factsPair = React.useState(null)
             const facts = factsPair[0]
@@ -3846,6 +4037,9 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
               say = { text: nowIn !== null && nowIn !== '' ? quotaFill(t('rowTeamGoneNow'), { name: nowIn }) : t('rowTeamGone'), label: null, run: null }
             } else if (staleRoute !== null) {
               say = { text: quotaFill(t('rowRouteStale'), { name: staleRoute[1] }), label: null, run: null }
+            } else if (phoneNoProcess === true) {
+              const openWhere = whereScreenDoor()
+              say = { text: t('rowPhoneNoProcess'), label: openWhere !== null ? t('rowPhoneConnectComputer') : null, run: openWhere }
             } else if (noAdapter === true) {
               say = { text: t('rowNoAdapter'), label: t('footSignInAgain'), run: () => { try { window.dispatchEvent(new Event('kybernos-cloud:open')) } catch (e) { /* Event absent */ } } }
             } else if (quotaRefused === true && facts !== null && facts !== undefined && facts.ok === true && facts.no_plan === true) {

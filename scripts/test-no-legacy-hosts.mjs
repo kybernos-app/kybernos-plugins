@@ -1,8 +1,8 @@
 // The old stack is unplugged from DSH: the NEW Kybernos server is the default and the only thing the plugins talk to by default.
 //   node scripts/test-no-legacy-hosts.mjs
 //
-// 1. The built-in profile is the new server, and the two literals that cannot import it (the page's fallback, the feedback fallback) and
-//    the E2B template equal BUILTIN_API (the one place to change at go-live: packages/kybernos-cloud/server-profile.mjs).
+// 1. The built-in profile is the new server, and the two literals that cannot import it (the page's fallback, the feedback fallback)
+//    equal BUILTIN_API (the one place to change at go-live: packages/kybernos-cloud/server-profile.mjs).
 // 2. No shipped code (packages/, tests, docs and READMEs excluded) names a host of the old stack, except the allowlist below. Every entry says
 //    why it is legitimate and how many times it appears: an exception that is no longer needed fails too, so the list cannot rot.
 //
@@ -28,8 +28,6 @@ console.log('the built-in server is the new one')
   check('the page\'s fallback equals BUILTIN_API (edit KB_BUILTIN_API in packages/kybernos-plugin/client.js)', page !== null && page[1] === BUILTIN_API, page === null ? 'KB_BUILTIN_API not found' : page[1] + ' <> ' + BUILTIN_API)
   const feedback = read('packages/kybernos-plugin/index.js').match(/const KB_FEEDBACK_API_DEFAULT = '([^']*)'/)
   check('the feedback fallback equals BUILTIN_API (edit KB_FEEDBACK_API_DEFAULT in packages/kybernos-plugin/index.js)', feedback !== null && feedback[1] === BUILTIN_API, feedback === null ? 'not found' : feedback[1] + ' <> ' + BUILTIN_API)
-  const template = read('packages/kybernos-computers/template-dsh/settings.yaml').match(/^\s*baseURL:\s*(\S+)\s*$/m)
-  check('the E2B template points at BUILTIN_API/v1 (edit packages/kybernos-computers/template-dsh/settings.yaml)', template !== null && template[1] === BUILTIN_API + '/v1', template === null ? 'baseURL not found' : template[1] + ' <> ' + BUILTIN_API + '/v1')
   const defaultsInPage = read('packages/kybernos-plugin/client.js').match(/const kbServer = \{[^}]*\}/)
   check('the page starts on that address for its web app', defaultsInPage !== null && /^const kbServer = \{ web: KB_BUILTIN_API \}$/.test(defaultsInPage[0]), defaultsInPage === null ? 'not found' : defaultsInPage[0])
 }

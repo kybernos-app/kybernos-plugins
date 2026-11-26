@@ -1,12 +1,12 @@
 {
   "what": {
-    "fr": "Kaby, ton assistant : comme un téléphone avec télécommande, il travaille sur ton ordinateur. Une vraie conversation DSH, Telegram à connecter d'un geste, et l'ordinateur sur lequel il travaille.",
-    "en": "Kaby, your assistant: like a phone with a remote control, it works on your desktop. A real DSH chat, Telegram to connect in one move, and the computer it works on."
+    "fr": "Kaby, ton assistant : comme un téléphone avec télécommande, il travaille sur ton ordinateur. Une vraie conversation Kybernos, Telegram à connecter d'un geste, et l'ordinateur sur lequel il travaille.",
+    "en": "Kaby, your assistant: like a phone with a remote control, it works on your desktop. A real Kybernos chat, Telegram to connect in one move, and the computer it works on."
   },
   "steps": [
     {
-      "fr": "Ouvre « Kaby » dans le menu : une conversation DSH, et une ligne au-dessus de la saisie : contrôle à distance, Telegram, ordinateur.",
-      "en": "Open “Kaby” in the menu: a DSH chat, and one line above the composer: remote control, Telegram, computer."
+      "fr": "Ouvre « Kaby » dans le menu : une conversation Kybernos, et une ligne au-dessus de la saisie : contrôle à distance, Telegram, ordinateur.",
+      "en": "Open “Kaby” in the menu: a Kybernos chat, and one line above the composer: remote control, Telegram, computer."
     },
     {
       "fr": "Touche « Régler… », puis active Telegram : scanne le code, Démarrer, « Oui, c’est moi ».",

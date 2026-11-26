@@ -42,7 +42,9 @@ try {
   await clickText(page, 'Automations'); await sleep(2500)
   check('the suggestions sit in a dashed card, two rows', (await q(`document.querySelectorAll('[data-kb="suggested-block"] [data-kb="suggested-row"]').length`)) === 2)
   check('the card is dashed', (await q(`getComputedStyle(document.querySelector('[data-kb="suggested-block"]')).borderTopStyle`)) === 'dashed')
-  const listed = () => q(`[...document.querySelectorAll('.kba-rowline .kba-name')].map((e) => e.textContent)`)
+  // The suggestions are the Suggestions tab's (list items 04 and 07); the automations are the Active tab's: read the list there, then come back to Suggestions.
+  const tabTo = async (id) => { await q(`(document.querySelector('[data-kb="section-${id}"]') || { click() {} }).click()`); await sleep(500) }
+  const listed = async () => { await tabTo('yours'); const r = await q(`[...document.querySelectorAll('.kba-rowline .kba-name')].map((e) => e.textContent)`); await tabTo('suggestions'); return r }
   const sameNames = (a, b) => Array.isArray(a) && a.length === b.length && [...a].sort().join('|') === [...b].sort().join('|')
   check('the list holds the real automations only (the ones already there and the one made here), no suggestion', sameNames(await listed(), others.concat(['Check real automation'])), { listed: await listed(), others })
   const rowText = String(await q(`document.querySelector('[data-kb="suggested-row"]').textContent`))
@@ -58,7 +60,7 @@ try {
   await q(`document.querySelector('[data-kb="suggested-more"]').click()`); await sleep(300)
   check('...and the detail folds back', (await q(`!document.querySelector('[data-kb="suggested-detail"]')`)) === true)
   check('the menu count does not include the suggestions', String(await q(`(() => { const r = [...document.querySelectorAll('.kb4-item')].find((e) => /Automations|Deadlines|Automations/i.test(e.textContent) && e.querySelector('.kb4-badge')); return r ? r.querySelector('.kb4-badge').textContent : 'none' })()`)).trim() === String(others.length + 1), await q(`(() => { const r = [...document.querySelectorAll('.kb4-item')].find((e) => /Automations/i.test(e.textContent)); return r ? r.textContent : 'none' })()`))
-  check('the menu row pulses while suggestions wait', (await q(`(() => { const r = [...document.querySelectorAll('.kb4-item')].find((e) => e.querySelector('.kb4-badge') && /Automation|Deadline/i.test(e.textContent)); return !!r && !!r.querySelector('.kb-ping') })()`)) === true)
+  check('the menu row pulse is off once the Suggestions tab was on screen (it lights only for a suggestion that comes after)', (await q(`(() => { const r = [...document.querySelectorAll('.kb4-item')].find((e) => e.querySelector('.kb4-badge') && /Automation|Deadline/i.test(e.textContent)); return !!r && !r.querySelector('.kb-ping') })()`)) === true)
   check('the ping animates (or is static under reduced motion)', (await q(`getComputedStyle(document.querySelector('.kba-sugname .kb-ping'), '::after').animationName`)) !== undefined)
   await page.shot(join(shotDir, 'suggested-block.png')).catch(() => null)
   const run = await post({ action: 'run-now', id: s1.task.id })

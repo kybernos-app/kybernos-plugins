@@ -155,7 +155,7 @@ const mount = (pwaEnv, { failRegisterOn = null } = {}) => {
   const on = mount(undefined)
   ok('mounting does not throw', on.threw === null, String(on.threw))
   ok('a route per file under /kybernos-mobile/pwa/, and the stylesheet\'s own route is still there', pwa.FILES.every((f) => on.routes.some((r) => r.kind === 'exact' && r.path === pwa.PWA_PREFIX + f)) && on.routes.some((r) => r.path === ROUTE))
-  ok('the index gets two head rows, the small tags first and then the stylesheet', on.table.length === 2 && on.table[0].html.includes('rel="manifest"') && on.table[1].html.startsWith('<style id="' + SHEET_ID + '">'))
+  ok('the index gets seven head rows: the small tags, the stylesheet, the loading card, then the two of the display mode (its sheet and its resolver), then the two of Kaby mode (its rules and its early class)', on.table.length === 7 && on.table[0].html.includes('rel="manifest"') && on.table[1].html.startsWith('<style id="' + SHEET_ID + '">') && on.table[2].html.startsWith('<style id="kbmob-boot">') && on.table[3].html.startsWith('<style id="kbmob-mode">') && on.table[4].html.startsWith('<script>') && on.table[5].html.startsWith('<style id="kbmob-kaby">') && on.table[6].html.startsWith('<script>'))
   const route = on.routes.find((r) => r.path === pwa.PWA_PREFIX + pwa.MANIFEST_FILE)
   const ask = (headers) => { const r = fakeRes(); route.handler({ method: 'GET', headers, socket: { localPort: 3080 } }, r); return r.status }
   ok('through the mounted route: this machine\'s own Host is served', ask({ host: '127.0.0.1:3080' }) === 200 && ask({ host: 'localhost:3080', referer: 'http://localhost:3080/' }) === 200)
@@ -163,7 +163,7 @@ const mount = (pwaEnv, { failRegisterOn = null } = {}) => {
   ok('a foreign Origin is refused', ask({ host: '127.0.0.1:3080', origin: 'https://evil.example' }) === 403)
 
   const off = mount('0')
-  ok('KYBERNOS_MOBILE_PWA=0: no tags, no pwa route; the stylesheet stays', off.threw === null && off.table.length === 1 && off.table[0].html.startsWith('<style') && !off.routes.some((r) => r.path.startsWith(pwa.PWA_PREFIX)) && off.routes.some((r) => r.path === ROUTE))
+  ok('KYBERNOS_MOBILE_PWA=0: no tags, no pwa route; the stylesheet stays', off.threw === null && off.table.length === 6 && off.table[0].html.startsWith('<style id="' + SHEET_ID + '">') && !off.table.some((r) => r.html.includes('rel="manifest"')) && !off.routes.some((r) => r.path.startsWith(pwa.PWA_PREFIX)) && off.routes.some((r) => r.path === ROUTE))
 
   const logged = console.error
   console.error = () => {} // the refusal is logged by design; the log is not what is under test

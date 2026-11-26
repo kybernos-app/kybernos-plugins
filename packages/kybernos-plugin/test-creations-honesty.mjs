@@ -15,6 +15,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { entry, hasEntry } from './lib-i18n-test.mjs'
 import { kbArtifactsCut } from './art-limit.mjs'
 
 let pass = 0
@@ -23,14 +24,13 @@ const here = dirname(fileURLToPath(import.meta.url))
 const src = readFileSync(join(here, 'client.js'), 'utf8')
 const host = readFileSync(join(here, 'index.js'), 'utf8')
 
-// The marked block of pure rules, with the translation table entry it reads (kbt) stood in from the real KB_T line.
+// The marked block of pure rules, with the translation table entry it reads (kbt) stood in from the real dictionary (i18n/*.json).
 const a = src.indexOf('// <kb-art-rules:begin>')
 const b = src.indexOf('// <kb-art-rules:end>')
 assert.ok(a > 0 && b > a, 'the block of pure rules exists in client.js')
 const tEntry = (key) => {
-  const m = new RegExp("'" + key.replace(/\./g, '\\.') + "': \\{ kybernos: '([^']+)', en: '([^']+)' \\}").exec(src)
-  assert.ok(m !== null, key + ' is in the translation table')
-  return { fr: m[1], en: m[2] }
+  assert.ok(hasEntry(key), key + ' is in the translation table')
+  return { fr: entry(key).kybernos, en: entry(key).en }
 }
 const askText = tEntry('deliv.delete.confirm')
 const mk = (lang) => new Function('kbt', src.slice(a, b) + '\nreturn { kbArtPlain, kbArtInPeriod, kbArtNarrowed, kbArtCountLabel, kbArtDeleteOk }')((key) => {
@@ -107,7 +107,7 @@ const rules = mk('en')
   assert.match(src, /const artsCut = hasPayload === true && s\.data\.artifactsCut === true/, 'the page reads the host flag')
   assert.match(src, /const artsCut = s\.data !== null && s\.data !== undefined && s\.data\.artifactsCut === true/, 'the sidebar reads the host flag')
   assert.match(src, /h\('span', \{ className: 'kb-type-cnt' \}, kbArtCountLabel\(typed\.length, artsCut\)\)\)\),\n\s+\/\/ Familles d/, 'the « All » tile writes the label')
-  assert.match(src, /row\('deliverables', Icon\('shapes', 15\), kbt\('menu\.deliverables'\), arts\.length > 0 \? kbArtCountLabel\(arts\.length, artsCut\) : 0,/, 'the sidebar row gets the label (a zero stays a number, hidden)')
+  assert.match(src, /deliverables: \(\) => rowOf\('deliverables', arts\.length > 0 \? kbArtCountLabel\(arts\.length, artsCut\) : 0,/, 'the sidebar row gets the label (a zero stays a number, hidden)')
   assert.match(src, /\(badge !== null && badge !== undefined && \(typeof badge === 'string' \? badge !== '' : badge > 0\)\) \? h\('span', \{ className: 'kb4-badge' \}, String\(badge\)\) : null/, 'row() draws a text badge, and still hides 0')
   ok('T2-09: the sidebar badge and the « All » tile read the host flag; row() draws a text badge and still hides a zero')
 }

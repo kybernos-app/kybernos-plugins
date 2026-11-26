@@ -50,7 +50,7 @@ assert.equal(ctx.kbSkillTime('2026-09-24T10:00:00.000Z'), Date.parse('2026-09-24
 assert.ok(Number.isNaN(ctx.kbSkillTime(undefined)))
 ok('the date accepts a number or an ISO string, and says NaN for nothing (the sheet then hides the row)')
 
-assert.equal(ctx.kbSkillSourceLabel('user-dsh'), 'DSH skills folder')
+assert.equal(ctx.kbSkillSourceLabel('user-dsh'), 'Kybernos skills folder')
 assert.equal(ctx.kbSkillSourceLabel('user-agents'), 'Agents skills folder')
 assert.equal(ctx.kbSkillSourceLabel('project'), 'This project')
 assert.equal(ctx.kbSkillSourceLabel('x'), 'x')

@@ -19,6 +19,31 @@
 // real disk and without a browser. No @deepseek-ai/* import.
 
 import { writeGuard } from './session-guard.mjs'
+import {
+  BUILTIN_WORKER,
+  CURATED_MODELS,
+  DRIVER_DEFAULTS,
+  discoverModelsForDriver,
+  emptyHarness,
+  mergeDiscoveredModels,
+  removeInstance,
+  toggleFavorite,
+  updateInstanceModels,
+  updateRoleEngine,
+  updateScopePolicy,
+  upsertInstance
+} from './harness-store.mjs'
+import {
+  createRuntimeState,
+  exportRuntimeStore,
+  recordQuotaUpdate,
+  recordRateLimit,
+  recordRunFinish,
+  recordRunStart,
+  runtimeSnapshot,
+  selectWorkerInstance
+} from './runtime-router.mjs'
+import { collectAllQuotas, parseRateLimitHeaders } from './quota-collectors.mjs'
 
 export const PAQUET_OUTIL = '@deepseek-ai/dsh-tool-subagent'
 export const PAQUET_MCP = '@deepseek-ai/dsh-mcp-client'
@@ -32,12 +57,13 @@ export const PAQUET_MCP = '@deepseek-ai/dsh-mcp-client'
  *   doc   : the vendor's own installation guide
  */
 const INSTALL = Object.freeze({
-  'claude-code': Object.freeze({ cmd: 'curl -fsSL https://claude.ai/install.sh | bash', alt: 'brew install --cask claude-code', src: 'claude.ai', needs: ['curl', 'bash'], doc: 'https://code.claude.com/docs/en/setup' }),
-  codex: Object.freeze({ cmd: 'npm install -g @openai/codex', alt: 'brew install --cask codex', src: 'npm', needs: ['npm'], doc: 'https://github.com/openai/codex' }),
-  gemini: Object.freeze({ cmd: 'npm install -g @google/gemini-cli', alt: 'brew install gemini-cli', src: 'npm', needs: ['npm'], doc: 'https://github.com/google-gemini/gemini-cli' }),
-  opencode: Object.freeze({ cmd: 'curl -fsSL https://opencode.ai/install | bash', alt: 'npm install -g opencode-ai', src: 'opencode.ai', needs: ['curl', 'bash'], doc: 'https://opencode.ai/docs/' }),
-  qwen: Object.freeze({ cmd: 'npm install -g @qwen-code/qwen-code@latest', alt: 'brew install qwen-code', src: 'npm', needs: ['npm'], doc: 'https://github.com/QwenLM/qwen-code' }),
-  hermes: Object.freeze({ cmd: 'curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash', src: 'hermes-agent.nousresearch.com', needs: ['curl', 'bash'], doc: 'https://github.com/NousResearch/hermes-agent' })
+  'claude-code': Object.freeze({ cmd: 'curl -fsSL https://claude.ai/install.sh | bash', alt: 'brew install --cask claude-code', uninstall: 'brew uninstall --cask claude-code || rm -f ~/.local/bin/claude', src: 'claude.ai', needs: ['curl', 'bash'], doc: 'https://code.claude.com/docs/en/setup' }),
+  codex: Object.freeze({ cmd: 'npm install -g @openai/codex', alt: 'brew install --cask codex', uninstall: 'npm uninstall -g @openai/codex', src: 'npm', needs: ['npm'], doc: 'https://github.com/openai/codex' }),
+  gemini: Object.freeze({ cmd: 'npm install -g @google/gemini-cli', alt: 'brew install gemini-cli', uninstall: 'npm uninstall -g @google/gemini-cli', src: 'npm', needs: ['npm'], doc: 'https://github.com/google-gemini/gemini-cli' }),
+  opencode: Object.freeze({ cmd: 'curl -fsSL https://opencode.ai/install | bash', alt: 'npm install -g opencode-ai', uninstall: 'npm uninstall -g opencode-ai || rm -f ~/.opencode/bin/opencode', src: 'opencode.ai', needs: ['curl', 'bash'], doc: 'https://opencode.ai/docs/' }),
+  qwen: Object.freeze({ cmd: 'npm install -g @qwen-code/qwen-code@latest', alt: 'brew install qwen-code', uninstall: 'npm uninstall -g @qwen-code/qwen-code', src: 'npm', needs: ['npm'], doc: 'https://github.com/QwenLM/qwen-code' }),
+  hermes: Object.freeze({ cmd: 'curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash', uninstall: 'rm -rf ~/.hermes && rm -f /opt/homebrew/bin/hermes ~/.local/bin/hermes', src: 'hermes-agent.nousresearch.com', needs: ['curl', 'bash'], doc: 'https://github.com/NousResearch/hermes-agent' }),
+  antigravity: Object.freeze({ cmd: 'curl -fsSL https://antigravity.google/cli/install.sh | bash', uninstall: 'rm -f ~/.local/bin/agy', src: 'antigravity.google', needs: ['curl', 'bash'], doc: 'https://antigravity.google/docs/cli' })
 })
 
 // The home-made connectors ship in ONE package (packages/dsh-subagent-maison, linked into the profile by the Suite) and are
@@ -52,6 +78,7 @@ const tool = (id, provider) => Object.freeze({ id: 'kybernos-workers-' + id, pro
 /**
  * Frozen registry of the known workers, in display order.
  *   genre      : 'connexion' (an official or home-made subagent package) | 'mcp' (a local MCP server)
+ *   acp        : present when the connection is the official ACP backend: { command, args } it must spawn
  *   paquet     : the name the patch loads (`name:` of the insert line). `dossier` = the package that must be in the profile's
  *                node_modules for it to load, when that is not `paquet` itself (a subpath of a shared package).
  *   activation : who mounts the connection. 'outils' = the Tools screen of the main plugin
@@ -63,6 +90,100 @@ const tool = (id, provider) => Object.freeze({ id: 'kybernos-workers-' + id, pro
  *                { mode: 'cli', cmd }  sign in from a terminal
  *                { mode: 'key', env, refs }  paste an API key (stored under `env`, found under any of `refs`)
  */
+/**
+ * Phase 0 empirically verified capability matrix per driver (measured 2026-11-25, zero paid model calls).
+ * "unknown" or "unsupported" blocks multi-account UI promises until proven with two isolated identities.
+ *   multiAccount   : 'proven' | 'unsupported' | 'unknown'
+ *   authIsolation  : 'credential-ref' | 'profile-dir' | 'native-single'
+ *   isolationVar   : non-secret isolation environment variable, when applicable
+ *   modelDiscovery : 'cli' | 'live' | 'manual'
+ *   modelSelection : boolean (whether the connector accepts a model parameter)
+ *   continuation   : 'one-shot' | 'native' | 'summary-handoff'
+ *   hotReload      : 'published-survives-gap-risk' | 'not-applicable'
+ */
+export const DRIVER_CAPABILITIES = Object.freeze({
+  'claude-code': Object.freeze({
+    multiAccount: 'unknown',
+    authIsolation: 'profile-dir',
+    isolationVar: 'CLAUDE_CONFIG_DIR',
+    modelDiscovery: 'manual',
+    modelSelection: true,
+    continuation: 'one-shot',
+    hotReload: 'published-survives-gap-risk',
+    note: 'CLAUDE_CONFIG_DIR isolates from default ~/.claude; two-identity macOS Keychain OAuth isolation still requires live login proof.'
+  }),
+  codex: Object.freeze({
+    multiAccount: 'proven',
+    authIsolation: 'profile-dir',
+    isolationVar: 'CODEX_HOME',
+    modelDiscovery: 'manual',
+    modelSelection: true,
+    continuation: 'one-shot',
+    hotReload: 'published-survives-gap-risk',
+    note: 'CODEX_HOME isolates auth.json per directory (proven with two synthetic identities + empty dir, zero leak from default login).'
+  }),
+  gemini: Object.freeze({
+    multiAccount: 'proven',
+    authIsolation: 'credential-ref',
+    isolationVar: null,
+    modelDiscovery: 'manual',
+    modelSelection: true,
+    continuation: 'one-shot',
+    hotReload: 'published-survives-gap-risk',
+    note: 'Per-run ctx.credentials resolution via cleDuRun; key passed via GEMINI_API_KEY env only, never argv or patch.'
+  }),
+  antigravity: Object.freeze({
+    multiAccount: 'unknown',
+    authIsolation: 'native-single',
+    isolationVar: null,
+    modelDiscovery: 'cli',
+    modelSelection: false,
+    continuation: 'one-shot',
+    hotReload: 'published-survives-gap-risk',
+    note: 'Official ACP connector exposes no model key; XDG alone does not isolate agy login (HOME override required, side effects unproven).'
+  }),
+  opencode: Object.freeze({
+    multiAccount: 'unknown',
+    authIsolation: 'native-single',
+    isolationVar: null,
+    modelDiscovery: 'manual',
+    modelSelection: true,
+    continuation: 'one-shot',
+    hotReload: 'published-survives-gap-risk',
+    note: 'Binary absent on test host; profile-dir isolation unproven.'
+  }),
+  qwen: Object.freeze({
+    multiAccount: 'proven',
+    authIsolation: 'credential-ref',
+    isolationVar: null,
+    modelDiscovery: 'manual',
+    modelSelection: true,
+    continuation: 'one-shot',
+    hotReload: 'published-survives-gap-risk',
+    note: 'Per-run ctx.credentials resolution via cleDuRun; key passed via OPENAI_API_KEY env only, never argv or patch.'
+  }),
+  hermes: Object.freeze({
+    multiAccount: 'unsupported',
+    authIsolation: 'native-single',
+    isolationVar: null,
+    modelDiscovery: 'live',
+    modelSelection: true,
+    continuation: 'one-shot',
+    hotReload: 'published-survives-gap-risk',
+    note: 'HERMES_HOME relocates auth.json but Qwen OAuth still reads ~/.qwen/oauth_creds.json; not fully isolated.'
+  }),
+  zcode: Object.freeze({
+    multiAccount: 'unsupported',
+    authIsolation: 'native-single',
+    isolationVar: null,
+    modelDiscovery: 'manual',
+    modelSelection: false,
+    continuation: 'one-shot',
+    hotReload: 'not-applicable',
+    note: 'Local MCP server with its own credential vault; outside the subagent dispatcher.'
+  })
+})
+
 export const WORKERS = Object.freeze([
   Object.freeze({
     id: 'claude-code', nom: 'Claude Code', genre: 'connexion', via: 'claude-agent-sdk', activation: 'outils',
@@ -81,6 +202,15 @@ export const WORKERS = Object.freeze([
     ...maison('gemini'), outil: tool('gemini', 'gemini'),
     binaire: 'gemini', versionArgs: ['--version'], auth: Object.freeze({ format: 'env', names: Object.freeze(['GEMINI_API_KEY', 'GOOGLE_API_KEY']) }),
     install: INSTALL.gemini, connect: Object.freeze({ mode: 'key', env: 'GEMINI_API_KEY', refs: Object.freeze(['GEMINI_API_KEY', 'GOOGLE_API_KEY']) })
+  }),
+  Object.freeze({
+    // Antigravity CLI (`agy`) speaks ACP natively: the official ACP backend drives it, so no per-CLI adapter and no API key
+    // (the person signs in with a Google account, `agy acp` reuses that sign-in). Doc: https://antigravity.google/docs/cli/acp
+    id: 'antigravity', nom: 'Antigravity', genre: 'connexion', via: 'acp', activation: 'workers',
+    paquet: '@deepseek-ai/dsh-subagent-acp', outil: tool('antigravity', 'antigravity'),
+    binaire: 'agy', versionArgs: ['--version'], auth: Object.freeze({ format: 'code', args: Object.freeze(['models']), timeoutMs: 40000 }),
+    install: INSTALL.antigravity, connect: Object.freeze({ mode: 'cli', cmd: 'agy' }),
+    acp: Object.freeze({ command: 'agy', args: Object.freeze(['acp']) })
   }),
   Object.freeze({
     id: 'opencode', nom: 'OpenCode', genre: 'connexion', via: 'cli-one-shot', activation: 'workers',
@@ -137,33 +267,119 @@ export function analyserPatch (texte) {
   const items = []
   let cur = null
   let enConfig = false
+  let enEnv = false
   for (let i = 0; i < lignes.length; i++) {
     const l = lignes[i]
     if (/^\s*#/.test(l) || l.trim() === '') continue
     const m = /^(\s*)-\s+id:\s*(.+)$/.exec(l)
     if (m) {
-      cur = { id: nettoyer(m[2]), debut: i, fin: i, indent: m[1].length, cles: [], clesConfig: [], champs: {}, config: {} }
+      cur = { id: nettoyer(m[2]), debut: i, fin: i, indent: m[1].length, cles: [], clesConfig: [], champs: {}, config: {}, env: {} }
       items.push(cur)
       enConfig = false
+      enEnv = false
       continue
     }
-    if (/^\S/.test(l)) { cur = null; enConfig = false; continue }
+    if (/^\S/.test(l)) { cur = null; enConfig = false; enEnv = false; continue }
     if (cur === null) continue
     const ind = /^(\s*)/.exec(l)[1].length
-    if (ind <= cur.indent) { cur = null; enConfig = false; continue }
+    if (ind <= cur.indent) { cur = null; enConfig = false; enEnv = false; continue }
     cur.fin = i
     const kv = /^\s*([A-Za-z_][\w-]*):\s*(.*)$/.exec(l)
     if (kv === null) continue
     if (ind === cur.indent + 2) {
       cur.cles.push(kv[1])
       enConfig = kv[1] === 'config'
+      enEnv = false
       if (!enConfig) cur.champs[kv[1]] = nettoyer(kv[2])
     } else if (enConfig && ind === cur.indent + 4) {
       cur.clesConfig.push(kv[1])
-      cur.config[kv[1]] = nettoyer(kv[2])
+      if (kv[1] === 'env' && nettoyer(kv[2]) === '') {
+        enEnv = true
+      } else {
+        enEnv = false
+        cur.config[kv[1]] = nettoyer(kv[2])
+      }
+    } else if (enConfig && enEnv && ind === cur.indent + 6) {
+      cur.env[kv[1]] = nettoyer(kv[2])
     }
   }
   return items
+}
+
+const ENV_KEY_SECRET = /(KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|COOKIE|AUTH)/i
+const ENV_KEY_VALID = /^[A-Za-z_][A-Za-z0-9_]*$/
+const MODEL_VALID = /^[A-Za-z0-9._:@/-]{1,128}$/
+const CLES_CONNEXION_CONNUES = ['name', 'disabled', 'config']
+const CLES_CONNEXION_CONFIG_CONNUES = ['providerName', 'model', 'env', 'permissionMode', 'permission', 'command', 'args', 'disposeGraceMs', 'disposeEofGraceMs', 'bin', 'baseUrl']
+
+/**
+ * Computes a new patch updating `config.model` and non-secret `config.env` on a mounted connection row.
+ * Refuses secret-looking env keys (secrets must live in ctx.credentials, never in cordis.patch.yml),
+ * unknown hand-edited keys, or drivers without modelSelection when `model` is set.
+ * @returns {{ok:true, action:'modification'|'inchange', apres:string} | {ok:false, error:string, detail?:unknown}}
+ */
+export function calculerConfigConnexion ({ worker, model, env, texte }) {
+  if (worker === undefined) return { ok: false, error: 'worker-inconnu' }
+  if (worker.genre !== 'connexion') return { ok: false, error: 'non-supporte' }
+  const caps = DRIVER_CAPABILITIES[worker.id]
+  if (model !== undefined && model !== null && model !== '') {
+    if (caps?.modelSelection !== true) return { ok: false, error: 'model-non-supporte' }
+    if (typeof model !== 'string' || !MODEL_VALID.test(model)) return { ok: false, error: 'bad-model' }
+  }
+  const nextEnv = {}
+  if (env !== undefined && env !== null) {
+    if (typeof env !== 'object' || Array.isArray(env)) return { ok: false, error: 'bad-env' }
+    for (const [k, v] of Object.entries(env)) {
+      if (!ENV_KEY_VALID.test(k)) return { ok: false, error: 'bad-env-key', detail: k }
+      if (ENV_KEY_SECRET.test(k)) return { ok: false, error: 'secret-in-patch-refused', detail: k }
+      if (typeof v !== 'string' || /[\r\n]/.test(v)) return { ok: false, error: 'bad-env-value', detail: k }
+      if (v !== '') nextEnv[k] = v
+    }
+  }
+  const avant = String(texte ?? '')
+  const items = analyserPatch(avant)
+  const noms = nomsDeConnexion(worker)
+  const it = items.find((x) => noms.includes(x.champs.name))
+  if (it === undefined || estCoupee(items, it.id)) return { ok: false, error: 'connexion-absente' }
+  const inconnues = [...it.cles.filter((k) => !CLES_CONNEXION_CONNUES.includes(k)), ...it.clesConfig.filter((k) => !CLES_CONNEXION_CONFIG_CONNUES.includes(k))]
+  if (inconnues.length > 0) return { ok: false, error: 'ligne-modifiee-a-la-main', detail: inconnues }
+  const nextModel = model === undefined ? (it.config.model ?? '') : (model === null ? '' : model)
+  const finalEnv = env === undefined ? it.env : nextEnv
+  const sameModel = (it.config.model ?? '') === nextModel
+  const prevEnvKeys = Object.keys(it.env).sort()
+  const nextEnvKeys = Object.keys(finalEnv).sort()
+  const sameEnv = prevEnvKeys.length === nextEnvKeys.length && prevEnvKeys.every((k, idx) => k === nextEnvKeys[idx] && it.env[k] === finalEnv[k])
+  if (sameModel && sameEnv) return { ok: true, action: 'inchange', apres: avant }
+
+  const p = ' '.repeat(it.indent)
+  const quoteYaml = (s) => "'" + String(s).replace(/'/g, "''") + "'"
+  const out = [
+    `${p}- id: ${it.id}`,
+    `${p}  name: ${quoteYaml(it.champs.name)}`,
+    ...(it.champs.disabled !== undefined ? [`${p}  disabled: ${it.champs.disabled}`] : [])
+  ]
+  const cfgLines = []
+  const scalarOrder = ['providerName', 'command', 'args', 'permission', 'permissionMode', 'bin', 'baseUrl', 'disposeGraceMs', 'disposeEofGraceMs']
+  for (const k of scalarOrder) {
+    if (it.config[k] !== undefined && it.config[k] !== '') cfgLines.push(`${p}    ${k}: ${it.config[k]}`)
+  }
+  if (nextModel !== '') cfgLines.push(`${p}    model: ${quoteYaml(nextModel)}`)
+  if (nextEnvKeys.length > 0) {
+    cfgLines.push(`${p}    env:`)
+    for (const k of nextEnvKeys) cfgLines.push(`${p}      ${k}: ${quoteYaml(finalEnv[k])}`)
+  }
+  if (cfgLines.length > 0) {
+    out.push(`${p}  config:`)
+    out.push(...cfgLines)
+  }
+  const lignes = avant.split('\n')
+  lignes.splice(it.debut, it.fin - it.debut + 1, ...out)
+  const apres = lignes.join('\n')
+  const relu = analyserPatch(apres).find((x) => x.id === it.id)
+  if (relu === undefined || (relu.config.model ?? '') !== nextModel || Object.keys(relu.env).length !== nextEnvKeys.length) {
+    return { ok: false, error: 'auto-controle' }
+  }
+  return { ok: true, action: 'modification', apres }
 }
 
 const estLigneOutil = (it, worker) => it.champs.name === PAQUET_OUTIL && it.config.provider === worker.outil?.provider
@@ -286,12 +502,25 @@ export function calculerPolitique ({ worker, expose, arrierePlan, texte, horodat
 
 /** The `- insert:` block that loads a worker's subagent package, with its rollback note. */
 export function blocActivation (worker, horodatage) {
+  // An ACP worker needs its recipe: the backend spawns `command` with `args` on every run, and registers it under
+  // `providerName`, which must be the provider the tool line delegates to.
+  // `permission: allow` is not optional: with the ACP backend's default (`reject`) every tool the agent asks for is
+  // answered `cancelled`, so a task that explores a repository (ls, grep, a build) ends with an EMPTY closing message and
+  // reads as "the worker did nothing". Measured 2026-11-24 on agy 1.5.16 against a real project.
+  const config = worker.acp === undefined ? [] : [
+    '      config:',
+    `        providerName: ${worker.outil.provider}`,
+    `        command: ${worker.acp.command}`,
+    `        args: [${worker.acp.args.map((a) => `'${a}'`).join(', ')}]`,
+    '        permission: allow'
+  ]
   return ['',
     `# ── Workers · ${worker.nom} — added ${horodatage} by the Workers screen (Kybernos)`,
     `# Rollback: restore cordis.patch.yml.bak-workers-activate-${worker.id}-${horodatage}; DSH reloads the profile by itself.`,
     '- insert:',
     `    - id: subagent-${worker.id}`,
-    `      name: "${worker.paquet}"`
+    `      name: "${worker.paquet}"`,
+    ...config
   ].join('\n') + '\n'
 }
 
@@ -306,10 +535,47 @@ export function calculerActivation ({ worker, texte, horodatage }) {
   const avant = String(texte ?? '')
   const etat = etatProfil(avant, worker)
   if (etat.connexion) return { ok: false, error: 'deja-montee' }
-  // The line is there but switched off: a second one would register the same provider twice. Settings › Tools owns that switch.
-  if (etat.desactivee) return { ok: false, error: 'ligne-desactivee' }
+  // Re-enabling a line we previously switched off with a `- id: <mountedId>\n  disabled: true` override.
+  if (etat.desactivee) {
+    const items = analyserPatch(avant)
+    const mounted = items.find((it) => nomsDeConnexion(worker).includes(it.champs.name))
+    const cibleId = mounted?.id ?? `subagent-${worker.id}`
+    const dis = items.find((x) => x.id === cibleId && x.champs.name === undefined && x.champs.disabled === 'true')
+    if (dis !== undefined) {
+      const lignes = avant.split('\n')
+      lignes.splice(dis.debut, dis.fin - dis.debut + 1)
+      const apres = lignes.join('\n')
+      if (etatProfil(apres, worker).connexion) return { ok: true, apres }
+    }
+    return { ok: false, error: 'ligne-desactivee' }
+  }
   const apres = (avant === '' || avant.endsWith('\n') ? avant : avant + '\n') + blocActivation(worker, horodatage)
   if (!etatProfil(apres, worker).connexion) return { ok: false, error: 'auto-controle' }
+  return { ok: true, apres }
+}
+
+/**
+ * Switches off a `workers`-managed connection in cordis.patch.yml without deleting the CLI binary,
+ * by appending a clean `- id: <mountedId>\n  disabled: true` patch entry (reversible via `calculerActivation`).
+ */
+export function calculerDesactivation ({ worker, texte, horodatage }) {
+  if (worker === undefined) return { ok: false, error: 'worker-inconnu' }
+  if (worker.genre !== 'connexion' || worker.activation !== 'workers') return { ok: false, error: 'non-supporte' }
+  const avant = String(texte ?? '')
+  const etat = etatProfil(avant, worker)
+  if (!etat.connexion) return { ok: false, error: 'deja-desactivee' }
+  const items = analyserPatch(avant)
+  const mounted = items.find((it) => nomsDeConnexion(worker).includes(it.champs.name))
+  if (mounted === undefined || !mounted.id) return { ok: false, error: 'ligne-introuvable' }
+  const bloc = [
+    '',
+    `# ── Workers · ${worker.nom} disabled ${horodatage} by the Workers screen (Kybernos)`,
+    `- id: ${mounted.id}`,
+    '  disabled: true'
+  ].join('\n') + '\n'
+  const apres = (avant === '' || avant.endsWith('\n') ? avant : avant + '\n') + bloc
+  const relu = etatProfil(apres, worker)
+  if (relu.connexion || !relu.desactivee) return { ok: false, error: 'auto-controle' }
   return { ok: true, apres }
 }
 
@@ -389,7 +655,7 @@ async function controleAuth (worker, io) {
  * io : { paquetInstalle(paquet):boolean, fichierExiste(chemin):boolean,
  *        trouver(binaire):Promise<string|null>,
  *        executer(binaire,args,{delaiMs}):Promise<{code,sortie,delai?,absent?}>,
- *        cleDansEnv(names):boolean,
+ *        cleDansEnv(names):boolean|Promise<boolean>  (the launch environment, else DSH's credentials store),
  *        worktreeJetable():Promise<{ok:boolean, detail?:string}>, fichierServeur?:string }
  */
 export async function verifier ({ worker, texte, io }) {
@@ -526,6 +792,53 @@ const horodatage = (d) => {
 
 const PLATEFORMES_INSTALL = ['darwin', 'linux']
 
+const SAFE_TOOL_RE = /^subagent_[a-z0-9_]{1,40}$/
+const SAFE_ID_RE = /^[a-z0-9][a-z0-9._:/-]{0,120}$/i
+
+/** Sanitizes the active Composer external worker binding (metadata only, never prompt text). */
+export function sanitizeActiveWorker (raw, now = new Date()) {
+  if (raw === null || raw === undefined || typeof raw !== 'object') return null
+  const workerId = typeof raw.workerId === 'string' && SAFE_ID_RE.test(raw.workerId.trim()) ? raw.workerId.trim() : ''
+  const driverId = typeof raw.driverId === 'string' && SAFE_ID_RE.test(raw.driverId.trim()) ? raw.driverId.trim() : ''
+  if (workerId === '' || driverId === '') return null
+  const w = trouverWorker(driverId)
+  const derivedTool = w?.outil?.toolName ?? ('subagent_' + driverId.toLowerCase().replace(/[^a-z0-9]+/g, '_'))
+  const toolName = SAFE_TOOL_RE.test(derivedTool) ? derivedTool : null
+  if (toolName === null) return null
+  const cleanStr = (v, max = 120) => (typeof v === 'string' ? v.replace(/[\r\n\t]+/g, ' ').trim().slice(0, max) : '')
+  const modelId = cleanStr(raw.modelId, 120)
+  const resolvedModelId = cleanStr(raw.resolvedModelId || modelId, 120)
+  const effort = cleanStr(raw.effort, 24).toLowerCase()
+  return {
+    workerId,
+    driverId,
+    workerLabel: cleanStr(raw.workerLabel || w?.nom || driverId, 80) || driverId,
+    modelId,
+    modelLabel: cleanStr(raw.modelLabel || modelId, 100) || modelId,
+    resolvedModelId,
+    effort: ['low', 'medium', 'high', 'xhigh', 'max', 'ultra'].includes(effort) ? effort : '',
+    toolName,
+    updatedAt: now instanceof Date ? now.toISOString() : new Date().toISOString()
+  }
+}
+
+/** Formats the system prompt directive when the user explicitly selected an external worker in the Composer. */
+export function formatActiveWorkerPrompt (active) {
+  if (!active || typeof active !== 'object' || typeof active.toolName !== 'string' || !SAFE_TOOL_RE.test(active.toolName)) return ''
+  const label = active.workerLabel || active.driverId || 'external worker'
+  const modelPart = active.modelLabel
+    ? ` with model "${active.modelLabel}"` + (active.resolvedModelId && active.resolvedModelId !== active.modelLabel ? ` (${active.resolvedModelId})` : '')
+    : ''
+  const effortPart = active.effort ? ` and reasoning effort "${active.effort}"` : ''
+  return [
+    '[Active external worker selected in Composer]',
+    `The user explicitly selected the external worker "${label}" (${active.driverId})${modelPart}${effortPart}.`,
+    `- MANDATORY: You MUST delegate this turn's user request directly to the \`${active.toolName}\` tool, even for short or simple prompts. Do NOT answer directly yourself.`,
+    '- Pass the user\'s request faithfully to the tool, then return the external worker\'s answer concisely to the user.',
+    `- If \`${active.toolName}\` is not exposed in your toolset or fails, do NOT silently answer with another model: report the exact error clearly and tell the user to enable "Exposed to the main agent" under Settings > Workers > ${label}.`
+  ].join('\n')
+}
+
 /**
  * GET  /kybernos-workers/state?profile=         → registry + profile state + last check + install job
  * POST /kybernos-workers/check    {worker, profile?}                          → real checks
@@ -541,9 +854,63 @@ const PLATEFORMES_INSTALL = ['darwin', 'linux']
 export function monterWorkers (webServer, deps, liens = {}) {
   webServer = kbFenced(webServer)
   const dernier = new Map()
+  if (typeof deps.lireChecks === 'function') {
+    try {
+      const saved = deps.lireChecks()
+      if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+        let count = 0
+        for (const [k, v] of Object.entries(saved)) {
+          if (count >= 64) break
+          if (typeof k === 'string' && (k.includes('/') || k.includes(':')) && v && typeof v === 'object' && typeof v.statut === 'string' && Array.isArray(v.controles)) {
+            dernier.set(k, { quand: typeof v.quand === 'string' ? v.quand : deps.maintenant().toISOString(), statut: v.statut, controles: v.controles })
+            count += 1
+          }
+        }
+      }
+    } catch { /* corrupt checks cache degrades to empty */ }
+  }
+  const persisterChecks = () => {
+    if (typeof deps.ecrireChecks !== 'function') return
+    try {
+      const obj = {}
+      for (const [k, v] of dernier.entries()) obj[k] = v
+      deps.ecrireChecks(obj)
+    } catch { /* best-effort persistence */ }
+  }
   const jobs = new Map()
-  let occupe = false
+  // Scoped locks: concurrent checks on different workers never block each other;
+  // patch writes are serialized per profile to prevent concurrent lost updates.
+  const verificationsEnCours = new Set()
+  const ecrituresPatchEnCours = new Set()
+  let harnessWriteBusy = false
   let installEnCours = null
+  const lireHarness = () => {
+    if (typeof deps.lireHarness === 'function') {
+      try {
+        const r = deps.lireHarness()
+        if (r && r.harness) return r
+      } catch { /* fallback to empty */ }
+    }
+    return { ok: true, harness: emptyHarness(deps.maintenant()), exists: false }
+  }
+  const ecrireHarness = (nextHarness) => {
+    if (typeof deps.ecrireHarness !== 'function') return { ok: false, error: 'harness-store-unavailable' }
+    try { deps.ecrireHarness(nextHarness); return { ok: true } } catch (e) { return { ok: false, error: 'write-failed', detail: String(e?.message ?? e) } }
+  }
+  const initRuns = (() => {
+    if (typeof deps.lireRuns === 'function') {
+      try {
+        const r = deps.lireRuns()
+        if (r && r.store) return createRuntimeState(r.store)
+      } catch { /* fallback to empty */ }
+    }
+    return createRuntimeState()
+  })()
+  const runtimeState = initRuns
+  const persisterRuntime = (now) => {
+    if (typeof deps.ecrireRuns !== 'function') return { ok: true }
+    try { deps.ecrireRuns(exportRuntimeStore(runtimeState, now)); return { ok: true } } catch (e) { return { ok: false, error: 'write-failed', detail: String(e?.message ?? e) } }
+  }
   const profilDe = (demande) => {
     const liste = deps.profils()
     if (demande === null || demande === undefined || demande === '') return { profil: deps.profilParDefaut(liste) }
@@ -580,11 +947,13 @@ export function monterWorkers (webServer, deps, liens = {}) {
       const installe = w.genre === 'connexion' ? deps.io.paquetInstalle(p.profil, paquetAChercher(w, e.nomMonte)) === true : deps.io.fichierExiste(deps.io.fichierServeur ?? '')
       return {
         id: w.id, nom: w.nom, genre: w.genre, via: w.via, paquet: w.paquet ?? null, binaire: w.binaire ?? null, activation: w.activation,
+        capabilities: DRIVER_CAPABILITIES[w.id] ?? null,
         connect: w.connect, install: w.install == null ? null : { ...w.install, possible: installable(w) },
         connexion: e.connexion, desactivee: e.desactivee, installe, ligne: e.ligne, dernier: dernier.get(cle(p.profil, w.id)) ?? null, job: vueJob(jobs.get(w.id))
       }
     })
-    return envoyer(res, 200, { ok: true, profil: p.profil, profils: deps.profils(), patch: deps.cheminPatch(p.profil), patchExiste: texte !== null, workers })
+    const hState = lireHarness()
+    return envoyer(res, 200, { ok: true, profil: p.profil, profils: deps.profils(), patch: deps.cheminPatch(p.profil), patchExiste: texte !== null, workers, builtinWorker: BUILTIN_WORKER, harness: hState.harness, defaults: DRIVER_DEFAULTS, curatedModels: CURATED_MODELS })
   }
 
   const verifierRoute = async (req, res) => {
@@ -594,8 +963,9 @@ export function monterWorkers (webServer, deps, liens = {}) {
     if (worker === undefined) return envoyer(res, 404, { ok: false, error: 'unknown-worker' })
     const p = profilDe(corps.profile)
     if (p.erreur !== undefined) return envoyer(res, 400, { ok: false, error: p.erreur })
-    if (occupe) return envoyer(res, 409, { ok: false, error: 'busy' })
-    occupe = true
+    const lockKey = cle(p.profil, worker.id)
+    if (verificationsEnCours.has(lockKey)) return envoyer(res, 409, { ok: false, error: 'busy' })
+    verificationsEnCours.add(lockKey)
     try {
       let texte = null
       try { texte = deps.lirePatch(p.profil) } catch { texte = null }
@@ -603,8 +973,9 @@ export function monterWorkers (webServer, deps, liens = {}) {
       const r = await verifier({ worker, texte: texte ?? '', io })
       const entree = { quand: deps.maintenant().toISOString(), statut: r.statut, controles: r.controles }
       dernier.set(cle(p.profil, worker.id), entree)
+      persisterChecks()
       return envoyer(res, 200, { ok: true, worker: worker.id, ...entree })
-    } finally { occupe = false }
+    } finally { verificationsEnCours.delete(lockKey) }
   }
 
   const politique = async (req, res) => {
@@ -615,8 +986,8 @@ export function monterWorkers (webServer, deps, liens = {}) {
     if (typeof corps.expose !== 'boolean' || typeof corps.background !== 'boolean') return envoyer(res, 400, { ok: false, error: 'bad-policy' })
     const p = profilDe(corps.profile)
     if (p.erreur !== undefined) return envoyer(res, 400, { ok: false, error: p.erreur })
-    if (occupe) return envoyer(res, 409, { ok: false, error: 'busy' })
-    occupe = true
+    if (ecrituresPatchEnCours.has(p.profil)) return envoyer(res, 409, { ok: false, error: 'busy' })
+    ecrituresPatchEnCours.add(p.profil)
     try {
       let texte = null
       try { texte = deps.lirePatch(p.profil) } catch { texte = null }
@@ -631,7 +1002,7 @@ export function monterWorkers (webServer, deps, liens = {}) {
         deps.ecrirePatch(p.profil, calc.apres)
       } catch (e) { return envoyer(res, 500, { ok: false, error: 'write-failed', detail: String(e?.message ?? e) }) }
       return envoyer(res, 200, { ok: true, action: calc.action, backup: nomSauvegarde, patch: deps.cheminPatch(p.profil) })
-    } finally { occupe = false }
+    } finally { ecrituresPatchEnCours.delete(p.profil) }
   }
 
   const activer = async (req, res) => {
@@ -642,8 +1013,8 @@ export function monterWorkers (webServer, deps, liens = {}) {
     if (worker.genre !== 'connexion' || worker.activation !== 'workers') return envoyer(res, 400, { ok: false, error: 'non-supporte' })
     const p = profilDe(corps.profile)
     if (p.erreur !== undefined) return envoyer(res, 400, { ok: false, error: p.erreur })
-    if (occupe) return envoyer(res, 409, { ok: false, error: 'busy' })
-    occupe = true
+    if (ecrituresPatchEnCours.has(p.profil)) return envoyer(res, 409, { ok: false, error: 'busy' })
+    ecrituresPatchEnCours.add(p.profil)
     try {
       let texte = null
       try { texte = deps.lirePatch(p.profil) } catch { texte = null }
@@ -663,7 +1034,34 @@ export function monterWorkers (webServer, deps, liens = {}) {
         deps.ecrirePatch(p.profil, calc.apres)
       } catch (e) { return envoyer(res, 500, { ok: false, error: 'write-failed', detail: String(e?.message ?? e) }) }
       return envoyer(res, 200, { ok: true, already: false, backup: nomSauvegarde, patch: deps.cheminPatch(p.profil) })
-    } finally { occupe = false }
+    } finally { ecrituresPatchEnCours.delete(p.profil) }
+  }
+
+  const desactiver = async (req, res) => {
+    const corps = await corpsJson(req, res)
+    if (corps === undefined) return undefined
+    const worker = trouverWorker(corps.worker)
+    if (worker === undefined) return envoyer(res, 404, { ok: false, error: 'unknown-worker' })
+    if (worker.genre !== 'connexion' || worker.activation !== 'workers') return envoyer(res, 400, { ok: false, error: 'non-supporte' })
+    const p = profilDe(corps.profile)
+    if (p.erreur !== undefined) return envoyer(res, 400, { ok: false, error: p.erreur })
+    if (ecrituresPatchEnCours.has(p.profil)) return envoyer(res, 409, { ok: false, error: 'busy' })
+    ecrituresPatchEnCours.add(p.profil)
+    try {
+      let texte = null
+      try { texte = deps.lirePatch(p.profil) } catch { texte = null }
+      if (texte === null) return envoyer(res, 409, { ok: false, error: 'patch-missing' })
+      if (!etatProfil(texte, worker).connexion) return envoyer(res, 200, { ok: true, already: true, patch: deps.cheminPatch(p.profil) })
+      const stamp = horodatage(deps.maintenant())
+      const calc = calculerDesactivation({ worker, texte, horodatage: stamp })
+      if (!calc.ok) return envoyer(res, 409, calc)
+      const nomSauvegarde = `cordis.patch.yml.bak-workers-deactivate-${worker.id}-${stamp}`
+      try {
+        deps.sauvegarder(p.profil, nomSauvegarde, texte)
+        deps.ecrirePatch(p.profil, calc.apres)
+      } catch (e) { return envoyer(res, 500, { ok: false, error: 'write-failed', detail: String(e?.message ?? e) }) }
+      return envoyer(res, 200, { ok: true, already: false, backup: nomSauvegarde, patch: deps.cheminPatch(p.profil) })
+    } finally { ecrituresPatchEnCours.delete(p.profil) }
   }
 
   /** Runs the install command of a worker, off the request: the page polls the job. */
@@ -731,12 +1129,312 @@ export function monterWorkers (webServer, deps, liens = {}) {
     return envoyer(res, 202, { ok: true, started: true })
   }
 
+  // ── harness.json routes (instances, auto-discovered models, roles & favorites) ──
+
+  const harnessGet = (req, res) => {
+    if (req.method !== 'GET') return envoyer(res, 405, { ok: false, error: 'method-not-allowed' })
+    if (sameOriginLax(req) === false) return envoyer(res, 403, { ok: false, error: 'origin-refused' })
+    const r = lireHarness()
+    return envoyer(res, 200, { ok: true, builtinWorker: BUILTIN_WORKER, harness: r.harness, capabilities: DRIVER_CAPABILITIES, defaults: DRIVER_DEFAULTS, curatedModels: CURATED_MODELS })
+  }
+
+  const harnessInstance = async (req, res) => {
+    const corps = await corpsJson(req, res)
+    if (corps === undefined) return undefined
+    if (harnessWriteBusy) return envoyer(res, 409, { ok: false, error: 'busy' })
+    harnessWriteBusy = true
+    try {
+      const cur = lireHarness().harness
+      const now = deps.maintenant()
+      const resOp = corps.action === 'remove'
+        ? removeInstance(cur, corps.id ?? corps.instanceId, corps.expectedRevision, now)
+        : upsertInstance(cur, corps, DRIVER_CAPABILITIES, now)
+      if (!resOp.ok) {
+        const st = resOp.error === 'revision-conflict' ? 409 : (resOp.error === 'unknown-instance' ? 404 : 400)
+        return envoyer(res, st, resOp)
+      }
+      const wRes = ecrireHarness(resOp.harness)
+      if (!wRes.ok) return envoyer(res, 500, wRes)
+      // Optional safe patch sync for active Codex shadowHomePath or supported driver default model.
+      let patchSync = null
+      if (corps.action !== 'remove' && corps.syncPatch === true && resOp.instance?.active === true) {
+        const w = trouverWorker(resOp.instance.driverId)
+        const p = profilDe(corps.profile)
+        if (w && p.erreur === undefined && !ecrituresPatchEnCours.has(p.profil)) {
+          ecrituresPatchEnCours.add(p.profil)
+          try {
+            const texte = deps.lirePatch(p.profil)
+            if (typeof texte === 'string') {
+              const envUpdate = w.id === 'codex' && resOp.instance.shadowHomePath ? { CODEX_HOME: resOp.instance.shadowHomePath } : undefined
+              const defModel = resOp.instance.models.find((m) => m.isDefault && m.visible)?.id
+              const cap = DRIVER_CAPABILITIES[w.id]
+              const calc = calculerConfigConnexion({
+                worker: w,
+                texte,
+                env: envUpdate,
+                model: cap?.modelSelection === true ? defModel : undefined
+              })
+              if (calc.ok && calc.action === 'modification') {
+                const stamp = horodatage(now)
+                const bak = `cordis.patch.yml.bak-workers-cfg-${w.id}-${stamp}`
+                deps.sauvegarder(p.profil, bak, texte)
+                deps.ecrirePatch(p.profil, calc.apres)
+                patchSync = { ok: true, action: calc.action, backup: bak }
+              } else {
+                patchSync = { ok: calc.ok, action: calc.action ?? null, error: calc.error ?? null }
+              }
+            }
+          } finally { ecrituresPatchEnCours.delete(p.profil) }
+        }
+      }
+      return envoyer(res, 200, { ok: true, harness: resOp.harness, instance: resOp.instance ?? null, patchSync })
+    } finally { harnessWriteBusy = false }
+  }
+
+  const harnessModels = async (req, res) => {
+    const corps = await corpsJson(req, res)
+    if (corps === undefined) return undefined
+    if (harnessWriteBusy) return envoyer(res, 409, { ok: false, error: 'busy' })
+    harnessWriteBusy = true
+    try {
+      const cur = lireHarness().harness
+      const now = deps.maintenant()
+      if (corps.action === 'sync') {
+        // Preview discovery before instance exists (Add Worker Step 3) OR sync an existing instance.
+        const existing = typeof corps.instanceId === 'string' ? cur.instances.find((i) => i.id === corps.instanceId) : null
+        const driverId = existing ? existing.driverId : String(corps.driverId ?? '').trim()
+        if (!(driverId in DRIVER_DEFAULTS)) return envoyer(res, 404, { ok: false, error: 'unknown-driver' })
+        const disc = await discoverModelsForDriver(driverId, {
+          executer: deps.io.executer,
+          fetchJson: deps.io.fetchJson,
+          lireCle: deps.io.lireCle,
+          homeDir: deps.io.homeDir,
+          homePath: existing?.homePath ?? corps.homePath,
+          shadowHomePath: existing?.shadowHomePath ?? corps.shadowHomePath
+        })
+        if (!existing) {
+          const modelSel = DRIVER_CAPABILITIES[driverId]?.modelSelection !== false
+          const merged = mergeDiscoveredModels([], disc.models, modelSel)
+          if (corps.autoCreate === true && typeof corps.instanceId === 'string' && corps.instanceId.trim() !== '') {
+            const wDef = trouverWorker(driverId)
+            const resOp = upsertInstance(cur, {
+              id: corps.instanceId,
+              driverId,
+              label: corps.label || wDef?.nom || driverId,
+              accent: corps.accent,
+              binaryPath: corps.binaryPath || wDef?.binaire || '',
+              homePath: corps.homePath,
+              shadowHomePath: corps.shadowHomePath,
+              launchArgs: corps.launchArgs,
+              active: true,
+              enabled: true,
+              lastSync: now.toISOString(),
+              models: merged,
+              expectedRevision: corps.expectedRevision
+            }, DRIVER_CAPABILITIES, now)
+            if (!resOp.ok) {
+              const st = resOp.error === 'revision-conflict' ? 409 : 400
+              return envoyer(res, st, resOp)
+            }
+            const wRes = ecrireHarness(resOp.harness)
+            if (!wRes.ok) return envoyer(res, 500, wRes)
+            return envoyer(res, 200, { ok: true, source: disc.source, harness: resOp.harness, instance: resOp.instance })
+          }
+          return envoyer(res, 200, { ok: true, preview: true, source: disc.source, models: merged })
+        }
+        const modelSel = DRIVER_CAPABILITIES[driverId]?.modelSelection !== false
+        const merged = mergeDiscoveredModels(existing.models, disc.models, modelSel)
+        const nextInstances = cur.instances.map((i) => (i.id === existing.id ? { ...i, models: merged, lastSync: now.toISOString() } : i))
+        const nextHarness = { ...cur, revision: cur.revision + 1, updatedAt: now.toISOString(), instances: nextInstances }
+        const wRes = ecrireHarness(nextHarness)
+        if (!wRes.ok) return envoyer(res, 500, wRes)
+        return envoyer(res, 200, { ok: true, source: disc.source, harness: nextHarness, instance: nextInstances.find((i) => i.id === existing.id) })
+      }
+      const resOp = updateInstanceModels(cur, corps, DRIVER_CAPABILITIES, now)
+      if (!resOp.ok) {
+        const st = resOp.error === 'revision-conflict' ? 409 : (resOp.error === 'unknown-instance' ? 404 : 400)
+        return envoyer(res, st, resOp)
+      }
+      const wRes = ecrireHarness(resOp.harness)
+      if (!wRes.ok) return envoyer(res, 500, wRes)
+      return envoyer(res, 200, { ok: true, harness: resOp.harness, instance: resOp.instance })
+    } finally { harnessWriteBusy = false }
+  }
+
+  const harnessPolicy = async (req, res) => {
+    const corps = await corpsJson(req, res)
+    if (corps === undefined) return undefined
+    if (harnessWriteBusy) return envoyer(res, 409, { ok: false, error: 'busy' })
+    harnessWriteBusy = true
+    try {
+      const cur = lireHarness().harness
+      const now = deps.maintenant()
+      let resOp
+      if (corps.kind === 'role') resOp = updateRoleEngine(cur, corps, now)
+      else if (corps.kind === 'scope') resOp = updateScopePolicy(cur, corps, now)
+      else if (corps.kind === 'favorite') {
+        const favKind = corps.targetKind === 'worker' || corps.targetKind === 'llm'
+          ? corps.targetKind
+          : (cur.instances.some((i) => i.id === corps.ownerId) ? 'worker' : 'llm')
+        resOp = toggleFavorite(cur, { ...corps, kind: favKind }, now)
+      }
+      else return envoyer(res, 400, { ok: false, error: 'unknown-kind' })
+      if (!resOp.ok) {
+        const st = resOp.error === 'revision-conflict' ? 409 : (resOp.error === 'unknown-instance' ? 404 : 400)
+        return envoyer(res, st, resOp)
+      }
+      const wRes = ecrireHarness(resOp.harness)
+      if (!wRes.ok) return envoyer(res, 500, wRes)
+      return envoyer(res, 200, { ok: true, harness: resOp.harness, ...(resOp.favorite !== undefined ? { favorite: resOp.favorite } : {}) })
+    } finally { harnessWriteBusy = false }
+  }
+
+  const runtimeGet = (req, res) => {
+    if (req.method !== 'GET') return envoyer(res, 405, { ok: false, error: 'method-not-allowed' })
+    if (sameOriginLax(req) === false) return envoyer(res, 403, { ok: false, error: 'origin-refused' })
+    let sessionId = null
+    try { sessionId = new URL(req.url, 'http://localhost').searchParams.get('session') } catch { sessionId = null }
+    const h = lireHarness().harness
+    return envoyer(res, 200, runtimeSnapshot(runtimeState, { harness: h, sessionId, now: deps.maintenant() }))
+  }
+
+  const runtimeRoute = async (req, res) => {
+    const corps = await corpsJson(req, res)
+    if (corps === undefined) return undefined
+    const now = deps.maintenant()
+    const action = corps.action
+    if (action === 'select') {
+      const h = lireHarness().harness
+      const pick = selectWorkerInstance({
+        harness: h,
+        runtime: runtimeState,
+        requestedWorkerId: corps.requestedWorkerId ?? corps.workerId ?? 'auto',
+        roleId: corps.roleId ?? null,
+        sessionId: corps.sessionId ?? null,
+        workKey: corps.workKey ?? null,
+        policy: corps.policy ?? null,
+        includeBuiltin: corps.includeBuiltin !== false,
+        now
+      })
+      return envoyer(res, pick.ok ? 200 : 409, pick)
+    }
+    let resOp
+    if (action === 'quota') {
+      resOp = recordQuotaUpdate(runtimeState, corps.workerId, corps, now)
+    } else if (action === 'rate-limit') {
+      resOp = recordRateLimit(runtimeState, corps, now)
+    } else if (action === 'start') {
+      resOp = recordRunStart(runtimeState, corps, now)
+    } else if (action === 'finish') {
+      resOp = recordRunFinish(runtimeState, corps, now)
+    } else if (action === 'headers') {
+      const parsed = parseRateLimitHeaders(corps.headers, now)
+      const prev = runtimeState.quotas.get(corps.workerId)
+      const byKey = new Map((prev?.windows ?? []).map((w) => [w.key, w]))
+      for (const w of parsed.windows) byKey.set(w.key, w)
+      resOp = recordQuotaUpdate(runtimeState, corps.workerId, {
+        ...(corps.driverId ? { driverId: corps.driverId } : {}),
+        ...(corps.label ? { label: corps.label } : {}),
+        windows: Array.from(byKey.values()),
+        ...(parsed.cooldownUntil ? { cooldownUntil: parsed.cooldownUntil } : {})
+      }, now)
+    } else if (action === 'probe') {
+      const baseHarness = lireHarness().harness
+      const effInstances = Array.isArray(baseHarness.instances) ? baseHarness.instances.slice() : []
+      const seenIds = new Set(effInstances.map((i) => i.id))
+      const seenDrivers = new Set(effInstances.map((i) => i.driverId))
+      const p = profilDe(corps.profile)
+      if (p.erreur === undefined) {
+        let texte = null
+        try { texte = deps.lirePatch(p.profil) } catch { texte = null }
+        if (typeof texte === 'string') {
+          for (const w of WORKERS) {
+            if (w.genre === 'connexion' && etatProfil(texte, w).connexion && !seenDrivers.has(w.id) && !seenIds.has(w.id)) {
+              const def = DRIVER_DEFAULTS[w.id] ?? {}
+              effInstances.push({
+                id: w.id,
+                driverId: w.id,
+                label: w.nom,
+                binaryPath: def.binaryPath ?? w.binaire ?? '',
+                shadowHomePath: '',
+                enabled: true,
+                active: true
+              })
+              seenIds.add(w.id)
+              seenDrivers.add(w.id)
+            }
+          }
+        }
+      }
+      if (typeof corps.workerId === 'string' && corps.workerId.trim() !== '' && !seenIds.has(corps.workerId) && !seenDrivers.has(corps.workerId)) {
+        const wReq = trouverWorker(corps.workerId)
+        if (wReq) {
+          const def = DRIVER_DEFAULTS[wReq.id] ?? {}
+          effInstances.push({
+            id: wReq.id,
+            driverId: wReq.id,
+            label: wReq.nom,
+            binaryPath: def.binaryPath ?? wReq.binaire ?? '',
+            shadowHomePath: '',
+            enabled: true,
+            active: true
+          })
+        }
+      }
+      resOp = await collectAllQuotas({
+        harness: { ...baseHarness, instances: effInstances },
+        runtime: runtimeState,
+        io: deps.io,
+        workerId: corps.workerId ?? null,
+        now
+      })
+    } else {
+      return envoyer(res, 400, { ok: false, error: 'unknown-action' })
+    }
+    if (!resOp.ok) return envoyer(res, resOp.error === 'unknown-run' ? 404 : 400, resOp)
+    const wRes = persisterRuntime(now)
+    if (!wRes.ok) return envoyer(res, 500, wRes)
+    return envoyer(res, 200, resOp)
+  }
+
+  let activeWorkerCache = typeof deps.lireActiveWorker === 'function' ? sanitizeActiveWorker(deps.lireActiveWorker()) : null
+
+  const activeWorkerRoute = async (req, res) => {
+    if (req.method === 'GET') {
+      if (sameOriginLax(req) === false) return envoyer(res, 403, { ok: false, error: 'origin-refused' })
+      const current = typeof deps.lireActiveWorker === 'function' ? sanitizeActiveWorker(deps.lireActiveWorker()) : activeWorkerCache
+      activeWorkerCache = current
+      return envoyer(res, 200, { ok: true, active: current })
+    }
+    const corps = await corpsJson(req, res)
+    if (corps === undefined) return undefined
+    const now = deps.maintenant()
+    const next = corps.active === null || corps.active === undefined ? null : sanitizeActiveWorker(corps.active, now)
+    if (corps.active !== null && corps.active !== undefined && next === null) {
+      return envoyer(res, 400, { ok: false, error: 'invalid-active-worker' })
+    }
+    if (!('active' in corps)) return envoyer(res, 400, { ok: false, error: 'missing-active' })
+    activeWorkerCache = next
+    if (typeof deps.ecrireActiveWorker === 'function') {
+      try { deps.ecrireActiveWorker(next) } catch (e) { return envoyer(res, 500, { ok: false, error: 'write-failed', detail: String(e?.message ?? e) }) }
+    }
+    return envoyer(res, 200, { ok: true, active: next })
+  }
+
   const enregistrer = () => {
     webServer.register({ kind: 'exact', path: '/kybernos-workers/state', handler: etat })
     webServer.register({ kind: 'exact', path: '/kybernos-workers/check', handler: verifierRoute })
     webServer.register({ kind: 'exact', path: '/kybernos-workers/policy', handler: politique })
     webServer.register({ kind: 'exact', path: '/kybernos-workers/activate', handler: activer })
+    webServer.register({ kind: 'exact', path: '/kybernos-workers/deactivate', handler: desactiver })
     webServer.register({ kind: 'exact', path: '/kybernos-workers/install', handler: installer })
+    webServer.register({ kind: 'exact', path: '/kybernos-workers/harness', handler: harnessGet })
+    webServer.register({ kind: 'exact', path: '/kybernos-workers/harness/instance', handler: harnessInstance })
+    webServer.register({ kind: 'exact', path: '/kybernos-workers/harness/models', handler: harnessModels })
+    webServer.register({ kind: 'exact', path: '/kybernos-workers/harness/policy', handler: harnessPolicy })
+    webServer.register({ kind: 'exact', path: '/kybernos-workers/runtime', handler: runtimeGet })
+    webServer.register({ kind: 'exact', path: '/kybernos-workers/runtime/route', handler: runtimeRoute })
+    webServer.register({ kind: 'exact', path: '/kybernos-workers/active-worker', handler: activeWorkerRoute })
   }
   return typeof liens.effect === 'function' ? liens.effect(enregistrer, 'kybernos-workers: routes') : enregistrer()
 }

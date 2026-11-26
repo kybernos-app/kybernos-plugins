@@ -1,0 +1,5 @@
+# dsh bundle patch: inserts the plugin into the profile's layer stack.
+# The bundle is inert unless the Kybernos app put KB_LOCAL_LLM_URL in the engine's environment (see index.js); it adds no configuration row of its own.
+- insert:
+    - id: kybernos-phone-model
+      name: '@local/kybernos-phone-model'

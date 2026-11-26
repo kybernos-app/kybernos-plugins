@@ -10,15 +10,15 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { connectionsEndpoint } from './server-profile.mjs'
-import {
-  asConnection, asConnectionList, asAppList, asLinked, connectionsFailure, connectionsPaths, isConnectionId, isToolkit, linkBody, MAX_LOGO_BYTES, rpcCall, rpcOutcome, safeLogo,
-} from './connections.mjs'
+import { asConnection, asConnectionList, asAppList, asLinked, connectionsFailure, connectionsPaths, isConnectionId, isToolkit, linkBody, MAX_LOGO_BYTES, asToolList, rpcCall, rpcList, rpcOutcome, safeLogo, isActionSlug, readOnlyOf } from './connections.mjs'
 
 /** A call to an app may run 30 s at the server (ADR 0008 § 5): wait a little longer than that, never less. */
 const TOOL_TIMEOUT_MS = 40000
 /** What an agent may send as `params` (the server's own bound, checked here first so nothing bigger is sent). */
 const MAX_PARAMS_BYTES = 256 * 1024
 const SYNC_EVERY_MS = 5000
+/** The server's list of tools is asked again after this long (at once when the account connects or the server changes). */
+const BRIDGE_EVERY_MS = 60 * 1000
 /** A logo is kept a day in memory (the page's browser keeps it a day too); never more than this many, the oldest out first. */
 const LOGO_TTL_MS = 24 * 60 * 60 * 1000
 const LOGO_CACHE_MAX = 600
@@ -346,7 +346,7 @@ export const createConnections = ({ apiCall, readState, isConnected, server, pro
   const toolDefs = () => [
     {
       name: 'connections_list',
-      description: 'The apps the person has connected to their Kybernos account (Gmail, GitHub, Slack...), with the id, the app and the label of each. Start here: only an app listed as active can be used, and the person connects a new one on the Connectors page.',
+      description: 'The apps the person has connected (Gmail, GitHub, Slack...), with the id, the app and the label of each. Start here: only a listed app can be used. An app that is not listed is not connected: call connections_connect with its slug (gmail, github...) if you have it and give the person the link it answers with, on its own line at the top of your answer; otherwise the person connects it on the Connectors page.',
       parameters: { type: 'object', additionalProperties: false, properties: {} },
       output: outputOf(),
       async execute() { return call('connections_list', {}) },
@@ -418,9 +418,77 @@ export const createConnections = ({ apiCall, readState, isConnected, server, pro
   const chosenAway = () => { try { return providerChoice() === 'composio' } catch (e) { return false } }
   const wanted = () => connectionsEndpoint(server().profile) !== null && isConnected(readState()) === true && chosenAway() !== true
 
+  // The bridge: tools the server publishes beyond the three above, by name → what they do to the world ('read', 'own' or 'ask': connections.mjs). Registered and dropped like the others.
+  const bridged = new Map()
+  let bridgeAt = 0
+  let bridgeBusy = false
+  const readKnown = new Map()
+  const READ_KNOWN_MAX = 500
+
   const dropAll = () => {
     for (const dispose of live.values()) { try { dispose() } catch (e) { /* already gone with its scope */ } }
     live.clear()
+    bridged.clear()
+    readKnown.clear()
+    bridgeAt = 0
+  }
+
+  /** Asks the server which tools it publishes and registers the new ones, drops the ones it no longer lists. An answer that is not a list changes nothing: the tools there are stay. Never throws. */
+  const refreshBridge = async () => {
+    if (tools === null || bridgeBusy || wanted() !== true) return
+    bridgeBusy = true
+    bridgeAt = Date.now()
+    try {
+      const g = gate()
+      if (g.done !== undefined) return
+      rpcId += 1
+      const res = await apiCall(g.endpoint, { base: '', method: 'POST', token: g.state.token, body: rpcList(rpcId), timeoutMs: TOOL_TIMEOUT_MS })
+      const listed = asToolList(res.status, res.body)
+      // Asked again after the wait: the account may have gone, or the server changed, while the server was answering.
+      if (listed === null || tools === null || wanted() !== true) return
+      const own = new Set(toolDefs().map((d) => d.name))
+      const published = new Map(listed.filter((t) => !own.has(t.name)).map((t) => [t.name, t]))
+      for (const name of [...bridged.keys()]) {
+        if (published.has(name)) continue
+        const dispose = live.get(name)
+        try { if (dispose !== undefined) dispose() } catch (e) { /* already gone with its scope */ }
+        live.delete(name)
+        bridged.delete(name)
+      }
+      for (const t of published.values()) {
+        if (bridged.has(t.name)) { bridged.set(t.name, t.kind); continue }
+        if (live.has(t.name)) continue
+        const def = {
+          name: t.name,
+          description: t.description,
+          parameters: t.parameters,
+          output: outputOf(),
+          async execute(args) { return call(t.name, obj(args)) },
+        }
+        try { live.set(t.name, tools.register(def)); bridged.set(t.name, t.kind) } catch (e) {
+          const why = t.name + ': ' + String((e && e.message) || e)
+          if (!warned.has(why)) { warned.add(why); log('bridged tool ' + why) }
+        }
+      }
+    } catch (e) { log('tool list: ' + String((e && e.message) || e)) } finally { bridgeBusy = false }
+  }
+
+  // Is this action a read? The gate asks it for `connections_execute` at the door: an action the server says only reads (Composio's own `readOnlyHint`, handed on by `connections_describe_tool`) passes with no
+  // tap, everything else asks. Asked once per action and kept (what an action does does not change). Only a clear « read_only: true » counts: no network, an unknown action, a server that does not have
+  // the tool, an answer with no boolean `read_only` are all « not a read » (and not kept, so the next call asks the server again). Never throws.
+  const readAction = async (slug) => {
+    if (!isActionSlug(slug)) return false
+    const key = slug.trim()
+    if (readKnown.has(key)) return readKnown.get(key)
+    try {
+      const out = await call('connections_describe_tool', { tool_slug: key })
+      if (out.ok !== true) return false
+      const read = readOnlyOf(out.text)
+      if (read === null) return false
+      if (readKnown.size >= READ_KNOWN_MAX) readKnown.delete(readKnown.keys().next().value)
+      readKnown.set(key, read)
+      return read
+    } catch (e) { return false }
   }
 
   const sync = () => {
@@ -434,11 +502,12 @@ export const createConnections = ({ apiCall, readState, isConnected, server, pro
         if (!warned.has(why)) { warned.add(why); log('tool ' + why) }
       }
     }
+    if (Date.now() - bridgeAt >= BRIDGE_EVERY_MS) refreshBridge().catch(() => {})
   }
 
   /** `scope.tools`, when DSH has the tools service; `null` when it goes away. */
   const attach = (toolsService) => { dropAll(); tools = toolsService; sync() }
-  const detach = () => { tools = null; live.clear() }
+  const detach = () => { tools = null; live.clear(); bridged.clear(); readKnown.clear(); bridgeAt = 0 }
 
   /** Mounted from apply(): the tools follow the connection and the server, checked at start and every few seconds. */
   const mount = (ctx) => {
@@ -455,5 +524,8 @@ export const createConnections = ({ apiCall, readState, isConnected, server, pro
     }, 'kybernos-cloud: connections tools')
   }
 
-  return { listRoute, appsRoute, logoRoute, itemRoute, linkRoute, deleteRoute, toolDefs, sync, attach, detach, mount, load }
+  /** What a tool the server published does to the world ('read', 'own', 'ask'), or null for a name that is not one of them: the gate reads it. */
+  const bridgedKind = (name) => bridged.get(name) ?? null
+
+  return { listRoute, appsRoute, logoRoute, itemRoute, linkRoute, deleteRoute, toolDefs, sync, refreshBridge, bridgedKind, readAction, attach, detach, mount, load }
 }

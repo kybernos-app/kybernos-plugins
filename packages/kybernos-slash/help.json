@@ -5,8 +5,8 @@
   },
   "steps": [
     {
-      "fr": "Tape « / » dans la zone de saisie : tes commandes suivent celles de DSH. Choisis-en une et remplis son formulaire le cas échéant.",
-      "en": "Type “/” in the message box: your commands show after DSH’s own. Pick one and fill in its form, if it has one."
+      "fr": "Tape « / » dans la zone de saisie : tes commandes suivent celles de Kybernos. Choisis-en une et remplis son formulaire le cas échéant.",
+      "en": "Type “/” in the message box: your commands show after Kybernos’s own. Pick one and fill in its form, if it has one."
     },
     {
       "fr": "Pour créer une commande, écris ton texte puis clique sur le marque-page « Save as command » dans la barre de la zone de saisie.",

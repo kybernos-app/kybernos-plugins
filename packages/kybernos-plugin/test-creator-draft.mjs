@@ -5,6 +5,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { entry } from './lib-i18n-test.mjs'
 
 let failed = 0
 const check = (name, ok, detail) => {
@@ -46,7 +47,7 @@ const make = () => {
     check('untouched: ' + name, calls.length === 1 && calls[0].options === opts && calls[0].workspaceId === 'w1')
   }
 }
-check('both languages carry the brief and it names the skill DSH ships for presets', /'kbui\.preset\.creator\.draft': \{ kybernos: '[^']*editing-cordis-compositions[^']*', en: '[^']*editing-cordis-compositions[^']*' \}/.test(SRC))
+check('both languages carry the brief and it names the skill DSH ships for presets', (e => e !== null && typeof e.kybernos === 'string' && typeof e.en === 'string' && e.kybernos.includes('editing-cordis-compositions') && e.en.includes('editing-cordis-compositions'))(entry('kbui.preset.creator.draft')))
 check('the brief is given back when the plugin stops (the property is restored)', /Object\.defineProperty\(svc, 'startSession', \{ value: original/.test(SRC))
 console.log(failed === 0 ? '\nOK' : '\n' + failed + ' failed')
 process.exit(failed === 0 ? 0 : 1)

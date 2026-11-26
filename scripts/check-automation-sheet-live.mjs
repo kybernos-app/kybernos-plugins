@@ -59,13 +59,33 @@ try {
     } else console.log('skip  the prompt is short: no fold to press')
     check('when: the trigger, the repeat, the zone, the next run and the webhook are listed', (await q(`['trigger','repeat','zone','next','webhook'].filter((k) => document.querySelector('[data-kb="sheet-' + k + '"]')).length`)) === 5)
     check('where: the computer, the folder and the chat choice are listed', (await q(`['computer','folder','chat'].filter((k) => document.querySelector('[data-kb="sheet-' + k + '"]')).length`)) === 3)
-    check('safety: approvals, limit, « if I write in it » and notifications are listed', (await q(`['approvals','limit','onwrite','notify'].filter((k) => document.querySelector('[data-kb="sheet-' + k + '"]')).length`)) === 4)
+    check('safety: approvals, limit and « if I write in it » are listed', (await q(`['approvals','limit','onwrite'].filter((k) => document.querySelector('[data-kb="sheet-' + k + '"]')).length`)) === 3)
+    // The page must never cut the sheet: the sheet is the scroll area, and its last card can be brought fully into the window.
+    check('the sheet scrolls: its last card can be brought into view, whatever the height of the window', (await q(`(() => { const s = document.querySelector('[data-kb="automation-sheet"]'); s.scrollTop = s.scrollHeight; const r = document.querySelector('[data-kb="sheet-card-runs"]').getBoundingClientRect(); const b = s.getBoundingClientRect(); return getComputedStyle(s).overflowY === 'auto' && b.bottom <= innerHeight + 1 && r.bottom <= b.bottom + 1 && r.top >= b.top - 1 })()`)) === true)
+    await q(`document.querySelector('[data-kb="automation-sheet"]').scrollTop = 0`)
+    check('the small cards share one grid: When, Where and Who sit on the same row once the sheet is wide enough', (await q(`(() => { const s = document.querySelector('[data-kb="automation-sheet"]'); const t = (k) => Math.round(document.querySelector('[data-kb="sheet-card-' + k + '"]').getBoundingClientRect().top); return s.clientWidth < 1040 || (t('when') === t('where') && t('where') === t('who')) })()`)) === true)
     check('the cost answers (a figure, or « — » with the reason under it) once the journals are read', (await waitFor(page, `(() => { const b = document.querySelector('[data-kb="sheet-cost-total"]'); return !!b && !/Reading/.test(document.querySelector('[data-kb="sheet-card-cost"]').textContent) })()`, 25000)) === true, await text('[data-kb="sheet-card-cost"]'))
     const c1 = await text('[data-kb="sheet-card-cost"]'); await sleep(2500); const c2 = await text('[data-kb="sheet-card-cost"]')
     check('the figure does not grow once it is shown (no partial sum while the journals are read)', c1 === c2, JSON.stringify([c1, c2]))
     console.log('      cost card: ' + String(await text('[data-kb="sheet-card-cost"]')).slice(0, 120))
     check('no horizontal scroll in the sheet', (await q(`(() => { const e = document.querySelector('[data-kb="automation-sheet"]'); return e.scrollWidth <= e.clientWidth + 1 })()`)) === true)
-    check('the tab bar offers Overview, Workflow, Sessions and Where it runs', (await q(`[...document.querySelectorAll('[data-kb="detail-tabs"] button')].map((b) => b.getAttribute('data-kb')).join(',')`)) === 'tab-overview,tab-flow,tab-sessions,tab-where')
+    check('the tab bar offers Overview, Workflow and Sessions: Where it runs is a card of the Overview', (await q(`[...document.querySelectorAll('[data-kb="detail-tabs"] button')].map((b) => b.getAttribute('data-kb')).join(',')`)) === 'tab-overview,tab-flow,tab-sessions')
+    // Where it runs, in the Where card: folded for an automation on this computer (Change), open for one already on a cloud computer. READ ONLY: nothing is pressed inside it.
+    const toggle = '[data-kb="sheet-edit-where"]'
+    const bodyIn = `!!document.querySelector('[data-kb="sheet-card-where"] [data-kb="sheet-where-body"] [data-kb="where-tab"]')`
+    check('the Where card has its own Change / Hide button', (await q(`['Change', 'Hide'].includes((document.querySelector('${toggle}') || {}).textContent)`)) === true)
+    if ((await q(bodyIn)) === true) { await click(toggle); await sleep(300) }
+    check('folded: the publishing controls are not on the card', (await q(bodyIn)) === false && (await q(`document.querySelector('${toggle}').getAttribute('aria-expanded')`)) === 'false')
+    const w0 = await q(`Math.round(document.querySelector('[data-kb="sheet-card-where"]').getBoundingClientRect().width)`)
+    await click(toggle); await sleep(500)
+    check('Change unfolds the controls inside the Where card (this computer / cloud, the picker or its state)', (await q(bodyIn)) === true && (await q(`document.querySelector('${toggle}').getAttribute('aria-expanded')`)) === 'true')
+    check('the card does not repeat its title inside, and the controls are the real ones', (await q(`(() => { const b = document.querySelector('[data-kb="sheet-where-body"]'); return !!b && !b.querySelector('.kbwr-h') && !!b.querySelector('[data-kb="where-here"], [data-kb="where-change"], [data-kb="where-blocked"], [data-kb="where-cloud"]') })()`)) === true)
+    const w1 = await q(`(() => { const c = document.querySelector('[data-kb="sheet-card-where"]').getBoundingClientRect(); const g = document.querySelector('.kba-sheet-grid').getBoundingClientRect(); return { card: Math.round(c.width), grid: Math.round(g.width) } })()`)
+    check('open, the card takes the whole row', w1.card >= w1.grid - 2 && w1.card >= w0, JSON.stringify([w0, w1]))
+    check('no horizontal scroll while it is open', (await q(`(() => { const e = document.querySelector('[data-kb="automation-sheet"]'); return e.scrollWidth <= e.clientWidth + 1 })()`)) === true)
+    await shot('sheet-where-open')
+    await click(toggle); await sleep(400)
+    check('Hide folds it again', (await q(bodyIn)) === false)
     const first = (await q(`document.documentElement.getAttribute('data-kb-theme')`)) === 'dark' ? 'dark' : 'light'
     await shot('sheet-' + first)
 
@@ -87,6 +107,14 @@ try {
     check('« All sessions » goes to the Sessions tab', (await click('[data-kb="sheet-all-sessions"]')) === true && (await waitFor(page, `!!document.querySelector('[data-kb="runs-sessions"]')`, 6000)) === true)
     await click('[data-kb="tab-overview"]'); await sleep(400)
     check('and back on the sheet', (await q(`!!document.querySelector('[data-kb="automation-sheet"]')`)) === true)
+
+    // The Workflow tab: its text fills the free height, its visual says it is the planned workflow, and the tab scrolls when the window is short.
+    await click('[data-kb="tab-flow"]'); await sleep(900)
+    await click('[data-kb="view-text"]'); await sleep(600)
+    check('Workflow, text: the frame fills the free height (no blank band under it), or the tab scrolls', (await q(`(() => { const w = document.querySelector('.kba-flowwrap'); const f = document.querySelector('[data-kb="flow-frame"]'); if (!w || !f) return false; return w.getBoundingClientRect().bottom - f.getBoundingClientRect().bottom < 4 || w.scrollHeight > w.clientHeight + 1 })()`)) === true)
+    await click('[data-kb="view-flow"]'); await sleep(900)
+    check('Workflow, flow: the canvas says it is the planned workflow, which the orchestrator agent may adapt', (await q(`(() => { const n = document.querySelector('[data-kb="flow-note"]'); return !!n && /orchestrat/i.test(n.textContent) && /plan|prévu/i.test(n.textContent) })()`)) === true)
+    check('Workflow, flow: the tab is a scroll area, so the last row of the graph can be reached', (await q(`(() => { const w = document.querySelector('.kba-flowwrap'); w.scrollTop = w.scrollHeight; const c = document.querySelector('[data-kb="flow-canvas"]').getBoundingClientRect(); return getComputedStyle(w).overflowY === 'auto' && (w.scrollHeight <= w.clientHeight + 1 || c.bottom <= w.getBoundingClientRect().bottom + 1) })()`)) === true)
   }
 } catch (e) {
   fails += 1

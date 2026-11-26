@@ -13,8 +13,8 @@
       "en": "Use “Search a module…”, filter by “Installed” or “Updates”, then click a card to read its page."
     },
     {
-      "fr": "L’interrupteur active ou coupe un module (« Socle » reste toujours actif). « Installer » en ajoute un, puis « Relancer DSH ».",
-      "en": "The switch turns a module on or off (“Base” modules stay on). “Install” adds one, then “Restart DSH”."
+      "fr": "L’interrupteur active ou coupe un module (« Socle » reste toujours actif). « Installer » en ajoute un, puis « Relancer Kybernos ».",
+      "en": "The switch turns a module on or off (“Base” modules stay on). “Install” adds one, then “Restart Kybernos”."
     },
     {
       "fr": "« Rechercher des mises à jour » interroge le catalogue signé ; si la suite est plus récente, « Mettre à jour la suite ».",
@@ -27,7 +27,7 @@
     "page": true
   },
   "good": {
-    "fr": "Si DSH rate deux démarrages de suite, le panneau recommande le « mode sans échec » (seuls les modules de base se chargent). Il ne l’active jamais seul : cela se gère par une commande dans un terminal.",
-    "en": "If DSH fails to start twice in a row, the panel recommends “safe mode” (only the base modules load). It never turns it on by itself: you manage it with a command in a terminal."
+    "fr": "Si Kybernos rate deux démarrages de suite, le panneau recommande le « mode sans échec » (seuls les modules de base se chargent). Il ne l’active jamais seul : cela se gère par une commande dans un terminal.",
+    "en": "If Kybernos fails to start twice in a row, the panel recommends “safe mode” (only the base modules load). It never turns it on by itself: you manage it with a command in a terminal."
   }
 }

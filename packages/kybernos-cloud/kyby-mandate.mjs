@@ -1,6 +1,7 @@
 // Kaby's mandate: the one standing permission (kyby-identity.mjs, rule 3). The person signs it once in Settings; from then on the tools it lists run in Kaby's own chat
 // without a question, inside daily limits, and everything else still asks. Pure and dependency-light: kyby-mandate-store.mjs reads and writes the file, index.js calls decide().
 //
+// A cloud computer's turn gate (index.js, turnGate) reads it too, for the same tools and never in a strict turn (a request an entrance filter found suspect).
 // What it covers is only what the native gate asks about today (index.js, NATIVE_ASK_TOOLS), in two classes:
 //   memory    memory_write, lesson_write: reversible, on this computer.
 //   computer  computer_exec, computer_write, computer_start, computer_stop, computer_pause, computer_resume, computer_task: work on the person's cloud computer, which costs run hours.

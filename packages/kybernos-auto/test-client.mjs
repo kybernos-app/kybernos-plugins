@@ -95,7 +95,7 @@ ok('un champ de saisie a ses états ARIA (invalide, décrit par son message)', s
     } catch (e) { /* the composer part of apply needs a real DOM: the settings section is registered before it */ }
     return reg === null ? null : reg.render().type()
   }
-  const SENTENCE = 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.'
+  const SENTENCE = 'This page’s helper is not answering. If the app was just updated, restart it, then press Retry.'
   // the hook that holds « the state could not be read »: counted in the source, so a new hook above it does not break this
   const echecIndex = (src.slice(src.indexOf('const KbAutoSettings = () => {'), src.indexOf('const echecPair')).match(/React\.useState\(/g) || []).length
   const failed = renderSettings({ [echecIndex]: true })

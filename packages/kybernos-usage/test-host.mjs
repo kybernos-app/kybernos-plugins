@@ -21,7 +21,7 @@ const call = async (path, { method = 'POST', headers = {}, body, url } = {}) => 
 }
 const U = (u, o, cr) => ({ uncachedInputTokens: u, outputTokens: o, cacheReadTokens: cr, cacheWriteTokens: 0 })
 
-ok('three routes mounted', Object.keys(routes).sort().join() === '/kybernos-usage/budget,/kybernos-usage/observe,/kybernos-usage/summary')
+ok('four routes mounted', Object.keys(routes).sort().join() === '/kybernos-usage/budget,/kybernos-usage/context,/kybernos-usage/observe,/kybernos-usage/summary')
 {
   const foreign = await call('/kybernos-usage/observe', { headers: { origin: 'https://evil.example' }, body: { sessionId: 's', model: 'm', usage: U(1, 1, 1) } })
   ok('observe: foreign origin refused', foreign.status === 403)

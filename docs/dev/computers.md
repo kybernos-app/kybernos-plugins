@@ -164,6 +164,12 @@ gate's question (the command, kind shell) put once, the run refused at once and 
 decided, the action run once (or not at all when refused: no file), the run reported once. 10/10 for allowed and for denied. Played since on Fly dev with the owner's real tap (a refusal, 2026-10-24: see « Traps met »). Not played: production.
 To build the image from the checkout without a release: `git archive <commit> | tar -x -C <folder>`, then `docker buildx build --build-context kbsrc=<folder> --build-arg KB_LOCAL=1 --build-arg DSH_VER=0.2.1-rc.2 -t kybernos-computer-base:<tag> packages/kybernos-gate/docker`
 and the computer image as above (`-f services/computer-image/Dockerfile --build-arg BASE=...`, context the repository root).
+**A stop, played on the real image** (2026-11-22, arm64 container, DSH 0.2.2-alpha.2, a stand-in platform and a stand-in model that holds a call open): `node services/computer-image/play-stop.mjs <image>` hands the computer a turn, lets the
+model ask for a tool and then think without end, makes the platform's heartbeat say `cancel` three seconds into that call, and hands a second job right after the first is acknowledged. It checks twelve things, among them: the call in
+flight is CLOSED by the engine at or before the moment the runner says `canceled`, no call of the stopped turn begins afterwards, the second job starts only after the first call is closed and ends `done`. 12/12 on an image built from `dev`
+(f02aeac5, about 12 seconds once DSH is up); 9/12 on an image built from the commit before the stop (0891c830): the call stays open, the next job starts while the engine is busy, and the cancel is noticed about 40 seconds late. The
+mutation check is part of the method: after a change to the stop, play the script on both. Build the two images from `git archive <commit>` as above (`-f services/computer-image/Dockerfile --build-arg BASE=...` with the archive folder as
+the context; `DSH_VER=0.2.2-alpha.2` for the engine the computers run). Not played: a deployed Fly computer.
 Tests: `scripts/test-computer-approvals.mjs` (the two real plugins and a stand-in platform), `packages/kybernos-cloud/test-automation-approvals.mjs` (the rules),
 `test-computers-publish.mjs`, `test-computers-view.mjs`, `packages/kybernos-plugin/test-where-it-runs.mjs`, `services/computer-image/reporter.test.mjs`.
 

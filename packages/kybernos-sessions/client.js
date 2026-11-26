@@ -21,7 +21,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 window.__ModuleLoader__.load({
-  id: '@local/kybernos-sessions/client',
+  id: '@local/kybernos-sessions',
   factory (require) {
     const React = require('react')
     const h = React.createElement
@@ -475,10 +475,25 @@ window.__ModuleLoader__.load({
       return { graphe: graphe, ico: GLYPHES[base], mot: MOTS_GLYPHE[base] }
     }
 
+    // The text node of a row title. The engine from 0.2.3-alpha.2 wraps it one level down (`<span class="…title"><span class="…travel">New Session</span></span>`): looking at the
+    // direct children only found nothing, so no row got its icon, and the automatic classification (which starts from the placeholder icon) never ran. A direct text node still wins
+    // (the Pinned rows, the engines before it); else it is searched in the wrapper, never inside our own icon.
     const noeudTexte = (el) => {
       const enfants = el.childNodes || []
       for (let i = 0; i < enfants.length; i++) if (enfants[i].nodeType === 3) return enfants[i]
+      for (let i = 0; i < enfants.length; i++) {
+        const n = enfants[i]
+        if (n.nodeType !== 1 || (n.classList !== undefined && n.classList !== null && n.classList.contains('kbs-titre-ico'))) continue
+        const dedans = noeudTexte(n)
+        if (dedans !== null && String(dedans.nodeValue || '').trim() !== '') return dedans
+      }
       return null
+    }
+    // The child of the title that holds that text node: the icon goes before it, so it stays beside the text whatever the wrapping.
+    const ancreDeTexte = (el, noeud) => {
+      let a = noeud
+      while (a !== null && a.parentNode !== null && a.parentNode !== el) a = a.parentNode
+      return a
     }
 
     // ── session categories: the title no longer carries an emoji ────────────
@@ -1090,8 +1105,13 @@ window.__ModuleLoader__.load({
 
     // The status Map of DSH, once per pass: a Map or plain object keyed by the bare uuid or by `session-<uuid>` (the stores hold both).
     // `null` when the service is not there (yet) — then no row is alive, which is today's behaviour.
+    // Since engine 0.2.2-rc.2 the status is a service of its own: a plain read of `uiSession.sessionStatus` THROWS (« without inject ») and was swallowed here,
+    // so no row was ever alive. `apply` injects it (a sub-plugin, outside the module's own inject: an engine without it never holds the bundle back) and keeps the handle here;
+    // the plain read stays for an engine older than 0.2.2-rc.2, where it is a property of `uiSession`.
+    let statutInjecte = null
     const lireStatuts = () => {
       try {
+        if (statutInjecte !== null && typeof statutInjecte.getSnapshot === 'function') return statutInjecte.getSnapshot()
         if (kbCtx === null || typeof kbCtx.get !== 'function') return null
         const ui = kbCtx.get('uiSession')
         const src = ui !== null && ui !== undefined ? ui.sessionStatus : null
@@ -1214,6 +1234,7 @@ window.__ModuleLoader__.load({
       const el = elementTitre(ligne)
       if (el === null || el === undefined) return false
       const noeud = noeudTexte(el)
+      const ancre = noeud === null ? null : ancreDeTexte(el, noeud)
       const texte = noeud === null ? '' : (noeud.nodeValue || '')
       const legacy = glypheDe(texte)
       const trouve = categorieDeLigne(ligne, legacy)
@@ -1229,8 +1250,8 @@ window.__ModuleLoader__.load({
         provisoire.setAttribute('data-mot', CATEGORIE_DEFAUT.mot)
         provisoire.setAttribute('data-provisoire', '1')
         provisoire.innerHTML = SVG_GLYPHE(CATEGORIE_DEFAUT.ico, 15)
-        if (noeud === null) el.appendChild(provisoire)
-        else el.insertBefore(provisoire, noeud)
+        if (ancre === null) el.appendChild(provisoire)
+        else el.insertBefore(provisoire, ancre)
         const inconnu = etatSession(texte)
         peindre(provisoire, inconnu !== null && inconnu.fait === true)
         return true
@@ -1258,8 +1279,8 @@ window.__ModuleLoader__.load({
       marque.setAttribute('role', 'img')
       marque.setAttribute('data-mot', trouve.mot)
       marque.innerHTML = SVG_GLYPHE(trouve.ico, 15)
-      if (noeud === null) el.appendChild(marque)
-      else { el.insertBefore(marque, noeud); noeud.nodeValue = texte.slice(legacy === null ? 0 : legacy.graphe.length) }
+      if (ancre === null) el.appendChild(marque)
+      else { el.insertBefore(marque, ancre); noeud.nodeValue = texte.slice(legacy === null ? 0 : legacy.graphe.length) }
       const connu = etatSession(texte)
       peindre(marque, connu !== null && connu.fait === true)
       return true
@@ -1935,10 +1956,13 @@ window.__ModuleLoader__.load({
       if (c.indexOf('R') >= 0) return 'renamed'
       return 'modified'
     }
-    function faitsChangements (s, sessionId, travail) {
-      if (!s) return { git: false, pourquoi: 'dossier' }
+    function faitsChangements (s, sessionId, travail, rewind) {
+      const rw = rewind !== null && rewind !== undefined && Array.isArray(rewind.turns) && rewind.turns.length > 0
+        ? { url: '/kybernos-sessions/rewind', session: sessionId, turns: rewind.turns }
+        : null
+      if (!s) return rw !== null ? { git: false, pourquoi: 'dossier', rewind: rw } : { git: false, pourquoi: 'dossier' }
       const g = s.git
-      if (!g || !g.git) return { git: false, pourquoi: 'git' }
+      if (!g || !g.git) return rw !== null ? { git: false, pourquoi: 'git', rewind: rw } : { git: false, pourquoi: 'git' }
       const n = g.modifications > 0 ? g.modifications : 0
       const restes = restesDuChat(s, travail)
       const mesChemins = travail !== null && Array.isArray(travail.chemins) ? travail.chemins : []
@@ -2003,19 +2027,29 @@ window.__ModuleLoader__.load({
         conflicts: conflits,
         pr: s.pr ? { number: s.pr.numero, title: s.pr.titre || '', state: s.pr.etat, checks: s.pr.checks, review: s.pr.revue, url: s.pr.url || '' } : null,
         onBase: !!(g.branche && g.base && g.branche === g.base),
-        actions
+        actions,
+        ...(rw !== null ? { rewind: rw } : {})
       }
     }
     // The « Changes » plugin reads this at every opening: the state of the folder AND the journal of the session (which says what
     // THIS chat wrote), like the pills. `null` when the route is silent.
     const lireChangements = async (sessionId) => {
+      const enc = encodeURIComponent(sessionId || '')
       let etat = null
-      try { etat = await fetch('/kybernos-sessions/state?session=' + encodeURIComponent(sessionId || '') + '&window=1').then((r) => r.json()) } catch (e) { return null }
+      let rewind = null
+      try {
+        const [st, rw] = await Promise.all([
+          fetch('/kybernos-sessions/state?session=' + enc + '&window=1').then((r) => r.json()).catch(() => null),
+          sessionId ? fetch('/kybernos-sessions/rewind/turns?session=' + enc).then((r) => r.json()).catch(() => null) : Promise.resolve(null)
+        ])
+        etat = st
+        if (rw !== null && typeof rw === 'object' && rw.ok === true && Array.isArray(rw.turns) && rw.turns.length > 0) rewind = rw
+      } catch (e) { return null }
       if (etat === null || typeof etat !== 'object') return null
       const s = etat.session ? Object.assign({}, etat.session, { session: sessionId }) : null
       let travail = null
       try { const j = await lireJournalSession(sessionId); travail = j !== null && j !== undefined ? classerJournal(j.events, j.cwd) : null } catch (e) { travail = null }
-      return faitsChangements(s, sessionId, travail)
+      return faitsChangements(s, sessionId, travail, rewind)
     }
     try { window.__KB_SESSIONS_VIEW__ = { version: 1, read: lireChangements } } catch (e) { /* no window: the Changes plugin then shows nothing and the four pills stay */ }
 
@@ -2213,7 +2247,7 @@ window.__ModuleLoader__.load({
       const notesTip = [libMemoire, memDit, lesDit, delta > 0 ? kt(delta + ' ' + (delta === 1 ? 'écrit' : 'écrits') + ' par cette conversation', delta + ' written by this chat') : kt('Rien d’écrit par cette conversation pour l’instant', 'Nothing written by this chat yet')]
       const sectionNote = (titre, corps) => h('section', { className: 'kbs-note-sec', key: titre },
         h('h4', { className: 'kbs-note-t' }, titre), corps)
-      const MOTS_CAPTURE = { jamais: ['n’a pas tourné depuis le démarrage de DSH', 'has not run since DSH started'], hors_connexion: ['non connecté', 'not connected'], desactivee: ['désactivée', 'switched off'],
+      const MOTS_CAPTURE = { jamais: ['n’a pas tourné depuis le démarrage de Kybernos', 'has not run since Kybernos started'], hors_connexion: ['non connecté', 'not connected'], desactivee: ['désactivée', 'switched off'],
         espace_equipe: ['désactivée dans un espace d’équipe', 'off in a team space'], sans_session: ['aucune session', 'no session'], tour_trop_court: ['tour trop court', 'turn too short'],
         llm_indisponible: ['aucun modèle disponible', 'no model available'], rien_a_retenir: ['rien à retenir', 'nothing worth keeping'], deja_connu: ['déjà connu', 'already known'], erreur: ['a échoué', 'failed'] }
       const ditCapture = (c) => c === null || c === undefined || c.status === undefined ? null
@@ -2264,7 +2298,7 @@ window.__ModuleLoader__.load({
           h('button', { className: 'kbs-minibtn', 'data-kbs-act': 'open-memory', onClick: () => { fermer('notes'); ouvrirReglagesSection(titreMemLecons) } }, kt('Ouvrir Mémoire & Leçons ›', 'Open Memory & Lessons ›'))),
         onClose: () => fermer('notes'),
         details: h('div', null,
-          sectionNote(kt('Registre de l’Agent Team', 'Agent Team ledger'), h('div', { className: 'kbs-memo' }, memFaites.map(ligneMemo))),
+          sectionNote(kt('Registre de l’équipe d’agents IA', 'AI Agent Team ledger'), h('div', { className: 'kbs-memo' }, memFaites.map(ligneMemo))),
           h('dl', { style: { margin: '10px 0 0', display: 'flex', flexDirection: 'column', gap: 9 } },
             Ligne(kt('Exécutions enregistrées', 'Runs recorded'), String(memoire.records.length), 'rb'),
             Ligne(kt('Leçons écrites', 'Lessons written'), String(memoire.lessons.length), 'lb'),
@@ -2272,7 +2306,7 @@ window.__ModuleLoader__.load({
             Ligne(kt('Souvenirs enregistrés', 'Memories saved'), String(memoire.souvenirs.length), 'mb'),
             Ligne(kt('Stockage', 'Storage'), h('code', { className: 'kbs-code-in' }, '~/.dsh/kybers/' + (kyber || '<kyber>') + '/memory'), 'st')),
           h(Copier, { key: 'cpm', texte: 'memory written in this chat\n' + memoire.souvenirs.map((x) => '- memory saved [' + (x.kind || '?') + '] ' + x.text).concat(memFaites.map((x) => '- ' + libelleMemo(x) + ' [' + (x.kyber || '?') + '] ' + (texteMemo(x) || ''))).join('\n') }),
-          h(Copier, { key: 'cpl', texte: (kyber || 'agent team') + ' — lessons from this chat\n' + leconsSession.map((l) => '- ' + libelleMemo(l) + ' ' + (l.type === 'lesson' ? l.text : 'lesson #' + l.index)).join('\n') })) })
+          h(Copier, { key: 'cpl', texte: (kyber || 'AI agent team') + ' — lessons from this chat\n' + leconsSession.map((l) => '- ' + libelleMemo(l) + ' ' + (l.type === 'lesson' ? l.text : 'lesson #' + l.index)).join('\n') })) })
 
       const carte = (id) => {
         if (id === 'local') return h(Pop, { idCarte: 'local', name: 'Local', icon: 'laptop', accent: w.accent, titre: w.titre, texte: w.texte,
@@ -2495,7 +2529,7 @@ window.__ModuleLoader__.load({
             const entete = document.createElement('div')
             entete.setAttribute('data-kb-groupe', couple[1])
             entete.className = 'kb-rg-groupe'
-            entete.textContent = couple[1]
+            entete.textContent = couple[1] === 'DSH' ? kt('Avancé', 'Advanced') : couple[1]
             liste.appendChild(entete)
           }
         }
@@ -2594,8 +2628,8 @@ window.__ModuleLoader__.load({
         ? kt('Automatique — ', 'Automatic — ') + cleAuto
         : (info.mode !== undefined ? kt('Automatique — aucun modèle n’est encore connecté', 'Automatic — no model is connected yet') : kt('Automatique', 'Automatic'))
       const introuvable = mode === 'choisi' && Array.isArray(modeles) && !modeles.some((mo) => mo.cle === brain)
-      const role = kt('Il vérifie que tes modèles répondent toujours, aide à ranger ta mémoire, et décide quelle équipe d’agents et quelle icône de conversation conviennent. ',
-        'It checks that your models still answer, helps tidy your memory, and decides which agent team and which chat icon fit. ')
+      const role = kt('Il vérifie que tes modèles répondent toujours, aide à ranger ta mémoire, et décide quelle équipe d’agents IA et quelle icône de conversation conviennent. ',
+        'It checks that your models still answer, helps tidy your memory, and decides which AI agent team and which chat icon fit. ')
       const envoi = kt('Le titre d’une conversation ne lui est envoyé que si les règles de mots ne savent pas la classer, et il reste sur cet ordinateur si c’est un modèle local.',
         'A chat title goes to it only when the word rules cannot place it, and stays on this machine if it is a local model.')
       let description
@@ -2754,8 +2788,8 @@ window.__ModuleLoader__.load({
             // survive a reload of the page).
             const perdus = Object.keys(patch).filter((k) => j.reglages[k] === undefined)
             if (perdus.length > 0) {
-              setErreur(kt('L’hôte n’a pas pris ce réglage (' + perdus.join(', ') + ') — il tourne sur une ancienne version : redémarre DSH pour l’appliquer pour de bon.',
-                'The host did not take this setting (' + perdus.join(', ') + ') — it is running an older build: restart DSH to apply it for good.'))
+              setErreur(kt('L’hôte n’a pas pris ce réglage (' + perdus.join(', ') + ') — il tourne sur une ancienne version : redémarre Kybernos pour l’appliquer pour de bon.',
+                'The host did not take this setting (' + perdus.join(', ') + ') — it is running an older build: restart Kybernos to apply it for good.'))
             } else {
               setEnregistre(true)
               setTimeout(() => setEnregistre(false), 1600)
@@ -3099,6 +3133,20 @@ window.__ModuleLoader__.load({
       ctx.effect(() => suivreTitres(), 'kybernos-sessions: category icon before the title')
       // Model health (the `brain` setting): the probe and the public bus the Models tab chip reads.
       ctx.effect(() => suivreSante(), 'kybernos-sessions: model health probe and bus')
+      // The chats' status (running / waiting / unread), for the rows that stay alive in a filtered group: injected by a sub-plugin that starts when the service is there.
+      try {
+        if (typeof ctx.inject === 'function') {
+          ctx.inject(['uiSession', 'uiSession.sessionStatus'], (scope) => {
+            try {
+              scope.effect(() => {
+                const ui = scope.uiSession
+                statutInjecte = ui !== undefined && ui !== null && ui.sessionStatus !== undefined ? ui.sessionStatus : null
+                return () => { statutInjecte = null }
+              }, 'kybernos-sessions: the status of the chats')
+            } catch (e) { /* cosmetic: no row stays alive */ }
+          })
+        }
+      } catch (e) { /* cosmetic: never blocks */ }
     }
     return {
       // The export contract of a cordis entry: the services the context
@@ -3106,7 +3154,7 @@ window.__ModuleLoader__.load({
       // the entry stays « loading » (the same contract as kybernos/kybernos-theme).
       inject: ['slots'],
       // Pure pieces, exposed for test-journal.mjs, test-sante.mjs and test-language.mjs.
-      __test: { choisirLignes, estVivant, statutDe, memoireDuJournal, santeVue, santeCause, suivreSante, faitsChangements, genreDeCode, descripteur, etudeVue, choixCorrespondants, kt, direErreur, ERR_REGLAGES, motAffiche, CATEGORIE_PAR_SLUG, MOTS_FR, ReglagesKybernos, rgRenommerGeneral, Pills, PlanAction, Pop, Copier },
+      __test: { choisirLignes, estVivant, statutDe, noeudTexte, ancreDeTexte, memoireDuJournal, santeVue, santeCause, suivreSante, faitsChangements, genreDeCode, descripteur, etudeVue, choixCorrespondants, kt, direErreur, ERR_REGLAGES, motAffiche, CATEGORIE_PAR_SLUG, MOTS_FR, ReglagesKybernos, rgRenommerGeneral, Pills, PlanAction, Pop, Copier },
       apply
     }
   }

@@ -14,6 +14,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { plageDeNoeud, noeudRepond } from './lifecycle-engine.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -43,12 +44,15 @@ export function parseResults (text) {
   return out
 }
 
-/** What is wrong with the facts, as sentences (empty when all is well). `engine` is the version dsh-compat.json allows. Pure. */
-export function verdict (facts, engine) {
+/** What is wrong with the facts, as sentences (empty when all is well). `engine` is the version dsh-compat.json allows; `exigence` is its `dsh.node` (the floor and the ranges), optional. Pure. */
+export function verdict (facts, engine, exigence) {
   const bad = []
   if (facts.install === 'failed' || facts['install-seconds'] === undefined) bad.push('the install script did not finish')
   const v = /^v(\d+)\.(\d+)/.exec(facts.node || '')
-  if (!v || Number(v[1]) < 24 || (Number(v[1]) === 24 && Number(v[2]) < 9)) bad.push(`Node ${facts.node || 'missing'} is older than 24.9`)
+  // From DSH 0.2.3-alpha.1 the engine declares a RANGE (`^24.22.3 || >=26.13.1`), not a floor: judge Node against the one that applies to this engine.
+  const plage = exigence === undefined ? null : plageDeNoeud(exigence, engine)
+  if (plage !== null && v) { if (noeudRepond(facts.node, plage) !== true) bad.push(`Node ${facts.node} does not fit DSH ${engine}, which needs Node ${plage}`) }
+  else if (!v || Number(v[1]) < 24 || (Number(v[1]) === 24 && Number(v[2]) < 9)) bad.push(`Node ${facts.node || 'missing'} is older than 24.9`)
   if (!(facts.dsh || '').includes(engine)) bad.push(`the engine is « ${facts.dsh || 'missing'} », dsh-compat.json allows ${engine}`)
   if (facts.headless !== 'composes') bad.push('the headless profile does not compose')
   if (!(Number(facts.bundles) >= 40)) bad.push(`only ${facts.bundles || 0} bundles are linked in the web profile`)
@@ -72,7 +76,7 @@ function main () {
     const text = (run.stdout || '') + (run.stderr || '')
     if (keep) writeFileSync(keep, text)
     const facts = parseResults(text)
-    const bad = verdict(facts, engine)
+    const bad = verdict(facts, engine, JSON.parse(readFileSync(join(REPO, 'dsh-compat.json'), 'utf8')).dsh.node)
     console.log(Object.entries(facts).map(([k, v]) => `  ${k}: ${v}`).join('\n'))
     if (bad.length) { console.log('✗ ' + bad.join('\n✗ ')); if (run.status !== 0) console.log(text.split('\n').slice(-30).join('\n')); process.exitCode = 1 } else console.log(`✓ clean Debian arm64: installed in ${facts['install-seconds']} s, Node ${facts.node}, engine ${engine}, headless composes, ${facts.bundles} bundles, dsh web refuses the bare address`)
   } finally { rmSync(dir, { recursive: true, force: true }) }

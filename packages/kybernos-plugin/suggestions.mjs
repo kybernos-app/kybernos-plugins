@@ -3,6 +3,9 @@
 // card with Add / Edit / Discard, and Add goes through the page's own save (the memory route, the instructions' Save). The text is written by a model that read e-mail, so a
 // text with an address, a phone number or a secret-looking link is refused here, at the door.
 import { randomBytes } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { makeLedgerFile } from './ledger-file.mjs'
 
 export const KINDS = ['instructions', 'memory']
@@ -11,6 +14,30 @@ export const LIMITS = { instructions: { text: 1500, keep: 1 }, memory: { text: 5
 
 const clip = (v, max) => (typeof v === 'string' ? Array.from(v.replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '').trim()).slice(0, max).join('') : '')
 
+// The person's way of asking in French is language data, in a file next to this module (not UI text).
+const FR = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'suggestion-lead.json'), 'utf8'))
+const POLITE = '(?:(?:please|' + FR.polite + ')[ ,]+)?'
+// « remember that… » / « retiens que… »: the person's way of asking, not part of the fact (a small model copies the whole sentence into the suggestion). « remember to… » is a task, not a fact: left alone.
+const LEAD = new RegExp('^' + POLITE + '(?:'
+  + '(?:remember|note|keep in mind|don[\'’]?t forget|do not forget|make a note|memori[sz]e|save)\\s+that\\s+'
+  + '|(?:remember|note)\\s*:\\s*'
+  + '|remember\\s+(?!to\\b)'
+  + '|' + FR.lead
+  + ')', 'i')
+
+/** The fact of a memory suggestion: the text without the words the person asked with, first letter up. A text that is nothing but those words is kept as it is. */
+export const factOf = (text) => {
+  const t = typeof text === 'string' ? text.trim() : ''
+  const cut = t.replace(LEAD, '').trim()
+  return cut !== t && cut.length >= 3 && !/^(?:that|que|qu['’])$/i.test(cut) ? cut.charAt(0).toUpperCase() + cut.slice(1) : t
+}
+
+/** Two suggestion texts that only differ by case, spaces or the dot at the end are the same suggestion. */
+export const sameText = (a, b) => {
+  const n = (v) => String(v).toLowerCase().replace(/\s+/g, ' ').replace(/[\s.!?…]+$/u, '')
+  return n(a) === n(b)
+}
+
 /** True when the text carries something that must not be kept as « learned from your work »: an e-mail address, a phone number, a link with a token. */
 export const hasPersonalData = (text) => /[\w.+-]+@[\w-]+\.[\w.-]+/.test(text) || /\+?\d[\d ().-]{7,}\d/.test(text) || /https?:\/\/\S*[?&](token|key|secret|password)=/i.test(text)
 
@@ -18,7 +45,8 @@ export const hasPersonalData = (text) => /[\w.+-]+@[\w-]+\.[\w.-]+/.test(text) |
 export const checkSuggestion = (kind, raw) => {
   if (KINDS.indexOf(kind) < 0) return { ok: false, error: 'unknown kind' }
   const r = raw !== null && typeof raw === 'object' ? raw : {}
-  const text = clip(r.text, LIMITS[kind].text + 1)
+  const asked = clip(r.text, LIMITS[kind].text + 1)
+  const text = kind === 'memory' ? factOf(asked) : asked
   if (text === '') return { ok: false, error: 'empty' }
   if (text.length > LIMITS[kind].text) return { ok: false, error: 'too long' }
   if (hasPersonalData(text)) return { ok: false, error: 'personal data' }
@@ -37,7 +65,7 @@ export const makeLedger = ({ file, now = () => new Date().toISOString(), newId =
       const c = checkSuggestion(kind, raw)
       if (c.ok !== true) return c
       let items = read()
-      if (items.some((i) => i.kind === kind && i.text.toLowerCase() === c.text.toLowerCase())) return { ok: false, error: 'already waiting' }
+      if (items.some((i) => i.kind === kind && sameText(i.text, c.text))) return { ok: false, error: 'already waiting' }
       if (LIMITS[kind].keep === 1) items = items.filter((i) => i.kind !== kind)
       else if (items.filter((i) => i.kind === kind).length >= LIMITS[kind].keep) return { ok: false, error: 'too many waiting' }
       const item = { id: newId(), kind, text: c.text, from: c.from, at: now() }

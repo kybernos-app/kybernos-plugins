@@ -5,6 +5,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { hasEntry } from './lib-i18n-test.mjs'
 import { createRunGuard, RUN_REQUEST_PREFIX } from './automation-run-guard.mjs'
 
 let pass = 0
@@ -50,14 +51,14 @@ const REQ = RUN_REQUEST_PREFIX + 't1-abc'
   assert.ok(Date.now() - t0 >= 55, 'not before the box is spent')
   ok('the time box is spent: the turn is cancelled and the word is time')
 }
-// 3. the person's message cancels the turn and is steered; the run's own unread message is removed
+// 3. the person's message cancels the turn and is steered; another run queued in the chat is left where it is (it fired: it must still run)
 {
   const e = makeEngine({ running: true })
   setTimeout(() => { e.queue = [{ id: 'q-run', rpcId: RUN_REQUEST_PREFIX + 'other-1' }, { id: 'q-me', rpcId: 'rpc-9' }] }, 30)
   assert.equal(await fast(e).begin({ sessionId: 's1', taskId: 't1', requestId: REQ, maxMinutes: 0, stopOnPerson: true }), 'person')
   assert.equal(e.cancels, 1)
-  assert.deepEqual(e.updates, [{ id: 'q-run', kind: 'remove' }, { id: 'q-me', kind: 'steer' }])
-  ok('the person writes: the turn is cancelled, their message is steered, a run message is removed')
+  assert.deepEqual(e.updates, [{ id: 'q-me', kind: 'steer' }])
+  ok('the person writes: the turn is cancelled, their message is steered, another run\'s message stays queued')
 }
 // 4. « let it finish »: the person's message does not cancel
 {
@@ -84,14 +85,17 @@ const REQ = RUN_REQUEST_PREFIX + 't1-abc'
   const watching = g.begin({ sessionId: 's1', taskId: 't1', requestId: REQ, maxMinutes: 10, stopOnPerson: true })
   await sleep(30)
   assert.equal(g.watching('s1'), true)
-  assert.deepEqual(await g.stop('s1'), { ok: true })
+  assert.deepEqual(await g.stop('s1'), { ok: true, requestId: REQ })
   assert.equal(await watching, 'stopped')
   assert.equal(e.cancels, 1)
   assert.equal(g.watching('s1'), false)
   const bare = makeEngine({ running: true, queue: [{ id: 'a', rpcId: RUN_REQUEST_PREFIX + 'x-1' }, { id: 'b', rpcId: 'zzz' }] })
-  assert.deepEqual(await fast(bare).stop('nobody-watches'), { ok: true })
+  assert.deepEqual(await fast(bare).stop('nobody-watches'), { ok: true, requestId: '' })
   assert.equal(bare.cancels, 1)
-  assert.deepEqual(bare.updates, [{ id: 'a', kind: 'remove' }, { id: 'b', kind: 'steer' }])
+  assert.deepEqual(bare.updates, [{ id: 'b', kind: 'steer' }], 'the person goes first; the other run stays queued behind')
+  const onlyRun = makeEngine({ running: true, queue: [{ id: 'a', rpcId: RUN_REQUEST_PREFIX + 'x-1' }, { id: 'c', rpcId: RUN_REQUEST_PREFIX + 'y-1' }] })
+  await fast(onlyRun).stop('nobody-watches')
+  assert.deepEqual(onlyRun.updates, [{ id: 'a', kind: 'steer' }], 'no message of the person: the next run is started, the rest follow it')
   ok('Stop cancels a watched run (stopped) and an unwatched one, keeping the person\'s messages')
 }
 // 7. the run's message waits behind a turn of the person's: the clock starts when it leaves the queue
@@ -117,15 +121,103 @@ const REQ = RUN_REQUEST_PREFIX + 't1-abc'
   assert.equal(await createRunGuard({ controller: () => undefined }).begin({ sessionId: 's1', taskId: 't1', requestId: REQ }), 'error')
   const idle = makeEngine({})
   assert.equal(await fast(idle).begin({ sessionId: 's1', taskId: 't1', requestId: REQ, maxMinutes: 1 }), 'done')
-  const e = makeEngine({ running: true })
-  const g = fast(e)
-  const first = g.begin({ sessionId: 's1', taskId: 't1', requestId: REQ, maxMinutes: 10 })
+  ok('no controller and a turn that never shows end cleanly')
+}
+
+// A chat that holds several runs, like the real engine: a run posted while a turn goes waits in the queue; at the end of a turn the next queued message starts at once
+// (the chat never goes idle in between); after a cancel nothing starts by itself until a message is steered.
+const makeChat = (init) => {
+  const c = Object.assign({ running: false, queue: [], cancels: 0, updates: [], noDrain: false }, init)
+  const startNext = () => { const next = c.queue.shift(); c.running = next !== undefined }
+  c.finish = () => { if (c.noDrain === true) { c.running = false; return } startNext() }
+  c.post = (id, rpcId) => { if (c.running === true) c.queue.push({ id, rpcId }); else c.running = true }
+  c.controller = {
+    state: async () => ({ ok: true, value: { running: c.running, queue: c.queue.slice(), pendingInput: [] } }),
+    wait: (o, signal) => new Promise((resolve, reject) => {
+      const t = setInterval(() => {
+        if (signal !== undefined && signal.aborted === true) { clearInterval(t); reject(new Error('aborted')); return }
+        if (c.running !== true) { clearInterval(t); resolve({ ok: true, value: { reason: 'idle' } }) }
+      }, 3)
+    }),
+    cancel: async () => { c.cancels += 1; c.noDrain = true; setTimeout(() => { c.running = false }, 15) },
+    updateQueue: async (o) => {
+      c.updates.push({ id: o.itemId, kind: o.action.kind })
+      const i = c.queue.findIndex((q) => q.id === o.itemId)
+      if (i < 0) return
+      c.queue.splice(i, 1)
+      if (o.action.kind === 'steer') setTimeout(() => { c.noDrain = false; c.running = true }, 20)
+    },
+  }
+  return c
+}
+const within = (p, ms) => Promise.race([p, sleep(ms).then(() => 'still waiting')])
+const REQ_B = RUN_REQUEST_PREFIX + 't2-def'
+
+// 11. A second run queued in the same chat does not take the watch of the run still going: the first one's time box still cuts it, and the second then starts
+{
+  const c = makeChat({ running: true })
+  const g = fast(c)
+  const a = g.begin({ sessionId: 's1', taskId: 't1', requestId: REQ, maxMinutes: 0.002, stopOnPerson: false })
+  await sleep(20)
+  c.post('qb', REQ_B)
+  const b = g.begin({ sessionId: 's1', taskId: 't2', requestId: REQ_B, maxMinutes: 10, stopOnPerson: false })
+  assert.equal(await within(a, 2000), 'time', 'the first run keeps its time box')
+  assert.equal(c.cancels, 1)
+  assert.deepEqual(c.updates, [{ id: 'qb', kind: 'steer' }], 'the run queued behind is started, not dropped')
+  await sleep(60)
+  assert.equal(g.watching('s1'), true, 'the second run is watched')
+  c.finish()
+  assert.equal(await within(b, 2000), 'done')
+  ok('two runs in one chat: each keeps its own watch; a time box cuts its own run only, and the next one starts')
+}
+// 12. The engine goes straight from one run to the next: the first watch ends done (no cancel), the second takes over
+{
+  const c = makeChat({ running: true })
+  const g = fast(c)
+  const a = g.begin({ sessionId: 's1', taskId: 't1', requestId: REQ, maxMinutes: 1, stopOnPerson: true })
+  await sleep(15)
+  c.post('qb', REQ_B)
+  const b = g.begin({ sessionId: 's1', taskId: 't2', requestId: REQ_B, maxMinutes: 1, stopOnPerson: true })
+  await sleep(40)
+  c.finish()
+  assert.equal(await within(a, 2000), 'done', 'the first run is over when the next one starts')
+  assert.equal(c.cancels, 0, 'nothing cancelled')
   await sleep(30)
-  const second = g.begin({ sessionId: 's1', taskId: 't1', requestId: REQ + '2', maxMinutes: 10 })
-  assert.equal(await first, 'error')
-  e.running = false
-  assert.equal(await second, 'done')
-  ok('no controller, a turn that never shows, and a second watch of one session end cleanly')
+  c.finish()
+  assert.equal(await within(b, 2000), 'done')
+  ok('a handover from one run to the next ends the first watch without cancelling the second')
+}
+// 13. A run queued behind a long one is not given up after the queued wait: the earlier run's own box bounds that wait
+{
+  const c = makeChat({ running: true })
+  const g = createRunGuard({ controller: () => c.controller, pollMs: 6, graceMs: 40, settleMs: 80, queuedMaxMs: 30 })
+  const a = g.begin({ sessionId: 's1', taskId: 't1', requestId: REQ, maxMinutes: 0, stopOnPerson: true })
+  await sleep(10)
+  c.post('qb', REQ_B)
+  const b = g.begin({ sessionId: 's1', taskId: 't2', requestId: REQ_B, maxMinutes: 0.003, stopOnPerson: false })
+  await sleep(120)
+  c.finish()
+  assert.equal(await within(a, 2000), 'done')
+  assert.equal(await within(b, 2000), 'time', 'the second run, started after 120 ms of queue, is still watched and boxed')
+  ok('a run waiting behind a watched run keeps its watch past the queued limit')
+}
+// 14. Stop on a run still queued behind another automation's: its message goes, the turn going is not touched
+{
+  const c = makeChat({ running: true })
+  const g = fast(c)
+  const a = g.begin({ sessionId: 's1', taskId: 't1', requestId: REQ, maxMinutes: 1, stopOnPerson: false })
+  await sleep(15)
+  c.post('qb', REQ_B)
+  const b = g.begin({ sessionId: 's1', taskId: 't2', requestId: REQ_B, maxMinutes: 1, stopOnPerson: false })
+  await sleep(15)
+  assert.deepEqual(await g.stop('s1', 't2'), { ok: true, requestId: REQ_B })
+  assert.equal(await within(b, 2000), 'stopped')
+  assert.equal(c.cancels, 0, 'the other automation\'s turn goes on')
+  assert.deepEqual(c.updates, [{ id: 'qb', kind: 'remove' }])
+  await sleep(30)
+  c.finish()
+  assert.equal(await within(a, 2000), 'done', 'and its watch is not mistaken for a handover')
+  ok('Stop on a queued run removes its message only')
 }
 
 // 10. the wiring: the sanitizer, the fire path, the route and the page
@@ -136,11 +228,12 @@ const REQ = RUN_REQUEST_PREFIX + 't1-abc'
   assert.ok(/r\.maxMinutes !== undefined/.test(host) && /invalid duration/.test(host), 'the sanitizer takes and checks maxMinutes')
   assert.ok(/r\.onPersonWrites !== undefined/.test(host), 'the sanitizer takes onPersonWrites')
   assert.ok(/kbRunGuard\.begin\(/.test(host), 'kbFireTask starts a watch')
-  assert.ok(/action === 'stop'/.test(host) && /kbRunGuard\.stop\(/.test(host), 'the tasks route has a stop action')
+  assert.ok(/action === 'stop'/.test(host) && /kbRunGuard\.stop\(sid, id\)/.test(host), 'the tasks route has a stop action, for the run of that automation')
+  assert.ok(/kbNoteRunStop\(String\(task\.id\), sessionId, why, requestId\)/.test(host) && /kbNoteRunStop\(id, sid, 'stopped', r\.requestId\)/.test(host), 'the stop is noted on the line of the run it cut, found by its request')
   assert.ok(/const requestId = RUN_REQUEST_PREFIX \+/.test(host), 'the request id carries the run prefix the guard tells runs apart by')
   assert.ok(/action: 'stop'|act\('stop'/.test(cli), 'the page calls stop')
   for (const k of ['tasks.stoprun', 'tasks.stop.asked', 'tasks.during', 'tasks.maxmin', 'tasks.maxmin.hint', 'tasks.maxmin.none', 'tasks.onwrite', 'tasks.onwrite.hint', 'tasks.onwrite.stop', 'tasks.onwrite.finish', 'tasks.hours.fixed', 'tasks.hours.every', 'tasks.hours.bad']) {
-    assert.ok(new RegExp("'" + k.replace(/\./g, '\\.') + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(cli), 'both languages for ' + k)
+    assert.ok(hasEntry(k), 'both languages for ' + k)
   }
   ok('wiring: sanitizer, fire path, stop route, page strings in both languages')
 }

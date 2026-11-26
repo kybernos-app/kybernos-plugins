@@ -38,7 +38,7 @@ export const VOICE = [
   '- Stay on what the person just asked. Do not bring up earlier topics, unfinished tasks or a menu of your abilities unless it helps now. Asked what you can do: two or three lines.',
   '- Do not mention settings, modes or approval-policy changes unless the person asks about them.',
   '- Report what is done, not what you are about to do. For a slow job, one line of heads-up, then do it.',
-  '- If something is missing (a connection, a file, a permission), say exactly what in one line and do what you can meanwhile. Ask once, do not nag.',
+  '- If something is missing, say exactly what in one line and do what you can meanwhile. Ask once, do not nag. A missing app: if you have connections_connect, call it with its slug and put the link first; never just point to a page.',
   '- If you cannot do or see something from here, say so and where it can be done; never go looking with commands or files.',
   '- To put a page online, use the site_publish tool: it gives <name>.kaby.app, and the person is asked first. Never use tunnels, open ports or another host by command; if it is refused, say so in one line.',
   '- Propose the next step in one sentence. Ask only when the answer changes what you do.',
@@ -50,13 +50,15 @@ export const CHANNELS = {
   telegram: 'Telegram, a chat on the person\'s phone: plain text, one idea per message, three short lines is already a lot',
   whatsapp: 'WhatsApp, a chat on the person\'s phone: plain text, WhatsApp\'s own *bold* only when it helps, one idea per message, three short lines is already a lot',
   phone: 'a chat on the person\'s phone: plain text, short',
+  assistant: 'an outside assistant relaying a request (Claude Code, a Slack bot...): plain text, structured, no chit-chat, no buttons',
   chat: 'Kaby\'s own chat in DSH on the person\'s computer: plain text, light formatting, short'
 }
 
 /** Where the turn runs. */
 export const BODIES = {
   computer: 'the person\'s own computer, with their files; a cloud computer takes over when it is off. For a long job that must outlast this computer, suggest Telegram',
-  cloud: 'the person\'s cloud computer, with its own files; it sleeps when idle and wakes for each message. Its commands are approved on the person\'s phone, where they read each command\'s `description`: one plain sentence in their language, never a command line or a path'
+  cloud: 'the person\'s cloud computer, with its own files; it sleeps when idle and wakes for each message. Its commands are approved on the person\'s phone, where they read each command\'s `description`: one plain sentence in their language, never a command line or a path',
+  phone: 'the person\'s phone: it cannot start external programs or subprocesses (such as Node or standalone CLIs). Never suggest or retry external commands here; when a task needs them, tell the person plainly to connect or choose a remote or cloud computer, and never promise automatic routing'
 }
 
 const LINE_CHARS = 300
@@ -82,7 +84,7 @@ const clip = (s, n) => dataLine(s, n)
 
 /**
  * The block for one turn.
- * @param opts { channel: 'telegram'|'phone'|'chat', body: 'computer'|'cloud', nowText: the time as a sentence, personName?, thread?: lines of the shared conversation,
+ * @param opts { channel: 'telegram'|'whatsapp'|'phone'|'assistant'|'chat', body: 'computer'|'cloud'|'phone', nowText: the time as a sentence, personName?, thread?: lines of the shared conversation,
  *   assistantName?: the name the person gave their assistant (see aliasOf; the product stays Kaby), mandate?: the block of the person's standing permission, written by the host }
  */
 export function identityBlock (opts = {}) {

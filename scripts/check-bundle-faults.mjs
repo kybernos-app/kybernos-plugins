@@ -226,7 +226,7 @@ const get = async (path) => {
 // own « /kybernos/state » was one). Prefer paths whose first segment is the bundle's directory name, so ownRoute() can attribute them.
 const PROBES = ['/kybernos-cloud/status', '/kybernos-hub/suite', '/kybernos-auto/state', '/kybernos-sessions/state', '/kybernos-skills/skills', '/kybernos-memory/lessons',
   '/kybernos-workers/state', '/kybernos-call/status', '/kybernos-bricks/state', '/kybernos-slides/state', '/kybernos-modeleur/state',
-  '/dsh-db-viewer/bases', '/kybernos-miniapps/list', '/kybernos-computers/status', '/kybernos-usage/summary', '/kybernos-search/status',
+  '/dsh-db-viewer/bases', '/kybernos-miniapps/list', '/kybernos-usage/summary', '/kybernos-search/status',
   '/kybernos-motion/list', '/kybernos-dashboards/list', '/kybernos-maintenance/state', '/kybernos-websearch/state',
   '/kybernos/onboarding', '/kybernos/i18n-store']
 const probeRoutes = async () => { const o = {}; await Promise.all(PROBES.map(async (p) => { o[p] = await get(p) })); return o }

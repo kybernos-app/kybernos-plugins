@@ -28,21 +28,36 @@ const check = (name, ok, detail) => {
 const gemini = trouverWorker('gemini')
 /** The POST routes that need the session: an armed body (starts the action if the guard lets it through), and the counter of `moved` it must raise. */
 const GUARDED = {
-  '/kybernos-workers/install': { armed: { worker: 'gemini', command: gemini.install.cmd }, moves: 'install' },
-  '/kybernos-workers/activate': { armed: { worker: 'qwen' }, moves: 'patch' },
-  '/kybernos-workers/policy': { armed: { worker: 'gemini', expose: true, background: false }, moves: 'patch' },
-  '/kybernos-workers/check': { armed: { worker: 'codex' }, moves: 'binary' },
+  '/kybernos-workers/install': { armed: { worker: 'gemini', command: gemini.install.cmd }, moves: 'install', harmlessStatus: 404 },
+  '/kybernos-workers/activate': { armed: { worker: 'qwen' }, moves: 'patch', harmlessStatus: 404 },
+  '/kybernos-workers/deactivate': { armed: { worker: 'gemini' }, moves: 'patch', harmlessStatus: 404 },
+  '/kybernos-workers/policy': { armed: { worker: 'gemini', expose: true, background: false }, moves: 'patch', harmlessStatus: 404 },
+  '/kybernos-workers/check': { armed: { worker: 'codex' }, moves: 'binary', harmlessStatus: 404 },
+  '/kybernos-workers/harness/instance': { armed: { driverId: 'codex', id: 'codex-work', label: 'Codex Work' }, moves: 'harness', harmlessStatus: 400 },
+  '/kybernos-workers/harness/models': { armed: { action: 'sync', instanceId: 'codex-work' }, moves: 'harness', harmlessStatus: 404 },
+  '/kybernos-workers/harness/policy': { armed: { kind: 'favorite', ownerId: 'codex-work', modelId: 'gpt-5.2-codex' }, moves: 'harness', harmlessStatus: 400 },
+  '/kybernos-workers/runtime/route': { armed: { action: 'quota', workerId: 'codex-work', billingMode: 'subscription', windows: [{ key: '5h', remainingPct: 80, source: 'native' }] }, moves: 'runtime', harmlessStatus: 400 },
+  '/kybernos-workers/active-worker': { armed: { active: { workerId: 'codex', driverId: 'codex', modelId: 'gpt-5.6-terra', effort: 'high' } }, moves: 'active', harmlessStatus: 400 },
 }
 /** The POST routes that stay at the strict Origin, and why. None here. */
 const EXCEPTIONS = {}
-const HARMLESS = { worker: 'no-such-worker', command: 'true', expose: false, background: false } // every route answers 404 unknown-worker
+const HARMLESS = { worker: 'no-such-worker', command: 'true', expose: false, background: false, driverId: 'no-such-driver', instanceId: 'no-such-instance', kind: 'no-such-kind', action: 'no-such-action' }
 
-const moved = { install: 0, patch: 0, backup: 0, binary: 0 }
+const moved = { install: 0, patch: 0, backup: 0, binary: 0, harness: 0, runtime: 0, active: 0 }
+let activeMem = null
+let harnessMem = { version: 1, revision: 0, updatedAt: '2026-10-25T12:00:00.000Z', instances: [], roleEngines: {}, policies: {}, favorites: [] }
+let runsMem = { version: 1, updatedAt: '2026-10-25T12:00:00.000Z', runs: [], quotas: {} }
 let patch = '# profile patch\n' + blocActivation(gemini, '20261025-120000') // gemini is mounted (so a policy can be written); qwen is not (so it can be activated)
 const deps = {
   profils: () => ['web'], profilParDefaut: () => 'web',
   lirePatch: () => patch, cheminPatch: (p) => '/nowhere/' + p + '/cordis.patch.yml',
   ecrirePatch: () => { moved.patch += 1 }, sauvegarder: () => { moved.backup += 1 },
+  lireHarness: () => ({ ok: true, harness: harnessMem, exists: true }),
+  ecrireHarness: (h) => { harnessMem = h; moved.harness += 1 },
+  lireRuns: () => ({ ok: true, store: runsMem, exists: true }),
+  ecrireRuns: (s) => { runsMem = s; moved.runtime += 1 },
+  lireActiveWorker: () => activeMem,
+  ecrireActiveWorker: (v) => { activeMem = v; moved.active += 1 },
   maintenant: () => new Date(2026, 9, 25, 12, 0, 0),
   io: {
     fichierServeur: '/nowhere/z.mjs', paquetInstalle: () => true, fichierExiste: () => true,
@@ -77,14 +92,14 @@ try {
   // ── the family: every registered POST route is classified ───────────────────────────────────────────────────
   const answeringPost = []
   for (const path of routes.keys()) if ((await send(path, 'POST', REAL, HARMLESS)).status !== 405) answeringPost.push(path)
-  check('the Workers routes are mounted (' + routes.size + ' paths, ' + answeringPost.length + ' answer a POST)', routes.size === 5 && answeringPost.length === 4)
+  check('the Workers routes are mounted (' + routes.size + ' paths, ' + answeringPost.length + ' answer a POST)', routes.size === 13 && answeringPost.length === 10)
   const unclassified = answeringPost.filter((p) => GUARDED[p] === undefined && EXCEPTIONS[p] === undefined)
   check('every route that answers a POST is in GUARDED or in EXCEPTIONS (a new write route cannot be forgotten)', unclassified.length === 0, unclassified.join(', '))
   check('...and the tables name no route that is not mounted', [...Object.keys(GUARDED), ...Object.keys(EXCEPTIONS)].every((p) => routes.has(p)))
   check('the probes so far moved nothing', nothingMoved(), JSON.stringify(moved))
 
   // ── what the guard decides, route by route, with the body that would do the work ─────────────────────────────
-  for (const [path, { armed }] of Object.entries(GUARDED)) {
+  for (const [path, { armed, harmlessStatus }] of Object.entries(GUARDED)) {
     check(path + ': no Origin and no cookie -> 403', (await send(path, 'POST', {}, armed)).status === 403)
     check(path + ': a foreign Origin -> 403, even with the real cookie', (await send(path, 'POST', { origin: 'http://evil.example', cookie: cookie() }, armed)).status === 403)
     check(path + ': the right Origin and no cookie -> 401', (await send(path, 'POST', { origin: base }, armed)).status === 401)
@@ -94,9 +109,11 @@ try {
     check(path + ': the real pair through the phone link -> 403 refused_on_phone', phone.status === 403 && /refused_on_phone/.test(phone.text), phone.status + ' ' + phone.text)
     check(path + ': nothing moved for any of those', nothingMoved(), JSON.stringify(moved))
     const real = await send(path, 'POST', REAL, HARMLESS)
-    check(path + ': the right Origin and the real cookie -> the route answers (' + real.status + ')', real.status === 404 && /unknown-worker/.test(real.text), real.status + ' ' + real.text.slice(0, 80))
+    check(path + ': the right Origin and the real cookie -> the route answers (' + real.status + ')', real.status === harmlessStatus, real.status + ' ' + real.text.slice(0, 80))
   }
   check('/kybernos-workers/install: GET (the job status) stays a read, whatever the cookie', (await send('/kybernos-workers/install?worker=gemini', 'GET', { origin: base })).status === 200)
+  check('/kybernos-workers/harness: GET stays a read, whatever the cookie', (await send('/kybernos-workers/harness', 'GET', { origin: base })).status === 200)
+  check('/kybernos-workers/runtime: GET stays a read, whatever the cookie', (await send('/kybernos-workers/runtime', 'GET', { origin: base })).status === 200)
 
   // ── the armed bodies are armed: with the real pair each one does start its action ────────────────────────────
   for (const [path, { armed, moves }] of Object.entries(GUARDED)) {

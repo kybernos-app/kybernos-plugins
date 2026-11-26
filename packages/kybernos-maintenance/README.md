@@ -16,6 +16,11 @@ stored state and tests keep working; only the visible label and title changed.
 - **Links row**: licence, trademark policy, modules. Plain text on purpose: the archive ships `LICENSE` and `TRADEMARK.md`
   (`FICHIERS_DE_LICENCE` in `scripts/paquet.mjs`), but no host route serves them, and nothing in this repo jumps to another Settings section
   (`layout.selectPanel` opens panels, not Settings sections).
+- **Parts filed by other bundles** (`window.__KB_ABOUT_EXTRA__`, drawn right after the links row, before the automatic-check switch): About is where a person finds what the app is and how to reach its own parts, so a bundle that has such a
+  part does not register a Settings page of its own. It pushes `{ id, order, component }` (a React component, hooks allowed; `order` defaults to 100, ties keep the order of arrival) and sends the window event `kb-about-extra` when it adds
+  the entry and when it takes it back. The array belongs to whoever comes first (load order is not promised), an entry without an id or a component is ignored, a component that throws is cut off and the rest stays, and the parts are drawn
+  even when the engine's state cannot be read. Today's only user is `kybernos-mobile` in Simple (« The Kybernos app » of 2026-11-23: notifications, where Kaby works, account and plan, help and report, « Need more? », app settings,
+  licences, automations on this phone; owner's list, item 28).
 - **Technical details**: one collapsed disclosure (open or closed is kept in `localStorage`
   key `kybernos.maintenance.details`, closed by default) holding the four stat cards, the last operation,
   earlier updates, the update procedure, the plugin contract, the per-version compatibility matrix and the
@@ -71,9 +76,15 @@ The account menu, the card at launch and the *Update available* dialog share `wi
   `POST /kybernos-hub/engine { confirm: true, version }`. The hub accepts only a version inside the `dsh-compat.json` zone, runs the
   lifecycle robot (`upgrade <version>`: snapshot first, boot check, automatic rollback), then the dialog restarts DSH through
   `/kybernos-hub/relaunch`, exactly like the Suite update. The terminal command stays in a folded *For developers* section.
-- A hosted instance (server, container) is rebuilt, never patched: it keeps the instructions, no button.
+- **A cloud computer** (Kybernos's own, whose software is its image): the registry's engine and suite say nothing there, so they are
+  never announced. The cloud plugin answers `GET /kybernos-cloud/computer/update` (the platform's own word: a newer image is ready or
+  not) and the notice follows it: *Update my cloud computer* → `POST /kybernos-cloud/computer/update/start` → the platform moves the
+  machine onto the newest image (chats, files and settings kept, about a minute), the dialog follows the restart and reloads the page.
+- Any other hosted instance (server, container) is rebuilt, never patched: it keeps the instructions (redeploy it), never a terminal
+  command, no button.
 
-Tests: `test-engine-dialog.mjs` (the words and the wiring), and `packages/kybernos-hub/test-engine-route.mjs` (the route).
+Tests: `test-engine-dialog.mjs` (the words and the wiring), `test-computer-update.mjs` (the dialog rendered on a tiny DOM, the click and
+the restart), and `packages/kybernos-hub/test-engine-route.mjs` (the route). The cloud half is `packages/kybernos-cloud/computer-update.mjs`.
 
 ## Memory and lesson janitor (`janitor.mjs`)
 

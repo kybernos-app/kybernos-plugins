@@ -51,6 +51,7 @@ Under `/kybernos-usage/`, served before DSH's own authentication, so each one fe
 | Route | Does |
 | --- | --- |
 | `GET summary?days=N` | the ledger in tokens: days (oldest first), totals by model, sessions, what was used before the first measure, the budget |
+| `GET context?session=<id>` | aggregate context breakdown for the active session window (tool outputs, conversation, injected context, top tools, compactions, shell compressions; never raw text) |
 | `POST observe` | `{ sessionId, provider, model, title?, usage }`: cumulative counters of one session; the host books the delta |
 | `POST budget` | `{ usd: number or null, alert: boolean }` |
 

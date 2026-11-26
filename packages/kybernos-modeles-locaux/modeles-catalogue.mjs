@@ -21,6 +21,8 @@ export const MAX_DOC_BYTES = 256 * 1024
 export const MAX_MODELS = 120
 /** `name:tag`, as the Ollama library writes them (qwen3.5:9b, gemma4:e4b). No namespace, no path, no flag. */
 export const MODEL_ID_RE = /^[a-z0-9][a-z0-9._-]{0,48}:[a-z0-9][a-z0-9._-]{0,32}$/
+/** `name:cloud` and `name:120b-cloud` are Ollama's hosted models: `ollama pull` registers them and the prompts then leave the machine. Never local. */
+export const isCloudId = (id) => typeof id === 'string' && /(^|[:-])cloud$/i.test(id)
 export const INPUTS = Object.freeze(['text', 'image', 'audio'])
 export const BADGES = Object.freeze(['Vision', 'Tools', 'Thinking', 'Audio', 'Code', 'Embedding'])
 /** Where `main` of the open-core repo publishes it; the setting `modelesCatalogueUrl` overrides it ('' turns the online catalogue off). */
@@ -39,7 +41,7 @@ const isDay = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !
 /** One catalogue entry. { ok, model } with a clean copy, or { ok:false, error } naming the first thing wrong. */
 export function sanitizeModel(raw) {
   if (!plain(raw)) return fail('not an object')
-  if (typeof raw.id !== 'string' || !MODEL_ID_RE.test(raw.id)) return fail('invalid id')
+  if (typeof raw.id !== 'string' || !MODEL_ID_RE.test(raw.id) || isCloudId(raw.id)) return fail('invalid id')
   if (typeof raw.famille !== 'string' || !/^[a-z]$/.test(raw.famille)) return fail('invalid famille')
   if (typeof raw.initiale !== 'string' || !/^[A-Za-z0-9]{1,3}$/.test(raw.initiale)) return fail('invalid initiale')
   if (raw.tailleGo !== null && !(typeof raw.tailleGo === 'number' && Number.isFinite(raw.tailleGo) && raw.tailleGo > 0 && raw.tailleGo <= 1000)) return fail('invalid tailleGo')

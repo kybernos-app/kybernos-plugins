@@ -53,6 +53,17 @@ const T = plugin.__test
   globalThis.window.parent = globalThis.window
   ok('a page that is its own parent is not', T.inKabyApp() === false)
   if (realParent === undefined) delete globalThis.window.parent; else globalThis.window.parent = realParent
+  // Kaby mode: the phone app's switch is the user agent (kybernos-mobile/kaby-mode.mjs); then Kaby's chat opens wherever DSH runs
+  const realNav = globalThis.window.navigator
+  const withUa = (ua) => { globalThis.window.navigator = { userAgent: ua } }
+  withUa('Mozilla/5.0 (iPhone; CPU iPhone OS 27_0 like Mac OS X) Mobile/15E148 KybernosHost/0.1.0 (ios) KabyMode/1')
+  ok('the phone app\'s Kaby mode (iOS) opens Kaby\'s chat, with no frame at all', T.inKabyMode() === true && T.inKabyApp() === true)
+  withUa('Mozilla/5.0 (Linux; Android 16) KybernosHost/1.2.3-beta.4 (android) KabyMode/7')
+  ok('on Android, with a higher contract version, it is the same switch', T.inKabyMode() === true)
+  ok('the full app (no token), a browser, KabyMode/0 (off) and a made-up platform are not Kaby mode', ['Mozilla/5.0 (iPhone) KybernosHost/0.1.0 (ios)', 'Mozilla/5.0 (Macintosh) Safari/605 KabyMode/1', 'KybernosHost/0.1.0 (windows) KabyMode/1', 'KybernosHost/0.1.0 (ios) KabyMode/', 'KybernosHost/0.1.0 (ios) KabyMode/x', 'KybernosHost/0.1.0 (ios) KabyMode/0', ''].every((ua) => { withUa(ua); return T.inKabyMode() === false && T.inKabyApp() === false }))
+  globalThis.window.navigator = { get userAgent () { throw new Error('no agent') } }
+  ok('a page that cannot read its user agent is not Kaby mode (and does not throw)', T.inKabyMode() === false)
+  if (realNav === undefined) delete globalThis.window.navigator; else globalThis.window.navigator = realNav
   ok('the bridge is one effect of apply, and opens the chat with the sidebar row\'s own call', /ctx\.effect\(\(\) => openKabyApp\(\)/.test(src) && /if \(!\(await openChat\(\)\)\)/.test(src))
   ok('the bridge waits for the shell, then lets DSH\'s restoration go first', /shellReady\(\)/.test(src) && /await pause\(600\)/.test(src))
 }
@@ -238,6 +249,37 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   const LINKED = { linked: { display: 'Amina (@alex)', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } }
   const soonFromNow = (s) => new Date(Date.now() + s * 1000).toISOString()
   const WAITING = () => ({ id: '0f3b1b72-1111-4222-8333-444455556666', link: 'https://t.me/kybernos_bot?start=pair_abc', bot: 'kybernos_bot', qr: { size: 21, modules: Array.from({ length: 21 }, (_, y) => '10101010101010101010' + String(y % 2)) }, expiresAt: soonFromNow(240), state: 'waiting', reason: null, sender: '', error: '' })
+
+  // ── the phone link's status: on the phone app's own engine the route is absent (404): asked once, not at every reload of the strip ──
+  {
+    reset()
+    const realFetch = globalThis.fetch
+    let remoteCalls = 0
+    globalThis.fetch = async (url, opts) => {
+      if (String(url).endsWith('/kybernos-mobile/remote/status')) { remoteCalls += 1; return { ok: false, status: 404, json: async () => { throw new SyntaxError('Unexpected token <') } } }
+      return realFetch(url, opts)
+    }
+    await T.actions.load(); await T.actions.load(); await T.actions.load()
+    ok('a 404 on the phone link\'s status is asked ONCE: the strip reloads three times and the route is not asked again', remoteCalls === 1, remoteCalls)
+    ok('...and the strip then says nothing of the phone link', T.state.remote === null)
+    // inside the phone app the route is cut on purpose: it is not asked at all (a fresh page, so a fresh strip)
+    {
+      const had = globalThis.window.navigator
+      globalThis.window.navigator = { userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36 KybernosHost/0.1.0 (android) KybernosCaps/where,account' }
+      remoteCalls = 0
+      const fresh = captured.factory((n) => (n === 'react' ? React : undefined)).__test
+      await fresh.actions.load(); await fresh.actions.load()
+      ok('inside the phone app the status of the phone link is not asked at all, whatever the number of reloads', remoteCalls === 0, remoteCalls)
+      remoteCalls = 0
+      globalThis.window.navigator = { userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36' }
+      const browser = captured.factory((n) => (n === 'react' ? React : undefined)).__test
+      await browser.actions.load(); await browser.actions.load()
+      ok('in a browser on a phone (no app marker) it is still asked, once', remoteCalls === 1, remoteCalls)
+      if (had === undefined) delete globalThis.window.navigator; else globalThis.window.navigator = had
+    }
+    globalThis.fetch = realFetch
+    reset()
+  }
 
   // ── the strip: ONE line above the composer: the name, three chips that say how things stand, one button to the screen that sets them up ──
   const phoneOpens = []
@@ -776,6 +818,19 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     const local = ui(T.views.ComputerBlock, { view: T.state.view })
     ok('the tile then names this computer, ready, with what it means and no wake / sleep / open', one(local, 'kybernos-kyber-pick').props.value === 'local' && textOf(one(local, 'kybernos-kyber-computer-state')) === 'Prêt' && /Kaby travaille sur cet ordinateur/.test(textOf(one(local, 'kybernos-kyber-local-line'))) && ['wake', 'sleep', 'pcopen', 'upgrade', 'upsell'].every((k) => byKb(local, 'kybernos-kyber-' + k).length === 0))
     ok('the folded strip says it too', (() => { T.state.stripPref = false; const c = one(ui(T.views.Strip), 'kybernos-kyber-computer-chip'); T.state.stripPref = null; return textOf(c) === 'Cet ordinateur · Prêt' && /ok/.test(c.props.className) })())
+    // inside the phone app the engine runs on the phone: the computer is « this phone » (the recette said « This computer » next to a chat header that said « On this phone »)
+    {
+      const had = globalThis.window.navigator
+      globalThis.window.navigator = { userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36 KybernosHost/0.1.0 (android) KybernosCaps/where' }
+      const chipApp = textOf(one(ui(T.views.Strip), 'kybernos-kyber-computer-chip'))
+      const pickApp = textOf(one(ui(T.views.ComputerBlock, { view: T.state.view }), 'kybernos-kyber-pick'))
+      globalThis.window.navigator = { userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36' }
+      const chipWeb = textOf(one(ui(T.views.Strip), 'kybernos-kyber-computer-chip'))
+      globalThis.window.navigator = had
+      ok('in the phone app the chip says « Ce téléphone · Prêt », and the choice offers « Ce téléphone »', chipApp === 'Ce téléphone · Prêt' && pickApp.includes('Ce téléphone') && !pickApp.includes('Cet ordinateur'), [chipApp, pickApp])
+      ok('in a phone\'s browser (no app marker) it is still the computer', chipWeb === 'Cet ordinateur · Prêt', chipWeb)
+      ok('the popover is a card at the foot of the screen on a narrow screen (it covered the logo and the headline of the home)', /@media \(max-width:520px\)\{\.kbky-pop\{position:fixed;[^}]*bottom:16px/.test(T.CSS.join ? T.CSS.join('\n') : String(T.CSS)))
+    }
     one(local, 'kybernos-kyber-pick').props.onChange({ target: { value: 'aaaaaaaa-1111' } }); await flush()
     ok('going back to the cloud computer asks the host and is remembered', T.state.where === 'cloud' && stored.get('kybernos-kyber.where') === 'cloud' && calls[0].url === '/kybernos-cloud/kyby/computer' && calls[0].body.computer_id === 'aaaaaaaa-1111')
     // remembered across a page load: a second copy of the bundle reads it back

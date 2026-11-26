@@ -183,6 +183,33 @@ window.__ModuleLoader__.load({
         return typeof key === 'string' ? key : null
       } catch (e) { return null }
     }
+    /**
+     * The engine's own pages (Agent presets, Models, Built-in plugins) say « DSH » in sentences that are not written in any plugin (« Creator mode to add capabilities to DSH »).
+     * The text is not ours to edit, so the word is replaced in what is drawn, on the open native page only: a text node of that page's section, never code, a field or a
+     * script. It is the plain-word rule of the other screens (the person has a Kybernos, not a DSH). Idempotent, and a text the page draws again is rewritten again by the
+     * next look. No state, nothing stored; a shell that no longer looks like this is left as it is.
+     */
+    const plainNativeWords = (doc) => {
+      try {
+        if (typeof doc.createTreeWalker !== 'function') return 0
+        const section = doc.querySelector(NATIVE_SEL.section)
+        if (section === null || section === undefined) return 0
+        const walker = doc.createTreeWalker(section, 4)
+        const found = []
+        for (let n = walker.nextNode(); n !== null; n = walker.nextNode()) {
+          const v = n.nodeValue
+          if (typeof v === 'string' && /\bDSH\b/.test(v)) found.push(n)
+        }
+        let changed = 0
+        for (const n of found) {
+          const p = n.parentElement
+          if (p !== null && p !== undefined && typeof p.closest === 'function' && p.closest('code,pre,textarea,input,script,style') !== null) continue
+          n.nodeValue = n.nodeValue.replace(/\bDSH\b/g, 'Kybernos')
+          changed += 1
+        }
+        return changed
+      } catch (e) { return 0 }
+    }
     /** The place of the « ? » on the open native page: a span put inside the page's own title, right after its text (made when it is not there yet), or null when the page has no title of that kind. */
     const findNativeHead = (doc) => {
       try {
@@ -257,7 +284,9 @@ window.__ModuleLoader__.load({
     const INTRO_SEEN_MS = 8000 // on screen this long once: the animation has had its first visit and does not come back by itself
     const introKey = (id) => 'kybernos.help.intro.' + id
     /** Pure. Does the animation of a page open now? Yes until the person closed it, or it has been on screen once for a while. A storage that fails says yes. */
-    const introOuverte = (store, key) => { try { const v = store.getItem(key); return v !== 'closed' && v !== 'seen' } catch (e) { return true } }
+    const introOuverte = (store, key, phone) => { if (phone === true) return false; try { const v = store.getItem(key); return v !== 'closed' && v !== 'seen' } catch (e) { return true } }
+    /** The phone layer's own condition (kybernos-mobile/mobile.css). On a phone the animation is not on the page by itself: the page leads with its list, and the « ? » card replays it. */
+    const onPhone = () => { try { return window.matchMedia('(max-width: 700px), (max-height: 500px) and (pointer: coarse)').matches === true } catch (e) { return false } }
 
     /** Pure. "1.2.0" vs "1.10.0" → -1 | 0 | 1. Non-numeric parts compare as 0. */
     const comparerVersions = (a, b) => {
@@ -293,6 +322,17 @@ window.__ModuleLoader__.load({
 
     /** Pure. The title a module shows: its human name, the id when the catalogue has none. */
     const titreDe = (m) => (m !== null && m !== undefined && typeof m.titre === 'string' && m.titre !== '' ? m.titre : String(m.id))
+
+    /**
+     * Pure. The maturity chip of a module: `{ cle, libelle, aide }` (`libelle` and `aide` are [fr, en] pairs), or null for a stable module (the catalogue then carries no `maturite`).
+     * Anything but 'alpha' or 'beta' is read as stable: a tag this page does not know is never drawn.
+     */
+    const etapeModule = (m) => {
+      const v = m !== null && m !== undefined ? m.maturite : undefined
+      if (v === 'alpha') return { cle: 'alpha', libelle: pair('Alpha', 'Alpha'), aide: pair('Alpha : en construction, il peut changer ou casser.', 'Alpha: still being built, it may change or break.') }
+      if (v === 'beta') return { cle: 'beta', libelle: pair('Bêta', 'Beta'), aide: pair('Bêta : il fonctionne, on le peaufine encore.', 'Beta: it works, we are still polishing it.') }
+      return null
+    }
 
     /** Pure. What a screen reader says for a module's switch: the action and the module's title (« Turn off Slides »), never the package id. */
     const libelleInterrupteur = (actif, m) => (actif ? kt('Désactiver ', 'Turn off ') : kt('Activer ', 'Turn on ')) + titreDe(m)
@@ -334,7 +374,7 @@ window.__ModuleLoader__.load({
     const NIVEAUX_PLUGIN = { local: pair('Local', 'Local'), unlisted: pair('Non listé', 'Unlisted'), community: pair('Communauté', 'Community') }
     const NIVEAUX_AIDE = {
       local: pair('Un dossier de cet ordinateur. Kybernos ne le met jamais à jour.', 'A folder on this computer. Kybernos never updates it.'),
-      unlisted: pair('Installé par DSH depuis npm ou GitHub : pas de signature, pas relu par Kybernos.', 'Installed by DSH from npm or GitHub: no signature, not reviewed by Kybernos.'),
+      unlisted: pair('Installé depuis npm ou GitHub : pas de signature, pas relu par Kybernos.', 'Installed from npm or GitHub: no signature, not reviewed by Kybernos.'),
       community: pair('Signé par son auteur. Pas relu par Kybernos.', 'Signed by its author. Not reviewed by Kybernos.')
     }
     /** Pure. What a plugin is, in a word: the field of work it adds, else data or code. [fr, en]. */
@@ -349,7 +389,7 @@ window.__ModuleLoader__.load({
       disabled: ['off', pair('Désactivé', 'Off'), false],
       'needs-consent': ['warn', pair('Attend ton accord', 'Needs your OK'), true],
       'needs-kybernos': ['off', pair('Demande une Kybernos plus récente', 'Needs a newer Kybernos'), true],
-      'needs-dsh': ['off', pair('Demande un autre DSH', 'Needs another DSH'), true],
+      'needs-dsh': ['off', pair('Demande une autre version de Kybernos', 'Needs another version of Kybernos'), true],
       'missing-dependency': ['off', pair('Demande un autre plugin', 'Needs another plugin'), true],
       'incompatible-point': ['bad', pair('Incompatible', 'Incompatible'), true],
       revoked: ['bad', pair('Désactivé par Kybernos', 'Disabled by Kybernos'), true],
@@ -389,7 +429,7 @@ window.__ModuleLoader__.load({
     const permissionsPlugin = (p, points) => {
       const rows = []
       const perms = Array.isArray(p.permissions) ? p.permissions : []
-      rows.push({ cle: 'code', libelle: pair('Exécute du code sur ton ordinateur', 'Runs code on your computer'), valeur: p.kind === 'data' ? pair('Non : des données seulement', 'No: data only') : pair('Oui : DSH charge son code', 'Yes: DSH loads its code'), ton: p.kind === 'data' ? 'ok' : 'warn' })
+      rows.push({ cle: 'code', libelle: pair('Exécute du code sur ton ordinateur', 'Runs code on your computer'), valeur: p.kind === 'data' ? pair('Non : des données seulement', 'No: data only') : pair('Oui : Kybernos charge son code', 'Yes: Kybernos loads its code'), ton: p.kind === 'data' ? 'ok' : 'warn' })
       const hotes = perms.filter((x) => /^net:/.test(x)).map((x) => x.slice(4))
       rows.push({ cle: 'net', libelle: pair('Envoie des requêtes à', 'Sends requests to'), valeur: hotes.length > 0 ? hotes : pair('Aucun site', 'No site'), ton: hotes.length > 0 ? 'warn' : 'ok', hotes: hotes.length > 0 })
       rows.push({ cle: 'secret', libelle: pair('Garde', 'Keeps'), valeur: perms.indexOf('secrets.own') >= 0 ? pair('une clé API, sur cet ordinateur', 'one API key, on this computer') : pair('Rien', 'Nothing'), ton: perms.indexOf('secrets.own') >= 0 ? 'warn' : 'ok' })
@@ -448,17 +488,17 @@ window.__ModuleLoader__.load({
     }
     /** Pure. Why DSH's manager refused to look at a spec (`problem` of an inspection), or null when it accepted it. [fr, en]. */
     const refusInspection = (insp) => {
-      if (insp === null || typeof insp !== 'object') return pair('DSH n’a pas répondu.', 'DSH did not answer.')
-      if (insp.status === 'accepted') return insp.bundle === false ? pair('Ce paquet n’est pas un bundle : DSH ne peut pas l’installer comme plugin.', 'This package is not a bundle, so DSH cannot install it as a plugin.') : null
+      if (insp === null || typeof insp !== 'object') return pair('Kybernos n’a pas répondu.', 'Kybernos did not answer.')
+      if (insp.status === 'accepted') return insp.bundle === false ? pair('Ce paquet n’est pas un bundle : Kybernos ne peut pas l’installer comme plugin.', 'This package is not a bundle, so Kybernos cannot install it as a plugin.') : null
       const t = {
-        'invalid-spec': pair('DSH ne comprend pas cette adresse.', 'DSH does not understand this address.'),
+        'invalid-spec': pair('Kybernos ne comprend pas cette adresse.', 'Kybernos does not understand this address.'),
         'already-installed': pair('Ce plugin est déjà installé.', 'This plugin is already installed.'),
-        'not-found': pair('DSH ne trouve rien à cette adresse.', 'DSH finds nothing at this address.'),
+        'not-found': pair('Kybernos ne trouve rien à cette adresse.', 'Kybernos finds nothing at this address.'),
         'not-a-package': pair('Ce n’est pas un paquet.', 'This is not a package.'),
-        'not-a-bundle': pair('Ce paquet n’est pas un bundle : DSH ne peut pas l’installer comme plugin.', 'This package is not a bundle, so DSH cannot install it as a plugin.'),
-        network: pair('DSH n’a pas pu joindre le site. Vérifie ta connexion.', 'DSH could not reach the site. Check your connection.')
+        'not-a-bundle': pair('Ce paquet n’est pas un bundle : Kybernos ne peut pas l’installer comme plugin.', 'This package is not a bundle, so Kybernos cannot install it as a plugin.'),
+        network: pair('Kybernos n’a pas pu joindre le site. Vérifie ta connexion.', 'Kybernos could not reach the site. Check your connection.')
       }
-      return t[insp.problem] || pair('DSH a refusé cette adresse.', 'DSH refused this address.')
+      return t[insp.problem] || pair('Kybernos a refusé cette adresse.', 'Kybernos refused this address.')
     }
     /**
      * Pure. The outcome of a call to DSH's manager (install, remove, switch), whether it came as a RemoteResult ({ ok, value }) or as the bare result:
@@ -466,21 +506,21 @@ window.__ModuleLoader__.load({
      */
     const issueGestionnaire = (r) => {
       const v = r !== null && typeof r === 'object' && r.ok === true && r.value !== undefined ? r.value : r
-      if (v === null || typeof v !== 'object') return { ok: false, restart: false, raison: pair('DSH n’a pas répondu.', 'DSH did not answer.') }
-      if (v.ok === false) return { ok: false, restart: false, raison: pair('DSH a refusé.', 'DSH refused.') }
+      if (v === null || typeof v !== 'object') return { ok: false, restart: false, raison: pair('Kybernos n’a pas répondu.', 'Kybernos did not answer.') }
+      if (v.ok === false) return { ok: false, restart: false, raison: pair('Kybernos a refusé.', 'Kybernos refused.') }
       const code = v.error && v.error.code ? v.error.code : null
       const t = {
-        'not-bundle': pair('Ce paquet n’est pas un bundle : DSH ne peut pas le gérer d’ici. Utilise le gestionnaire natif.', 'This package is not a bundle, so DSH cannot manage it from here. Use the native manager.'),
-        'not-removable': pair('DSH ne peut pas retirer ce plugin.', 'DSH cannot remove this plugin.'),
-        'unknown-plugin': pair('DSH ne connaît pas ce plugin.', 'DSH does not know this plugin.'),
-        'invalid-spec': pair('DSH ne comprend pas cette adresse.', 'DSH does not understand this address.'),
+        'not-bundle': pair('Ce paquet n’est pas un bundle : Kybernos ne peut pas le gérer d’ici. Utilise le gestionnaire natif.', 'This package is not a bundle, so Kybernos cannot manage it from here. Use the native manager.'),
+        'not-removable': pair('Kybernos ne peut pas retirer ce plugin.', 'Kybernos cannot remove this plugin.'),
+        'unknown-plugin': pair('Kybernos ne connaît pas ce plugin.', 'Kybernos does not know this plugin.'),
+        'invalid-spec': pair('Kybernos ne comprend pas cette adresse.', 'Kybernos does not understand this address.'),
         'bundle-in-use': pair('Un autre plugin en dépend.', 'Another plugin depends on it.'),
         'stop-profile': pair('Arrête le profil avant de changer cela.', 'Stop the profile before changing this.')
       }
       const kind = v.packageResult && v.packageResult.kind
-      const k = { network: pair('DSH n’a pas pu joindre le site.', 'DSH could not reach the site.'), 'not-found': pair('DSH ne trouve pas ce paquet.', 'DSH cannot find this package.'), 'no-matching-version': pair('Aucune version ne convient.', 'No version matches.'), permission: pair('Autorisation refusée sur le disque.', 'Permission denied on the disk.'), 'disk-full': pair('Le disque est plein.', 'The disk is full.'), 'build-blocked': pair('Le paquet demande de lancer un script, ce que DSH n’autorise pas ici.', 'The package asks to run a script, which DSH does not allow here.') }
+      const k = { network: pair('Kybernos n’a pas pu joindre le site.', 'Kybernos could not reach the site.'), 'not-found': pair('Kybernos ne trouve pas ce paquet.', 'Kybernos cannot find this package.'), 'no-matching-version': pair('Aucune version ne convient.', 'No version matches.'), permission: pair('Autorisation refusée sur le disque.', 'Permission denied on the disk.'), 'disk-full': pair('Le disque est plein.', 'The disk is full.'), 'build-blocked': pair('Le paquet demande de lancer un script, ce que Kybernos n’autorise pas ici.', 'The package asks to run a script, which Kybernos does not allow here.') }
       const echec = k[kind] || pair('L’installation a échoué. Rien n’a été changé.', 'The install failed. Nothing was changed.')
-      if (code !== null) return { ok: false, restart: false, raison: t[code] || (v.application === 'failed' ? echec : pair('DSH n’a pas pu terminer.', 'DSH could not finish.')) }
+      if (code !== null) return { ok: false, restart: false, raison: t[code] || (v.application === 'failed' ? echec : pair('Kybernos n’a pas pu terminer.', 'Kybernos could not finish.')) }
       if (v.application === 'failed') return { ok: false, restart: false, raison: echec }
       if (v.application === 'cancelled') return { ok: false, restart: false, raison: pair('Installation annulée.', 'Install cancelled.') }
       return { ok: true, restart: v.application === 'restart-required', raison: null }
@@ -502,7 +542,7 @@ window.__ModuleLoader__.load({
     const messageCatalogue = (r) => {
       if (r === null || r === undefined || typeof r !== 'object') return ['Réponse illisible.', 'Unreadable answer.']
       // A DSH started before this version answers 404 (not JSON): `post` reports it as bad-response.
-      if (r.error === 'bad-response' || r.error === 'network') return ['Le serveur DSH n’a pas encore chargé cette version : redémarre-le.', 'The DSH server has not loaded this version yet: restart it.']
+      if (r.error === 'bad-response' || r.error === 'network') return ['L’appli n’a pas encore chargé cette version : redémarre-la.', 'The app has not loaded this version yet: restart it.']
       if (r.ok === true) {
         return r.etat === 'nouveau'
           ? pair('La suite ' + r.suite + ' est disponible (catalogue signé du ' + String(r.publieLe || '').slice(0, 10) + ').', 'Suite ' + r.suite + ' is available (signed catalogue of ' + String(r.publieLe || '').slice(0, 10) + ').')
@@ -553,10 +593,10 @@ window.__ModuleLoader__.load({
       if (t === null || t === undefined) return null
       const etapes = { telechargement: ['Téléchargement de l’archive…', 'Downloading the archive…'], extraction: ['Vérification et extraction…', 'Verifying and extracting…'], installation: ['Installation : photo de sécurité, liaison, contrôle du démarrage…', 'Installing: safety snapshot, link, boot check…'] }
       if (etapes[t.etat] !== undefined) return etapes[t.etat]
-      if (t.etat === 'termine') return pair('Suite ' + t.version + ' installée. Relance DSH pour l’activer.', 'Suite ' + t.version + ' installed. Restart DSH to turn it on.')
+      if (t.etat === 'termine') return pair('Suite ' + t.version + ' installée. Relance Kybernos pour l’activer.', 'Suite ' + t.version + ' installed. Restart Kybernos to turn it on.')
       if (t.etat === 'echec') {
         const e = { 'digest-mismatch': ['L’archive téléchargée ne correspond pas à l’empreinte signée : rien n’a été installé.', 'The downloaded archive does not match the signed digest: nothing was installed.'], 'robot-refused': ['L’installation a été refusée et annulée : ton installation actuelle est intacte.', 'The install was refused and rolled back: your current install is intact.'],
-          'robot-stopped': ['L’installateur s’est arrêté de façon inattendue. Relance DSH ; si quelque chose ne va pas, démarre en mode sans échec.', 'The installer stopped unexpectedly. Restart DSH; if something looks wrong, start in safe mode.'], 'bad-archive': ['L’archive est invalide : rien n’a été installé.', 'The archive is invalid: nothing was installed.'],
+          'robot-stopped': ['L’installateur s’est arrêté de façon inattendue. Relance Kybernos ; si quelque chose ne va pas, démarre en mode sans échec.', 'The installer stopped unexpectedly. Restart Kybernos; if something looks wrong, start in safe mode.'], 'bad-archive': ['L’archive est invalide : rien n’a été installé.', 'The archive is invalid: nothing was installed.'],
           'hosted-instance': ['Cette instance est hébergée : elle se met à jour en la reconstruisant, pas depuis cette page.', 'This instance is hosted: it is updated by rebuilding it, not from this page.'],
           'development-checkout': ['Ce poste est une copie de développement (git) : mets-la à jour avec git, pas avec une archive.', 'This machine is a development checkout (git): update it with git, not with an archive.'],
           'nothing-to-update': ['Il n’y a rien à mettre à jour : la suite est à jour.', 'There is nothing to update: the suite is up to date.'],
@@ -568,7 +608,7 @@ window.__ModuleLoader__.load({
           vide: ['Le téléchargement est arrivé vide : rien n’a été installé.', 'The download came back empty: nothing was installed.'],
           'trop-gros': ['L’archive est plus grosse que prévu : rien n’a été installé.', 'The archive is bigger than announced: nothing was installed.'],
           busy: ['Une autre opération est déjà en cours : attends qu’elle se termine.', 'Another operation is already running: wait until it ends.'],
-          'update-failed': ['La mise à jour a échoué. Réessaie, ou relance DSH.', 'The update failed. Try again, or restart DSH.'] }
+          'update-failed': ['La mise à jour a échoué. Réessaie, ou relance Kybernos.', 'The update failed. Try again, or restart Kybernos.'] }
         return e[t.erreur] || pair('Mise à jour échouée (' + String(t.erreur) + ').', 'Update failed (' + String(t.erreur) + ').')
       }
       return null
@@ -708,6 +748,11 @@ window.__ModuleLoader__.load({
       '.kbsu-fb i,.kbsu-chip.fam i{width:8px;height:8px;border-radius:3px;background:var(--c);display:inline-block}',
       '.kbsu-chip{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap}',
       '.kbsu-chip.fam{border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);font-weight:500}',
+      // Maturity: alpha is the warm tint, beta an outline; written in sentence case (guard A1-16). Both are labels: they never carry a click.
+      '.kbsu-chip.stage-alpha{background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 16%,transparent);color:var(--dsw-alias-state-warn-primary)}',
+      '.kbsu-rowname b .kbsu-chip{margin-inline-start:8px;vertical-align:middle;height:18px;padding:0 6px}',
+      '.kbsu-chip.stage-beta{border:1px solid var(--dsw-alias-state-warn-primary);color:var(--dsw-alias-label-secondary)}',
+      'body:not([data-ds-dark-theme]) .kbsu-chip.stage-alpha{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 50%,var(--dsw-alias-label-primary))}',
       '.kbsu-chip.ok{background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 16%,transparent);color:var(--dsw-alias-state-success-primary)}',
       '.kbsu-chip.warn{background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 16%,transparent);color:var(--dsw-alias-state-warn-primary)}',
       // the state inks are the fills: 2 to 2.5:1 on their tint in the light schemes, where they are pulled toward the text colour (audit A1-11)
@@ -767,12 +812,13 @@ window.__ModuleLoader__.load({
       '.kbhp-head>.kbhp-wrap,.kbhp-tail,.kbhp-nhead{vertical-align:middle;margin-inline-start:8px}',
       // The same place on a page of DSH itself: a span put inside the page's own title (see findNativeHead).
       '.kbhp-tail,.kbhp-nhead{display:inline-block;font-size:12.5px;font-weight:400;letter-spacing:normal;line-height:normal}',
-      '.kbhp-wrap .kbhp-btn{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}',
+      '.kbhp-wrap .kbhp-btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:30px;padding:0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}',
       '.kbhp-wrap .kbhp-btn:hover,.kbhp-wrap .kbhp-btn[aria-expanded="true"]{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}',
       '.kbhp-wrap .kbhp-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}',
       '.kbhp-q{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}',
-      '.kbhp-pop{box-sizing:border-box;position:absolute;inset-inline-end:0;top:calc(100% + 8px);z-index:60;width:min(420px,calc(100vw - 32px));max-height:min(70vh,560px);overflow-y:auto;padding:16px 18px;border-radius:18px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);text-align:start;white-space:normal;font-size:14px;font-weight:400;letter-spacing:normal;line-height:1.5;background:linear-gradient(var(--dsw-specific-menu,#1c1c1f),var(--dsw-specific-menu,#1c1c1f)),var(--dsw-alias-bg-base,#151517);box-shadow:0 16px 44px rgba(0,0,0,.42);display:flex;flex-direction:column;gap:12px}',
-      '.kbhp-pop h4{margin:0;font-size:17px;font-weight:700}',
+      '.kbhp-pop{box-sizing:border-box;position:absolute;inset-inline-end:0;top:calc(100% + 8px);z-index:60;width:min(420px,calc(100vw - 32px));max-width:calc(100vw - 32px);max-height:min(70vh,560px);overflow-y:auto;padding:16px 18px;border-radius:18px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);text-align:start;white-space:normal;font-size:14px;font-weight:400;letter-spacing:normal;line-height:1.5;background:linear-gradient(var(--dsw-specific-menu,#1c1c1f),var(--dsw-specific-menu,#1c1c1f)),var(--dsw-alias-bg-base,#151517);box-shadow:0 16px 44px rgba(0,0,0,.42);display:flex;flex-direction:column;gap:12px}',
+      // The ✕ sits at the card's top corner: the title leaves room for it.
+      '.kbhp-pop h4{margin:0;padding-inline-end:30px;font-size:17px;font-weight:700}',
       '.kbhp-pop h5{margin:0 0 8px;font-size:11.5px;font-weight:600;color:var(--dsw-alias-label-tertiary)}',
       '.kbhp-pop p{margin:0;color:var(--dsw-alias-label-secondary)}',
       '.kbhp-pop p.kbhp-lead{color:var(--dsw-alias-label-primary)}',
@@ -951,6 +997,12 @@ window.__ModuleLoader__.load({
     // The artwork of a module: a 32px glyph in three tones (a / b translucent fills, l strokes, w solid, d shade), drawn on a
     // tile coloured by the module's family. The catalogue names the glyph (`glyphe`); an unknown name falls back to the cube.
     const GLYPHES = {
+      // An open book: local document knowledge base and Markdown wiki (kybernos-knowledge).
+      book:'<path class="a" d="M4 6.5c3.5-1 8-1 12 1.5V26c-4-2-8.5-2-12-1z"/><path class="b" d="M28 6.5c-3.5-1-8-1-12 1.5V26c4-2 8.5-2 12-1z"/><path class="l" d="M4 6.5c3.5-1 8-1 12 1.5 4-2.5 8.5-2.5 12-1.5V25c-3.5-1-8-1-12 1-4-2-8.5-2-12-1zM16 8v18M8 12.5h4.5M8 16.5h4.5M19.5 12.5H24M19.5 16.5H24"/>',
+      // A shield: deterministic security guard for tools and secrets (kybernos-guard).
+      shield:'<path class="a" d="M16 3.5L6.5 7.5v8c0 6.2 4.1 10.7 9.5 13 5.4-2.3 9.5-6.8 9.5-13v-8z"/><path class="b" d="M16 3.5v25c5.4-2.3 9.5-6.8 9.5-13v-8z"/><path class="l" d="M16 3.5L6.5 7.5v8c0 6.2 4.1 10.7 9.5 13 5.4-2.3 9.5-6.8 9.5-13v-8zM12 16l2.8 2.8L20.5 13"/>',
+      // A door: how an outside assistant on this computer reaches your Kaby (kybernos-door).
+      door:'<path class="a" d="M8 4h14a2 2 0 0 1 2 2v20H8z"/><path class="b" d="M16 4h6a2 2 0 0 1 2 2v20h-8z"/><path class="l" d="M8 4h14a2 2 0 0 1 2 2v20H8zM5 26.5h22"/><circle class="w" cx="20" cy="15.5" r="1.4"/>',
       // A bell: something finished or needs you (kybernos-pulse).
       bell:'<path class="a" d="M16 3.5a8 8 0 0 0-8 8v5.5l-3 5.5h22l-3-5.5v-5.5a8 8 0 0 0-8-8z"/><path class="b" d="M16 3.5a8 8 0 0 1 8 8v5.5l3 5.5H16z"/><path class="l" d="M16 3.5a8 8 0 0 0-8 8v5.5l-3 5.5h22l-3-5.5v-5.5a8 8 0 0 0-8-8zM12.5 26.5a3.5 3.5 0 0 0 7 0"/><circle class="w" cx="16" cy="3.2" r="1.4"/>',
       // A paper plane: a message or an instruction handed to another chat (kybernos-session-msg).
@@ -1003,6 +1055,7 @@ window.__ModuleLoader__.load({
       face:'<circle class="a" cx="16" cy="11.5" r="6"/><path class="a" d="M5 28c1-6 5.5-9 11-9s10 3 11 9z"/><circle class="l" cx="16" cy="11.5" r="6"/><path class="l" d="M5 28c1-6 5.5-9 11-9s10 3 11 9z"/><circle class="w" cx="14" cy="11" r="1.1"/><circle class="w" cx="18" cy="11" r="1.1"/>',
       phone:'<path class="a" d="M8 4h5l2.5 6.5-3.2 2a16 16 0 0 0 7.2 7.2l2-3.2 6.5 2.5v5a3 3 0 0 1-3 3A21 21 0 0 1 5 7a3 3 0 0 1 3-3z"/><path class="l" d="M8 4h5l2.5 6.5-3.2 2a16 16 0 0 0 7.2 7.2l2-3.2 6.5 2.5v5a3 3 0 0 1-3 3A21 21 0 0 1 5 7a3 3 0 0 1 3-3zM20 5.5a7.5 7.5 0 0 1 6.5 6.5M20 10a3 3 0 0 1 2 2"/>',
       mobile:'<rect class="a" x="9" y="3" width="14" height="26" rx="4"/><rect class="l" x="9" y="3" width="14" height="26" rx="4"/><path class="l" d="M14 7h4"/><path class="w" d="M16 24.5h.01"/>',
+      phonechat:'<rect class="a" x="9" y="3" width="14" height="26" rx="4"/><rect class="l" x="9" y="3" width="14" height="26" rx="4"/><path class="b" d="M12 10h8a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-4l-3 2.5V17h-1a1.5 1.5 0 0 1-1.5-1.5v-4A1.5 1.5 0 0 1 12 10z"/><path class="l" d="M14 13h4M14 15h2.5"/>',
       phonecpu:'<rect class="a" x="9" y="3" width="14" height="26" rx="4"/><rect class="l" x="9" y="3" width="14" height="26" rx="4"/><rect class="b" x="12" y="11" width="8" height="8" rx="1.5"/><path class="l" d="M14 8v3M18 8v3M14 19v3M18 19v3"/>',
       search:'<circle class="a" cx="13.5" cy="13.5" r="10"/><circle class="l" cx="13.5" cy="13.5" r="10"/><path class="b" d="M8 11.5a6 6 0 0 1 6-5"/><path class="l" d="M21 21l8 8"/><path class="l" d="M3.5 13.5h20M13.5 3.5c3 3 4 6 4 10s-1 7-4 10"/>',
       lens:'<circle class="a" cx="13.5" cy="13.5" r="10"/><circle class="l" cx="13.5" cy="13.5" r="10"/><path class="b" d="M8 11.5a6 6 0 0 1 6-5"/><path class="l" d="M21 21l8 8"/><path class="l" d="M9 11.5h9M9 15.5h6"/>',
@@ -1028,7 +1081,6 @@ window.__ModuleLoader__.load({
       "kybernos-cloud": ["#60a5fa", "#2563eb", "<g><path d=\"M19 47 C11 47 7 42 7 37 C7 31 12 28 17 29 C18 21 25 15 33 15 C41 15 47 21 47 28 C54 28 58 33 58 38 C58 43 54 47 48 47 Z\" fill=\"#ffffff\"/><path d=\"M25 42 V30 M20 35 L25 30 L30 35\" fill=\"none\" stroke=\"#2563eb\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M40 30 V42 M35 37 L40 42 L45 37\" fill=\"none\" stroke=\"#2563eb\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></g>"],
       "kybernos-auto": ["#fb923c", "#c2410c", "<g><circle cx=\"11\" cy=\"32\" r=\"5\" fill=\"#ffffff\"/><line x1=\"16\" y1=\"32\" x2=\"22\" y2=\"32\" stroke=\"rgba(255,255,255,0.72)\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polygon points=\"30,21 41,32 30,43 19,32\" fill=\"#ffffff\"/><g fill=\"none\" stroke=\"rgba(255,255,255,0.72)\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"38,25 44,16 48,16\"/><line x1=\"41\" y1=\"32\" x2=\"48\" y2=\"32\"/><polyline points=\"38,39 44,48 48,48\"/></g><circle cx=\"53\" cy=\"16\" r=\"4.5\" fill=\"#ffffff\"/><circle cx=\"53\" cy=\"32\" r=\"4.5\" fill=\"rgba(255,255,255,0.72)\"/><circle cx=\"53\" cy=\"48\" r=\"4.5\" fill=\"rgba(255,255,255,0.38)\"/></g>"],
       "kybernos-workers": ["#94a3b8", "#334155", "<g><rect x=\"17\" y=\"9\" width=\"40\" height=\"30\" rx=\"5\" fill=\"rgba(255,255,255,0.38)\"/><rect x=\"7\" y=\"19\" width=\"46\" height=\"35\" rx=\"5\" fill=\"#ffffff\"/><rect x=\"7\" y=\"19\" width=\"46\" height=\"9\" rx=\"5\" fill=\"#334155\" opacity=\"0.18\"/><circle cx=\"13\" cy=\"23.5\" r=\"1.7\" fill=\"#334155\"/><circle cx=\"18.5\" cy=\"23.5\" r=\"1.7\" fill=\"#334155\"/><circle cx=\"24\" cy=\"23.5\" r=\"1.7\" fill=\"#334155\"/><polyline points=\"14,36 21,41 14,46\" fill=\"none\" stroke=\"#334155\" stroke-width=\"3.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><line x1=\"26\" y1=\"46\" x2=\"38\" y2=\"46\" stroke=\"#334155\" stroke-width=\"3.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></g>"],
-      "kybernos-computers": ["#2dd4bf", "#0f766e", "<g><rect x=\"6\" y=\"16\" width=\"40\" height=\"28\" rx=\"4\" fill=\"#ffffff\"/><rect x=\"10\" y=\"20\" width=\"32\" height=\"20\" rx=\"2\" fill=\"#0f766e\"/><rect x=\"22\" y=\"44\" width=\"8\" height=\"6\" fill=\"rgba(255,255,255,0.72)\"/><rect x=\"15\" y=\"50\" width=\"22\" height=\"4\" rx=\"2\" fill=\"rgba(255,255,255,0.72)\"/><g transform=\"translate(-6 0)\"><path d=\"M44 31 C40 31 38 29 38 26 C38 23 40 21 43 21.5 C44 17 48 14 52 15 C56 16 59 19 59 23 C62 23 63 25.5 63 28 C63 30 61 31 59 31 Z\" fill=\"#ffffff\" stroke=\"#0f766e\" stroke-width=\"1.6\" stroke-linejoin=\"round\"/></g></g>"],
       "kybernos-slides": ["#fb7185", "#be123c", "<g><rect x=\"7\" y=\"9\" width=\"50\" height=\"35\" rx=\"4\" fill=\"#ffffff\"/><rect x=\"13\" y=\"15\" width=\"20\" height=\"4\" rx=\"2\" fill=\"#be123c\" opacity=\"0.4\"/><rect x=\"13\" y=\"33\" width=\"6\" height=\"6\" fill=\"#be123c\" opacity=\"0.35\"/><rect x=\"22\" y=\"28\" width=\"6\" height=\"11\" fill=\"#be123c\" opacity=\"0.55\"/><rect x=\"31\" y=\"23\" width=\"6\" height=\"16\" fill=\"#be123c\" opacity=\"0.8\"/><circle cx=\"47\" cy=\"30\" r=\"6\" fill=\"#be123c\" opacity=\"0.25\"/><path d=\"M32 44 V50 M22 57 L32 50 L42 57\" fill=\"none\" stroke=\"rgba(255,255,255,0.72)\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></g>"],
       "kybernos-bricks": ["#f97316", "#b45309", "<g><rect x=\"6\" y=\"40\" width=\"25\" height=\"14\" rx=\"2\" fill=\"rgba(255,255,255,0.72)\"/><rect x=\"33\" y=\"40\" width=\"25\" height=\"14\" rx=\"2\" fill=\"#ffffff\"/><rect x=\"10\" y=\"36\" width=\"7\" height=\"4\" rx=\"1\" fill=\"rgba(255,255,255,0.72)\"/><rect x=\"47\" y=\"36\" width=\"7\" height=\"4\" rx=\"1\" fill=\"#ffffff\"/><rect x=\"19\" y=\"25\" width=\"26\" height=\"14\" rx=\"2\" fill=\"#ffffff\"/><rect x=\"23\" y=\"21\" width=\"7\" height=\"4\" rx=\"1\" fill=\"#ffffff\"/><rect x=\"34\" y=\"21\" width=\"7\" height=\"4\" rx=\"1\" fill=\"#ffffff\"/></g>"],
       "kybernos-modeleur": ["#818cf8", "#4338ca", "<g><polygon points=\"32,9 53,21 32,33 11,21\" fill=\"#ffffff\"/><polygon points=\"11,21 32,33 32,55 11,43\" fill=\"rgba(255,255,255,0.72)\"/><polygon points=\"32,33 53,21 53,43 32,55\" fill=\"rgba(255,255,255,0.38)\"/><circle cx=\"32\" cy=\"33\" r=\"2.6\" fill=\"rgba(0,0,0,0.25)\"/></g>"],
@@ -1051,7 +1103,7 @@ window.__ModuleLoader__.load({
       'kybernos-modeles-locaux': 'kybernos-ollama', 'kybernos-memory': 'kybernos-memory', 'kybernos-theme': 'kybernos-theme', 'kybernos-language': 'kybernos-language',
       'kybernos-slash': 'kybernos-slash', 'kybernos-atlas': 'kybernos-atlas', 'kybernos-workers': 'kybernos-workers', 'kybernos-maintenance': 'kybernos-maintenance',
       'kybernos-call': 'kybernos-call',
-      'kybernos-websearch': 'kybernos-websearch-page', 'kybernos-free-llms': 'kybernos-free-llms',
+      'kybernos-websearch': 'kybernos-websearch-page', 'kybernos-free-llms': 'kybernos-free-llms', 'kybernos-door': 'kybernos-door',
       'kybernos-usage': 'kybernos-usage', 'kybernos-mobile': 'kybernos-mobile', 'kybernos-pulse': 'kybernos-pulse'
     }
 
@@ -1087,7 +1139,7 @@ window.__ModuleLoader__.load({
       const interrupteur = (p, e, occupe, basculer) => h('button', {
         type: 'button', className: 'kbsu-sw' + (e.actif ? ' on' : ''), role: 'switch', 'aria-checked': e.actif ? 'true' : 'false', 'data-kb': 'plugin-switch',
         'aria-label': (e.actif ? kt('Désactiver ', 'Turn off ') : kt('Activer ', 'Turn on ')) + p.name,
-        title: e.interrupteur ? '' : kt('DSH n’a pas d’interrupteur pour ce plugin.', 'DSH has no switch for this plugin.'),
+        title: e.interrupteur ? '' : kt('Kybernos n’a pas d’interrupteur pour ce plugin.', 'Kybernos has no switch for this plugin.'),
         disabled: !e.interrupteur || occupe, onClick: (ev) => { ev.stopPropagation(); basculer(p) }
       }, h('i'))
 
@@ -1146,7 +1198,7 @@ window.__ModuleLoader__.load({
         if (plugins.length === 0 && nouveaux.length === 0) {
           return h('div', { className: 'kbsu-empty kbsu-pempty', 'data-kb': 'plugins-empty' },
             h('b', null, kt('Aucun plugin pour l’instant', 'No plugins yet')),
-            h('p', null, kt('Un plugin ajoute un domaine de travail, des sources, des compétences ou des équipes d’agents. C’est un dossier de données simples : il ne peut pas exécuter de code sur ton ordinateur.', 'A plugin adds a field of work, sources, skills or agent teams. It is a folder of plain data: it cannot run code on your computer.')),
+            h('p', null, kt('Un plugin ajoute un domaine de travail, des sources, des compétences ou des équipes d’agents IA. C’est un dossier de données simples : il ne peut pas exécuter de code sur ton ordinateur.', 'A plugin adds a field of work, sources, skills or AI agent teams. It is a folder of plain data: it cannot run code on your computer.')),
             h('button', { type: 'button', className: 'kbsu-btn accent', 'data-kb': 'plugins-add-empty', onClick: () => ouvrirDlg({ type: 'ajout' }) }, ic('plug'), kt('Ajouter un plugin', 'Add a plugin')))
         }
         return h('div', { className: 'kbsu-plugins', 'data-kb': 'plugins', style: { display: 'flex', flexDirection: 'column', gap: 16 } },
@@ -1219,7 +1271,7 @@ window.__ModuleLoader__.load({
           const rq = p.requires || {}
           corps = h('div', { 'data-kb': 'plugin-compat', style: colonne }, h('h5', null, kt('Fonctionne avec', 'Works with')),
             rq.kybernos ? ligne('k', 'Kybernos', rq.kybernos) : null,
-            rq.dsh ? ligne('d', 'DSH', rq.dsh.min + ' – ' + rq.dsh.max) : null,
+            rq.dsh ? ligne('d', 'Kybernos', rq.dsh.min + ' – ' + rq.dsh.max) : null,
             Object.keys(rq.plugins || {}).map((k) => ligne(k, k, rq.plugins[k])),
             p.reason && (p.status === 'needs-kybernos' || p.status === 'needs-dsh' || p.status === 'missing-dependency' || p.status === 'incompatible-point') ? h('div', { className: 'kbsu-banner', role: 'status' }, h('span', null, p.reason)) : null,
             h('h5', null, kt('Étend', 'Extends')), ajoute.length === 0 ? h('p', { className: 'kbsu-st' }, kt('Rien.', 'Nothing.')) : ajoute.map((a) => ligne(a.point, T(a.libelle), a.point)))
@@ -1228,7 +1280,7 @@ window.__ModuleLoader__.load({
             h('p', null, p.description || p.reason || ''),
             p.status === 'needs-consent' ? h('div', { className: 'kbsu-banner', role: 'status', 'data-kb': 'plugin-consent' },
               h('strong', null, ic('alert'), kt('Il apporte des instructions que tes agents suivront.', 'It brings instructions your agents will follow.')),
-              h('span', null, kt('Les compétences et les automatisations sont du texte. DSH l’a installé ; rien n’atteint tes agents avant que tu l’aies lu et accepté.', 'Skills and automations are text. DSH has installed it; nothing reaches your agents until you have read it and said OK.')),
+              h('span', null, kt('Les compétences et les automatisations sont du texte. Kybernos l’a installé ; rien n’atteint tes agents avant que tu l’aies lu et accepté.', 'Skills and automations are text. Kybernos has installed it; nothing reaches your agents until you have read it and said OK.')),
               h('span', null, h('button', { type: 'button', className: 'kbsu-btn sm accent', 'data-kb': 'plugin-read', onClick: () => ouvrirDlg({ type: 'lecture', id: p.id }) }, kt('Lire et accepter', 'Read and accept'))))
               : null,
             p.status !== 'ok' && p.status !== 'disabled' && p.status !== 'needs-consent' && (p.reason || (p.errors && p.errors.length > 0)) ? h('div', { className: 'kbsu-banner', role: 'status', 'data-kb': 'plugin-problem' }, h('strong', null, ic('alert'), T(e.libelle)), h('span', null, p.reason || p.errors[0]), (p.errors || []).slice(1, 6).map((x, i) => h('span', { key: i }, x))) : null,
@@ -1259,7 +1311,7 @@ window.__ModuleLoader__.load({
                 h('dt', null, 'Id'), h('dd', null, h('code', null, p.id)),
                 h('dt', null, 'Source'), h('dd', { title: p.spec || p.package }, p.level === 'local' ? kt('Un dossier de cet ordinateur', 'A folder on this computer') : h('code', null, p.spec || p.package))),
               retirerOk ? (confirmer
-                ? h('div', { className: 'kbsu-confirm', 'data-kb': 'plugin-remove-confirm' }, h('span', { className: 'kbsu-st warn' }, kt('DSH retire ce plugin de ton profil. Tes fichiers ne sont pas touchés.', 'DSH removes this plugin from your profile. Your files are not touched.')),
+                ? h('div', { className: 'kbsu-confirm', 'data-kb': 'plugin-remove-confirm' }, h('span', { className: 'kbsu-st warn' }, kt('Kybernos retire ce plugin de ton profil. Tes fichiers ne sont pas touchés.', 'Kybernos removes this plugin from your profile. Your files are not touched.')),
                   h('div', { className: 'kbsu-right' }, h('button', { type: 'button', className: 'kbsu-btn sm accent', 'data-kb': 'plugin-remove-go', disabled: occupe, onClick: retirer }, kt('Retirer', 'Remove')), h('button', { type: 'button', className: 'kbsu-btn sm ghost', onClick: () => setConfirmer(false) }, kt('Annuler', 'Cancel'))))
                 : h('button', { type: 'button', className: 'kbsu-btn ghost sm', 'data-kb': 'plugin-remove', onClick: () => setConfirmer(true) }, kt('Retirer le plugin', 'Remove plugin'))) : null)))
       }
@@ -1288,7 +1340,7 @@ window.__ModuleLoader__.load({
           h('span', { className: 'kbsu-aico' }, ic(icone)), h('span', null, h('b', null, titre), h('small', null, texte)), bientot ? h('span', { className: 'kbsu-b' }, kt('Bientôt', 'Soon')) : null)
         return h(Cadre, { titre: kt('Ajouter un plugin', 'Add a plugin'), fermer },
           ligneAjout('catalogue', 'search', kt('Depuis le catalogue', 'From the catalogue'), kt('Parcourir les plugins listés et signés.', 'Browse plugins that are listed and signed.'), null, true),
-          ligneAjout('spec', 'plug', kt('Depuis GitHub ou npm', 'From GitHub or npm'), kt('Une adresse ou un nom de paquet. DSH l’installe, Kybernos le lit.', 'An address or a package name. DSH installs it, Kybernos reads it.'), () => ouvrirDlg({ type: 'spec', mode: 'spec' })),
+          ligneAjout('spec', 'plug', kt('Depuis GitHub ou npm', 'From GitHub or npm'), kt('Une adresse ou un nom de paquet. L’appli l’installe, Kybernos le lit.', 'An address or a package name. The app installs it, Kybernos reads it.'), () => ouvrirDlg({ type: 'spec', mode: 'spec' })),
           ligneAjout('file', 'box', kt('Depuis un fichier ou un dossier', 'From a file or a folder'), kt('Une archive .tgz ou le chemin d’un dossier de cet ordinateur.', 'A .tgz archive or the path of a folder on this computer.'), () => ouvrirDlg({ type: 'spec', mode: 'file' })),
           ligneAjout('ia', 'refresh', kt('Créer avec l’IA', 'Create with AI'), kt('Une conversation avec la compétence plugin-creator. Elle écrit un brouillon ; tu l’installes ici.', 'A chat with the plugin-creator skill. It writes a draft; you install it here.'), () => ouvrirDlg({ type: 'ia' })),
           Pied(h('button', { type: 'button', className: 'kbsu-btn ghost', onClick: fermer }, kt('Fermer', 'Close'))))
@@ -1304,7 +1356,7 @@ window.__ModuleLoader__.load({
         const verifier = async (texte) => {
           const s = specInstall(texte)
           if (!s.ok) { setPhase('refus'); setMsg(s.raison); return }
-          if (mgr === null) { setPhase('refus'); setMsg(pair('Le gestionnaire de DSH n’est pas disponible sur cette version.', 'DSH’s manager is not available on this version.')); return }
+          if (mgr === null) { setPhase('refus'); setMsg(pair('Le gestionnaire de Kybernos n’est pas disponible sur cette version.', 'Kybernos’s manager is not available on this version.')); return }
           if (typeof mgr.inspect !== 'function') { setInfo({ spec: s.spec }); setPhase('pret'); return }
           setPhase('verifie'); setMsg(null)
           let r = null
@@ -1360,20 +1412,20 @@ window.__ModuleLoader__.load({
         const carte = info === null ? null : h('div', { className: 'kbsu-banner soft', role: 'status', 'data-kb': 'plugins-inspected' },
           h('strong', null, info.name ? info.name + (info.version ? ' ' + info.version : '') : (brouillon ? brouillon.title : info.spec)),
           info.description ? h('span', null, info.description) : null,
-          h('span', null, kt('DSH l’installera comme bundle', 'DSH will install it as a bundle') + (info.host ? kt(', depuis ', ', from ') + info.host : '') + '.'))
+          h('span', null, kt('Kybernos l’installera comme bundle', 'Kybernos will install it as a bundle') + (info.host ? kt(', depuis ', ', from ') + info.host : '') + '.'))
         return h(Cadre, { titre, fermer: occupe ? () => {} : fermer },
-          brouillon ? h('p', { className: 'kbsu-st' }, kt('Fait avec l’IA dans le dossier de brouillons de cet ordinateur. Local : Kybernos ne le met jamais à jour.', 'Made with AI in this computer’s drafts folder. Local: Kybernos never updates it.'), ' ', brouillon.description) : h('p', { className: 'kbsu-st' }, mode === 'file' ? kt('Une archive faite avec npm pack, ou le chemin complet d’un dossier de cet ordinateur.', 'An archive made with npm pack, or the full path of a folder on this computer.') : kt('Un nom de paquet ou une adresse. Kybernos demande à DSH ce que c’est avant d’installer quoi que ce soit.', 'A package name or an address. Kybernos asks DSH what it is before anything is installed.')),
+          brouillon ? h('p', { className: 'kbsu-st' }, kt('Fait avec l’IA dans le dossier de brouillons de cet ordinateur. Local : Kybernos ne le met jamais à jour.', 'Made with AI in this computer’s drafts folder. Local: Kybernos never updates it.'), ' ', brouillon.description) : h('p', { className: 'kbsu-st' }, mode === 'file' ? kt('Une archive faite avec npm pack, ou le chemin complet d’un dossier de cet ordinateur.', 'An archive made with npm pack, or the full path of a folder on this computer.') : kt('Un nom de paquet ou une adresse. Kybernos regarde ce que c’est avant d’installer quoi que ce soit.', 'A package name or an address. Kybernos checks what it is before anything is installed.')),
           fichier, champ,
           phase === 'verifie' ? h('p', { className: 'kbsu-st' }, ic('refresh', 'spin'), kt('Vérification…', 'Checking…')) : null,
           carte,
           msg !== null ? h('div', { className: 'kbsu-banner', role: 'alert', 'data-kb': 'plugins-install-error' }, h('span', null, T(msg))) : null,
           phase === 'pret' ? h('div', { className: 'kbsu-banner', role: 'status' }, h('strong', null, ic('alert'), kt('N’installe que ce en quoi tu as confiance.', 'Install only what you trust.')),
-            h('span', null, kt('DSH l’installe avec tes droits. Un plugin de données a un patch vide : DSH ne charge aucun code, et Kybernos te dit ce qu’il apporte avant qu’il serve.', 'DSH installs it with your permissions. A data plugin has an empty patch: DSH loads no code, and Kybernos tells you what it brings before it is used.'))) : null,
-          phase === 'installe' ? h('p', { className: 'kbsu-st' }, ic('refresh', 'spin'), kt('Installation par DSH…', 'DSH is installing…')) : null,
+            h('span', null, kt('L’appli l’installe avec tes droits. Un plugin de données a un patch vide : elle ne charge aucun code, et Kybernos te dit ce qu’il apporte avant qu’il serve.', 'The app installs it with your permissions. A data plugin has an empty patch: it loads no code, and Kybernos tells you what it brings before it is used.'))) : null,
+          phase === 'installe' ? h('p', { className: 'kbsu-st' }, ic('refresh', 'spin'), kt('Installation par Kybernos…', 'Kybernos is installing…')) : null,
           phase === 'fini' ? h('p', { className: 'kbsu-st ok', role: 'status', 'data-kb': 'plugins-installed' }, ic('check'), kt('Installé. Il apparaît dans Plugins ; s’il apporte des instructions, il attend ton accord.', 'Installed. It is listed in Plugins; if it brings instructions, it waits for your OK.')) : null,
           Pied(
             phase === 'installe' ? h('button', { type: 'button', className: 'kbsu-btn ghost', onClick: annuler }, kt('Annuler l’installation', 'Cancel the install')) : h('button', { type: 'button', className: 'kbsu-btn ghost', onClick: fermer }, phase === 'fini' ? kt('Fermer', 'Close') : kt('Annuler', 'Cancel')),
-            (phase === 'pret' || phase === 'echec') && info !== null && info.spec ? h('button', { type: 'button', className: 'kbsu-btn accent', 'data-kb': 'plugins-install-go', onClick: installer }, phase === 'echec' ? kt('Réessayer', 'Try again') : kt('Installer avec DSH', 'Install with DSH')) : null,
+            (phase === 'pret' || phase === 'echec') && info !== null && info.spec ? h('button', { type: 'button', className: 'kbsu-btn accent', 'data-kb': 'plugins-install-go', onClick: installer }, phase === 'echec' ? kt('Réessayer', 'Try again') : kt('Installer avec Kybernos', 'Install with Kybernos')) : null,
             phase === 'fini' && info !== null && info.nom ? h('button', { type: 'button', className: 'kbsu-btn accent', 'data-kb': 'plugins-open-installed', onClick: () => ouvrirPlugin(info.nom) }, kt('Ouvrir sa page', 'Open its page')) : null,
             brouillon && !brouillon.ok && phase === 'repos' ? h('button', { type: 'button', className: 'kbsu-btn accent', onClick: () => ouvrirDlg({ type: 'ia', brouillon }) }, kt('Demander à l’IA de le corriger', 'Ask the AI to fix it')) : null))
       }
@@ -1439,7 +1491,7 @@ window.__ModuleLoader__.load({
             h('b', null, g.titre), g.desc ? h('p', null, g.desc) : null,
             g.starter ? h('p', { className: 'kbsu-st' }, kt('Première question : ', 'First question: ') + g.starter) : null,
             g.skills.length > 0 ? h('p', { className: 'kbsu-st' }, kt('Compétences nommées : ', 'Skills it names: ') + g.skills.map((x) => x.nom + ' (' + x.source + ')').join(', ')) : null,
-            g.teams.length > 0 ? h('p', { className: 'kbsu-st' }, kt('Équipes d’agents : ', 'Agent teams: ') + g.teams.join(', ')) : null,
+            g.teams.length > 0 ? h('p', { className: 'kbsu-st' }, kt('Équipes d’agents IA : ', 'AI agent teams: ') + g.teams.join(', ')) : null,
             g.connecteurs.length > 0 ? h('p', { className: 'kbsu-st' }, kt('Connecteurs suggérés (tu les connectes toi-même) : ', 'Suggested connectors (you connect each yourself): ') + g.connecteurs.join(', ')) : null,
             g.automations.map((a, j) => h('div', { key: j }, h('p', { className: 'kbsu-st' }, kt('Automatisation créée désactivée : ', 'Automation, created switched off: ') + a.nom + ' · ' + a.cron), h('pre', { className: 'kbsu-pre' }, a.prompt))),
             g.bientot.length > 0 ? h('p', { className: 'kbsu-st' }, kt('Annoncé, pas encore disponible : ', 'Planned, not available yet: ') + g.bientot.join(' · ')) : null)),
@@ -1616,7 +1668,7 @@ window.__ModuleLoader__.load({
             if (suite === 'suivre') { setTacheMaj(t); minuteur = setTimeout(() => { suivre(false) }, 2500); return }
             if (suite === 'termine') { setTacheMaj(t); setEnAttente((a) => ({ ...a, __suite: true })) }
             else if (suite === 'echec') setTacheMaj(t)
-            else { setTacheMaj(null); setResume(kt('L’installation lancée avant le redémarrage est terminée. Relance DSH si quelque chose a changé.', 'The installation that was running before the restart has ended. Restart DSH if something changed.')) }
+            else { setTacheMaj(null); setResume(kt('L’installation lancée avant le redémarrage est terminée. Relance Kybernos si quelque chose a changé.', 'The installation that was running before the restart has ended. Restart Kybernos if something changed.')) }
             recharger()
           }
           suivre(true)
@@ -1652,7 +1704,7 @@ window.__ModuleLoader__.load({
           return h('div', { className: 'kbsu' },
             h('div', { className: 'kbsu-head' }, h('div', null, pageHead({ title: 'Kybernos Suite' }))),
             h('div', { className: 'kbsu-banner', role: 'alert' }, h('strong', null, ic('alert'), kt('Le catalogue de la suite est injoignable.', 'The suite catalogue cannot be reached.')),
-              h('span', null, kt('Le serveur DSH ne répond pas. Relance DSH, ou utilise le gestionnaire de plugins natif de DSH.', 'The DSH server does not answer. Restart DSH, or use DSH’s native plugin manager.'))),
+              h('span', null, kt('L’appli ne répond pas. Relance-la, ou utilise le gestionnaire de plugins natif.', 'The app does not answer. Restart it, or use the native plugin manager.'))),
             h('div', null, h('button', { type: 'button', className: 'kbsu-btn ghost', onClick: () => { setCharge({ etat: 'loading', suite: null, bundles: null, maint: null, registre: null, brouillons: [] }); recharger() } }, ic('refresh'), kt('Réessayer', 'Retry'))))
         }
 
@@ -1792,10 +1844,15 @@ window.__ModuleLoader__.load({
         const clavierFiche = (id) => (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); setDetail(id); setOngletFiche('description') } }
         const verdict = verdictCompat(compat)
         const chipFamille = (fam) => h('span', { className: 'kbsu-chip fam', style: { '--c': fam.couleur } }, h('i', null), kt(fam.fr, fam.en))
+        // The maturity of a module (alpha / beta); nothing is drawn for a stable one. Same chip on the card, the row and the module's page.
+        const chipEtape = (m) => {
+          const e = etapeModule(m)
+          return e === null ? null : h('span', { className: 'kbsu-chip stage-' + e.cle, 'data-kb': 'suite-stage', 'data-stage': e.cle, title: kt(e.aide[0], e.aide[1]) }, kt(e.libelle[0], e.libelle[1]))
+        }
         // Compatibility speaks up on a card only when something is wrong; the full verdict is on the module's page.
         const chipCompat = (pleine) => verdict === 'hors'
-          ? h('span', { className: 'kbsu-chip warn', title: kt('Cette version de DSH n’est pas dans la zone testée.', 'This DSH version is not in the tested range.') }, kt('Non testé sur ton DSH', 'Not tested on your DSH'))
-          : (pleine && verdict === 'ok' ? h('span', { className: 'kbsu-chip ok' }, kt('Compatible avec DSH ', 'Works with DSH ') + (charge.maint && charge.maint.global ? charge.maint.global : '')) : null)
+          ? h('span', { className: 'kbsu-chip warn', title: kt('Cette version de Kybernos n’est pas dans la zone testée.', 'This Kybernos version is not in the tested range.') }, kt('Non testé sur ton Kybernos', 'Not tested on your Kybernos'))
+          : (pleine && verdict === 'ok' ? h('span', { className: 'kbsu-chip ok' }, kt('Compatible avec Kybernos ', 'Works with Kybernos ') + (charge.maint && charge.maint.global ? charge.maint.global : '')) : null)
 
         // What waits for the hover: the module's own Settings page (when it has one and it is there), and its page here.
         const actionsSurvol = (m, p) => {
@@ -1812,7 +1869,7 @@ window.__ModuleLoader__.load({
               vedette && m.accroche ? h('div', { className: 'kbsu-tag' }, kt(m.accroche.fr, m.accroche.en)) : null,
               h('b', null, titreDe(m)), h('small', { title: m.id }, kt('par Kybernos · ', 'by Kybernos · ') + version))),
             h('p', { className: 'kbsu-promise' }, vedette && m.description ? kt(m.description.fr, m.description.en) : kt(m.promesse.fr, m.promesse.en)),
-            h('div', { className: 'kbsu-badges' }, chipFamille(p.fam), m.socle ? h('span', { className: 'kbsu-b' }, kt('Toujours actif', 'Always on')) : null, chipCompat(false)),
+            h('div', { className: 'kbsu-badges' }, chipFamille(p.fam), chipEtape(m), m.socle ? h('span', { className: 'kbsu-b' }, kt('Toujours actif', 'Always on')) : null, chipCompat(false)),
             notes[m.id] ? h('p', { className: 'kbsu-note', role: 'status' }, notes[m.id]) : null,
             h('div', { className: 'kbsu-foot' }, p.statut, p.install, actionsSurvol(m, p), p.reglages !== null || p.sw !== null ? h('span', { className: 'kbsu-right' }, p.reglages, p.sw) : null),
             p.estOuvert ? h('div', { className: 'kbsu-cfg', 'data-kb': 'suite-config' }, h(p.comp, { key: m.nom })) : null)
@@ -1831,9 +1888,9 @@ window.__ModuleLoader__.load({
           const corps = ongletFiche === 'compat'
             ? h('div', { className: 'kbsu-body' },
               h('dl', { className: 'kbsu-dl' },
-                h('dt', null, kt('Ton DSH', 'Your DSH')), h('dd', null, dsh),
+                h('dt', null, kt('Ton Kybernos', 'Your Kybernos')), h('dd', null, dsh),
                 h('dt', null, kt('Zone testée', 'Tested range')), h('dd', null, compatLue !== null ? (compatLue.min || '?') + kt(' à ', ' to ') + (compatLue.max || '?') : kt('inconnue', 'unknown')),
-                h('dt', null, kt('Verdict', 'Verdict')), h('dd', null, verdict === 'ok' ? h('span', { className: 'kbsu-chip ok' }, kt('Compatible', 'Works with your DSH')) : verdict === 'hors' ? chipCompat(true) : kt('Inconnu', 'Unknown'))),
+                h('dt', null, kt('Verdict', 'Verdict')), h('dd', null, verdict === 'ok' ? h('span', { className: 'kbsu-chip ok' }, kt('Compatible', 'Works with your Kybernos')) : verdict === 'hors' ? chipCompat(true) : kt('Inconnu', 'Unknown'))),
               h('p', null, kt('Cette zone est celle de toute la suite : elle vient du contrat de compatibilité que le testeur applique à chaque installation et mise à jour.', 'This range is the whole suite’s: it comes from the compatibility contract the check applies to every install and update.')))
             : h('div', { className: 'kbsu-body', style: { '--c': p.fam.couleur } },
               h('p', null, texte),
@@ -1848,7 +1905,7 @@ window.__ModuleLoader__.load({
           return h('div', { className: 'kbsu-fiche', 'data-kb': 'suite-fiche', 'data-id': m.id, style: { display: 'flex', flexDirection: 'column', gap: 14 } },
             h('div', { className: 'kbsu-crumb' }, h('button', { type: 'button', className: 'kbsu-btn ghost sm', 'data-kb': 'suite-retour', onClick: () => setDetail(null) }, ic('back'), 'Kybernos Suite'), h('span', null, '/'), h('span', null, titreDe(m))),
             h('section', { className: 'kbsu-hero' }, artwork(m, p.fam, 'big'),
-              h('div', { className: 'kbsu-htitle' }, h('h4', null, titreDe(m)), h('p', null, accroche), h('div', { className: 'kbsu-badges' }, chipFamille(p.fam), p.statut, chipCompat(true))),
+              h('div', { className: 'kbsu-htitle' }, h('h4', null, titreDe(m)), h('p', null, accroche), h('div', { className: 'kbsu-badges' }, chipFamille(p.fam), chipEtape(m), p.statut, chipCompat(true))),
               h('div', { className: 'kbsu-hact' }, p.install, p.reglages, p.etat === 'active' && celluleReglages(m.id) !== null ? h('button', { type: 'button', className: 'kbsu-btn ghost sm', 'data-kb': 'suite-reglages', onClick: () => ouvrirReglages(m.id) }, ic('plug'), kt('Ouvrir les réglages', 'Open Settings')) : null, p.sw)),
             notes[m.id] ? h('p', { className: 'kbsu-note', role: 'status' }, notes[m.id]) : null,
             p.estOuvert ? h('div', { className: 'kbsu-cfg', 'data-kb': 'suite-config' }, h(p.comp, { key: m.nom })) : null,
@@ -1923,7 +1980,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbsu-rowmain' },
               h('span', { className: 'kbsu-grip', draggable: true, 'data-kb': 'suite-grip', 'aria-hidden': 'true', title: kt('Glisser pour réordonner', 'Drag to reorder') }, ic('grip')),
               artwork(m, p.fam, ''),
-              h('div', { className: 'kbsu-rowname' }, h('b', { title: m.id }, titreDe(m)), h('span', { className: 'kbsu-promise', title: kt(m.promesse.fr, m.promesse.en) }, kt(m.promesse.fr, m.promesse.en))),
+              h('div', { className: 'kbsu-rowname' }, h('b', { title: m.id }, titreDe(m), chipEtape(m)), h('span', { className: 'kbsu-promise', title: kt(m.promesse.fr, m.promesse.en) }, kt(m.promesse.fr, m.promesse.en))),
               h('span', { className: 'kbsu-famcol' }, h('span', { className: 'kbsu-b kbsu-famtag', title: p.fam.fr ? kt(p.fam.fr, p.fam.en) : undefined }, p.fam.fr ? kt(p.fam.fr, p.fam.en) : '')),
               p.statut,
               h('span', { className: 'kbsu-right kbsu-rowact' }, p.install, p.reglages, p.etat === 'active' && celluleReglages(m.id) !== null ? h('button', { type: 'button', className: 'kbsu-act kbsu-rowacts', 'data-kb': 'suite-reglages', title: kt('Ouvrir la page de réglages de ce module', 'Open this module’s Settings page'), onClick: () => ouvrirReglages(m.id) }, ic('plug'), kt('Réglages', 'Settings')) : null, p.sw),
@@ -1953,12 +2010,12 @@ window.__ModuleLoader__.load({
                 ouvrirGestionnaire !== null ? h('button', { type: 'button', className: 'kbsu-btn ghost', 'data-kb': 'suite-native', onClick: ouvrirGestionnaire }, ic('plug'), kt('Gestionnaire natif', 'Native manager')) : null,
                 h('button', { type: 'button', className: 'kbsu-btn', 'data-kb': 'suite-verifier', disabled: verifie, onClick: verifier }, ic('refresh', verifie ? 'spin' : ''), verifie ? kt('Vérification…', 'Checking…') : kt('Rechercher des mises à jour', 'Check for updates'))),
               h('div', { className: 'kbsu-meta' },
-                dshVersion !== null ? h('span', null, h('span', { className: 'kbsu-dot' + (horsZone ? ' warn' : '') }), 'DSH ' + dshVersion + (horsZone ? kt(' · hors de la zone testée', ' · outside the tested range') : kt(' · dans la zone testée', ' · inside the tested range'))) : null,
+                dshVersion !== null ? h('span', null, h('span', { className: 'kbsu-dot' + (horsZone ? ' warn' : '') }), 'Kybernos ' + dshVersion + (horsZone ? kt(' · hors de la zone testée', ' · outside the tested range') : kt(' · dans la zone testée', ' · inside the tested range'))) : null,
                 h('span', { 'data-kb': 'suite-source' }, suite.catalogue.source === 'signe' && suite.catalogue.suite ? kt('Catalogue signé · suite ', 'Signed catalogue · suite ') + suite.catalogue.suite.version + ' · ' + String(suite.catalogue.suite.publieLe || '').slice(0, 10) : kt('Catalogue livré avec la suite', 'Catalogue shipped with the suite'))))),
           safe ? h('div', { className: 'kbsu-banner', role: 'status' }, h('strong', null, ic('alert'), kt('Mode sans échec actif : seul le socle est chargé.', 'Safe mode is on: only the base is loaded.')), h('span', null, kt('Pour en sortir : ', 'To leave it: '), h('code', null, 'node scripts/dsh-lifecycle.mjs safe-mode off'))) : null,
           (!safe && reco.mode === 'safe-recommande') ? h('div', { className: 'kbsu-banner', role: 'status' }, h('strong', null, ic('alert'), kt('Plusieurs démarrages récents ont échoué.', 'Several recent boots failed.')), h('span', null, String(reco.raison || ''), ' ', h('code', null, 'node scripts/dsh-lifecycle.mjs safe-mode status'))) : null,
           suite.distant && suite.distant.plusRecent === true && (tacheMaj === null || tacheMaj.etat === 'echec') ? h('div', { className: 'kbsu-relance', role: 'status', 'data-kb': 'suite-maj' },
-            h('span', null, h('b', null, kt('La suite ' + suite.distant.suite + ' est disponible. ', 'Suite ' + suite.distant.suite + ' is available. ')), (() => { const r = raisonMiseAJour(suite.distant); return r === null ? kt('Elle met à jour tous les modules en une fois ; un seul redémarrage de DSH.', 'It updates every module at once; DSH restarts once.') : kt(r[0], r[1]) })()),
+            h('span', null, h('b', null, kt('La suite ' + suite.distant.suite + ' est disponible. ', 'Suite ' + suite.distant.suite + ' is available. ')), (() => { const r = raisonMiseAJour(suite.distant); return r === null ? kt('Elle met à jour tous les modules en une fois ; un seul redémarrage de Kybernos.', 'It updates every module at once; Kybernos restarts once.') : kt(r[0], r[1]) })()),
             raisonMiseAJour(suite.distant) !== null ? null
               : confirmerMaj ? h('span', { className: 'kbsu-right' }, h('span', { className: 'kbsu-st warn' }, kt('Archive vérifiée par empreinte signée, installation avec photo de sécurité et retour arrière automatique.', 'Archive checked against a signed digest, installed with a safety snapshot and automatic rollback.')),
                 h('button', { type: 'button', className: 'kbsu-btn sm accent', 'data-kb': 'suite-maj-go', onClick: mettreAJourSuite }, kt('Mettre à jour la suite', 'Update the suite')),
@@ -1967,15 +2024,15 @@ window.__ModuleLoader__.load({
             tacheMaj !== null && tacheMaj.etat === 'echec' ? h('span', { className: 'kbsu-st bad', role: 'alert' }, (() => { const m = messageMiseAJour(tacheMaj); return m === null ? '' : kt(m[0], m[1]) })()) : null) : null,
           tacheMaj !== null && tacheMaj.etat !== 'echec' && tacheMaj.etat !== 'termine' ? h('div', { className: 'kbsu-relance', role: 'status', 'data-kb': 'suite-maj-en-cours' }, h('span', { className: 'kbsu-st' }, ic('refresh', 'spin'), (() => { const m = messageMiseAJour(tacheMaj); return m === null ? '' : kt(m[0], m[1]) })())) : null,
           nbEnAttente > 0 ? h('div', { className: 'kbsu-relance', role: 'status' },
-            h('span', null, h('b', null, nbEnAttente + (nbEnAttente > 1 ? kt(' changements en attente. ', ' changes pending. ') : kt(' changement en attente. ', ' change pending. '))), enAttente.__suite === true ? kt('La suite est installée. Relance DSH pour l’activer.', 'The suite is installed. Restart DSH to turn it on.') : kt('Relance DSH pour les activer.', 'Restart DSH to turn them on.')),
+            h('span', null, h('b', null, nbEnAttente + (nbEnAttente > 1 ? kt(' changements en attente. ', ' changes pending. ') : kt(' changement en attente. ', ' change pending. '))), enAttente.__suite === true ? kt('La suite est installée. Relance Kybernos pour l’activer.', 'The suite is installed. Restart Kybernos to turn it on.') : kt('Relance Kybernos pour les activer.', 'Restart Kybernos to turn them on.')),
             relance === 'running' ? h('span', { className: 'kbsu-st' }, ic('refresh', 'spin'), kt('Relance en cours… la page va se recharger.', 'Restarting… the page will reload.'))
               : confirmerRelance ? h('span', { className: 'kbsu-right' }, h('span', { className: 'kbsu-st warn' }, kt('Les sessions en cours seront interrompues, puis reprises.', 'Running sessions will be interrupted, then resumed.')),
                 h('button', { type: 'button', className: 'kbsu-btn sm accent', onClick: relancer }, kt('Relancer maintenant', 'Restart now')),
                 h('button', { type: 'button', className: 'kbsu-btn sm ghost', onClick: () => setConfirmerRelance(false) }, kt('Annuler', 'Cancel')))
-                : h('button', { type: 'button', className: 'kbsu-btn sm accent', onClick: () => setConfirmerRelance(true) }, kt('Relancer DSH', 'Restart DSH')),
-            relance === 'busy' ? h('span', { className: 'kbsu-st bad', role: 'alert', 'data-kb': 'suite-relance-occupee' }, kt('Une installation est en cours : attends qu’elle se termine avant de relancer DSH.', 'An installation is running: wait until it ends before restarting DSH.')) : null,
+                : h('button', { type: 'button', className: 'kbsu-btn sm accent', onClick: () => setConfirmerRelance(true) }, kt('Relancer Kybernos', 'Restart Kybernos')),
+            relance === 'busy' ? h('span', { className: 'kbsu-st bad', role: 'alert', 'data-kb': 'suite-relance-occupee' }, kt('Une installation est en cours : attends qu’elle se termine avant de relancer Kybernos.', 'An installation is running: wait until it ends before restarting Kybernos.')) : null,
             relance === 'error' ? h('span', { className: 'kbsu-st bad' }, kt('Relance impossible depuis ici : arrête « dsh web » dans ton terminal, puis relance-le.', 'Cannot restart from here: stop “dsh web” in your terminal, then start it again.')) : null) : null,
-          mgr === null ? h('div', { className: 'kbsu-banner', role: 'status' }, h('strong', null, ic('alert'), kt('Gestionnaire de plugins indisponible.', 'Plugin manager unavailable.')), h('span', null, kt('Le catalogue s’affiche, mais l’état installé et les interrupteurs ne sont pas disponibles sur cette version de DSH.', 'The catalogue shows, but installed state and switches are unavailable on this DSH version.'))) : null,
+          mgr === null ? h('div', { className: 'kbsu-banner', role: 'status' }, h('strong', null, ic('alert'), kt('Gestionnaire de plugins indisponible.', 'Plugin manager unavailable.')), h('span', null, kt('Le catalogue s’affiche, mais l’état installé et les interrupteurs ne sont pas disponibles sur cette version de Kybernos.', 'The catalogue shows, but installed state and switches are unavailable on this Kybernos version.'))) : null,
           detail !== null ? null : h('div', { className: 'kbsu-bar' },
             h('div', { className: 'kbsu-seg', role: 'group', 'aria-label': kt('Filtre', 'Filter') },
               segment('featured', kt('À la une', 'Featured'), nbVedettes), segment('all', kt('Tous', 'All'), modules.length), segment('installed', kt('Installés', 'Installed'), nbInstalles), segment('available', kt('Disponibles', 'Available'), modules.length - nbInstalles), segment('updates', kt('Mises à jour', 'Updates'), nbMaj), registre !== null ? segment('plugins', 'Plugins', registre.plugins.length) : null),
@@ -2117,7 +2174,7 @@ window.__ModuleLoader__.load({
       // call is incomplete. The animation is CSS only and stops under prefers-reduced-motion (the end of the story stays on screen).
       function Intro ({ id, title, caption, steps, mock }) {
         const key = typeof id === 'string' && id !== '' ? introKey(id) : null
-        const [open, setOpen] = React.useState(() => key !== null && introOuverte(browserStore(), key))
+        const [open, setOpen] = React.useState(() => key !== null && introOuverte(browserStore(), key, onPhone()))
         React.useEffect(() => {
           if (key === null) return undefined
           const reopen = () => setOpen(true)
@@ -2179,7 +2236,7 @@ window.__ModuleLoader__.load({
         const [host, setHost] = React.useState(null)
         React.useEffect(() => {
           let frame = 0
-          const look = () => { frame = 0; const next = findNativeHost(document); setHost((cur) => (cur !== null && next !== null && cur.el === next.el && cur.head === next.head && cur.key === next.key ? cur : next)) }
+          const look = () => { frame = 0; const next = findNativeHost(document); if (next !== null) plainNativeWords(document); setHost((cur) => (cur !== null && next !== null && cur.el === next.el && cur.head === next.head && cur.key === next.key ? cur : next)) }
           const later = () => { if (frame === 0) frame = window.requestAnimationFrame(look) }
           look()
           let obs = null
@@ -2214,7 +2271,7 @@ window.__ModuleLoader__.load({
         try {
           if (aide !== null && ReactDOM !== null && typeof ReactDOM.createPortal === 'function') {
             const Natifs = construireNatifs(React, ReactDOM, aide)
-            ctx.effect(() => slots.inject('shell.overlay', () => slots.register({ name: 'shell.overlay', id: 'kybernos-hub-native-intro', order: 40 }, Natifs)), 'kybernos-hub: animation on DSH pages')
+            ctx.effect(() => slots.inject('shell.overlay', () => slots.register({ name: 'shell.overlay', id: 'kybernos-hub-native-intro', order: 40 }, Natifs)), 'kybernos-hub: animation on Kybernos pages')
           }
         } catch (e) { /* DSH's own pages simply get no animation */ }
         ctx.effect(() => slots.inject('settings.section', () => slots.register(
@@ -2238,6 +2295,6 @@ window.__ModuleLoader__.load({
 
     const demarrer = (ctx) => { apply(ctx); try { appliquerSuite(ctx) } catch (e) { /* optional */ } }
 
-    return { name: NAME, inject: [], apply: demarrer, __test: { carteAmarree, decalageDeLaCarte, colonneDeLaPage, lang, kt, pair, messageCatalogue, raisonMiseAJour, suiviInstallation, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, libelleInterrupteur, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, POINTS_PLUGIN, genrePlugin, niveauPlugin, niveauAide, etatPlugin, genresPlugins, filtrerPlugins, compterPlugins, permissionsPlugin, ajoutePlugin, texteLu, lecturePlugin, specInstall, refusInspection, issueGestionnaire, promptCreation, promptBrouillon, construirePlugins, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, findNativeHead, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
+    return { name: NAME, inject: [], apply: demarrer, __test: { plainNativeWords, onPhone, carteAmarree, decalageDeLaCarte, colonneDeLaPage, lang, kt, pair, messageCatalogue, raisonMiseAJour, suiviInstallation, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, etapeModule, libelleInterrupteur, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, POINTS_PLUGIN, genrePlugin, niveauPlugin, niveauAide, etatPlugin, genresPlugins, filtrerPlugins, compterPlugins, permissionsPlugin, ajoutePlugin, texteLu, lecturePlugin, specInstall, refusInspection, issueGestionnaire, promptCreation, promptBrouillon, construirePlugins, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, findNativeHead, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
   }
 })

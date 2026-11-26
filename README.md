@@ -18,7 +18,7 @@ dsh web --port 3080        # opens your browser, already signed in
 No browser opened (a server, a window you closed)? Open the address that `dsh web` prints: it looks like `http://127.0.0.1:3080/?token=…`
 and carries your sign-in. The bare `http://127.0.0.1:3080/` answers 401 on purpose.
 
-Needs Node.js 24.9 or later. The first run opens a few welcome pages (your field, your goals, which models to use, what Kaby should know about you, how much your agents may do alone, a
+Needs Node.js 24.9 or later (the newest engine in the tested range, DSH 0.2.3-alpha.2, needs 24.22.3 or later, or 26.13.1 or later: the installer checks it and says what to update). The first run opens a few welcome pages (your field, your goals, which models to use, what Kaby should know about you, how much your agents may do alone, a
 starter kit of skills and agent teams for your field); each can be skipped and replayed from Settings. What leaves your machine, and the one switch for it: [`docs/privacy.md`](docs/privacy.md).
 The full guide (Windows, update, rollback, safe mode, the welcome pages) is [`docs/install.md`](docs/install.md).
 
@@ -59,7 +59,6 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`kybernos-theme`](packages/kybernos-theme/README.md) | Theme |
 | [`kybernos-models`](packages/kybernos-models/README.md) | Models catalog |
 | [`kybernos-auto`](packages/kybernos-auto/README.md) | Auto mode: routes delegations by class |
-| [`kybernos-computers`](packages/kybernos-computers/README.md) | Cloud computers for agents (E2B, bring your own key) |
 | [`kybernos-workers`](packages/kybernos-workers/README.md) | Workers screen: verified state, install and exposure of Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes and ZCode, with a guide and a clickable demo |
 | [`dsh-subagent-maison`](packages/dsh-subagent-maison/README.md) | Workers connectors: the subagent providers for OpenCode, Gemini CLI, Qwen Code and Hermes (no page: the Workers page turns them on) |
 | [`kybernos-slides`](packages/kybernos-slides/README.md) | Slide decks driven by chat |
@@ -87,6 +86,9 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`kybernos-kaby-customisation`](packages/kybernos-kaby-customisation/README.md) | The Kaby page in Settings: the assistant's name, portrait and voice, and the face of its video calls with its own keys (face providers listed as soon) |
 | [`kybernos-kyber`](packages/kybernos-kyber/README.md) | Kaby: your assistant as a real DSH chat with your account's memory, Telegram connected by QR code or link, and the cloud computer it works on |
 | [`kybernos-multi-device`](packages/kybernos-multi-device/README.md) | Workspaces with or without a folder: Create offers a private folder in Documents/Kybernos, and Details shows where a workspace works, with a greyed preview of execution and devices |
+| [`kybernos-door`](packages/kybernos-door/README.md) | Kaby MCP: Claude Code (or any MCP client) on this computer gives your Kaby a task and reads its answer. Off by default; a secret token from your profile is the only way in. |
+| [`kybernos-guard`](packages/kybernos-guard/README.md) | Deterministic Pass 1 security guard: blocks secret leaks and catastrophic commands, asks confirmation on risky actions, and flags prompt injections in external tool outputs |
+| [`kybernos-knowledge`](packages/kybernos-knowledge/README.md) | Local document knowledge base and auto-maintained Markdown wiki (.md, .txt, .csv, .docx, .pdf) with citable BM25 search for Workspaces, Kaby and Front Desk |
 | [`kybernos-no-process`](packages/kybernos-no-process/README.md) | For the Kybernos phone app only: commands, search, a shell and MCP servers run inside the app, where a phone cannot launch programs. Off by default on a computer. |
 | [`kybernos-changes`](packages/kybernos-changes/README.md) | One chip under the composer: where this chat's work stands (changed, saved, on GitHub, in the project) and what to do next; Simple / Developer view |
 | [`kybernos-call`](packages/kybernos-call/README.md) | Voice calls from any chat session: a LiveKit room, a listening worker, the Call / Video buttons of team members |
@@ -99,6 +101,7 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`kybernos-registry`](packages/kybernos-registry/README.md) | The registry of plugins: reads the data plugins installed on this computer, checks them, publishes the one versioned seam `window.__KB__` other bundles use, and feeds the Plugins tab of the Suite (add, read and accept, switch and remove, all through DSH's own manager); ships the `plugin-creator` skill |
 | [`kybernos-servers`](packages/kybernos-servers/README.md) | The Servers page: add a Kybernos server from its address, switch between servers, rename and remove them; nothing to buy and no key to paste |
 | [`kybernos-mobile`](packages/kybernos-mobile/README.md) | The phone: DSH usable on a narrow screen (drawer, stacked Settings), and on a paid plan a QR code that links a phone to this computer, end to end encrypted |
+| [`kybernos-phone-model`](packages/kybernos-phone-model/README.md) | The small model that runs on the phone itself, for plain chat (provider, « Discussion » preset with no tools, one quiet line); inert without the Kybernos phone app |
 | [`kybernos-websearch`](packages/kybernos-websearch/README.md) | Web search for the agents with or without an API key: free engines out of the box, keyed engines when you add one, one fallback chain |
 | [`kybernos-terminal`](packages/kybernos-terminal/README.md) | Shell fences dressed as terminal windows, with a run button |
 | [`kybernos-memory`](packages/kybernos-memory/README.md) | Lessons learned: read, written and injected per agent team (compatible with `memory.cjs`), switches, tools |

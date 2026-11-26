@@ -8,8 +8,8 @@
     "fr": "Atlas"
   },
   "description": {
-    "en": "A map of your workspace: projects, agent teams, skills, memory, and what is broken.",
-    "fr": "La carte de ton espace : projets, Agent Teams, skills, mémoire, et ce qui est cassé."
+    "en": "A map of your workspace: projects, AI agent teams, skills, memory, and what is broken.",
+    "fr": "La carte de ton espace : projets, équipes d’agents IA, skills, mémoire, et ce qui est cassé."
   },
   "icon": "map",
   "family": "teams",

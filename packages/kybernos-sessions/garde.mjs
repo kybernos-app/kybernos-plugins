@@ -124,7 +124,6 @@ export const FICHIERS_CHAUDS = [
   // Recette 03/10: client bundles that appeared since — the worktree suite (C1b)
   // claimed them, the guard ignored them (« not a known hot file »).
   'packages/kybernos-auto/client.js',
-  'packages/kybernos-computers/client.js',
   'packages/kybernos-language/client.js',
   'packages/kybernos-miniapps/client.js',
   'packages/kybernos-modeles-locaux/client.js',
@@ -134,6 +133,7 @@ export const FICHIERS_CHAUDS = [
   'packages/kybernos-servers/client.js',
   'packages/kybernos-registry/client.js',
   'packages/kybernos-mobile/client.js',
+  'packages/kybernos-phone-model/client.js',
   'packages/kybernos-terminal/client/client.js',
   'packages/kybernos-slides/client.js',
   'packages/kybernos-motion/client.js',

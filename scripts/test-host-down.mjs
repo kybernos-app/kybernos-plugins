@@ -11,8 +11,8 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const EN = 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.'
-const FR = 'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarre DSH, puis appuie sur Réessayer.'
+const EN = 'This page’s helper is not answering. If the app was just updated, restart it, then press Retry.'
+const FR = 'L’assistant de cette page ne répond pas. Si l’appli vient d’être mise à jour, redémarre-la, puis appuie sur Réessayer.'
 
 // [package, where the sentence lives (a key, or the kt() pair), the Retry control]
 const PAGES = [
@@ -20,6 +20,7 @@ const PAGES = [
   ['kybernos-auto', 'Auto routing'],
   ['kybernos-models', 'AI provider and models'],
   ['kybernos-free-llms', 'Free LLMs'],
+  ['kybernos-door', 'Kaby MCP'],
   ['kybernos-modeles-locaux', 'Ollama local models'],
 ]
 

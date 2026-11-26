@@ -1,7 +1,7 @@
 {
   "what": {
-    "fr": "Ouvre les Word, Excel, Markdown, PDF et présentations (.deck.html) de tes Créations et change-les sur place. Avant d’ouvrir, on te dit ce que l’éditeur ne saurait pas garder.",
-    "en": "Open the Word, Excel, Markdown, PDF and slide deck (.deck.html) files of your Creations and change them in place. Before it opens, you are told what the editor could not keep."
+    "fr": "Ouvre les Word, Excel, Markdown, PDF, présentations (.deck.html), texte, JSON et CSV de tes Créations et change-les sur place. Avant d’ouvrir, on te dit ce que l’éditeur ne saurait pas garder.",
+    "en": "Open the Word, Excel, Markdown, PDF, slide deck (.deck.html), text, JSON and CSV files of your Creations and change them in place. Before it opens, you are told what the editor could not keep."
   },
   "steps": [
     {
@@ -18,8 +18,8 @@
     }
   ],
   "where": {
-    "fr": "Créations ou onglet de droite du chat › un fichier Word, Excel, Markdown, PDF ou une présentation",
-    "en": "Creations or the chat’s right-hand tab › a Word, Excel, Markdown, PDF or slide deck file",
+    "fr": "Créations › un fichier Word, Excel, Markdown, PDF, texte, JSON, CSV ou une présentation",
+    "en": "Creations › a Word, Excel, Markdown, PDF, text, JSON, CSV or slide deck file",
     "page": false
   },
   "good": {

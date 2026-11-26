@@ -57,21 +57,115 @@ export function rangerSubagentClaude(definition) {
 }
 
 /**
- * Sets `disabled: false` on the Claude Code rows of EVERY definition of the live registry. Never throws (the boot does not
- * depend on it); returns a tally for the log.
- * @param {{agentPresets?: object}} ctx the plugin's cordis context
+ * Whether an explicit user policy already governs a worker (for instance Claude Code disabled in the profile patch or
+ * declared in `harness.json`). When true, the legacy boot force-enable yields to the explicit user policy.
+ * @param {string} workerId worker identifier (e.g. `'claude-code'`)
+ * @param {{patchText?: string|null, harnessPolicy?: object|null, presetId?: string}} [sources]
+ * @returns {boolean}
  */
-export async function activerSubagentClaude(ctx) {
+export function hasExplicitWorkerPolicy(workerId, sources = {}) {
+  if (typeof workerId !== 'string' || workerId === '') return false
+  const harness = sources.harnessPolicy
+  if (harness !== null && harness !== undefined && typeof harness === 'object') {
+    const policies = harness.agentPolicies
+    if (policies !== null && policies !== undefined && typeof policies === 'object') {
+      const presetKey = typeof sources.presetId === 'string' && sources.presetId !== '' ? 'preset:' + sources.presetId : null
+      for (const scopeKey of [presetKey, 'default']) {
+        if (scopeKey === null) continue
+        const scope = policies[scopeKey]
+        if (scope !== null && scope !== undefined && typeof scope === 'object' && Object.prototype.hasOwnProperty.call(scope, workerId)) {
+          const entry = scope[workerId]
+          if (entry !== null && entry !== undefined && typeof entry === 'object' && typeof entry.enabled === 'boolean') return true
+        }
+      }
+    }
+  }
+  const patchText = typeof sources.patchText === 'string' ? sources.patchText : ''
+  if (patchText !== '') {
+    // Check for an explicit `@deepseek-ai/dsh-tool-subagent` block targeting this provider (or a patch override on
+    // `kybernos-workers-<workerId>` / `tool-subagent-<workerId>`) that sets `disabled: true`.
+    const lines = patchText.split('\n')
+    const blocks = []
+    let cur = null
+    let inConfig = false
+    for (const raw of lines) {
+      if (/^\s*#/.test(raw) || raw.trim() === '') continue
+      const m = /^(\s*)-\s+id:\s*(.+)$/.exec(raw)
+      if (m) {
+        cur = { id: m[2].replace(/\s+#.*$/, '').trim().replace(/^['"]|['"]$/g, ''), indent: m[1].length, fields: {}, config: {} }
+        blocks.push(cur)
+        inConfig = false
+        continue
+      }
+      if (/^\S/.test(raw)) { cur = null; inConfig = false; continue }
+      if (cur === null) continue
+      const ind = /^(\s*)/.exec(raw)[1].length
+      if (ind <= cur.indent) { cur = null; inConfig = false; continue }
+      const kv = /^\s*([A-Za-z_][\w-]*):\s*(.*)$/.exec(raw)
+      if (kv === null) continue
+      const val = kv[2].replace(/\s+#.*$/, '').trim().replace(/^['"]|['"]$/g, '')
+      if (ind === cur.indent + 2) {
+        inConfig = kv[1] === 'config'
+        if (!inConfig) cur.fields[kv[1]] = val
+      } else if (inConfig && ind === cur.indent + 4) {
+        cur.config[kv[1]] = val
+      }
+    }
+    const targetIds = new Set(['kybernos-workers-' + workerId, 'tool-subagent-' + workerId])
+    let sawToolBlock = false
+    let disabledState = null
+    for (const b of blocks) {
+      if (b.fields.name === '@deepseek-ai/dsh-tool-subagent' && b.config.provider === workerId) {
+        sawToolBlock = true
+        targetIds.add(b.id)
+        disabledState = b.fields.disabled === 'true'
+      } else if (targetIds.has(b.id) && b.fields.disabled !== undefined) {
+        sawToolBlock = true
+        disabledState = b.fields.disabled === 'true'
+      }
+    }
+    if (sawToolBlock && disabledState === true) return true
+  }
+  return false
+}
+
+/**
+ * Sets `disabled: false` on the Claude Code rows of EVERY definition of the live registry, unless an explicit user
+ * policy governs Claude Code for that preset (or globally). Never throws (the boot does not depend on it); returns a
+ * tally for the log.
+ * @param {{agentPresets?: object}} ctx the plugin's cordis context
+ * @param {{explicitPolicy?: boolean, hasExplicitPolicy?: (presetId: string) => boolean, patchText?: string|null, harnessPolicy?: object|null}} [options]
+ */
+export async function activerSubagentClaude(ctx, options = {}) {
   const service = ctx?.agentPresets
   const definitions = service?.definitions
   if (definitions === undefined || definitions === null || typeof definitions.keys !== 'function') {
-    return { bascules: 0, raison: 'unreadable registry (definitions)' }
+    return { bascules: 0, skipped: [], raison: 'unreadable registry (definitions)' }
   }
   let bascules = 0
   const touches = []
+  const skipped = []
   let ids = []
   try { ids = Array.from(definitions.keys()) } catch { ids = [] }
+  const isGated = (presetId) => {
+    if (options.explicitPolicy === true) return true
+    if (typeof options.hasExplicitPolicy === 'function') {
+      try { if (options.hasExplicitPolicy(presetId) === true) return true } catch { /* safe default */ }
+    }
+    if (options.patchText !== undefined || options.harnessPolicy !== undefined) {
+      return hasExplicitWorkerPolicy('claude-code', {
+        patchText: options.patchText,
+        harnessPolicy: options.harnessPolicy,
+        presetId,
+      })
+    }
+    return false
+  }
   for (const id of ids) {
+    if (isGated(id) === true) {
+      skipped.push(id)
+      continue
+    }
     let enregistrement = null
     try { enregistrement = definitions.get(id) } catch { continue }
     const rangées = rangerSubagentClaude(enregistrement?.config)
@@ -83,7 +177,7 @@ export async function activerSubagentClaude(ctx) {
       }
     }
   }
-  return { bascules, presets: [...new Set(touches)] }
+  return { bascules, presets: [...new Set(touches)], skipped }
 }
 
 /**

@@ -73,6 +73,10 @@ const row = (fait, extra = {}) => ({ fait, ouvert: false, vivant: false, ...extr
   assert.ok(/if \(statuts === undefined\) statuts = lireStatuts\(\)/.test(SOURCE), 'read lazily, only when a group is actually filtered')
   assert.ok(/vivant: estVivant\(statutDe\(statuts, idDeLigne\(rows\[i\]\)\)\)/.test(SOURCE), 'each row is judged by the session id of its row key')
   assert.ok(/kbCtx\.get\('uiSession'\)/.test(SOURCE) && /\.sessionStatus/.test(SOURCE), 'the source is DSH\'s session-status service, read INSIDE a try/catch like the other optional services')
+  // 2026-11-24: since engine 0.2.2-rc.2 that service is injected (a plain read throws « without inject »): a sub-plugin hands the handle over, the module's own inject stays [\'slots\'].
+  assert.ok(/ctx\.inject\(\['uiSession', 'uiSession\.sessionStatus'\], \(scope\) => \{/.test(SOURCE) && /statutInjecte = ui !== undefined && ui !== null && ui\.sessionStatus !== undefined \? ui\.sessionStatus : null/.test(SOURCE), 'the status service is injected by a sub-plugin')
+  assert.ok(/if \(statutInjecte !== null && typeof statutInjecte\.getSnapshot === 'function'\) return statutInjecte\.getSnapshot\(\)/.test(SOURCE), 'the injected handle is read first, the plain read stays for an older engine')
+  assert.ok(/inject: \['slots'\],/.test(SOURCE), 'the module itself still requires only the slots: an engine without the status service never holds the bundle back')
   ok('the filter reads DSH\'s status once per pass and judges each row by its session id; a missing service leaves the rule as it was')
 }
 

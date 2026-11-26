@@ -14,15 +14,14 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createLite } from './lib-lite-react-test.mjs'
+import { entry, hasEntry } from './lib-i18n-test.mjs'
 
 const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'client.js'), 'utf8')
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
 
-// ── the dictionary, as the page has it ──
-const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-const entry = (key) => new RegExp("'" + esc(key) + "': \\{ kybernos: '((?:[^'\\\\]|\\\\.)*)', en: '((?:[^'\\\\]|\\\\.)*)' \\}").exec(src)
-const text = (key, lang) => { const m = entry(key); assert.ok(m !== null, key + ' is in the dictionary, in both languages'); return m[lang === 'fr' ? 1 : 2].replace(/\\'/g, '\'') }
+// ── the dictionary, as the page has it (i18n/*.json) ──
+const text = (key, lang) => { assert.ok(hasEntry(key), key + ' is in the dictionary, in both languages'); return entry(key)[lang === 'fr' ? 'kybernos' : 'en'] }
 
 // ── 1. the words ──
 {

@@ -19,6 +19,7 @@ browser ──https──▶ your TLS proxy ──http──▶ kybernos-gate :3
                                               │ /__gate/login   sign-in page + login
                                               │ /__gate/health  200 "ok", no session needed
                                               │ /__gate/ticket  one-time link from the platform (cloud computers; both TICKET variables)
+                                              │ /__gate/page/<token>  one saved page for a few minutes, no session (cloud computers; core/page-link.mjs)
                                               └ everything else needs the session cookie, then is proxied (HTTP, SSE, WebSocket)
 ```
 

@@ -38,6 +38,7 @@
 import { execFile } from 'node:child_process'
 import { readdirSync, statSync, existsSync, readFileSync, writeFileSync, mkdirSync, appendFileSync, rmSync, realpathSync, renameSync, chmodSync } from 'node:fs'
 import { join, basename, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { creerSonde } from './brain-health.mjs'
 import { excludedFrom, filterProbeable, readTrafficFile, trafficHealth } from './traffic-health.mjs'
 import { dshHome, CATEGORIES } from './decision.mjs'
@@ -45,6 +46,11 @@ import { selectionnerKyber, selectionnerCategorie } from './decision-llm.mjs'
 import { classerLocalement, estTitreAttente } from './classement-local.mjs'
 import { choisirEtudeAuto, modelesConnectes, ecartesDe, garderConnectes } from './etude-auto.mjs'
 import { writeGuard } from './session-guard.mjs'
+import { createRewindLedger, attachRewindHooks, REWIND_TEXTS } from './turn-rewind.mjs'
+import { seedSkills } from './seed-skills.mjs'
+export { REWIND_TEXTS }
+const SKILLS_SOURCE_DIR = join(dirname(fileURLToPath(import.meta.url)), 'skills')
+const SHIPPED_SKILLS = ['chat-import']
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -572,7 +578,7 @@ export function etatMemoire (kybersHome, ls = readdirSync) {
   if (!existsSync(kybersHome)) return kybers
   for (const nom of ls(kybersHome)) {
     const kdir = join(kybersHome, nom)
-    if (!statSync(kdir).isDirectory()) continue
+    try { if (!statSync(kdir).isDirectory()) continue } catch { continue }
     const lecons = lignesJsonl(join(kdir, 'memory', 'lessons.jsonl'))
     const ledger = lignesJsonl(join(kdir, 'memory', 'ledger.jsonl'))
     if (lecons.length === 0 && ledger.length === 0) continue
@@ -1481,7 +1487,7 @@ export function monterRoutes (webServerSvc, opts) {
       const brut = etude.mode === 'auto'
         ? garderConnectes(corps.models, await modelesConnectes({ settings: service('settings'), credentials: service('credentials') }))
         : corps.models
-      // Our own gateway is never pinged: it meters and bills what it receives (measured 2026-10-28). Operators can
+      // Our own gateway is never pinged: it meters and bills what it receives (measured 2026-10-28); nor is the phone's own model, which a ping wakes. Operators can
       // add providers with KB_NO_PROBE_PROVIDERS.
       const { probe: aSonder, skipped } = filterProbeable(brut, excludedFrom(process.env))
       if (aSonder.length === 0) {
@@ -1639,12 +1645,51 @@ export function monterRoutes (webServerSvc, opts) {
   routeAction('/kybernos-sessions/sync', (o) => synchroniser(o))
   routeAction('/kybernos-sessions/pr', (o) => (o.action === 'merge' ? prFusionner(o) : prCreer(o)),
     (corps) => ({ action: corps.action }))
+
+  // ── Turn Rewind: persistent pre-mutation Change Ledger (git & non-git) ────
+  const rewindLedger = opts.rewindLedger || createRewindLedger({ rootDir: opts.rewindDir || join(base, 'kybernos', 'rewind') })
+  if (opts.ctx !== undefined && opts.ctx !== null) {
+    const detachRewind = attachRewindHooks(opts.ctx, rewindLedger, {
+      resolveCwd: (sid) => { const slug = dossierDeSession(sessionsHome, sid); return slug !== null ? decodeSlugPath(slug) : '' }
+    })
+    if (typeof detachRewind === 'function') retraits.push(detachRewind)
+  }
+  webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/rewind/turns', handler: async (req, res) => {
+    if (req.method !== 'GET') { res.writeHead(405); res.end('GET only'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    try {
+      const u = new URL(req.url, 'http://127.0.0.1')
+      const sessionId = u.searchParams.get('session') || ''
+      envoyer(res, 200, rewindLedger.listTurns(sessionId))
+    } catch (e) {
+      envoyer(res, 500, { ok: false, erreur: String(e && e.message ? e.message : e) })
+    }
+  } })
+  webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/rewind', handler: async (req, res) => {
+    if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    if (refuserSansSession(req, res)) return
+    const corps = await lireCorps(req, res)
+    if (corps === null) return
+    const hasExplicitPath = corps.chemin !== undefined && corps.chemin !== null && corps.chemin !== ''
+    const slug = dossierDeSession(sessionsHome, corps.session || '')
+    const chemin = hasExplicitPath ? cheminConfine(sessionsHome, corps, slug) : (slug !== null ? decodeSlugPath(slug) : '')
+    if (hasExplicitPath && chemin === null) {
+      envoyer(res, 200, { ok: false, code: 'folder-not-found', erreur: REWIND_TEXTS['folder-not-found'] })
+      return
+    }
+    const paths = Array.isArray(corps.paths) ? corps.paths.slice(0, 200) : null
+    const params = { sessionId: String(corps.session || ''), cwd: chemin || '', turnId: String(corps.turnId || ''), paths }
+    envoyer(res, 200, corps.exec === true ? rewindLedger.executeRewind(params) : rewindLedger.planRewind(params))
+  } })
+
   return () => { for (const retrait of retraits.splice(0).reverse()) { try { retrait() } catch (e) { /* already gone */ } } }
 }
 
 export function apply (ctx) {
   try {
     const home = dshHome()
+    try { seedSkills({ home, sourceDir: SKILLS_SOURCE_DIR, names: SHIPPED_SKILLS }) } catch (e) { /* non-blocking */ }
     const demarrer = (hostCtx) => {
       // `get`, not `hostCtx.webServer`: with the plugin's own context a property read of a service it did not inject throws.
       const monter = () => monterRoutes(hostCtx.get('webServer'), {

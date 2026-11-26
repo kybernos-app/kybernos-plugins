@@ -1,11 +1,13 @@
 // test-host.mjs — the whole host half without DSH, without a network and without a real disk.
 // Run: node packages/kybernos-log/test-host.mjs
-import { mkdtempSync, readFileSync, existsSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, existsSync, rmSync, writeFileSync, appendFileSync, mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  classifyEvent, failureSentence, filterEvents, aggregate, createJournal, mountRoutes, journalPath, dayKey, toolKind
+  classifyEvent, failureSentence, filterEvents, aggregate, createJournal, mountRoutes, journalPath, dayKey, toolKind,
+  isFailure, maskSecrets, pluginTag, readTerminal, terminalFile
 } from './index.js'
+import { installSession, browserHeaders, sessionCookie, OTHER_SECRET } from './lib-session-test.mjs'
 
 let pass = 0
 const fails = []
@@ -135,7 +137,7 @@ const eq = (label, a, b) => ok(label + ' — ' + JSON.stringify(a) + ' ≠ ' + J
     const routes = new Map()
     const server = { register: (route) => { routes.set(route.path, route.handler); return () => routes.delete(route.path) } }
     const off = mountRoutes(server, journal, { subscribe: () => () => {} })
-    ok('three routes are mounted', ['/kybernos-log/events', '/kybernos-log/stats', '/kybernos-log/stream'].every((p) => routes.has(p)))
+    ok('four routes are mounted', ['/kybernos-log/events', '/kybernos-log/stats', '/kybernos-log/stream', '/kybernos-log/terminal'].every((p) => routes.has(p)))
     const call = (path, { method = 'GET', headers = { host: '127.0.0.1:3080' }, localPort = 3080, url = path } = {}) => {
       let status = 0
       let body = ''
@@ -171,6 +173,155 @@ const eq = (label, a, b) => ok(label + ' — ' + JSON.stringify(a) + ' ≠ ' + J
 }
 
 eq('journalPath follows DSH_HOME', journalPath('/tmp/h'), '/tmp/h/kybernos/log/events.jsonl')
+
+// -- stats: per hour of the day, for the cards' sparklines (2026-11-09) ----------------------------------------------
+{
+  const base = new Date(2026, 10, 9, 0, 0, 0).getTime()
+  const at = (h, m = 0) => base + h * 3600000 + m * 60000
+  const rows = [
+    { at: at(3, 10), type: 'llm', kind: 'answer', input: 100, output: 20, cache: 5 },
+    { at: at(3, 40), type: 'llm', kind: 'answer', input: 1, output: 1 },
+    { at: at(3, 41), type: 'llm', kind: 'request' },
+    { at: at(7), type: 'llm', kind: 'retry', error: 'RATE_LIMIT' },
+    { at: at(7, 5), type: 'session', kind: 'turn-end', status: 'failed', error: 'error' },
+    { at: at(7, 6), type: 'session', kind: 'turn-end', status: 'completed' },
+    { at: at(9), type: 'tool', kind: 'result', ok: false },
+    { at: at(9, 1), type: 'job', kind: 'end', status: 'killed' },
+    { at: at(12), type: 'title', kind: 'request' },
+    { at: at(12, 2), type: 'compaction', kind: 'summary' },
+    { at: at(23, 59), type: 'llm', kind: 'answer', input: 7, output: 3 },
+    { at: base - 60000, type: 'llm', kind: 'answer', input: 999, output: 999 }
+  ]
+  const [day] = aggregate(rows, { days: 1, now: at(13) })
+  ok('a day carries 24 hourly buckets', Array.isArray(day.hours) && day.hours.length === 24)
+  eq('hour 3: two model calls and their tokens (a request is not a call)', day.hours[3], { calls: 2, tokens: 127, failures: 0, unasked: 0 })
+  eq('hour 7: a retry and a failed turn are two failures, a completed turn none', day.hours[7].failures, 2)
+  eq('hour 9: a tool error and a killed job are failures', day.hours[9].failures, 2)
+  eq('hour 12: a title and a compaction are unasked calls', day.hours[12].unasked, 2)
+  eq('hour 23 counts the last minute of the day', day.hours[23].calls, 1)
+  eq('the hours add up to the day', [day.hours.reduce((a, h) => a + h.calls, 0), day.hours.reduce((a, h) => a + h.tokens, 0)], [day.calls, day.tokens])
+  eq('the day says its failures and unasked calls', [day.failures, day.unasked], [4, 2])
+  ok('yesterday stays out of today', day.tokens === 137)
+  eq('isFailure: retry, ok false, failed status; not a completed turn', [isFailure(rows[3]), isFailure(rows[6]), isFailure(rows[4]), isFailure(rows[5]), isFailure(rows[0])], [true, true, true, false, false])
+}
+
+// -- the events route names the chats, from the whole file, not only the ring --------------------------------------
+{
+  const dir = mkdtempSync(join(tmpdir(), 'kybernos-log-titles-'))
+  try {
+    const file = join(dir, 'events.jsonl')
+    const lines = [{ seq: 1, at: 1, session: 'old', type: 'session', kind: 'title', title: 'Morning brief' }]
+    for (let i = 2; i < 8; i += 1) lines.push({ seq: i, at: i, session: 'old', type: 'llm', kind: 'answer', input: 1, output: 1 })
+    writeFileSync(file, lines.map((l) => JSON.stringify(l)).join('\n') + '\n')
+    const journal = createJournal({ file, ring: 3 })
+    eq('a title older than the ring is still known', journal.titles(['old', 'nobody']), { old: 'Morning brief' })
+    journal.append({ session: 'old', type: 'session', kind: 'title', title: 'Morning brief (automation)' })
+    eq('the newest title wins', journal.titles(['old']).old, 'Morning brief (automation)')
+    const routes = new Map()
+    mountRoutes({ register: (r) => { routes.set(r.path, r.handler); return () => routes.delete(r.path) } }, journal)
+    let body = ''
+    routes.get('/kybernos-log/events')({ method: 'GET', url: '/kybernos-log/events?types=llm', headers: { host: '127.0.0.1:3080' }, socket: { localPort: 3080 } }, { writeHead: () => {}, end: (b) => { body = b } })
+    eq('the events route sends the titles of its rows\u2019 chats', JSON.parse(body).titles, { old: 'Morning brief (automation)' })
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+}
+
+// -- secrets are masked before a terminal line leaves the host ------------------------------------------------------
+{
+  const cases = [
+    ['dsh web: http://127.0.0.1:3080/?token=4f9c2a7e1b8d', 'dsh web: http://127.0.0.1:3080/?token=[hidden]'],
+    ['refresh with access_token=ya29.a0AfH6SMBxyz&x=1', 'refresh with access_token=[hidden]&x=1'],
+    ['{"api_key":"abc123def456"}', '{"api_key":"[hidden]"}'],
+    ['using sk-ant-api03-AbCdEfGhIjKlMnOpQrStUv for anthropic', 'using sk-[hidden] for anthropic'],
+    ['probe key=AbC123xyz789', 'probe key=[hidden]'],
+    ['header Authorization: Bearer eyJabc.def.ghi-very-long-token', 'header Authorization: Bearer [hidden]'],
+    ['authorization=Zm9vOmJhcg==', 'authorization=[hidden]'],
+    ['login password=hunter2 ok', 'login password=[hidden] ok'],
+    ['the secret 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b is set', 'the secret [hidden] is set'],
+    ['jwt eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c', 'jwt [hidden]'],
+    ['push with ghp_0123456789abcdefABCDEF', 'push with [hidden]'],
+    ['\u001b[31m[kybers] run failed\u001b[0m', '[kybers] run failed']
+  ]
+  for (const [raw, want] of cases) eq('masked: ' + want, maskSecrets(raw), want)
+  const plain = ['[kybernos-memory] tidy-up: 32 asked, 25 titled, 2 compacted', '[kybers] scheduled tasks: 2 declenchement(s)', 'tokens: 37k in, 1.2k out']
+  eq('an ordinary line is left alone', plain.map(maskSecrets), plain)
+  eq('the plugin tag of a line', [pluginTag('[kybernos-cloud] routes'), pluginTag('dsh web: http'), pluginTag('[dsh-lsp] ready')], ['kybernos-cloud', null, 'dsh-lsp'])
+}
+
+// -- readTerminal: the tail, older lines, follow, filters, a missing file --------------------------------------------
+{
+  const dir = mkdtempSync(join(tmpdir(), 'kybernos-log-term-'))
+  try {
+    mkdirSync(join(dir, 'logs'))
+    const out = join(dir, 'logs', 'dsh-web.out.log')
+    const lines = []
+    for (let i = 1; i <= 1200; i += 1) lines.push(i % 10 === 0 ? '[kybernos-cloud] poll ' + i : 'line ' + i)
+    writeFileSync(out, lines.join('\n') + '\n' + 'half a line')
+    const t = readTerminal(out)
+    eq('the tail: the last 500 complete lines, newest last, numbered', [t.lines.length, t.lines[0].n, t.lines[499].n, t.lines[499].text, t.total], [500, 701, 1200, '[kybernos-cloud] poll 1200', 1200])
+    ok('a line still being written is not served', !t.lines.some((l) => l.text === 'half a line'))
+    ok('older lines exist', t.hasOlder === true)
+    const older = readTerminal(out, { before: 701 })
+    eq('before: the 500 lines above', [older.lines[0].n, older.lines[older.lines.length - 1].n], [201, 700])
+    eq('before the start: what is left, then nothing older', [readTerminal(out, { before: 201 }).lines.length, readTerminal(out, { before: 201 }).hasOlder], [200, false])
+    appendFileSync(out, ' now complete\nline 1202\n')
+    const follow = readTerminal(out, { after: 1200 })
+    eq('after: only the lines that came since (follow)', follow.lines.map((l) => l.text), ['half a line now complete', 'line 1202'])
+    eq('...and the total grew', follow.total, 1202)
+    const cloud = readTerminal(out, { plugin: 'kybernos-cloud', limit: 3 })
+    eq('plugin: only that plugin\u2019s lines', cloud.lines.map((l) => l.n), [1180, 1190, 1200])
+    ok('the plugin tags seen are listed with their count', cloud.plugins.length === 1 && cloud.plugins[0].tag === 'kybernos-cloud' && cloud.plugins[0].count === 120)
+    eq('q filters lines', readTerminal(out, { q: 'POLL 119' }).lines.map((l) => l.n), [1190])
+    const small = readTerminal(out, { tailBytes: 60 })
+    ok('a bounded window keeps the true line numbers', small.lines.length > 0 && small.lines[small.lines.length - 1].n === 1202 && small.total === 1202 && small.truncated === true)
+    ok('a bounded window drops its first, cut line', small.lines.every((l) => /^line \d+$|^\[kybernos-cloud\] poll \d+$|^half a line now complete$/.test(l.text)))
+    appendFileSync(out, 'login password=hunter2\n')
+    ok('a search cannot find a secret by its value', readTerminal(out, { q: 'hunter2' }).lines.length === 0 && readTerminal(out, { q: 'password' }).lines[0].text === 'login password=[hidden]')
+    eq('a missing file says so', readTerminal(join(dir, 'logs', 'nope.log')).exists, false)
+    eq('terminalFile: the err stream, and a port of its own when its file exists', [terminalFile(dir, 'err', 3080).endsWith('dsh-web.err.log'), terminalFile(dir, 'out', 3090).endsWith('dsh-web.out.log')], [true, true])
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+}
+
+// -- the terminal route: under the session cookie, masked, read-only ----------------------------------------------
+{
+  const home = mkdtempSync(join(tmpdir(), 'kybernos-log-home-'))
+  const before = process.env.DSH_HOME
+  try {
+    process.env.DSH_HOME = home
+    const journal = createJournal({ file: join(home, 'kybernos', 'log', 'events.jsonl') })
+    const routes = new Map()
+    mountRoutes({ register: (r) => { routes.set(r.path, r.handler); return () => routes.delete(r.path) } }, journal, { home })
+    const call = (url, { method = 'GET', headers = {} } = {}) => {
+      let status = 0
+      let body = ''
+      routes.get('/kybernos-log/terminal')({ method, url, headers: { host: '127.0.0.1:3080', ...headers }, socket: { localPort: 3080 }, on: () => {} }, { writeHead: (st) => { status = st }, end: (b) => { body = String(b === undefined ? '' : b) } })
+      let json = null
+      try { json = JSON.parse(body) } catch (e) { json = null }
+      return { status, json }
+    }
+    ok('the terminal route is mounted', routes.has('/kybernos-log/terminal'))
+    eq('no machine secret: the route stays closed (503)', call('/kybernos-log/terminal').status, 503)
+    installSession(home)
+    eq('no cookie: sign-in required (401)', call('/kybernos-log/terminal').status, 401)
+    eq('a forged cookie: 401', call('/kybernos-log/terminal', { headers: { cookie: sessionCookie('127.0.0.1:3080', { secret: OTHER_SECRET }) } }).status, 401)
+    eq('a foreign Origin: 403', call('/kybernos-log/terminal', { headers: { ...browserHeaders(), origin: 'https://evil.example' } }).status, 403)
+    eq('POST: 405', call('/kybernos-log/terminal', { method: 'POST', headers: browserHeaders() }).status, 405)
+    const missing = call('/kybernos-log/terminal', { headers: browserHeaders() })
+    ok('the person\u2019s browser, no log yet: 200 and exists false', missing.status === 200 && missing.json.ok === true && missing.json.exists === false)
+    mkdirSync(join(home, 'logs'))
+    writeFileSync(join(home, 'logs', 'dsh-web.out.log'), 'dsh web: http://127.0.0.1:3080/?token=abcdef123456\n[kybers] ready\n')
+    writeFileSync(join(home, 'logs', 'dsh-web.err.log'), '[kybers] run failed: no adapter\n')
+    const got = call('/kybernos-log/terminal?stream=out', { headers: browserHeaders() })
+    ok('the output stream, masked', got.status === 200 && got.json.lines.length === 2 && got.json.lines[0].text === 'dsh web: http://127.0.0.1:3080/?token=[hidden]')
+    ok('the answer names the file, never its folder', got.json.file === 'dsh-web.out.log' && !JSON.stringify(got.json).includes(home))
+    const err = call('/kybernos-log/terminal?stream=err&after=0', { headers: browserHeaders() })
+    ok('the error stream is its own file', err.json.stream === 'err' && err.json.lines.length === 1 && err.json.lines[0].text.startsWith('[kybers] run failed'))
+    eq('plugin filter through the route', call('/kybernos-log/terminal?plugin=kybers', { headers: browserHeaders() }).json.lines.map((l) => l.n), [2])
+  } finally {
+    if (before === undefined) delete process.env.DSH_HOME
+    else process.env.DSH_HOME = before
+    rmSync(home, { recursive: true, force: true })
+  }
+}
 
 console.log((fails.length === 0 ? '✓ ' : '✗ ') + pass + ' passed' + (fails.length === 0 ? '' : ', ' + fails.length + ' failed'))
 for (const f of fails) console.log('   ✗ ' + f)

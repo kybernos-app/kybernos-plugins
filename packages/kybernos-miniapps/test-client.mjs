@@ -129,7 +129,7 @@ ok('bundle client charge et expose __test', T !== null && typeof T.escTitre === 
 // inline script that merely MENTIONED the module was taken for the engine, and the exported Bricks app opened with a bar and no scene.
 {
   const MARQUE = 'kybernos-bricks/client'
-  const MODULE = "window.__ModuleLoader__.load({\n  id: '@local/kybernos-bricks/client',\n  factory: () => ({})\n})"
+  const MODULE = "window.__ModuleLoader__.load({\n  id: '@local/kybernos-bricks',\n  factory: () => ({})\n})"
   const BS = String.fromCharCode(92) // a backslash
   // what the boot script really contains: a JSON manifest inside a string, with backslash-escaped quotes
   const BOOT = 'var m = "[{' + BS + '"id' + BS + '":' + BS + '"@local/kybernos-bricks' + BS + '",' + BS + '"url' + BS + '":' + BS + '"plugins/??@local/kybernos-bricks/client.js&rev=ff7aa3035718' + BS + '",' + BS + '"rev' + BS + '":' + BS + '"ff7aa3035718' + BS + '"}]"'
@@ -152,6 +152,14 @@ ok('bundle client charge et expose __test', T !== null && typeof T.escTitre === 
 
   r = await essai({ scripts: [{ textContent: BOOT }, { textContent: MODULE }], reponses: {} })
   ok('an inline script that DEFINES the module is used as it is, with no request', r.texte === MODULE && r.demandes.length === 0)
+
+  // the bundle registers under its package name; the older `<package>/client` form is still read, another package is not
+  const ANCIEN = MODULE.replace("'@local/kybernos-bricks'", "'@local/kybernos-bricks/client'")
+  r = await essai({ scripts: [{ textContent: ANCIEN }], reponses: {} })
+  ok('a copy registered under the older `<package>/client` id is still found', ANCIEN !== MODULE && r.texte === ANCIEN)
+  const VOISIN = MODULE.replace("'@local/kybernos-bricks'", "'@local/kybernos-bricks-extra'")
+  r = await essai({ scripts: [{ textContent: VOISIN }], reponses: {} })
+  ok('a module whose name merely starts with the asked one is refused', r.texte === null, r.texte)
 
   r = await essai({ scripts: [{ src: 'http://127.0.0.1:3080/plugins/??@local/kybernos-bricks/client.js&rev=1' }], reponses: { 'http://127.0.0.1:3080/plugins/??@local/kybernos-bricks/client.js&rev=1': { text: MODULE } } })
   ok('a <script src> whose text defines the module is used', r.texte === MODULE)

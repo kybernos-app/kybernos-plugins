@@ -221,7 +221,7 @@ try {
     check('the model route and the call count are reported', res.model.route === 'fixture/study' && res.model.calls >= 1, res.model)
   }
 
-  console.log('── pass 2 applies a high-confidence « same » ──')
+  console.log('── pass 2: a « same » verdict is a suggestion, never a merge (2026-11-20) ──')
   {
     useCases({ brain: true })
     setRows([
@@ -230,8 +230,8 @@ try {
     ])
     fake.llm = makeLlm('same').llm
     const res = await seam.scanAndClean({ apply: true, bounds: {}, backupPath: join(ROOT, 'backups', 'same.json') })
-    check('the semantic duplicate is merged', res.ok === true && res.merges === 1 && res.changed === true && rows.length === 1, res)
-    check('one DELETE was sent', deleteCalls().length === 1)
+    check('the semantic duplicate is NOT merged by the model alone', res.ok === true && res.merges === 0 && res.changed === false && rows.length === 2, res)
+    check('the model was still asked, and no DELETE was sent', res.model.calls >= 1 && deleteCalls().length === 0, res.model)
   }
 
   console.log('── bounds ──')

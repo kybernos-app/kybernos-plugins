@@ -41,4 +41,26 @@ ok('the item has one inset and one gap')
 assert.ok(/\.kb4-ico\{[^}]*width:1\.25em/.test(src), 'the items’ icon sits in a fixed 1.25em box')
 ok('one icon column of 1.25em')
 
+// 3. one end-of-row indicator slot (.kb4-end), label truncated before it, no contradictory .kb4-dot rules
+{
+  const lab = rule('\n.kb4-lab{')
+  assert.ok(/flex:1/.test(lab) && /min-width:0/.test(lab) && /overflow:hidden/.test(lab) && /text-overflow:ellipsis/.test(lab) && /white-space:nowrap/.test(lab), '.kb4-lab truncates with ellipsis before the end slot (' + lab + ')')
+  const end = rule('\n.kb4-end{')
+  assert.ok(/flex:none/.test(end) && /display:inline-flex/.test(end) && /align-items:center/.test(end) && /justify-content:center/.test(end) && /min-width:16px/.test(end) && /margin-inline-start:auto/.test(end), '.kb4-end reserves a consistent end-of-row slot (' + end + ')')
+  assert.ok(/\.kb4-end \.kb-ping\{margin:0\}/.test(src), '.kb-ping has no extra horizontal offset inside .kb4-end')
+  assert.ok(/\.kb4-end \.kb-rowstate\{[^}]*margin-inline-start:0/.test(src), '.kb-rowstate has no extra start offset inside .kb4-end')
+  const dotBaseRules = src.match(/(?:^|\n)\.kb4-dot\{[^}]*\}/g) || []
+  assert.equal(dotBaseRules.length, 1, 'exactly one base .kb4-dot rule exists (no contradictory duplicate)')
+  assert.ok(!/margin-inline-start:/.test(dotBaseRules[0]), 'the base .kb4-dot rule does not fight the end slot with its own margin-inline-start')
+  assert.ok(/\.kb4-badge\{display:none\}/.test(src), 'legacy numeric menu badges stay hidden')
+  assert.ok(/h\('span', \{ className: 'kb4-end' \}, extra === undefined \? null : extra\)/.test(src), 'row() renders every indicator inside the shared .kb4-end slot')
+  assert.ok(/\[class\*="collapsed"\] \.kb4-menu \.kb4-end:empty\{display:none !important\}/.test(src), 'empty .kb4-end is hidden in the collapsed icon rail')
+  assert.ok(/\[class\*="collapsed"\] \.kb4-menu \.kb4-newchat \.kb4-nct\{display:none !important\}/.test(src), 'collapsed New chat hides its text and keeps only the centered plus')
+  assert.ok(/\[class\*="collapsed"\] \.kb4-menu \.kb4-end \.kb-ping::after\{display:none\}/.test(src), 'collapsed pings have no clipped animated halo')
+  assert.ok(/\.kb4-menu \.kb-ping\{display:none !important\}/.test(src), 'the menu draws no blue attention dot at all (owner decision), while the running spinner stays')
+  assert.ok(/\[class\*="collapsed"\] \[class\*="panelRow"\]:has\(\[data-forge-glyph\]\) > \[class\*="panelTrailing"\]/.test(src), 'the native Code review trailing badge has a dedicated collapsed position')
+  assert.ok(/html:not\(\[data-kb-domain="dev"\]\) \[class\*="panelRow"\]:has\(\[data-forge-glyph\]\)\{display:none !important\}/.test(src) && /document\.documentElement\.setAttribute\('data-kb-domain', kbDomainPack === null \? 'none' : String\(kbDomainPack\.id\)\)/.test(src), 'Code review follows the Development pack through a stable DOM hook')
+}
+ok('one end-of-row indicator slot (.kb4-end), label truncated before it, single .kb4-dot definition, hidden legacy badges')
+
 console.log('\n' + pass + ' verifications OK')

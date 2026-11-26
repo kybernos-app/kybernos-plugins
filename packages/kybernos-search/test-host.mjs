@@ -31,7 +31,8 @@ if (HAS_ZSTD) {
   const b = journal('s1', 'T', [['u', 'beta deux']])
   const both = Buffer.concat([zlib.zstdCompressSync(Buffer.from(a)), zlib.zstdCompressSync(Buffer.from(b))])
   const text = zstdFrames(both)
-  ok('concatenated frames are all read (zstdDecompressSync alone stops after the first)', text.includes('alpha un') && text.includes('beta deux') && zlib.zstdDecompressSync(both).toString().includes('beta deux') === false)
+  // Node 26.7 stopped zstdDecompressSync after the first frame; Node 26.13 reads them all. The reader slices each frame itself, so it must give both on either.
+  ok('concatenated frames are all read, on a Node that stops after the first frame and on one that does not', text.includes('alpha un') && text.includes('beta deux') && text.split('alpha un').length === 2 && text.split('beta deux').length === 2)
   ok('garbage is an empty journal, not a throw', zstdFrames(Buffer.from('not zstd at all')) === '')
 }
 

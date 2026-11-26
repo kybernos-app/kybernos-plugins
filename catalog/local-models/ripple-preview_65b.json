@@ -1,0 +1,22 @@
+{
+  "id": "ripple-preview:65b",
+  "famille": "r",
+  "initiale": "Ri",
+  "tailleGo": 39,
+  "ramMin": 64,
+  "score": "Ollama library · 39–46 GB · preview",
+  "input": [
+    "text"
+  ],
+  "badges": [
+    "Tools",
+    "Thinking",
+    "Code"
+  ],
+  "desc": {
+    "fr": "Ripple (préversion) : 65B dense pour le code agentique, contexte très long. Le plus gros du catalogue : 64 Go.",
+    "en": "Ripple (preview): dense 65B for agentic coding, very long context. The biggest in the catalogue: 64 GB."
+  },
+  "ajoute": "2026-11-23",
+  "ordre": 77
+}

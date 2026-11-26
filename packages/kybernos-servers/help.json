@@ -5,8 +5,8 @@
   },
   "steps": [
     {
-      "fr": "« Ajouter un serveur » : colle l’adresse donnée par ton administrateur (ex. kb.acme.corp). DSH la vérifie et affiche le nom du serveur.",
-      "en": "“Add a server”: paste the address your administrator gave you (e.g. kb.acme.corp). DSH checks it and shows the server’s name."
+      "fr": "« Ajouter un serveur » : colle l’adresse donnée par ton administrateur (ex. kb.acme.corp). Kybernos la vérifie et affiche le nom du serveur.",
+      "en": "“Add a server”: paste the address your administrator gave you (e.g. kb.acme.corp). Kybernos checks it and shows the server’s name."
     },
     {
       "fr": "Clique « Ajouter et se connecter », puis confirme le code dans le navigateur : tu te connectes avec ton compte sur ce serveur.",

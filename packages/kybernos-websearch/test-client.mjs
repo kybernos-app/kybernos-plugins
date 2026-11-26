@@ -86,7 +86,7 @@ ok('the default is marked on its row and named under the title', /isDefault: fix
 // The four ways the audit saw it fail (refused connection, 404 after an update without restart, a 500, an HTML page),
 // then the page that shows the result.
 const { api, hostDown } = plugin.__test
-const SENTENCE = 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.'
+const SENTENCE = 'This page’s helper is not answering. If the app was just updated, restart it, then press Retry.'
 const answer = (status, text) => async () => ({ status, ok: status < 400, json: async () => JSON.parse(text), text: async () => text })
 const whatApiSays = async (fetchImpl) => {
   sandbox.fetch = fetchImpl

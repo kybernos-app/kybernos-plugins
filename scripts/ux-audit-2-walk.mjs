@@ -100,7 +100,7 @@ const PAGES = [
   { id: 'automations', label: 'Automations' },
   { id: 'skills', label: 'Skills' },
   { id: 'connectors', label: 'Connectors' },
-  { id: 'plugins', label: 'Plugins' },
+  // « Plugins » is no longer walked: the sidebar row is hidden by kybernos-plugin (person, 2026-11-18); the page is in Settings.
   { id: 'documents', label: 'Documents' },
 ]
 const ALIASES = {
@@ -112,7 +112,6 @@ const ALIASES = {
   automations: ['Automations', 'Automatisations'],
   skills: ['Skills', 'Compétences'],
   connectors: ['Connectors', 'Connecteurs'],
-  plugins: ['Plugins', 'Extensions'],
   documents: ['Documents', 'Docs'],
 }
 

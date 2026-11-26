@@ -14,6 +14,7 @@ export const LIVE_NEEDS = {
   'check-tables-big-live.mjs': ['kybernos-db'],
   'check-tables-front-live.mjs': ['kybernos-db'],
   'check-publish-live.mjs': ['kybernos-db'],
+  'check-door-live.mjs': ['kybernos-door'],
   'check-front-desk-live.mjs': ['kybernos-front-desk'],
   'check-kaby-customisation-live.mjs': ['kybernos-kaby-customisation'],
   'check-kyby-live.mjs': ['kybernos-kyber'],

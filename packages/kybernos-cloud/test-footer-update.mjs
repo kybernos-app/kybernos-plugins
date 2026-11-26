@@ -23,7 +23,7 @@ check('it opens the same dialog as the menu line (kybernos:menu:update)', /ouvri
 // One layout serves « signed out » and « pairing » (the gear opens the same menu in both): it carries the reminder for both.
 check('the signed-out and pairing layout carries it', /const pairing = phase === 'pairing'[\s\S]*?corps = h\('div', \{ className: 'kbf-off' \},\s*ligneMaj,/.test(pied))
 check('and it is the only « kbf-off » layout (no second copy to forget it in)', (pied.match(/className: 'kbf-off'/g) || []).length === 1)
-check('it says "Update available" and the version, with the engine named when it is the engine', /t\('menuUpdate'\)/.test(pied) && /majInfo\.kind === 'moteur' \? 'DSH ' : ''/.test(pied))
+check('it says "Update available" and the version, with the engine named when it is the engine', /t\('menuUpdate'\)/.test(pied) && /majInfo\.kind === 'moteur' \? 'Kybernos ' : ''/.test(pied))
 check('the signed-in menu line and the tile dot are still there', /entree\('update', h\(UpdateIcon/.test(source) && /'data-update': majDispo === true \? 'true' : undefined/.test(source))
 const both = (k) => new RegExp("menuUpdate: '[^']+'").test(source) && source.split("menuUpdate: '").length === 3
 check('the words exist in French and in English', both())

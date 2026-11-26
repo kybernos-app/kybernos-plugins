@@ -54,7 +54,18 @@ const seedPersonal = () => {
   writeFileSync(join(personal, 'mcp', 'horloge.mjs'), '// an MCP server\n')
 }
 
-const freeBase = await new Promise((done) => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => done(p)) }) })
+// The launcher's port window, outside every system's ephemeral range (macOS hands out 49152 and up one after the other, Linux 32768 and up): a window taken from listen(0)
+// was exactly the next ports any other test file got, so in the parallel suite one of them took the port between the launcher's check and the stand-in's bind (2026-11-08).
+const portFree = (p) => new Promise((done) => { const s = createServer(); s.once('error', () => done(false)); s.listen(p, '127.0.0.1', () => s.close(() => done(true))) })
+const freeBase = await (async () => {
+  for (let tries = 0; tries < 40; tries += 1) {
+    const base = 20000 + Math.floor(Math.random() * 10000)
+    let all = true
+    for (let p = base + 1; p <= base + 40 && all; p += 1) all = await portFree(p)
+    if (all) return base
+  }
+  throw new Error('no free window of 40 ports between 20000 and 30040')
+})()
 const instances = []
 const spawned = []
 const ENV_KEYS = ['KYBERNOS_DOCUMENTS_DIR', 'DSH_HOME', 'KYBERNOS_CLOUD_STATE', 'KYBERNOS_SERVERS_FILE', 'KYBERNOS_CLOUD_API', 'KYBERNOS_TEAM_DSH_BIN', 'KYBERNOS_PERSONAL_HOME', 'KYBERNOS_TEAM_ID']

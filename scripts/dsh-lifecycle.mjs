@@ -28,6 +28,7 @@ import { fichierVerrou, libererVerrou, lireVerrou, prendreVerrou } from '../pack
 import { pidSurPort, demarrageProcessus, famille, nomSuperviseur, planRelance, instructionsRedemarrage, executer as executerCommande } from './plateforme.mjs'
 import { FAMILLES_INSTALLABLES, contexteService, decisionDemarrageAuto, etat as etatService, installer as installerService, retirer as retirerService, trouverDsh, trouverNode, commandeRedemarrage } from './service-demarrage.mjs'
 import { installerLanceur, installerOutils, planLanceur, retirerLanceur } from './lanceur-bureau.mjs'
+import { realIo as securityIo, securityDoctorCli } from './doctor-security.mjs'
 import { depsReelles as depsOuverture, ouvrir as ouvrirKybernos } from './kybernos-open.mjs'
 import {
   etatDoctor, testerCompatibilite, testerNoeud, lireCompat, comparerVersions, versionDuGlobal, versionDuPlugin,
@@ -77,7 +78,10 @@ const PHOTOS_DIR = join(CYCLE_DIR, 'photos')
 const JOURNAL = join(CYCLE_DIR, 'journal.jsonl')
 const PATCHES = JSON.parse(readFileSync(join(ICI, 'patches.json'), 'utf8'))
 // KYBERNOS_PACKAGES_FILE: test hook (replacement package list). Never set in normal use.
-const PACKAGES = JSON.parse(readFileSync(process.env.KYBERNOS_PACKAGES_FILE || join(ICI, 'lifecycle-packages.json'), 'utf8')).packages
+const PACKAGES_FICHIER = JSON.parse(readFileSync(process.env.KYBERNOS_PACKAGES_FILE || join(ICI, 'lifecycle-packages.json'), 'utf8'))
+const PACKAGES = PACKAGES_FICHIER.packages
+// The bundles whose folder was deleted from the repository: every alignment also takes them out of the profile (link, bundle, patch row).
+const RETIRES = Array.isArray(PACKAGES_FICHIER.retires) ? PACKAGES_FICHIER.retires : []
 
 // ── Model 3: activation of the satellites ───────────────────────────────────
 // A satellite is ACTIVE if it is listed in `~/.dsh/kybernos/satellites-actives.json`
@@ -934,7 +938,7 @@ if (ordre === 'satellites') {
     mkdirSync(join(DSH_HOME, 'kybernos'), { recursive: true })
     writeFileSync(SATELLITES_ACTIVES_FICHIER, JSON.stringify({ actives: liste, desactives: desactivesAEcrire({ liste, satellites: manifeste.satellites?.bundles ?? [] }), maj: new Date().toISOString() }, null, 2) + '\n')
     if (existsSync(join(PROFIL_DIR, 'package.json'))) {
-      alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: [...new Set([...socle, ...liste, ...nonGeres])] })
+      alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, retires: RETIRES, actives: [...new Set([...socle, ...liste, ...nonGeres])] })
       console.log('  Profile updated. Restart DSH to apply (a satellite never installed before needs ./kybernos-update to be linked).')
     }
   }
@@ -1045,7 +1049,7 @@ if (ordre === 'safe-mode') {
     await photoAvantTout({ global: '(safe-mode)', plugin })
     ecrireEtat(entrerSafe(etat, { activesAvant: avant, date: new Date().toISOString() }))
     ecrireActivesSafe([])
-    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: socle })
+    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, retires: RETIRES, actives: socle })
     journalOp({ date: new Date().toISOString(), quoi: 'safe-mode', de: 'normal', vers: 'safe', resultat: 'succes', raison: 'safe-mode on (' + avant.length + ' satellite(s) set aside)' })
     quitter(0, '✓ Safe mode ON: only the socle will load (' + socle.length + ' bundle(s)); ' + avant.length + ' satellite(s) set aside.', '  Restart DSH to apply. To come back: node scripts/dsh-lifecycle.mjs safe-mode off')
   }
@@ -1055,7 +1059,7 @@ if (ordre === 'safe-mode') {
     if (opts.dry) quitter(0, 'DRY: would restore ' + aRestaurer.length + ' satellite(s).')
     ecrireActivesSafe(aRestaurer)
     const nonGeres = PACKAGES.map((p) => p.nom).filter((n) => typeof n === 'string' && !tous.some((s) => s.nom === n) && !socle.includes(n))
-    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: [...new Set([...socle, ...aRestaurer, ...nonGeres])] })
+    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, retires: RETIRES, actives: [...new Set([...socle, ...aRestaurer, ...nonGeres])] })
     ecrireEtat(propre)
     journalOp({ date: new Date().toISOString(), quoi: 'safe-mode', de: 'safe', vers: 'normal', resultat: 'succes', raison: 'safe-mode off (' + aRestaurer.length + ' satellite(s) restored)' })
     quitter(0, '✓ Safe mode OFF: ' + aRestaurer.length + ' satellite(s) restored.', '  Restart DSH to apply.')
@@ -1171,6 +1175,12 @@ if (ordre === 'service') {
   quitter(64, 'Usage: dsh-lifecycle.mjs service status|install|uninstall [--dry] [--port N]')
 }
 
+// `doctor --security`: the security posture of this installation, triage for support (doctor-security.mjs). It reads and asks the system; it writes only the bundle file asked for.
+if (ordre === 'doctor' && args.includes('--security')) {
+  let version = ''
+  try { version = readFileSync(join(REPO, 'VERSION'), 'utf8').trim() } catch (e) { /* no VERSION file: the report says unknown */ }
+  process.exit(await securityDoctorCli({ args, env: process.env, home: DSH_HOME, profilDir: PROFIL_DIR, version, platform: process.platform, node: process.versions.node, arch: process.arch, io: securityIo() }))
+}
 if (ordre === 'doctor') {
   const etat = await etatDoctor({ fs: fsReel, exec: execReel, profilDir: PROFIL_DIR, repoDir: REPO, packages: PACKAGES_ACTIFS, patches: PATCHES, compatChemin: COMPAT_CHEMIN, noeud: process.versions.node })
   const verresPatchs = []
@@ -1324,7 +1334,7 @@ async function faireInstall () {
     try { await installerProfil() } catch (e) { await abandonner(e) }
   }
   console.log('  🔗 linking the repository packages to the profile…')
-  alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: ACTIVES_A_LIER, reprendre: true, rapporter: rapporterLien })
+  alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, retires: RETIRES, actives: ACTIVES_A_LIER, reprendre: true, rapporter: rapporterLien })
   direLiensReprise()
   console.log('  📦 installing the profile (pnpm)…')
   try { await installerProfil() } catch (e) { await abandonner(e) }
@@ -1456,8 +1466,9 @@ if (ordre === 'upgrade') {
     for (const b of alignement.bundlesRetires) console.log(`       ↳ bundle removed: ${b}`)
     const migration = migrerProfil({ fs: fsReel, profilDir: PROFIL_DIR, cible })
     for (const r of migration.retires) console.log(`     ↳ profile row \`${r}\` removed from cordis.patch.yml (it takes no \`mode\` on DSH ${cible}; the photo keeps the old file)`)
-    for (const r of migration.gardes) console.log(`     ⚠ profile row \`${r}\` in cordis.patch.yml carries more than \`mode\`: left as it is — if DSH stops at boot on it, remove its \`mode\` by hand`)
-    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: ACTIVES_A_LIER, reprendre: true, rapporter: rapporterLien })
+    for (const r of migration.nettoyes) console.log(`     ↳ profile row \`${r.rangee}\` in cordis.patch.yml: ${r.cles.join(', ')} ${r.supprimee ? 'removed with the row' : 'removed'} (DSH ${cible} refuses them; the member cap is \`maxActiveSubagents\` on the \`subagent\` row; the photo keeps the old file)`)
+    for (const r of migration.gardes) console.log(`     ⚠ profile row \`${r}\` in cordis.patch.yml is not in the layout the robot edits: left as it is — if DSH stops at boot on it, fix it by hand (\`tools\`: remove its \`mode\`; \`agent-team\`: remove maxMembers, maxMessageBytes, disposalTimeoutMs, maxPendingMessagesPerMember)`)
+    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, retires: RETIRES, actives: ACTIVES_A_LIER, reprendre: true, rapporter: rapporterLien })
     direLiensReprise()
     console.log('  🧶 re-applying the engine patches…')
     await poserPatchs()

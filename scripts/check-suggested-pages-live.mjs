@@ -51,6 +51,9 @@ try {
   // ── Memory & Lessons ──
   check('settings opens', (await openSettings(page, { minCells: 0 })) === true)
   check('the Memory page opens', (await goToSettingsPage(page, 'Memory & Lessons', { marker: `!!document.querySelector('.kbmem-page')` })) === true)
+  // The suggestions sit above the list of notes: one step down, in Manage.
+  await waitFor(page, `!!document.querySelector('button[data-act="manage"]')`, 15000)
+  await q(`document.querySelector('button[data-act="manage"]').click()`)
   await waitFor(page, `!!document.querySelector('[data-sug="block"]')`, 15000)
   check('Memory: the dashed block lists the two memories with their proof', (await q(`document.querySelectorAll('[data-sug="row"]').length`)) === 2 && /14×.*60 days.*Gmail/.test(String(await q(`document.querySelector('[data-sug="row"]').textContent`))))
   check('Memory: the block pulses', (await q(`!!document.querySelector('[data-sug="block"] .kb-ping')`)) === true)

@@ -9,6 +9,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
+import { I18N_DIR, entriesMatching, entry, hasEntry } from './lib-i18n-test.mjs'
+import { createLite } from './lib-lite-react-test.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -19,7 +21,7 @@ const src = readFileSync(join(here, 'client.js'), 'utf8')
 const a = src.indexOf('// KB-NEWCHAT-BEGIN')
 const b = src.indexOf('// KB-NEWCHAT-END')
 assert.ok(a > 0 && b > a, 'the KB-NEWCHAT block exists')
-const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMPLATES, KB_NC_ART, kbNcCols, KB_NC_WORDS, kbNcTemplates, kbNcChapters, kbNcDetect, kbNcFill, kbNcSuggest, kbNcAccentSource, kbNcCloud, kbNcDot, kbNcActions, kbNcRefusalKey, kbNcIsNativeSchedules, kbNcHideNative, KB_NC_HERO_COUNT, kbNcPickLine, kbNcCat, kbNcKits, kbNcExamples, kbNcPicUrl, kbNcStructure, kbNcAdaptText, kbNcRemixText, kbNcMadeLine, kbNcVideoUrl, kbNcPromptMode, KB_NC_DB_SEL })')
+const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMPLATES, KB_NC_ART, kbNcCols, KB_NC_WORDS, kbNcTemplates, kbNcChapters, KB_NC_PHONE_SLIDER, KB_NC_PHONE_ORDER, KB_NC_PHONE_ADVANCED, KB_NC_PHONE_COUNT, kbNcPhoneCards, kbNcDetect, kbNcFill, kbNcSuggest, kbNcAccentSource, kbNcCloud, kbNcDot, kbNcActions, kbNcRefusalKey, kbNcIsNativeSchedules, kbNcHideNative, KB_NC_HERO_COUNT, kbNcPickLine, kbNcCat, kbNcKits, kbNcExamples, kbNcPicUrl, kbNcStructure, kbNcAdaptText, kbNcRemixText, kbNcMadeLine, kbNcVideoUrl, kbNcPromptMode, KB_NC_DB_SEL })')
 
 // 1. the 16 types, in the four chapters of the shelf; each is offered only when the bundle it needs is installed
 {
@@ -41,6 +43,19 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.ok(!api.kbNcChapters(['@local/kybernos-dashboards']).some((g) => g.templates.some((t) => t.id === 'slides')), 'a template of another bundle stays hidden')
   assert.ok(api.kbNcTemplates(api.KB_NC_TEMPLATES, ['@local/kybernos-modeleur']).some((t) => t.id === 'model3d'))
   ok('the 16 types follow the installed bundles, in four chapters (never offered dead)')
+  // The phone's cards (the owner's mock-up of 2026-11-24): the slider is the mock-up's six, the sheet is every type served, in the mock-up's order; Simple leaves out the Advanced mode's types
+  const everyId = api.KB_NC_TEMPLATES.map((t) => t.id)
+  const ph = (offered, simple, want) => api.kbNcPhoneCards(offered, simple, want)
+  assert.deepEqual(J(ph(everyId, false).slider), J(['doc', 'image', 'slides', 'sheet', 'video', 'automation']), 'the full app: the six of the mock-up, in its order')
+  assert.deepEqual(J(ph(everyId, false).all), J(api.KB_NC_PHONE_ORDER), 'and the sheet holds the 16, in the mock-up\'s order')
+  assert.deepEqual(J(ph(everyId, true).all), J(['doc', 'image', 'slides', 'sheet', 'dashboard', 'video', 'audio', 'game', 'website', 'miniapp', 'automation']), 'Simple: the eleven of the mock-up (no 3D, App with tables, Team, Skill, Plugin)')
+  assert.ok(api.KB_NC_PHONE_ORDER.length === api.KB_NC_TEMPLATES.length && api.KB_NC_TEMPLATES.every((t) => api.KB_NC_PHONE_ORDER.indexOf(t.id) >= 0) && api.KB_NC_PHONE_SLIDER.length === api.KB_NC_PHONE_COUNT, 'the order names every type once; the slider has its count')
+  const core3 = api.kbNcChapters([], null, true).reduce((n, g) => n.concat(g.templates.filter((t) => t.off !== true).map((t) => t.id)), [])
+  assert.deepEqual(J(ph(core3, true).slider), J(['doc', 'image', 'sheet', 'automation', 'dashboard'].filter((id) => core3.indexOf(id) >= 0).concat(['audio', 'game']).slice(0, 6)), 'a type this install cannot serve (Slides, Video need a bundle) is skipped and the next of the order takes its place: the slider is never short')
+  assert.deepEqual(J(ph(everyId, false, ['website', 'plugin', 'nope']).slider), J(['website', 'plugin', 'doc', 'image', 'slides', 'sheet']), 'the field of work asks for its own types first, an unknown id is ignored, the six are kept')
+  assert.deepEqual(J(ph([], false)), J({ slider: [], all: [] }), 'nothing offered, nothing drawn')
+  assert.deepEqual(J(ph(undefined, true, 'x')), J({ slider: [], all: [] }), 'garbage in is nothing')
+  ok('the phone\'s cards: the slider\'s six, the sheet\'s order, Simple\'s eleven, a missing type is replaced, the field of work comes first')
   // The field of work asks for its own templates first: inside a chapter, then the chapters themselves; nothing is added and nothing hidden is shown.
   const every = ['@local/kybernos-slides', '@local/kybernos-dashboards', '@local/kybernos-motion', '@local/kybernos-miniapps', '@local/kybernos-modeleur']   // the first five satellites; the Tables bundle is left out on purpose
   const first = (boot, want) => J(api.kbNcChapters(boot, want).map((g) => g.id + ':' + g.templates.map((t) => t.id).join('/')))
@@ -70,16 +85,15 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
 {
   for (const t of api.KB_NC_TEMPLATES) {
     for (const key of ['kbnc.t.' + t.id, 'kbnc.p.' + t.id]) {
-      const m = new RegExp("'" + key.replace(/\./g, '\\.') + "': \\{ kybernos: '([^']+)', en: '([^']+)' \\}").exec(src)
-      assert.ok(m !== null, key + ' has both languages')
+      assert.ok(hasEntry(key), key + ' has both languages')
     }
     assert.ok(typeof api.KB_NC_ART[t.id] === 'string' && api.KB_NC_ART[t.id].length > 150, t.id + ' has its drawing')
   }
-  for (const g of api.KB_NC_GROUPS) assert.ok(new RegExp("'kbnc\\.g\\." + g + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src), 'chapter ' + g + ' has a name in both languages')
-  assert.ok(/'kbnc\.sl\.label': \{ kybernos: '[^']+', en: '[^']+' \}/.test(src), 'the shelf is named')
-  assert.ok(!/kbnc\.sl\.(prev|next)/.test(src), 'the slider\'s arrows left no sentence behind (dead code)')
+  for (const g of api.KB_NC_GROUPS) assert.ok(hasEntry('kbnc.g.' + g), 'chapter ' + g + ' has a name in both languages')
+  assert.ok(hasEntry('kbnc.sl.label'), 'the shelf is named')
+  assert.ok(!/kbnc\.sl\.(prev|next)/.test(src) && entriesMatching(/^kbnc\.sl\.(prev|next)/).length === 0, 'the slider\'s arrows left no sentence behind (dead code)')
   // the Build / Create cards are gone, and so are their sentences (dead code)
-  for (const key of ['kbnc.build', 'kbnc.create', 'kbnc.close']) assert.ok(!src.includes("'" + key + "'"), key + ' is not left behind')
+  for (const key of ['kbnc.build', 'kbnc.create', 'kbnc.close']) assert.ok(!src.includes("'" + key + "'") && entry(key) === null, key + ' is not left behind')
   ok('every template has its label and prompt in both languages and a drawing; the chapters and the shelf are named; no dead sentence')
 }
 
@@ -188,9 +202,9 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.equal(api.kbNcRefusalKey(null), 'unreachable')
   assert.equal(api.kbNcRefusalKey({ ok: false, error: 'server_unreachable' }), 'server_unreachable', 'a server that did not answer is not « no computer yet »')
   // every sentence the card can show exists in both languages
-  for (const key of ['resume', 'suspend', 'open', 'busy']) assert.ok(new RegExp("'kbnc\\.cc\\.act\\." + key + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src), 'act.' + key)
+  for (const key of ['resume', 'suspend', 'open', 'busy']) assert.ok(hasEntry('kbnc.cc.act.' + key), 'act.' + key)
   for (const key of ['always_on', 'run_hours_exhausted', 'computer_deleting', 'computers_off_for_workspace', 'not_allowed_to_open', 'computer_not_ready', 'owner_left', 'rate_limited', 'no_computer', 'not_connected', 'server_unreachable', 'refused', 'unreachable']) {
-    assert.ok(new RegExp("'kbnc\\.cc\\.err\\." + key + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src), 'err.' + key)
+    assert.ok(hasEntry('kbnc.cc.err.' + key), 'err.' + key)
   }
   ok('the actions follow the state and never offer what the server refuses; every refusal has its sentence in both languages')
 }
@@ -298,8 +312,8 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.equal(api.kbNcSuggest('Write a document about a project brief', 'Write a document about ', known, 'meeting notes', ['a project brief', 'a one-page proposal', 'meeting notes']), 'Write a document about meeting notes', 'another suggestion of the type replaces the one there')
   assert.equal(api.kbNcSuggest(undefined, undefined, undefined, undefined), '', 'never throws')
   // every offered type has its three suggestions in both languages, and the labels of the row
-  for (const t of api.KB_NC_TEMPLATES) for (let i = 0; i < 3; i++) assert.ok(new RegExp("'kbnc\\.s\\." + t.id + '\\.' + i + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src.replace(/\\'/g, '’')), t.id + ' suggestion ' + i + ' is in both languages')
-  assert.ok(/'kbnc\.try': \{ kybernos: '[^']+', en: 'Try' \}/.test(src) && /'kbnc\.chip\.remove'/.test(src), 'the row\'s own words exist')
+  for (const t of api.KB_NC_TEMPLATES) for (let i = 0; i < 3; i++) assert.ok(hasEntry('kbnc.s.' + t.id + '.' + i), t.id + ' suggestion ' + i + ' is in both languages')
+  assert.ok(hasEntry('kbnc.try') && entry('kbnc.try').en === 'Try' && hasEntry('kbnc.chip.remove'), 'the row\'s own words exist')
   // wiring: a pick keeps the type lit with a chip and suggestions; emptying the box or the chip\'s cross puts them away; hooks stay before the early returns
   const cards = src.slice(src.indexOf('const KbNewChatCards = (props)'), src.indexOf("id: 'kybernos-newchat'"))
   assert.ok(cards.indexOf('React.useState(null)') > 0 && cards.indexOf('React.useState(null)') < cards.indexOf("if (blank !== '1') return null"), 'the chosen type is a hook, set before the early return')
@@ -330,13 +344,153 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   const cards = src.slice(src.indexOf('const KbNewChatCards = (props)'), src.indexOf('const KbNewChatCards = (props)') + 16000)
   assert.ok(/p\.input\.draft/.test(cards) && /kbNcDetect\(draft, offered\)/.test(cards) && /h\(KbNcShelf, \{ groups, match, chosen: picked, cat, kits: kitsPair\[0\], onPick: prefill/.test(cards), 'the shelf is lit by the draft the dock entry receives')
   assert.ok(/kbNcFill\(draft, tpl, knownTpl, ownRef\.current\)/.test(cards) && /kbNcSuggest\(draft, tpl, knownTpl, sug,/.test(cards) && /ownRef\.current = next === tpl \? next : ''/.test(cards), 'a click fills the composer through kbNcFill and remembers only what holds none of the person\'s words')
-  assert.ok(/React\.useEffect\(\(\) => \{ setChosen\(null\); setOpen\(null\); ownRef\.current = ''; choArmed\.current = false \}, \[sid\]\)/.test(cards), 'a new blank chat starts clean')
+  assert.ok(/React\.useEffect\(\(\) => \{ setChosen\(null\); setOpen\(null\); allPair\[1\]\(false\); ownRef\.current = ''; choArmed\.current = false \}, \[sid\]\)/.test(cards), 'a new blank chat starts clean (the chip, the open example and the sheet « See all »)')
+  // the phone's cards (the owner's mock-up of 2026-11-24, list items 22 and 24): ONE slider over the composer, « See all » opening a sheet; drawn in every blank chat, Kaby's included, shown at the mobile breakpoint (<= 700 px or landscape touch) by CSS
+  assert.ok(/\.kb8-ncs,\.kb8-ncs-layer\{display:none\}\n@media \(max-width: 700px\), \(max-height: 500px\) and \(pointer: coarse\)\{\n\.kb8-ncs\{display:block/.test(src) && /if \(kaby === true\) return ncs/.test(cards) && /h\(React\.Fragment, null, ncs, h\('div', \{ className: 'kb8-nc', 'data-kb': 'newchat' \}/.test(cards), 'the phone cards exist, are drawn at the mobile breakpoint (<= 700 px including 601–700 px, or landscape touch), and are the whole of what Kaby\'s chat draws; the full app keeps its shelf, its chip and the Cloud Computer line below')
+  assert.ok(/const simple = typeof kbSimpleMode === 'function' \? kbSimpleMode\(\) === true : false/.test(cards) && !/documentElement\.classList\.contains\('kb-kaby'\)/.test(cards), 'the phone cards read Simple mode via kbSimpleMode() (data-kb-mode / html.kb-simple with kb-kaby fallback), not kb-kaby alone')
+  {
+    const at = src.indexOf('const kbSimpleMode = () => {')
+    const end = src.indexOf('/** The arrangement the surfaces follow now', at)
+    const simpleOf = (attrs, classes) => new Function('document', src.slice(at, end) + '\nreturn kbSimpleMode')({
+      documentElement: { hasAttribute: (k) => Object.prototype.hasOwnProperty.call(attrs, k), classList: { contains: (c) => classes.indexOf(c) >= 0 } },
+    })()
+    const everyId = api.KB_NC_TEMPLATES.map((t) => t.id)
+    const J = (v) => JSON.parse(JSON.stringify(v))
+    const touchSimple = api.kbNcPhoneCards(everyId, simpleOf({ 'data-kb-mode': 'simple' }, ['kb-simple']))
+    const appSimple = api.kbNcPhoneCards(everyId, simpleOf({ 'data-kb-mode': 'simple' }, ['kb-simple', 'kb-kaby']))
+    const bareSimple = api.kbNcPhoneCards(everyId, simpleOf({}, ['kb-simple']))
+    const desktopComplete = api.kbNcPhoneCards(everyId, simpleOf({ 'data-kb-mode': 'complete' }, []))
+    assert.deepEqual(J(touchSimple), J(appSimple), 'touch browser in html.kb-simple without kb-kaby gets the exact same Simple card filtering as the app')
+    assert.deepEqual(J(bareSimple), J(appSimple), 'html.kb-simple without data-kb-mode or kb-kaby also filters as Simple')
+    assert.equal(desktopComplete.all.length, everyId.length, 'Complete mode keeps every type unfiltered')
+  }
+  assert.ok(/'data-kb': 'ncs-slider'/.test(cards) && /'data-kb': 'ncs-grid'/.test(cards) && /'data-kb': 'ncs-all'/.test(cards) && /kbNcPhoneCards\(ready, simple, kbDomainHome\(\)\)/.test(cards) && (cards.match(/cards\.slider\.map\(phoneCard\)/g) || []).length === 2, 'ONE slider of the first cards and the same cards in a grid (the Theme\'s `grid`; every type is in the sheet), « See all » on the header; a type this install cannot serve is never offered (`off` is left out)')
+  assert.ok(!/'data-kb': 'newchat-(phone|ncs)/.test(cards) && /h\(KbNcsSheet, \{ ids: cards\.all, card: phoneCard, onClose/.test(cards), 'its hooks are not named newchat-… (the Kaby mode hides those); the sheet is its own component, opened by « See all »')
+  assert.ok(/kbt\('kbnc\.ph\.create'\)/.test(cards) && /kbt\('kbnc\.ph\.all'\)/.test(cards) && /kbt\('kbnc\.t\.' \+ id\)/.test(cards) && /kbt\('kbnc\.try'\)/.test(cards) && /kbt\('kbnc\.chip\.remove'\)/.test(cards), 'the words: three new keys (Create, See all, the headline) and the existing ones (kbnc.t.*, Try, Remove)')
+  assert.ok(/'data-kb-keyboard': '1', onMouseDown: hold, onClick: \(\) => pickPhone\(id\)/.test(cards) && /const pickPhone = \(id\) => \{ allPair\[1\]\(false\); prefill\(id\); kbNcGiveFocus\(\) \}/.test(cards) && /suggest\(picked, i\); kbNcGiveFocus\(\)/.test(cards), 'a tap on a card fills the composer (chip and start of the message, never sent) and gives it the focus; the card carries `data-kb-keyboard` (the phone layer\'s guard lets that focus through) and keeps the keyboard up (no focus change on press)')
+  assert.ok(/'data-kb': 'ncs-chip-x', 'data-kb-keyboard': '1'/.test(cards) && /\.kb8-ncs-pick \.kb8-nc-chip-x\{width:44px;height:44px/.test(src) && /\.kb8-ncs-card\{flex:none;width:112px;height:84px/.test(src) && /\.kb8-ncs-lbl\{[^}]*font-size:14px/.test(src) && /\.kb8-ncs-head \.all\{[^}]*min-height:44px/.test(src), 'the cards are 112 x 84 with 14 px labels, the chip\'s cross and « See all » are 44 px targets')
   assert.ok(/'data-kb': 'newchat-cloud'/.test(cards) && /'data-kb': 'newchat-cloud-open'/.test(cards) && /'data-kb': 'newchat-cloud-' \+ verb/.test(cards), 'the Cloud Computer line keeps its hooks and its actions')
   assert.ok(/kbNcDot\(cloud\.kind\)/.test(cards) && /kbNcActions\(cloud\)/.test(cards), 'and its state dot and the actions its state allows')
   // every hook of the page is called before the early return (a hook after it changes the count when the first message is sent: React error #300)
   const early = cards.indexOf("if (blank !== '1') return null")
-  for (const hook of ['useNcCatalogue()', 'useNcKits(chosen', 'React.useState(null)', 'useNcCloud()']) assert.ok(cards.indexOf(hook) > 0 && cards.indexOf(hook) < early, hook + ' is called before the early return')
+  for (const hook of ['useNcCatalogue(chosen)', 'useNcKits(chosen', 'React.useState(null)', 'useNcCloud()']) assert.ok(cards.indexOf(hook) > 0 && cards.indexOf(hook) < early, hook + ' is called before the early return')
   ok('the shelf: drawings, names, lit by the draft; the Cloud Computer line keeps its state and actions; every hook sits before the early return')
+}
+
+// 6e-cat. the examples catalogue: retry once on the next type choice after a failed first read, deduplicate in-flight requests, and never reload a valid catalogue
+{
+  const catStart = src.indexOf('let kbNcCatData = null')
+  const catEnd = src.indexOf('// The kits the Apps page can start from', catStart)
+  assert.ok(catStart > 0 && catEnd > catStart, 'kbNcCatFetch and useNcCatalogue exist')
+  const catSrc = src.slice(catStart, catEnd)
+  const samplePayload = {
+    ok: true,
+    catalogue: {
+      schema: 'kybernos.templates/1',
+      version: 17,
+      types: [{ id: 'website', name: 'Website' }, { id: 'video', name: 'Video' }],
+      templates: [
+        { id: 'web_a', type: 'website', name: 'Bakery', tag: 't', line: 'l', meta: 'm', prompt: 'Make web_a', image: { src: 'web_a.webp', width: 720, height: 450 } },
+        { id: 'vid_a', type: 'video', name: 'Reel', tag: 't', line: 'l', meta: 'm', prompt: 'Make vid_a', image: { src: 'vid_a.webp', width: 720, height: 450 } },
+      ],
+    },
+  }
+  const buildRunner = (fetchImpl) => {
+    const lite = createLite()
+    const { React } = lite
+    const h = React.createElement
+    const urls = []
+    const wrappedFetch = (url, opts) => { urls.push({ url, opts }); return fetchImpl(url, opts, urls.length) }
+    const mod = new Function('React', 'fetch', 'kbNcCat', catSrc + '\nreturn { kbNcCatFetch, useNcCatalogue }')(React, wrappedFetch, api.kbNcCat)
+    const Harness = (p) => {
+      const cat = mod.useNcCatalogue(p.chosen)
+      const list = p.chosen === null ? [] : api.kbNcExamples(cat, p.chosen, null)
+      return h('div', { 'data-count': String(list.length), 'data-has-cat': cat !== null ? '1' : '0' })
+    }
+    return { lite, h, mod, Harness, urls }
+  }
+
+  // (a) failed first read (500 / network error) leaves cat null without looping, then succeeds on the next type choice and updates React state
+  for (const firstFail of [
+    () => Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve(null) }),
+    () => Promise.reject(new Error('network down')),
+  ]) {
+    let n = 0
+    const { lite, h, Harness, urls } = buildRunner(() => {
+      n += 1
+      if (n === 1) return firstFail()
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(samplePayload) })
+    })
+    const root = lite.mount(h(Harness, { chosen: null }))
+    await root.settle()
+    assert.equal(urls.length, 1, 'initial mount fetches once')
+    assert.equal(urls[0].url, '/kybernos/templates-catalogue', 'uses only the existing catalogue route')
+    assert.equal(root.tree.props['data-has-cat'], '0', 'failed first read leaves catalogue null')
+    // unrelated re-render with chosen still null must not loop or retry
+    root.update(h(Harness, { chosen: null }))
+    await root.settle()
+    assert.equal(urls.length, 1, 'no retry loop while chosen stays null')
+    // next type choice retries once and updates React state to show examples
+    root.update(h(Harness, { chosen: 'website' }))
+    await root.settle()
+    assert.equal(urls.length, 2, 'next type choice retries once')
+    assert.equal(root.tree.props['data-has-cat'], '1', 'catalogue state updated when retry succeeds')
+    assert.equal(root.tree.props['data-count'], '1', 'examples for the chosen type render after retry')
+    // valid catalogue is NOT reloaded on further type switches or remounts
+    root.update(h(Harness, { chosen: 'video' }))
+    await root.settle()
+    root.update(h(Harness, { chosen: null }))
+    await root.settle()
+    root.update(h(Harness, { chosen: 'website' }))
+    await root.settle()
+    root.unmount()
+    const root2 = lite.mount(h(Harness, { chosen: 'video' }))
+    await root2.settle()
+    assert.equal(urls.length, 2, 'valid catalogue is kept and never reloaded unnecessarily')
+    assert.equal(root2.tree.props['data-has-cat'], '1')
+    assert.equal(root2.tree.props['data-count'], '1')
+    root2.unmount()
+  }
+
+  // (b) anti-loop when retry also fails: staying on the same type or clearing to null does not retry again
+  {
+    const { lite, h, Harness, urls } = buildRunner(() => Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve(null) }))
+    const root = lite.mount(h(Harness, { chosen: null }))
+    await root.settle()
+    assert.equal(urls.length, 1)
+    root.update(h(Harness, { chosen: 'website' }))
+    await root.settle()
+    assert.equal(urls.length, 2, 'retries once on type choice')
+    root.update(h(Harness, { chosen: 'website' }))
+    await root.settle()
+    root.update(h(Harness, { chosen: null }))
+    await root.settle()
+    assert.equal(urls.length, 2, 'no retry loop on same type or clearing to null')
+    root.unmount()
+  }
+
+  // (c) in-flight request deduplication: a type choice while the first fetch is pending reuses the same request and still updates React state
+  {
+    let resolveFirst = null
+    const { lite, h, mod, Harness, urls } = buildRunner(() => new Promise((res) => { resolveFirst = res }))
+    const root = lite.mount(h(Harness, { chosen: null }))
+    await new Promise((r) => setTimeout(r, 5))
+    assert.equal(urls.length, 1, 'one request in flight')
+    const p1 = mod.kbNcCatFetch()
+    const p2 = mod.kbNcCatFetch()
+    assert.strictEqual(p1, p2, 'concurrent kbNcCatFetch calls share the exact in-flight promise')
+    root.update(h(Harness, { chosen: 'website' }))
+    await new Promise((r) => setTimeout(r, 5))
+    assert.equal(urls.length, 1, 'type choice while request is in flight does not start a second fetch')
+    resolveFirst({ ok: true, status: 200, json: () => Promise.resolve(samplePayload) })
+    await root.settle()
+    assert.equal(urls.length, 1, 'still only one network call')
+    assert.equal(root.tree.props['data-has-cat'], '1', 'React state updates when the deduplicated request resolves')
+    assert.equal(root.tree.props['data-count'], '1', 'examples appear once the deduplicated request resolves')
+    root.unmount()
+  }
+
+  ok('the examples catalogue retries once on the next type choice after a failed read, deduplicates in-flight requests, and never reloads a valid catalogue')
 }
 
 // 6e-shelf. the examples: what is shown, what a click does, the dialog
@@ -414,9 +568,8 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.equal(api.KB_NC_HERO_COUNT, 28)
   const en = []; const fr = []
   for (let i = 0; i < api.KB_NC_HERO_COUNT; i += 1) {
-    const m = new RegExp("'kbnc\\.hero\\." + i + "': \\{ kybernos: '((?:[^'\\\\]|\\\\.)*)', en: '((?:[^'\\\\]|\\\\.)*)' \\}").exec(src)
-    assert.ok(m !== null, 'kbnc.hero.' + i + ' has both languages')
-    fr.push(m[1].replace(/\\'/g, "'")); en.push(m[2].replace(/\\'/g, "'"))
+    assert.ok(hasEntry('kbnc.hero.' + i), 'kbnc.hero.' + i + ' has both languages')
+    fr.push(entry('kbnc.hero.' + i).kybernos); en.push(entry('kbnc.hero.' + i).en)
   }
   for (const [lang, list] of [['fr', fr], ['en', en]]) {
     assert.equal(new Set(list).size, list.length, lang + ': no line twice')
@@ -447,32 +600,42 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
 // 6e. Search everywhere (kybernos-search) is no longer a menu row: the bundle draws its own icon at the top of the sidebar (and ⌘K)
 {
   assert.ok(!/row\('search', Icon\('search', 15\)/.test(src), 'no menu row for it any more')
-  assert.ok(!/const KB_SR = /.test(src) && !/'kbui\.searchall'/.test(src), 'and none of its dead code: the flag, the string')
+  assert.ok(!/const KB_SR = /.test(src) && !/'kbui\.searchall'/.test(src) && entry('kbui.searchall') === null, 'and none of its dead code: the flag, the string')
   ok('the Search everywhere menu row is gone (its icon is the bundle\'s, at the top of the sidebar)')
 }
 
 // 6f. a dictionary key is declared ONCE: the later of two silently wins. (« kbui.search » was declared twice: the menu row's
 //     « Search everywhere » replaced the « Search » that prefixes every search placeholder, on the project page and in the icon picker.)
 {
-  const keys = [...src.matchAll(/^\s{6}'([A-Za-z0-9._\-]+)': \{ kybernos: /gm)].map((m) => m[1])
-  const seen = new Set()
-  const dup = []
-  for (const k of keys) { if (seen.has(k)) dup.push(k); seen.add(k) }
-  assert.ok(keys.length > 1500, 'the dictionary was scanned (' + keys.length + ' keys)')
-  assert.deepEqual(dup, [], 'keys declared more than once: ' + dup.join(', '))
-  assert.ok(/'kbui\.search': \{ kybernos: 'Rechercher ', en: 'Search ' \}/.test(src), 'the placeholder prefix is still « Search »')
+  // The dictionary now lives in i18n/fr.json and i18n/en.json, one key per line: JSON.parse keeps the later of two equal keys, so the raw lines are scanned.
+  for (const lang of ['fr', 'en']) {
+    const keys = [...readFileSync(join(I18N_DIR, lang + '.json'), 'utf8').matchAll(/^ {2}("(?:[^"\\]|\\.)*"): /gm)].map((m) => JSON.parse(m[1]))
+    const seen = new Set()
+    const dup = []
+    for (const k of keys) { if (seen.has(k)) dup.push(k); seen.add(k) }
+    assert.ok(keys.length > 1500, lang + ': the dictionary was scanned (' + keys.length + ' keys)')
+    assert.deepEqual(dup, [], lang + ': keys declared more than once: ' + dup.join(', '))
+  }
+  assert.deepEqual(entry('kbui.search'), { kybernos: 'Rechercher ', en: 'Search ' }, 'the placeholder prefix is still « Search »')
   ok('no dictionary key is declared twice, and « Search » (the placeholder prefix) is intact')
 }
 
 // 6b. Kaby's own chat is no place to start building
 {
-  assert.ok(/isKybySession\(sid\) === true\) return null/.test(src), 'the new-chat cards stay out of Kaby\'s own chat')
-  ok('the new-chat cards stay out of Kaby\'s own chat')
+  // The full shelf and the Cloud Computer line still stay out of it. Since the owner's mock-up of 2026-11-24 the Kaby conversation draws ONE thing, the phone's cards (`ncs`: the slider and « See all »),
+  // returned BEFORE the full shelf is built; under 600 px the page's CSS shows it (the Theme's `newChatCards` picks slider, grid or hidden).
+  const from = src.indexOf('const KbNewChatCards = (props)')
+  const body = src.slice(from, from + 22000)
+  const kb = body.indexOf('if (kaby === true) return ncs')
+  const full = body.indexOf('h(KbNcShelf, {')
+  assert.ok(/isKybySession\(sid\) === true\) kaby = true/.test(body) && kb > 0 && full > kb, 'the Kaby branch is decided before the full shelf is built')
+  assert.ok(!/KbNcShelf|newchat-cloud/.test(body.slice(body.indexOf('const ncs = '), kb + 40)), 'the Kaby branch (the phone\'s cards) does not draw the full shelf nor the Cloud Computer line')
+  ok('the new-chat cards stay out of Kaby\'s own chat: only the phone\'s cards (shown under 600 px, the Theme says how) are drawn there')
 }
 
 // 7. the menu row and the hiding are wired
 {
-  assert.ok(/KB_SHOW_CLOUD_COMPUTER_ROW === true && KB_KY === true \? row\('cloudcomputer'/.test(src), 'the Cloud Computer row is behind its own switch, and shows only with the Kaby satellite')
+  assert.ok(/cloudcomputer: KB_SHOW_CLOUD_COMPUTER_ROW === true && KB_KY === true,/.test(src) && /cloudcomputer: \(\) => rowOf\('cloudcomputer'/.test(src), 'the Cloud Computer row is behind its own switch, and shows only with the Kaby satellite')
   assert.ok(/const KB_SHOW_CLOUD_COMPUTER_ROW = false\n/.test(src), 'the Cloud Computer row is hidden for now (one constant to turn back on)')
   assert.ok(/kbNcIsNativeSchedules\(kbNavKeyOf\(/.test(src), 'the hiding reads the row key with the nav helper')
   assert.ok(/id: 'kybernos-automations'|'kybernos-automations', \d+/.test(src), 'the Automations settings page is registered')
@@ -543,7 +706,7 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.ok(Object.keys(glyphs).every((k) => cards.some((e) => e.id === k)), 'no icon is left for an example that is gone')
   const card = src.slice(src.indexOf("'data-kind': 'prompt'"), src.indexOf("'data-kind': 'prompt'") + 900)
   assert.ok(card.includes('kb8-sh-ico') && card.includes('kb8-sh-ptag') && !card.includes('e.tag') && !card.includes('kb8-sh-name') && !card.includes('kb8-sh-line'), 'the card carries the icon and the title tag, not the category tag nor a line under the box')
-  assert.ok(!src.includes('kbnc.sh.promptfine') && !src.includes('kb8-sh-quote'), 'the old quote mark and the repeated sentence are gone')
+  assert.ok(!src.includes('kbnc.sh.promptfine') && entry('kbnc.sh.promptfine') === null && !src.includes('kb8-sh-quote'), 'the old quote mark and the repeated sentence are gone')
   assert.ok(!src.includes('kb8-sh-tag') && !/className: 'kb8-sh-(name|title)'[^\n]*e\.tag/.test(src), 'no example card nor its dialog draws the category tag (Business, Marketing...)')
   ok('a text example: its own icon, its title as the tag, the request; no category word, nothing under the box')
 }

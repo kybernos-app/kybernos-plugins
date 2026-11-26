@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, existsSync, mkdirSync, writeFileSync } from 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runShell } from './mini-shell.mjs'
+import { epermError, unavailableProgramMessage } from './phone-errors.mjs'
 const root = mkdtempSync(join(tmpdir(), 'ms-'))
 mkdirSync(join(root, 'ws')); const ws = join(root, 'ws')
 writeFileSync(join(ws, 'a.txt'), 'one\ntwo\nthree\n')
@@ -12,7 +13,18 @@ r = await sh('cat a.txt | grep t | wc -l'); assert.equal(r.o.trim(), '2')
 r = await sh('echo hi > out.txt && cat out.txt'); assert.equal(r.o, 'hi\n'); assert.equal(readFileSync(join(ws, 'out.txt'), 'utf8'), 'hi\n')
 r = await sh('echo x > /usr/kybernos-escape.txt'); assert.equal(r.code, 1); assert.match(r.e, /Operation not permitted \(sandbox workspace-write\)/); assert.equal(existsSync('/usr/kybernos-escape.txt'), false)
 r = await sh('echo x > nope.txt', 'read-only'); assert.equal(r.code, 1); assert.equal(existsSync(join(ws, 'nope.txt')), false)
-r = await sh('curl https://example.com'); assert.equal(r.code, 127); assert.match(r.e, /command not found/)
+r = await sh('curl https://example.com'); assert.equal(r.code, 127); assert.match(r.e, /command not found/); assert.match(r.e, /cannot start external programs/i); assert.match(r.e, /remote or cloud Kybernos computer/i); assert.match(r.e, /Do not retry/i); assert.doesNotMatch(r.e, /kybernos-no-process|automatically route|auto-route/i)
+r = await sh('node -v'); assert.equal(r.code, 127); assert.match(r.e, /node cannot run on this phone/i); assert.match(r.e, /Node/)
+const err = epermError('node')
+assert.equal(err.code, 'EPERM')
+assert.equal(err.errno, -1)
+assert.equal(err.syscall, 'spawn')
+assert.match(err.message, /cannot start external programs/i)
+assert.match(err.message, /Node/)
+assert.match(err.message, /remote or cloud Kybernos computer/i)
+assert.match(err.message, /Do not retry/i)
+assert.doesNotMatch(err.message, /kybernos-no-process|automatically|auto-route/i)
+assert.equal(unavailableProgramMessage('python3').startsWith('python3 cannot run on this phone:'), true)
 r = await sh('mkdir -p d/e && touch d/e/f && ls d/e && rm -rf d && test -d d || echo gone'); assert.equal(r.o, 'f\ngone\n')
 r = await sh('false || echo recovered; true && echo and-ok'); assert.equal(r.o, 'recovered\nand-ok\n')
 r = await sh('echo $(pwd) | grep ws'); assert.equal(r.code, 0)

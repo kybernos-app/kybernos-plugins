@@ -70,8 +70,9 @@ window.__ModuleLoader__.load({
         'kb.prov.add.fournisseur': { kybernos: 'Fournisseur', en: 'Provider' },
         'kb.prov.add.choisir': { kybernos: 'Choisir un fournisseur…', en: 'Choose a provider…' },
         'kb.prov.add.cle.label': { kybernos: 'Clé API', en: 'API key' },
-        'kb.prov.add.cle.ph': { kybernos: 'Colle la clé — ou laisse vide pour la poser plus tard', en: 'Paste the key — or leave blank to add it later' },
-        'kb.prov.add.cle.note': { kybernos: 'Stockée dans un coffre privé de cet ordinateur, jamais dans tes réglages.', en: 'Stored in a private vault on this computer, never in your settings.' },
+        'kb.prov.add.cle.ph': { kybernos: 'Colle la clé (facultatif)', en: 'Paste the key (optional)' },
+        'kb.prov.add.cle.note': { kybernos: 'Stockée dans un coffre privé de cet appareil, jamais dans tes réglages.', en: 'Stored in a private vault on this device, never in your settings.' },
+        'kb.prov.add.cle.note.custom': { kybernos: 'Facultative : un serveur local (Ollama, LM Studio) n’en demande pas. Si tu en poses une, elle est stockée dans un coffre privé de cet appareil, jamais dans tes réglages.', en: 'Optional: a local server (Ollama, LM Studio) needs none. If you add one, it is stored in a private vault on this device, never in your settings.' },
         'kb.prov.add.cle.voir': { kybernos: 'Afficher', en: 'Show' },
         'kb.prov.add.cle.cacher': { kybernos: 'Masquer', en: 'Hide' },
         'kb.prov.add.reglages': { kybernos: 'Réglages avancés', en: 'Advanced settings' },
@@ -222,27 +223,27 @@ window.__ModuleLoader__.load({
         'kb.fetch.busy': { kybernos: 'Interrogation du fournisseur…', en: 'Asking the provider…' },
         'kb.fetch.needsurl': { kybernos: 'Renseigne d’abord l’URL de base, puis récupère.', en: 'Enter the base URL first, then fetch.' },
         'kb.fetch.empty': { kybernos: 'Le fournisseur n’a listé aucun modèle. Ajoute-les à la main.', en: 'The provider listed no models. Add them by hand.' },
-        'kb.fetch.unavailable': { kybernos: 'Cette version de DSH ne sait pas interroger un fournisseur.', en: 'This DSH version cannot ask a provider for its models.' },
+        'kb.fetch.unavailable': { kybernos: 'Cette version de Kybernos ne sait pas interroger un fournisseur.', en: 'This Kybernos version cannot ask a provider for its models.' },
         'kb.fetch.timeout': { kybernos: 'Le fournisseur n’a pas répondu à temps.', en: 'The provider did not answer in time.' },
         'kb.fetch.err': { kybernos: 'Récupération impossible : {raison}', en: 'Could not fetch: {raison}' },
         'kb.fetch.src.live': { kybernos: 'Liste en direct de {host}.', en: 'Live list from {host}.' },
-        'kb.fetch.src.catalog': { kybernos: 'Liste en direct indisponible ({raison}). Voici les modèles livrés avec DSH pour ce fournisseur, peut-être périmés.', en: 'Live list unavailable ({raison}). These are the models DSH ships for this provider, possibly out of date.' },
+        'kb.fetch.src.catalog': { kybernos: 'Liste en direct indisponible ({raison}). Voici les modèles livrés avec Kybernos pour ce fournisseur, peut-être périmés.', en: 'Live list unavailable ({raison}). These are the models Kybernos ships for this provider, possibly out of date.' },
         'kb.fetch.why.key': { kybernos: 'le fournisseur refuse la clé (HTTP {status})', en: 'the provider refused the key (HTTP {status})' },
         'kb.fetch.why.refused': { kybernos: 'le fournisseur a répondu HTTP {status}{detail}', en: 'the provider answered HTTP {status}{detail}' },
         'kb.fetch.why.unreachable': { kybernos: 'le fournisseur est injoignable', en: 'the provider could not be reached' },
         'kb.fetch.why.bad': { kybernos: 'sa réponse n’est pas une liste de modèles', en: 'its answer is not a model list' },
         'kb.fetch.why.big': { kybernos: 'sa réponse est trop volumineuse', en: 'its answer is too large' },
-        'kb.fetch.why.host': { kybernos: 'ce DSH ne sait pas encore lire la liste en direct (relance-le)', en: 'this DSH cannot read the live list yet (restart it)' },
+        'kb.fetch.why.host': { kybernos: 'ce Kybernos ne sait pas encore lire la liste en direct (relance-le)', en: 'this Kybernos cannot read the live list yet (restart it)' },
         'kb.fetch.why.noaddr': { kybernos: 'aucune adresse connue pour ce fournisseur', en: 'no address is known for this provider' },
         'kb.pv.err.nobase': { kybernos: 'L’adresse de ce fournisseur est inconnue : renseigne l’« URL de base » dans « Paramètres personnalisés », puis réessaie.', en: 'This provider’s address is unknown: set the Base URL under Customized settings, then try again.' },
         'kb.pv.saved.custom': { kybernos: 'Appliqué. {n} modèle(s) personnalisé(s) ajouté(s) à {slug}.', en: 'Applied. {n} custom model(s) added to {slug}.' },
-        'kb.pv.saved.custom.guess': { kybernos: ' Le protocole n’a pas pu être confirmé auprès du fournisseur : OpenAI Chat par défaut.', en: ' DSH could not confirm the protocol with the provider: OpenAI Chat by default.' },
+        'kb.pv.saved.custom.guess': { kybernos: ' Le protocole n’a pas pu être confirmé auprès du fournisseur : OpenAI Chat par défaut.', en: ' Kybernos could not confirm the protocol with the provider: OpenAI Chat by default.' },
         'kb.pv.custom.title': { kybernos: 'Modèles personnalisés', en: 'Custom models' },
-        'kb.pv.custom.hint': { kybernos: 'Hors du catalogue de DSH : ils vivent dans une route à part de ce fournisseur, avec leur propre protocole, et se comptent avec lui.', en: 'Outside DSH’s catalog: they live in a route of their own for this provider, with their own protocol, and count with it.' },
+        'kb.pv.custom.hint': { kybernos: 'Hors du catalogue de Kybernos : ils vivent dans une route à part de ce fournisseur, avec leur propre protocole, et se comptent avec lui.', en: 'Outside Kybernos’s catalog: they live in a route of their own for this provider, with their own protocol, and count with it.' },
         'kb.pv.custom.remove': { kybernos: 'Retirer {id}', en: 'Remove {id}' },
         'kb.models.custom.tag': { kybernos: 'perso', en: 'custom' },
-        'kb.fetch.undescribed': { kybernos: 'Hors du catalogue de DSH', en: 'Not in DSH’s catalog' },
-        'kb.fetch.undescribed.note': { kybernos: '{n} modèle(s) ne sont pas dans le catalogue de DSH : ils sont ajoutés comme modèles personnalisés de ce fournisseur, et DSH cherche le protocole qu’ils parlent.', en: '{n} model(s) are not in DSH’s catalog: they are added as custom models of this provider, and DSH finds the protocol they speak.' },
+        'kb.fetch.undescribed': { kybernos: 'Hors du catalogue de Kybernos', en: 'Not in Kybernos’s catalog' },
+        'kb.fetch.undescribed.note': { kybernos: '{n} modèle(s) ne sont pas dans le catalogue de Kybernos : ils sont ajoutés comme modèles personnalisés de ce fournisseur, et Kybernos cherche le protocole qu’ils parlent.', en: '{n} model(s) are not in Kybernos’s catalog: they are added as custom models of this provider, and Kybernos finds the protocol they speak.' },
         'kb.fetch.title': { kybernos: 'Choisir les modèles à ajouter', en: 'Choose models to add' },
         'kb.fetch.desc': { kybernos: 'Voici les modèles que ce fournisseur propose. Coche ceux à ajouter.', en: 'These are the models this provider has available. Choose the ones to add.' },
         'kb.fetch.replaces': { kybernos: 'La liste que tu gardes remplace celle de {slug} : les modèles non cochés ne seront plus proposés. « Rétablir les modèles par défaut » ramène la liste d’origine.', en: 'The list you keep replaces {slug}’s built-in one: models you leave unchecked will no longer be offered. “Restore default models” brings the built-in list back.' },
@@ -302,26 +303,25 @@ window.__ModuleLoader__.load({
         'kb.prov.off.dlg.title': { kybernos: 'Désactiver {slug} ?', en: 'Disable {slug}?' },
         'kb.prov.off.dlg.body': { kybernos: 'Les sessions qui utilisent un modèle de {slug} ne pourront plus l’appeler. Le réactiver rétablit tout à l’identique : clé, modèles et réglages.', en: 'Sessions that use a {slug} model will no longer be able to call it. Enabling it again restores everything as it was: key, models and settings.' },
         // The built-in adapters are engine plugin rows, not llm-pi-ai providers: switching one off removes the row from DSH itself.
-        'kb.prov.off.dlg.body.ds': { kybernos: 'Les sessions qui utilisent un modèle de {slug} ne pourront plus l’appeler : la ligne du fournisseur est désactivée dans DSH. La réactiver rétablit tout à l’identique, clé et modèles compris.', en: 'Sessions that use a {slug} model will no longer be able to call it: the provider row is switched off inside DSH. Switching it back on restores everything as it was, key and models included.' },
+        'kb.prov.off.dlg.body.ds': { kybernos: 'Les sessions qui utilisent un modèle de {slug} ne pourront plus l’appeler : la ligne du fournisseur est désactivée dans Kybernos. La réactiver rétablit tout à l’identique, clé et modèles compris.', en: 'Sessions that use a {slug} model will no longer be able to call it: the provider row is switched off inside Kybernos. Switching it back on restores everything as it was, key and models included.' },
         'kb.prov.off.dlg.ok': { kybernos: 'Désactiver', en: 'Disable' },
         'kb.prov.off.dlg.cancel': { kybernos: 'Annuler', en: 'Cancel' },
         'kb.prov.off.err': { kybernos: 'Impossible de désactiver {slug} : {raison}', en: 'Could not disable {slug}: {raison}' },
         'kb.prov.on.err': { kybernos: 'Impossible de réactiver {slug} : {raison}', en: 'Could not enable {slug}: {raison}' },
-        'kb.nat.open': { kybernos: 'Ouvrir la page native de DSH', en: 'Open DSH’s native Models page' },
-        'kb.nat.note.t': { kybernos: 'Page native de DSH', en: 'DSH’s native page' },
+        'kb.nat.open': { kybernos: 'Ouvrir la page native de Kybernos', en: 'Open Kybernos’s native Models page' },
+        'kb.nat.note.t': { kybernos: 'Page native de Kybernos', en: 'Kybernos’s native page' },
         'kb.nat.note.b': { kybernos: 'Tout ce qui se fait ici se fait aussi dans « Fournisseur IA et modèles », avec plus de détails. Les deux pages lisent et écrivent les mêmes réglages : elles restent synchronisées.', en: 'Everything done here can also be done in “AI provider and models”, with more detail. Both pages read and write the same settings, so they stay in sync.' },
         'kb.nat.back': { kybernos: 'Ouvrir Fournisseur IA et modèles', en: 'Open AI provider and models' },
-        'kb.nat.hide': { kybernos: 'Masquer la page native du menu des Réglages', en: 'Hide DSH’s native page from the Settings menu' },
+        'kb.nat.hide': { kybernos: 'Masquer la page native du menu des Réglages', en: 'Hide Kybernos’s native page from the Settings menu' },
         'kb.nat.show': { kybernos: 'Afficher cette page dans le menu des Réglages', en: 'Show this page in the Settings menu' },
         'kb.nat.crash.t': { kybernos: 'Cette page n’a pas pu s’afficher.', en: 'This page could not be displayed.' },
-        'kb.nat.crash.b': { kybernos: 'La page native de DSH reste disponible.', en: 'DSH’s native Models page is still available.' },
+        'kb.nat.crash.b': { kybernos: 'La page native de Kybernos reste disponible.', en: 'Kybernos’s native Models page is still available.' },
         'kb.models.menu.sync': { kybernos: 'Synchroniser tous les modèles avec models.dev', en: 'Sync all models with models.dev' },
-        'kb.models.menu.chips': { kybernos: 'Afficher les puces de capacités sous la recherche', en: 'Show capability filter chips under the search' },
         'kb.models.mx.filter': { kybernos: 'cliquer pour filtrer', en: 'click to filter' },
         'kb.pv.title.add': { kybernos: 'Ajouter un fournisseur de modèles', en: 'Add model provider' },
         'kb.pv.diag': { kybernos: 'Config à réparer', en: 'Config error' },
         'kb.pv.custom': { kybernos: 'Perso', en: 'Custom' },
-        'kb.pv.builtin': { kybernos: 'Intégré à DSH', en: 'Built into DSH' },
+        'kb.pv.builtin': { kybernos: 'Intégré à Kybernos', en: 'Built into Kybernos' },
         'kb.pv.edit': { kybernos: 'Modifier {slug}', en: 'Edit {slug}' },
         'kb.pv.more': { kybernos: 'Plus d’actions pour {slug}', en: 'More for {slug}' },
         'kb.pv.more.page': { kybernos: 'Plus d’actions', en: 'More actions' },
@@ -403,7 +403,7 @@ window.__ModuleLoader__.load({
         'kb.pv.sw.aria': { kybernos: '{slug} activé', en: '{slug} enabled' },
         'kb.pv.zone.del': { kybernos: 'Supprimer le fournisseur', en: 'Delete provider' },
         'kb.pv.zone.del.d': { kybernos: 'Le retire avec ses modèles, ses surcharges et sa clé.', en: 'Removes it with its models, overrides and key.' },
-        'kb.pv.hostnote': { kybernos: 'Désactiver demande un redémarrage de DSH : la nouvelle version n’est pas encore chargée.', en: 'Disabling needs a DSH restart: the new version is not loaded yet.' },
+        'kb.pv.hostnote': { kybernos: 'Désactiver demande un redémarrage de Kybernos : la nouvelle version n’est pas encore chargée.', en: 'Disabling needs a Kybernos restart: the new version is not loaded yet.' },
         'kb.pv.err.pick': { kybernos: 'Choisis un fournisseur.', en: 'Choose a provider.' },
         'kb.pv.err.slug': { kybernos: 'Identifiant invalide : minuscules, chiffres et tirets.', en: 'Invalid identifier: lowercase letters, digits and dashes.' },
         'kb.pv.err.taken': { kybernos: 'Ce fournisseur existe déjà.', en: 'This provider already exists.' },
@@ -439,7 +439,19 @@ window.__ModuleLoader__.load({
         'kb.models.opt.anystatus': { kybernos: 'Indifférent', en: 'Any' },
         'kb.models.reset': { kybernos: 'Réinitialiser les filtres', en: 'Reset filters' },
         'kb.models.count': { kybernos: '{a} sur {b} modèles', en: '{a} of {b} models' },
-        'kb.models.syncN': { kybernos: 'Synchroniser {n} depuis models.dev', en: 'Sync {n} from models.dev' },
+        'kb.models.filter.cap': { kybernos: 'Capacité', en: 'Capability' },
+        'kb.models.opt.allcaps': { kybernos: 'Toutes', en: 'All' },
+        'kb.models.cap.n': { kybernos: '{n} choisies', en: '{n} selected' },
+        // models.dev is read in the background: the results bar says where that stands instead of offering a button.
+        'kb.models.syncbg.running': { kybernos: 'models.dev · lecture en arrière-plan…', en: 'models.dev · syncing in the background…' },
+        'kb.models.syncbg.count': { kybernos: 'models.dev · lecture en arrière-plan… {a}/{b}', en: 'models.dev · syncing in the background… {a}/{b}' },
+        'kb.models.syncbg.done': { kybernos: 'models.dev · synchronisé {when}', en: 'models.dev · synced {when}' },
+        'kb.models.syncbg.now': { kybernos: 'à l’instant', en: 'just now' },
+        'kb.models.syncbg.min': { kybernos: 'il y a {n} min', en: '{n} min ago' },
+        'kb.models.syncbg.h': { kybernos: 'il y a {n} h', en: '{n} h ago' },
+        'kb.models.syncbg.fail': { kybernos: 'models.dev · injoignable, nouvel essai plus tard', en: 'models.dev · unreachable, will try again later' },
+        'kb.models.syncbg.idle': { kybernos: 'models.dev · pas encore lu', en: 'models.dev · not read yet' },
+        'kb.models.syncbg.tip': { kybernos: 'models.dev se lit tout seul, en arrière-plan. « Tout synchroniser » est dans le menu ⋯.', en: 'models.dev is read by itself, in the background. “Sync all” is in the ⋯ menu.' },
         'kb.models.col.model': { kybernos: 'Modèle', en: 'Model' },
         'kb.models.col.prov': { kybernos: 'Fournisseur', en: 'Provider' },
         'kb.models.col.caps': { kybernos: 'Capacités', en: 'Capabilities' },
@@ -473,12 +485,12 @@ window.__ModuleLoader__.load({
         'kb.models.t.rerank': { kybernos: 'Rerank', en: 'Rerank' },
         'kb.models.t.moderation': { kybernos: 'Modération', en: 'Moderation' },
         'kb.models.phase.sample': { kybernos: 'Jeu de données figé — aucune écriture (phase sans câblage)', en: 'Fixed sample data — nothing is written (pre-wiring phase)' },
-        'kb.models.phase.live': { kybernos: 'Catalogue vivant — les réglages marqués d\u2019un maillon s\u2019appliquent déjà à DSH', en: 'Live data — the settings marked with a link already apply to DSH' },
+        'kb.models.phase.live': { kybernos: 'Catalogue vivant — les réglages marqués d\u2019un maillon s\u2019appliquent déjà à Kybernos', en: 'Live data — the settings marked with a link already apply to Kybernos' },
         'kb.models.loading': { kybernos: 'Lecture de tes réglages…', en: 'Reading your settings…' },
         'kb.models.reload': { kybernos: 'Réessayer', en: 'Retry' },
         'kb.models.loaderror': { kybernos: 'Lecture impossible', en: 'Load failed' },
         // A route of this plugin's host half that does not answer (DSH not restarted after an update): the same sentence as the other settings pages.
-        'kb.models.hostdown': { kybernos: 'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarre DSH, puis appuie sur Réessayer.', en: 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.' },
+        'kb.models.hostdown': { kybernos: 'L’assistant de cette page ne répond pas. Si l’appli vient d’être mise à jour, redémarre-la, puis appuie sur Réessayer.', en: 'This page’s helper is not answering. If the app was just updated, restart it, then press Retry.' },
         'kb.models.empty.live': { kybernos: 'aucun modèle configuré dans llm-pi-ai', en: 'no model configured in llm-pi-ai' },
         'kb.models.route': { kybernos: 'route', en: 'route' },
         // ── « AI provider and models » header block (settings.models.header) ──
@@ -577,6 +589,10 @@ window.__ModuleLoader__.load({
         key: ['M15.5 7.5l3 3L22 7l-3-3-3.5 3.5z', 'M12 3a5 5 0 0 0-4.9 6L2.6 13.5a2 2 0 0 0-.6 1.4V19a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-1h1a1 1 0 0 0 1-1v-1h1a2 2 0 0 0 1.4-.6l.5-.5A5 5 0 0 0 12 3z'],
         cloud: ['M7 18h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.1 9.2 3.9 3.9 0 0 0 7 18Z'],
         cube: ['M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z', 'M3.3 7 12 12l8.7-5', 'M12 22V12'],
+        // the filter bar: a funnel, a sort, an A-to-Z
+        filter: ['M4 5h16l-6 8v6l-4-2v-4L4 5z'],
+        sort: ['M4 7h16', 'M7 12h10', 'M10 17h4'],
+        az: ['M3 17l3-9 3 9', 'M4 14h4', 'M13 8h6l-6 8h6'],
       }
       const Ic = (name, size) => {
         const d = ICONS[name]
@@ -749,6 +765,12 @@ window.__ModuleLoader__.load({
         scoreLoaded: false,
         scoresRunning: false,
         scoresAskedAt: null,
+        // models.dev, read in the background: the pass in progress, and when a read last worked or failed.
+        syncRunning: false,
+        syncDone: 0,
+        syncTotal: 0,
+        syncAt: null,
+        syncFailAt: null,
         // The Kybernos Cloud account, as the Cloud card read it: null = not read yet · false = disconnected · true = connected.
         cloud: null,
         listeners: new Set(),
@@ -1409,7 +1431,22 @@ window.__ModuleLoader__.load({
         return [10, 20, 30, 40, 50, 60, 70].filter((n) => n <= top)
       }
       // KB-SCORE-PURE-END
-      const uiCaps = (mo) => CAPS.filter((c) => kbmVal(mo, c.k) === true)
+      // KB-SYNCBG-PURE-BEGIN
+      // models.dev is read in the background, by the page, once the Models tab is up. It reads the host's own cached index
+      // (one request per model, no write) and never the two score sites: those stay a visible button.
+      const KB_SYNC_PARALLEL = 4
+      const KB_SYNC_RETRY_MS = 10 * 60 * 1000
+      /** The models a background pass reads: not read yet, not being read, not a creation model, with a route and an id. Pure. */
+      const kbSyncTodo = (models) => (Array.isArray(models) ? models : []).filter((mo) => mo.synced !== true && mo.loading !== true && mo.kind !== 'creation' && mo.route !== '' && mo.id !== '')
+      /** Whether a pass starts now: something is left to read, none is running, and the last failure is old enough. `st` = { running, failedAt }. Pure. */
+      const kbSyncDue = (st, todoCount, now) => st.running !== true && todoCount > 0 && (typeof st.failedAt !== 'number' || now - st.failedAt >= KB_SYNC_RETRY_MS)
+      /** The age of the last read, as a text key and a number: « now », « 4 min », « 3 h ». Pure. */
+      const kbSyncAge = (at, now) => {
+        const min = Math.floor(Math.max(0, now - at) / 60000)
+        return min < 1 ? { key: 'now', n: 0 } : (min < 60 ? { key: 'min', n: min } : { key: 'h', n: Math.floor(min / 60) })
+      }
+      // KB-SYNCBG-PURE-END
+      const uiCaps =(mo) => CAPS.filter((c) => kbmVal(mo, c.k) === true)
       /** The tooltip of a capability icon: the label THEN the link —
        *  an icon alone says neither what it names, nor whether the datum is
        *  applied to the harness or annotated (the panel's public contract). */
@@ -1437,35 +1474,23 @@ window.__ModuleLoader__.load({
         if (a === '' && b === '') return null
         return '$' + (a === '' ? '—' : a) + ' / $' + (b === '' ? '—' : b)
       }
+      // The status options carry the page's own marks: the blue dot of models.dev and the amber dot of an override.
       const OPT_STATUT = () => [
-        { v: 'any', t: m('kb.models.anystatus'), c: m('kb.models.opt.anystatus') },
-        { v: 'ov', t: m('kb.models.statut.ov') },
-        { v: 'sync', t: m('kb.models.statut.sync') },
-        { v: 'pending', t: m('kb.models.statut.pending') },
+        { v: 'any', t: m('kb.models.anystatus'), c: m('kb.models.opt.anystatus'), i: Ic('filter', 14) },
+        { v: 'ov', t: m('kb.models.statut.ov'), i: h('span', { className: 'kbmp-dot ov' }) },
+        { v: 'sync', t: m('kb.models.statut.sync'), i: h('span', { className: 'kbmp-dot sync' }) },
+        { v: 'pending', t: m('kb.models.statut.pending'), i: Ic('clock', 14) },
         // Offered while the health chip has something to say (and while it is the active choice, so the menu never shows a value it lacks).
-      ].concat(kbHealthGet() !== null || UI.statut === 'down' ? [{ v: 'down', t: m('kb.models.statut.down') }] : [])
+      ].concat(kbHealthGet() !== null || UI.statut === 'down' ? [{ v: 'down', t: m('kb.models.statut.down'), i: Ic('alert', 14) }] : [])
       const OPT_TRI = () => [
-        { v: 'name', t: m('kb.models.tri.name') },
-        { v: 'context', t: m('kb.models.tri.context') },
-        { v: 'provider', t: m('kb.models.tri.provider') },
-      ].concat(Object.keys(KBM.scoreOf).length > 0 ? [{ v: 'score', t: m('kb.models.tri.score') }] : [])
+        { v: 'name', t: m('kb.models.tri.name'), i: Ic('az', 14) },
+        { v: 'context', t: m('kb.models.tri.context'), i: Ic('layers', 14) },
+        { v: 'provider', t: m('kb.models.tri.provider'), i: Ic('cube', 14) },
+      ].concat(Object.keys(KBM.scoreOf).length > 0 ? [{ v: 'score', t: m('kb.models.tri.score'), i: Ic('bars', 14) }] : [])
 
       const Loupe = () => h('svg', { className: 'kbmp-loupe', viewBox: '0 0 16 16', width: 14, height: 14, 'aria-hidden': 'true' },
         h('circle', { cx: 7, cy: 7, r: 4.6, fill: 'none', stroke: 'currentColor', strokeWidth: 1.4 }),
         h('path', { d: 'M10.6 10.6 14 14', fill: 'none', stroke: 'currentColor', strokeWidth: 1.4, strokeLinecap: 'round' }))
-
-      /** A capability chip: it filters the list. Icon + label: eight
-       *  mute pills did not say what they filtered. */
-      const CapFiltre = (props) => {
-        const on = UI.caps[props.def.k] === true
-        return h('button', {
-          type: 'button', className: 'kbmp-cap' + (on === true ? ' on' : ''), 'aria-pressed': on,
-          'data-kbm': 'capfilter-' + props.def.k, title: m(props.def.t), 'aria-label': m(props.def.t),
-          onClick: () => uiCap(props.def.k),
-        },
-        h('span', { className: 'kbmp-capi', style: on === true ? undefined : { color: props.def.tint } }, Ic(props.def.icon, 13)),
-        h('span', { className: 'kbmp-caplab' }, m(props.def.t)))
-      }
 
       /** DSH's `Menu`: a trigger + a list, closed on a click outside.
        *
@@ -1475,9 +1500,29 @@ window.__ModuleLoader__.load({
        *  applied nothing (the selection was written to `UI.undefined`). */
       const Menu = (props) => {
         const ouvert = UI.menu === props.id
-        const choix = props.options.filter((o) => o.v === UI[props.field])[0]
-        const actif = choix !== undefined && choix.v !== props.defaut
-        const dit = choix === undefined ? props.label : (choix.c !== undefined ? choix.c : choix.t)
+        const multi = props.multi === true
+        const listRef = React.useRef(null)
+        // The first option under the keyboard when the menu opens: the chosen one, else the first.
+        React.useEffect(() => {
+          if (ouvert !== true || listRef.current === null) return
+          const f = listRef.current.querySelector('[aria-selected="true"]') || listRef.current.querySelector('button')
+          if (f !== null) f.focus({ preventScroll: true })
+        }, [ouvert])
+        const picked = multi ? props.options.filter((o) => props.values.indexOf(o.v) >= 0) : []
+        const choix = multi ? (picked.length === 1 ? picked[0] : undefined) : props.options.filter((o) => o.v === UI[props.field])[0]
+        const actif = multi ? picked.length > 0 : (choix !== undefined && choix.v !== props.defaut)
+        const dit = multi
+          ? (picked.length === 0 ? m('kb.models.opt.allcaps') : (picked.length === 1 ? picked[0].t : m('kb.models.cap.n', { n: picked.length })))
+          : (choix === undefined ? props.label : (choix.c !== undefined ? choix.c : choix.t))
+        // A filter at rest shows its own icon; once a value is chosen the button shows that value's icon (the provider's logo, the type's glyph).
+        const own = actif === true && choix !== undefined && choix.i !== undefined
+        const isSel = (o) => (multi ? props.values.indexOf(o.v) >= 0 : o.v === UI[props.field])
+        const pick = (ev, o) => {
+          ev.stopPropagation()
+          if (multi && o.v !== 'all') { props.onToggle(o.v); return }
+          if (multi) { props.onAll(); UI.menu = null; kbmNotify(); return }
+          UI[props.field] = o.v; UI.page = 1; UI.menu = null; kbmNotify()
+        }
         return h('div', { className: 'kbm-menu-root kbmp-menu' },
           h('button', {
             type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline kbmp-trig' + (actif === true ? ' on' : ''),
@@ -1485,17 +1530,31 @@ window.__ModuleLoader__.load({
             'aria-label': props.label + ' — ' + dit, title: props.label + ' — ' + dit,
             onClick: (ev) => { ev.stopPropagation(); uiSet('menu', ouvert === true ? null : props.id) },
           },
+          h('span', { className: 'kbmp-trigi' + (own === true ? '' : ' gen') }, own === true ? choix.i : props.icon),
           h('span', { className: 'kbmp-triglab' }, props.label + ' · '),
           h('span', { className: 'kbmp-trigval' }, dit),
           h('span', { className: 'kbmp-trigchev' }, Ic('chevron', 13))),
           ouvert === true
-            ? h('div', { className: 'kbm-menu-list kbmp-pop', role: 'listbox' },
-              props.options.map((o) => h('button', {
-                type: 'button', role: 'option', key: o.v, 'aria-selected': o.v === UI[props.field],
-                className: 'kbm-menu-item' + (o.v === UI[props.field] ? ' kbm-menu-selected' : ''),
-                'data-kbm': 'opt-' + props.id + '-' + o.v,
-                onClick: (ev) => { ev.stopPropagation(); UI[props.field] = o.v; UI.page = 1; UI.menu = null; kbmNotify() },
-              }, h('span', { className: 'kbm-menu-itemLabel' }, o.t))))
+            ? h('div', {
+              className: 'kbm-menu-list kbmp-pop', role: 'listbox', 'aria-multiselectable': multi ? 'true' : undefined, ref: listRef,
+              onKeyDown: (ev) => {
+                if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return
+                const items = Array.from(ev.currentTarget.querySelectorAll('button'))
+                if (items.length === 0) return
+                ev.preventDefault()
+                const at = items.indexOf(document.activeElement)
+                items[(at + (ev.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus()
+              },
+            },
+            props.options.map((o) => h('button', {
+              type: 'button', role: 'option', key: o.v, 'aria-selected': isSel(o) === true || (multi && o.v === 'all' && picked.length === 0),
+              className: 'kbm-menu-item' + (isSel(o) === true || (multi && o.v === 'all' && picked.length === 0) ? ' kbm-menu-selected' : ''),
+              'data-kbm': 'opt-' + props.id + '-' + o.v,
+              onClick: (ev) => pick(ev, o),
+            },
+            h('span', { className: 'kbmp-opti' }, o.i === undefined ? null : o.i),
+            h('span', { className: 'kbm-menu-itemLabel' }, o.t),
+            isSel(o) === true || (multi && o.v === 'all' && picked.length === 0) ? h('span', { className: 'kbmp-optck' }, Ic('check', 14)) : null)))
             : null)
       }
 
@@ -2486,7 +2545,7 @@ window.__ModuleLoader__.load({
                   }))),
                 sections.length === 0 ? h('span', { className: 'kbpv-cb-none' }, m('kb.prov.add.aucun')) : null),
               h('span', { className: 'kbpv-cb-note' }, m('kb.prov.add.pied', { n: KB_CATALOGUE.length }))) : null)
-          const keyField = h(PvField, { id: 'pv-key', label: m('kb.prov.add.cle.label'), hint: m('kb.prov.add.cle.note') },
+          const keyField = h(PvField, { id: 'pv-key', label: m('kb.prov.add.cle.label'), hint: m(dr.tab === 'custom' ? 'kb.prov.add.cle.note.custom' : 'kb.prov.add.cle.note') },
             h('span', { className: 'kbpv-keyrow' },
               h('input', { id: 'pv-key', className: 'kbm-in-input kbpv-in', type: dr.voir === true ? 'text' : 'password', autoComplete: 'off', spellCheck: false, 'data-kbm': 'prov-key',
                 placeholder: m('kb.prov.add.cle.ph'), value: dr.key, onChange: (ev) => setD({ key: ev.target.value }) }),
@@ -2647,10 +2706,28 @@ window.__ModuleLoader__.load({
         return h('button', { type: 'button', className: 'kbmp-thb' + (on ? ' on' : ''), 'aria-pressed': on ? 'true' : 'false', 'data-kbm': 'sort-' + key,
           title: m('kb.models.sort') + ' · ' + label, onClick: () => uiSet('tri', key) }, label, on ? h('span', { className: 'kbmp-thar' }, Ic('chevron', 10)) : null)
       }
-      const KB_CHIPS_PREF = 'kb.models.capChips'
-      /** Capability filter chips under the search bar. From 860 px the column headers filter too, so the chips are off
-       *  there unless asked for; below that there are no header filters and the chips always show. */
-      const kbmChipsOn = () => { try { return window.localStorage.getItem(KB_CHIPS_PREF) === '1' } catch (e) { return false } }
+      /** Where models.dev stands: reading, read N min ago, unreachable. A status, not a button: the page reads it by itself. */
+      const SyncChip = () => {
+        const pair = React.useState(0)
+        const tick = pair[1]
+        // The age moves on its own, once a minute, without the rest of the panel redrawing.
+        React.useEffect(() => {
+          const t = setInterval(() => tick((n) => n + 1), 60000)
+          return () => clearInterval(t)
+        }, [])
+        const busy = KBM.syncRunning === true || KBM.models.some((mo) => mo.loading === true)
+        const failed = busy !== true && typeof KBM.syncFailAt === 'number'
+        let txt
+        if (busy === true) txt = KBM.syncRunning === true && KBM.syncTotal > 0 ? m('kb.models.syncbg.count', { a: Math.min(KBM.syncDone, KBM.syncTotal), b: KBM.syncTotal }) : m('kb.models.syncbg.running')
+        else if (failed === true) txt = m('kb.models.syncbg.fail')
+        else if (typeof KBM.syncAt === 'number') {
+          const a = kbSyncAge(KBM.syncAt, Date.now())
+          txt = m('kb.models.syncbg.done', { when: m('kb.models.syncbg.' + a.key, { n: a.n }) })
+        } else txt = m('kb.models.syncbg.idle')
+        return h('span', { className: 'kbmp-syn' + (failed === true ? ' warn' : ''), 'data-kbm': 'sync-state', title: m('kb.models.syncbg.tip') },
+          h('span', { className: busy === true ? 'kbmp-spin' : undefined, style: { display: 'inline-flex' } }, Ic('refresh', 13)),
+          h('span', null, txt))
+      }
       const ListView = () => {
         const rows = uiRows()
         const pages = Math.max(1, Math.ceil(rows.length / ROWS_PAR_PAGE))
@@ -2662,9 +2739,15 @@ window.__ModuleLoader__.load({
         const scope = UI.prov === 'all' ? toutes : toutes.filter((mo) => mo.route === UI.prov)
         const downIdx = kbHealthIndex(kbHealthGet())
         const downN = scope.filter((mo) => downIdx[mo.route + '/' + mo.id] !== undefined).length
-        const capFiltres = ['vision', 'audioIn', 'imageGen', 'video', 'search', 'tools', 's2s', 'reasoning']
-        const optsProv = [{ v: 'all', t: m('kb.models.allprov'), c: m('kb.models.opt.allprov') }].concat(uiProvs().map((r) => ({ v: r, t: r })))
-        const optsType = [{ v: 'all', t: m('kb.models.alltypes'), c: m('kb.models.opt.alltypes') }].concat(TYPES.map((t) => ({ v: t.id, t: m(t.t) })))
+        // Every filter carries its icon, and so does every option: a provider's logo, the type's glyph, the capability's own colour.
+        const tinted = (def, size) => h('span', { style: { color: def.tint, display: 'inline-flex' } }, Ic(def.icon, size))
+        const optsProv = [{ v: 'all', t: m('kb.models.allprov'), c: m('kb.models.opt.allprov'), i: Ic('cube', 14) }].concat(uiProvs().map((r) => ({ v: r, t: KBM.live === true ? pvLabel(r) : r, i: h(LogoProv, { route: r, taille: 14 }) })))
+        const optsType = [{ v: 'all', t: m('kb.models.alltypes'), c: m('kb.models.opt.alltypes'), i: Ic('filter', 14) }].concat(TYPES.map((t) => ({ v: t.id, t: m(t.t), i: tinted(t, 14) })))
+        const optsCap = [{ v: 'all', t: m('kb.models.opt.allcaps'), i: Ic('filter', 14) }].concat(KB_MATRIX
+          .map((k) => CAPS.filter((c) => c.k === k)[0])
+          .filter((c) => c !== undefined)
+          .map((c) => ({ v: c.k, t: m(c.t), i: tinted(c, 14) })))
+        const capValues = KB_MATRIX.filter((k) => UI.caps[k] === true)
         return h('div', { className: 'kbmp-listwrap' },
           h('div', { className: 'kbmp-bar' },
             h('span', { className: 'kbm-in-wrap kbmp-search' }, Loupe(),
@@ -2674,15 +2757,12 @@ window.__ModuleLoader__.load({
                 onChange: (ev) => uiSet('q', ev.target.value),
               })),
             h('span', { className: 'kbmp-menus' },
-              h(Menu, { id: 'prov', field: 'prov', defaut: 'all', label: m('kb.models.filter.prov'), options: optsProv }),
-              h(Menu, { id: 'type', field: 'type', defaut: 'all', label: m('kb.models.filter.type'), options: optsType }),
-              h(Menu, { id: 'statut', field: 'statut', defaut: 'any', label: m('kb.models.filter.statut'), options: OPT_STATUT() }),
-              kbScoreSteps(KBM.scoreOf).length > 0 ? h(Menu, { id: 'score', field: 'score', defaut: 'any', label: m('kb.models.filter.score'), options: [{ v: 'any', t: m('kb.models.score.any') }].concat(kbScoreSteps(KBM.scoreOf).map((n) => ({ v: String(n), t: m('kb.models.score.min', { n }) }))) }) : null,
-              h(Menu, { id: 'tri', field: 'tri', defaut: 'name', label: m('kb.models.sort'), options: OPT_TRI() }))),
-          h('div', { className: 'kbmp-capsbar' + (kbmChipsOn() === true ? ' kbmp-capsbar-on' : '') }, h('span', { className: 'kbmp-caps' }, capFiltres
-            .map((k) => CAPS.filter((c) => c.k === k)[0])
-            .filter((c) => c !== undefined)
-            .map((c) => h(CapFiltre, { def: c, key: c.k })))),
+              h(Menu, { id: 'prov', field: 'prov', defaut: 'all', label: m('kb.models.filter.prov'), icon: Ic('cube', 14), options: optsProv }),
+              h(Menu, { id: 'type', field: 'type', defaut: 'all', label: m('kb.models.filter.type'), icon: Ic('tag', 14), options: optsType }),
+              h(Menu, { id: 'cap', multi: true, values: capValues, onToggle: uiCap, onAll: () => { UI.caps = {}; UI.page = 1 }, label: m('kb.models.filter.cap'), icon: Ic('filter', 14), options: optsCap }),
+              h(Menu, { id: 'statut', field: 'statut', defaut: 'any', label: m('kb.models.filter.statut'), icon: Ic('link', 14), options: OPT_STATUT() }),
+              kbScoreSteps(KBM.scoreOf).length > 0 ? h(Menu, { id: 'score', field: 'score', defaut: 'any', label: m('kb.models.filter.score'), icon: Ic('bars', 14), options: [{ v: 'any', t: m('kb.models.score.any'), i: Ic('bars', 14) }].concat(kbScoreSteps(KBM.scoreOf).map((n) => ({ v: String(n), t: m('kb.models.score.min', { n }), i: Ic('bars', 14) }))) }) : null,
+              h(Menu, { id: 'tri', field: 'tri', defaut: 'name', label: m('kb.models.sort'), icon: Ic('sort', 14), options: OPT_TRI() }))),
           h('div', { className: 'kbmp-resbar' },
             h('span', { 'data-kbm': 'count' }, m('kb.models.count', { a: rows.length, b: scope.length })),
             uiFiltre() === true
@@ -2699,10 +2779,8 @@ window.__ModuleLoader__.load({
                 KBM.scoresRunning === true ? m('kb.models.scores.refreshing') : m('kb.models.scores.load'))
               : null,
             h('span', { className: 'kbmp-grow' }),
-            h('button', {
-              type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kbm': 'sync-list',
-              onClick: () => { for (const mo of rows) kbmSync(mo.key) },
-            }, Ic('download', 13), h('span', null, m('kb.models.syncN', { n: rows.length })))),
+            // models.dev is read in the background: the bar says where that stands (« Sync all » is in the ⋯ menu).
+            KBM.live === true ? h(SyncChip, null) : null),
           h('div', { className: 'kbmp-table', 'data-kbm': 'list' },
             // The model's columns live in the MODEL cell (name + line
             // id · route · type · price): the table therefore has only five columns,
@@ -2886,6 +2964,11 @@ window.__ModuleLoader__.load({
         })
         // The Score column is read once the Models tab is up and the models are known (and again after a newer snapshot).
         React.useEffect(() => { if (UI.tab !== 'providers') kbMScoreListLoad(false) })
+        // models.dev is read in the background once the Models tab is up (the host's cached index, never the score sites).
+        React.useEffect(() => {
+          if (UI.tab !== 'providers' && KBM.live === true && KBM.loading !== true
+            && kbSyncDue({ running: KBM.syncRunning, failedAt: KBM.syncFailAt }, kbSyncTodo(KBM.models).length, Date.now())) kbMSyncBackground()
+        })
         React.useEffect(() => {
           const fermerMenu = () => { if (UI.menu !== null) { UI.menu = null; kbmNotify() } }
           // Escape closes the menu or the details sheet and nothing else: capturing it first, and stopping it when we
@@ -2941,8 +3024,6 @@ window.__ModuleLoader__.load({
                   h('button', { type: 'button', role: 'menuitem', className: 'kbpv-danger' + (KBM.confirmRestore === true ? ' kbmp-armed' : ''), 'data-kbm': 'restore',
                     onClick: () => { kbmRestoreAll(); if (KBM.confirmRestore !== true) UI.menu = null; kbmNotify() } }, Ic('undo', 14), KBM.confirmRestore === true ? m('kb.models.restore.arm') : m('kb.models.restore')),
                   h('hr', null),
-                  h('button', { type: 'button', role: 'menuitem', 'aria-checked': kbmChipsOn() ? 'true' : 'false', 'data-kbm': 'chips-toggle',
-                    onClick: () => { try { window.localStorage.setItem(KB_CHIPS_PREF, kbmChipsOn() ? '0' : '1') } catch (e) { /* per-viewer convenience */ } UI.menu = null; kbmNotify() } }, Ic(kbmChipsOn() ? 'check' : 'tag', 14), m('kb.models.menu.chips')),
                   h('button', { type: 'button', role: 'menuitem', 'data-kbm': 'native-open', onClick: () => { UI.menu = null; kbmNotify(); kbNatOpen() } }, Ic('external', 14), m('kb.nat.open'))) : null)) : null),
           // The catalog's description, the "Live data" state, Restore defaults and Fetch used to stack four
           // bands above the search: they are now an info icon and one ⋯ menu on the tab bar.
@@ -3004,7 +3085,7 @@ window.__ModuleLoader__.load({
         '.kbmp-nar .kbmp-mroute{max-width:none}',
         // From 860 px the table reads in columns: the provider in full, and nine fixed capability slots (a column of
         // eyes answers "which models see images?" at a glance; the header icons filter).
-        '@container (min-width: 860px){.kbmp-table .kbmp-thead,.kbmp-table .kbmp-cols{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr) 236px 64px 118px 56px;gap:14px;padding:0 16px}.kbmp-table .kbmp-thead .kbmp-c-prov,.kbmp-table .kbmp-cols .kbmp-cprov{display:flex}.kbmp-table .kbmp-cols .kbmp-nar{display:none}.kbmp-table .kbmp-cols .kbmp-capsl,.kbmp-table .kbmp-thead .kbmp-thl{display:none}.kbmp-table .kbmp-cols .kbmp-mx,.kbmp-table .kbmp-thead .kbmp-mx{display:grid;grid-template-columns:repeat(10,22px);justify-content:space-between;align-items:center}.kbmp-table .kbmp-cols .kbmp-cctx{text-align:right}.kbmp-table .kbmp-thead .kbmp-c-context{justify-content:flex-end}.kbmp-capsbar:not(.kbmp-capsbar-on){display:none}}',
+        '@container (min-width: 860px){.kbmp-table .kbmp-thead,.kbmp-table .kbmp-cols{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr) 236px 64px 118px 56px;gap:14px;padding:0 16px}.kbmp-table .kbmp-thead .kbmp-c-prov,.kbmp-table .kbmp-cols .kbmp-cprov{display:flex}.kbmp-table .kbmp-cols .kbmp-nar{display:none}.kbmp-table .kbmp-cols .kbmp-capsl,.kbmp-table .kbmp-thead .kbmp-thl{display:none}.kbmp-table .kbmp-cols .kbmp-mx,.kbmp-table .kbmp-thead .kbmp-mx{display:grid;grid-template-columns:repeat(10,22px);justify-content:space-between;align-items:center}.kbmp-table .kbmp-cols .kbmp-cctx{text-align:right}.kbmp-table .kbmp-thead .kbmp-c-context{justify-content:flex-end}}',
         '.kbmp-provname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary);font-size:13px}',
         '.kbmp-mxc{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px}',
         '.kbmp-mxoff{width:3px;height:3px;border-radius:50%;background:var(--dsw-alias-border-l4)}',
@@ -3065,6 +3146,8 @@ window.__ModuleLoader__.load({
         // On a card the logo is the first thing read: a 46 px tile with a 30 px drawing (the drawers' headers keep the small one).
         '.kbpv-card>.kbpv-logo{width:46px;height:46px;border-radius:12px}',
         '.kbpv-search{flex:0 1 320px;min-width:160px}',
+        // On a phone the search (232 px at its narrowest), « Add provider » and the page's « … » do not fit one row (12 px too wide at 390, 57 px at 360: a sideways scroll of the Settings page): the search takes a row, the two buttons the next.
+        '@media (max-width:600px){.kbpv-head{flex-wrap:wrap}.kbpv-search{flex:1 1 100%}}',
         '.kbpv-cbody{min-width:0;flex:1;display:flex;flex-direction:column;gap:1px}',
         '.kbpv-cbody .kbmp-free{position:relative;z-index:1;align-self:flex-start;margin-top:3px}',
         '.kbpv-nm{display:flex;align-items:center;min-width:0;font-family:ui-monospace,monospace;font-size:13px;color:var(--dsw-alias-label-primary)}',
@@ -3109,7 +3192,7 @@ window.__ModuleLoader__.load({
         '.kbpv-menu button:disabled{opacity:.4;cursor:not-allowed}',
         '.kbpv-menu hr{border:0;border-top:.5px solid var(--dsw-alias-border-l2);margin:4px 0}',
         '.kbpv-danger{color:var(--dsw-alias-state-error-primary)!important}',
-        '.kbpv-danger-fill{background:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-label-primary-foreground);border:0}',
+        '.kbpv-danger-fill{background:var(--dsw-alias-state-error-primary);background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 78%,black);color:white;border:0}',
         '.kbpv-danger-fill:disabled{opacity:.4;cursor:not-allowed}',
         '.kbpv-note{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 8px 8px 14px;border-radius:12px;background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 14%,transparent);font-size:13px}',
         '.kbpv-fail{padding:8px 12px;border-radius:12px;border:.5px solid var(--dsw-alias-state-error-primary);color:var(--dsw-alias-state-error-primary);font-size:13px}',
@@ -3276,7 +3359,8 @@ window.__ModuleLoader__.load({
         // ── liste Models : recherche, quatre filtres, puces, table ──────────
         '.kbmp-listwrap{display:flex;flex-direction:column;gap:10px}',
         '.kbmp-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}',
-        '.kbmp-search{flex:1 1 240px;min-width:200px}',
+        // The search takes a line of its own, the filters sit under it: the same bar on every surface that lists models.
+        '.kbmp-search{flex:1 1 100%;min-width:200px}',
         '.kbmp-loupe{flex:none;color:var(--dsw-alias-label-tertiary)}',
         '.kbmp-search .kbm-in-input::-webkit-search-cancel-button{display:none}',
         // the shared input's placeholder is label-dimmed: 1.6:1 on the dark layer, 1.3:1 on white
@@ -3289,20 +3373,25 @@ window.__ModuleLoader__.load({
         '.kbmp-trig.on{border-color:var(--dsw-alias-state-business-primary)}',
         '.kbmp-trig.on .kbmp-triglab,.kbmp-trig.on .kbmp-trigval,.kbmp-trig.on .kbmp-trigchev{color:var(--dsw-alias-state-business-primary)}',
         '.kbmp-trigchev{display:inline-flex;color:var(--dsw-alias-label-tertiary)}',
+        // the icon of a filter (its own at rest, the one of the chosen value once there is one) and of each option
+        '.kbmp-trigi,.kbmp-opti{display:inline-flex;align-items:center;justify-content:center;flex:none;width:16px;height:16px;color:var(--dsw-alias-label-tertiary)}',
+        '.kbmp-opti{width:18px;height:18px}',
+        '.kbmp-trig.on .kbmp-trigi.gen{color:var(--dsw-alias-state-business-primary)}',
+        '.kbmp-trigi .kbmp-logo-chip,.kbmp-opti .kbmp-logo-chip{border-radius:5px}',
+        '.kbmp-pop .kbm-menu-itemLabel{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+        '.kbmp-optck{display:inline-flex;flex:none;color:var(--dsw-alias-label-primary)}',
+        '.kbmp-pop .kbm-menu-item:focus-visible{outline:none;background:var(--dsw-alias-bg-layer-3)}',
+        // models.dev, read in the background: a status line, not a button
+        '.kbmp-syn{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--dsw-alias-label-tertiary)}',
+        '.kbmp-syn.warn{color:var(--dsw-alias-state-warn-primary)}',
+        '.kbmp-spin{animation:kbpvSpin 1s linear infinite}',
+        '@media (prefers-reduced-motion: reduce){.kbmp-spin{animation:none}}',
+        // below 620 px the filters are a two-column grid (the odd one out takes the whole line) and a menu opens inside the panel
+        '@container not (min-width: 620px){.kbmp-menus{display:grid;grid-template-columns:1fr 1fr;width:100%}.kbmp-menus>.kbmp-menu{min-width:0}.kbmp-menus>.kbmp-menu:nth-child(odd):last-child{grid-column:span 2}.kbmp-menus .kbmp-trig{width:100%;justify-content:flex-start;padding:0 8px;gap:4px}.kbmp-menus .kbmp-trigval{flex:1;min-width:0;max-width:none;text-align:left}.kbmp-menus .kbmp-trigchev{margin-left:auto}.kbmp-menus>.kbmp-menu:nth-child(even) .kbmp-pop{left:auto;right:0}.kbmp-pop{max-width:calc(100cqw - 24px)}}',
         '.kbmp-pop{position:absolute;top:calc(100% + 6px);left:0;z-index:60;min-width:200px;max-height:320px;overflow:auto;padding:4px;background:var(--dsw-alias-bg-layer-2);border:.5px solid var(--dsw-alias-border-l3);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.28)}',
         '.kbmp-pop .kbm-menu-item{display:flex;width:100%;align-items:center;gap:8px;padding:7px 9px;border:none;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);font-size:13px;text-align:left;cursor:pointer}',
         '.kbmp-pop .kbm-menu-item:hover{background:var(--dsw-alias-bg-layer-3)}',
         '.kbmp-pop .kbm-menu-selected{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-3)}',
-        '.kbmp-capsbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}',
-        '.kbmp-caps{display:flex;gap:6px;flex-wrap:wrap;min-width:0}',
-        // ICON + LABEL chips: eight mute discs did not say
-        // what they filtered.
-        '.kbmp-cap{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px 0 8px;border:.5px solid var(--dsw-alias-border-l2);border-radius:999px;background:var(--dsw-alias-bg-layer-2);cursor:pointer;font-size:11.5px;color:var(--dsw-alias-label-secondary)}',
-        '.kbmp-cap:hover{border-color:var(--dsw-alias-border-l3)}',
-        '.kbmp-cap .kbmp-capi{display:inline-flex}',
-        '.kbmp-cap.on{background:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-inverted)}',
-        '.kbmp-cap.on .kbmp-capi{color:currentColor!important}',
-        'body:not([data-ds-dark-theme]) .kbmp-cap.on .kbmp-capi{filter:none}',
         // The panel's table lives in a 556 or 720 px column (the Settings
         // box): five columns, of which only one shares the room. The
         // model carries name + « id · route · type · price » — no empty
@@ -4327,6 +4416,24 @@ window.__ModuleLoader__.load({
       const kbPvKeyRef = (slug) => String(slug).toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') + '_API_KEY'
       /** A parseable http(s) URL without an unfilled `${…}` template. Pure. */
       const kbPvUrlOk = (url) => /^https?:\/\/[^\s]+$/.test(String(url).trim()) && String(url).indexOf('${') < 0
+      /** A server on this device or on a private network (localhost, 127.x, ::1, 10.x, 172.16-31.x, 192.168.x, 169.254.x, *.local): Ollama and LM Studio there ask for no key. Pure. */
+      const kbPvKeylessUrl = (url) => {
+        const host = String(url).trim().replace(/^https?:\/\//i, '').replace(/[/?#].*$/, '').replace(/^[^@]*@/, '').replace(/:\d+$/, '').replace(/^\[|\]$/g, '').toLowerCase()
+        if (host === '') return false
+        if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || host === '::1') return true
+        const ip = /^(\d{1,3})\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/.exec(host)
+        if (ip === null) return false
+        const a = Number(ip[1]); const b = Number(ip[2])
+        return a === 127 || a === 10 || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31) || (a === 169 && b === 254)
+      }
+      /** The engine refuses a turn on a route with no key ("No API key for provider"), so a custom route on a local or private server with the key left blank gets this neutral placeholder: the server ignores it. */
+      const KB_PV_NOKEY = 'no-key-required'
+      /** What goes into the vault for an add draft: the typed key, else the placeholder for a keyless local server, else nothing. Pure. */
+      const kbPvKeyToStore = (d) => {
+        const typed = String(d.key || '').trim()
+        if (typed !== '') return typed
+        return d.tab === 'custom' && kbPvKeylessUrl(d.url) ? KB_PV_NOKEY : ''
+      }
       const kbPvIsObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
       /** The credential reference a route reads its key from: the one its profile names, else the one the catalogue gives that
        *  provider (a catalog add with the key left blank writes no `apiKeyEnv` yet), else null (a route that names no key at
@@ -4456,7 +4563,7 @@ window.__ModuleLoader__.load({
         const prof = { api: typeof d.proto === 'string' && d.proto !== '' ? d.proto : 'openai-completions', baseURL: String(d.url || '').trim().replace(/\/+$/, '') }
         const name = String(d.name || '').trim()
         if (name !== '') prof.displayName = name
-        if (String(d.key || '').trim() !== '') prof.apiKeyEnv = String(d.env || '').trim() !== '' ? String(d.env).trim() : kbPvKeyRef(slug)
+        if (kbPvKeyToStore(d) !== '') prof.apiKeyEnv = String(d.env || '').trim() !== '' ? String(d.env).trim() : kbPvKeyRef(slug)
         // No `retryPolicy` and no empty `modelOverrides`: DSH 0.2.0-rc.2 rejects the old `{ attempts, … }` shape
         // (measured: "retryPolicy expected { mode: \"normal\", maxRetries?, … }"), and the engine's own default
         // (normal mode, bounded by the plugin's cap of 10) is what a new route should get.
@@ -4505,7 +4612,7 @@ window.__ModuleLoader__.load({
         await kbMJournal({ niveau: 'settings', route: slug, champ: 'provider', op: 'set', chemin: ['providers', slug], ok: resp.ok === true })
         if (resp.ok !== true) throw new Error(kbMErrText(resp))
         let keyOk = null
-        if (String(d.key || '').trim() !== '') keyOk = await kbPvCredential(api, prof.apiKeyEnv, String(d.key).trim())
+        if (kbPvKeyToStore(d) !== '') keyOk = await kbPvCredential(api, prof.apiKeyEnv, kbPvKeyToStore(d))
         await kbMLoad()
         return { slug, keyOk }
       }
@@ -5230,13 +5337,19 @@ window.__ModuleLoader__.load({
             mo.remote = {}
             mo.synced = false
             mo.error = body.error === 'modelsdev-unavailable' ? m('kb.models.error.index') : (m('kb.models.error.reseau') + sep() + String(body.error === undefined ? 'inconnu' : body.error))
+            KBM.syncFailAt = Date.now()
           } else if (body !== null && body.match !== null && body.match !== undefined) {
             mo.remote = Object.assign({}, body.match)
             mo.stale = body.stale === true
             mo.error = null
+            KBM.syncAt = Date.now()
+            KBM.syncFailAt = null
           } else {
             mo.remote = {}
             mo.error = m('kb.models.error.nomatch')
+            // The index answered: « no match » is an answer, not a failure.
+            KBM.syncAt = Date.now()
+            KBM.syncFailAt = null
           }
           kbmNotify()
           return true
@@ -5244,8 +5357,32 @@ window.__ModuleLoader__.load({
           mo.loading = false
           mo.synced = false
           mo.error = m('kb.models.error.reseau') + sep() + String(e && e.message ? e.message : e)
+          KBM.syncFailAt = Date.now()
           kbmNotify()
           return false
+        }
+      }
+      /** One background pass: every model not read yet, four at a time. The host's cached index only; the scores are not asked. */
+      const kbMSyncBackground = async () => {
+        if (KBM.live !== true || KBM.syncRunning === true) return
+        const todo = kbSyncTodo(KBM.models)
+        if (todo.length === 0) return
+        KBM.syncRunning = true
+        KBM.syncDone = 0
+        KBM.syncTotal = todo.length
+        kbmNotify()
+        let next = 0
+        const worker = async () => {
+          while (next < todo.length) {
+            const mo = todo[next]
+            next += 1
+            try { await kbMSyncLive(mo) } catch (e) { /* the row says why; the pass goes on */ }
+            KBM.syncDone += 1
+          }
+        }
+        try { await Promise.all(Array.from({ length: Math.min(KB_SYNC_PARALLEL, todo.length) }, worker)) } finally {
+          KBM.syncRunning = false
+          kbmNotify()
         }
       }
       // ── OUR surface: a NEW menu in Settings ───────────────────────

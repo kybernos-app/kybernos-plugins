@@ -21,6 +21,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { hasEntry } from './lib-i18n-test.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -30,14 +31,11 @@ const src = readFileSync(join(HERE, 'client.js'), 'utf8')
 const has = (needle, label) => assert.ok(src.indexOf(needle) >= 0, label + ' — missing: ' + needle.slice(0, 70))
 
 // 1. the words exist in both languages of the dictionary
-has("'kbta.lock.soon.t': { kybernos:", 'the soon title is in the dictionary')
-has("'kbta.lock.soon.b': { kybernos:", 'the soon body is in the dictionary')
-has("'kbta.soon': { kybernos:", 'the « Bientôt » chip has its word')
-has("'kbsd.nocloud': { kybernos:", 'the share sheet has its reason for « no account »')
-for (const key of ["'kbta.lock.soon.t'", "'kbta.lock.soon.b'", "'kbta.soon'", "'kbsd.nocloud'"]) {
-  const line = src.slice(src.indexOf(key), src.indexOf('\n', src.indexOf(key)))
-  assert.ok(/en:/.test(line), key + ' carries its English too')
-}
+const dict = (key, label) => assert.ok(hasEntry(key), label + ' — missing (or not in both languages): ' + key)
+dict('kbta.lock.soon.t', 'the soon title is in the dictionary')
+dict('kbta.lock.soon.b', 'the soon body is in the dictionary')
+dict('kbta.soon', 'the « Bientôt » chip has its word')
+dict('kbsd.nocloud', 'the share sheet has its reason for « no account »')
 ok('the four new labels are bilingual')
 
 // 2. « not delivered » is its own state: greyed, no action, a chip

@@ -23,7 +23,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 window.__ModuleLoader__.load({
-  id: '@local/kybernos-atlas/client',
+  id: '@local/kybernos-atlas',
   factory (require) {
     // ── language: English is the base; the French of each static text lives in FR below, keyed by the English text. A sentence that
     // carries a name or a number is written where it is built, as a kt(fr, en) pair. French only for a French UI, a translated language
@@ -50,7 +50,7 @@ window.__ModuleLoader__.load({
       'just now': 'à l’instant',
       'read failed': 'lecture échouée',
       'Shared or unassigned': 'Partagé ou non attribué',
-      'No agent team definition found; only its lessons and runs remain.': 'Aucune définition d’Agent Team trouvée ; il ne reste que ses leçons et ses exécutions.',
+      'No AI agent team definition found; only its lessons and runs remain.': 'Aucune définition d’équipe d’agents IA trouvée ; il ne reste que ses leçons et ses exécutions.',
       'No description.': 'Aucune description.',
       'lessons only': 'leçons seulement',
       'Not installed': 'Non installée',
@@ -64,8 +64,8 @@ window.__ModuleLoader__.load({
       'Run': 'Exécution',
       'Project': 'Projet',
       'Projects': 'Projets',
-      'Agent Teams & automations': 'Agent Teams et automatisations',
-      'Agent Teams': 'Agent Teams',
+      'AI Agent Teams & automations': 'Équipes d’agents IA et automatisations',
+      'AI Agent Teams': 'Équipes d’agents IA',
       'Automations': 'Automatisations',
       'Skills & apps': 'Skills et apps',
       'Skills': 'Skills',
@@ -73,7 +73,7 @@ window.__ModuleLoader__.load({
       'Memory & lessons': 'Mémoire et leçons',
       'Memory': 'Mémoire',
       'Lessons': 'Leçons',
-      'Agent Team': 'Agent Team',
+      'AI Agent Team': 'Équipe d’agents IA',
       'Automation': 'Automatisation',
       'Skill': 'Skill',
       'App': 'App',
@@ -91,7 +91,7 @@ window.__ModuleLoader__.load({
       'The Atlas shows how the things you set up fit together. It reads your files and plugins only when you click Update, and never edits them. It keeps its last reading in this browser, so the page opens on it.': 'L’Atlas montre comment ce que tu as mis en place s’articule. Il ne lit tes fichiers et tes plugins que lorsque tu cliques sur Mettre à jour, et ne les modifie jamais. Il garde sa dernière lecture dans ce navigateur : la page s’ouvre donc dessus.',
       'The views': 'Les vues',
       'Around': 'Autour',
-      'Pick a project or an agent team in “Start from”. Four columns show who works there, what they use and what they know. Hover a name to light up its lines.': 'Choisis un projet ou une Agent Team dans « Partir de ». Quatre colonnes montrent qui y travaille, ce qu’il utilise et ce qu’il sait. Survole un nom pour allumer ses lignes.',
+      'Pick a project or an AI agent team in “Start from”. Four columns show who works there, what they use and what they know. Hover a name to light up its lines.': 'Choisis un projet ou une équipe d’agents IA dans « Partir de ». Quatre colonnes montrent qui y travaille, ce qu’il utilise et ce qu’il sait. Survole un nom pour allumer ses lignes.',
       'Rings': 'Anneaux',
       'The whole workspace: one ring per layer, the workspace in the middle, each project keeping its wedge.': 'Tout l’espace de travail : un anneau par couche, l’espace de travail au centre, chaque projet gardant sa part.',
       'Circle': 'Cercle',
@@ -107,26 +107,26 @@ window.__ModuleLoader__.load({
       'List': 'Liste',
       'The same things as a table. The text version of every drawing.': 'Les mêmes éléments en tableau. La version texte de chaque dessin.',
       'In the drawings': 'Dans les dessins',
-      'Click a dot for details; the card has an Open button when the thing has a page in Kybernos (a skill, an agent team, a project, an automation, a connector, or the session of a run). Search finds a name and flies to it. Click a legend chip to isolate it. Names shows every name, Motion lets the dots drift, and Lessons adds the lessons, which are many and so off by default. Ctrl or ⌘ + scroll, or the + and − buttons, zoom.': 'Clique sur un point pour les détails ; la fiche a un bouton Ouvrir quand l’élément a une page dans Kybernos (une skill, une Agent Team, un projet, une automatisation, un connecteur ou la session d’une exécution). La recherche trouve un nom et s’y rend. Clique sur une pastille de la légende pour l’isoler. Noms affiche tous les noms, Mouvement laisse les points dériver, et Leçons ajoute les leçons, nombreuses donc masquées par défaut. Ctrl ou ⌘ + molette, ou les boutons + et −, zooment.',
+      'Click a dot for details; the card has an Open button when the thing has a page in Kybernos (a skill, an AI agent team, a project, an automation, a connector, or the session of a run). Search finds a name and flies to it. Click a legend chip to isolate it. Names shows every name, Motion lets the dots drift, and Lessons adds the lessons, which are many and so off by default. Ctrl or ⌘ + scroll, or the + and − buttons, zoom.': 'Clique sur un point pour les détails ; la fiche a un bouton Ouvrir quand l’élément a une page dans Kybernos (une skill, une équipe d’agents IA, un projet, une automatisation, un connecteur ou la session d’une exécution). La recherche trouve un nom et s’y rend. Clique sur une pastille de la légende pour l’isoler. Noms affiche tous les noms, Mouvement laisse les points dériver, et Leçons ajoute les leçons, nombreuses donc masquées par défaut. Ctrl ou ⌘ + molette, ou les boutons + et −, zooment.',
       'The lines': 'Les lignes',
       'Solid. ': 'Pleine. ',
-      'Written in a file. For example, an agent team lists a skill.': 'Écrite dans un fichier. Par exemple, une Agent Team liste une skill.',
+      'Written in a file. For example, an AI agent team lists a skill.': 'Écrite dans un fichier. Par exemple, une équipe d’agents IA liste une skill.',
       'Dashed. ': 'En pointillés. ',
-      'Guessed from a name. For example, an app that matches one of an agent team’s tools.': 'Devinée d’après un nom. Par exemple, une app qui correspond à l’un des outils d’une Agent Team.',
+      'Guessed from a name. For example, an app that matches one of an AI agent team’s tools.': 'Devinée d’après un nom. Par exemple, une app qui correspond à l’un des outils d’une équipe d’agents IA.',
       'Crossed out, red. ': 'Barrée, en rouge. ',
       'Points to something that no longer exists, such as a skill that is not installed.': 'Pointe vers quelque chose qui n’existe plus, comme une skill qui n’est pas installée.',
       'To check': 'À vérifier',
       'Red items are broken links. Amber items look wrong, for example an automation whose last run failed. Click one to see where it is on the map. Skills that nobody declares are not listed: skills are mostly used by name, on demand.': 'Les éléments rouges sont des liens cassés. Les éléments ambre ont l’air anormaux, par exemple une automatisation dont la dernière exécution a échoué. Clique sur l’un d’eux pour voir où il se trouve sur la carte. Les skills que personne ne déclare ne sont pas listées : les skills sont surtout utilisées par leur nom, à la demande.',
       'Words': 'Les mots',
-      'A workspace in DSH.': 'Un espace de travail dans DSH.',
-      'A team of agents with its own roles, skills and lessons.': 'Une équipe d’agents avec ses propres rôles, skills et leçons.',
-      'A reusable instruction set an agent team or a project can use.': 'Un jeu d’instructions réutilisable qu’une Agent Team ou un projet peut utiliser.',
+      'A workspace in Kybernos.': 'Un espace de travail dans Kybernos.',
+      'A team of agents with its own roles, skills and lessons.': 'Une équipe d’agents IA avec ses propres rôles, skills et leçons.',
+      'A reusable instruction set an AI agent team or a project can use.': 'Un jeu d’instructions réutilisable qu’une équipe d’agents IA ou un projet peut utiliser.',
       'Facts kept in your kybernos.app account. Needs a linked account.': 'Des faits gardés dans ton compte kybernos.app. Demande un compte relié.',
-      'Something an agent team learned from a past run. The most recent few are shown.': 'Ce qu’une Agent Team a appris d’une exécution passée. Les plus récentes sont affichées.',
+      'Something an AI agent team learned from a past run. The most recent few are shown.': 'Ce qu’une équipe d’agents IA a appris d’une exécution passée. Les plus récentes sont affichées.',
       'A scheduled task. Its last run is shown on its card.': 'Une tâche planifiée. Sa dernière exécution figure sur sa fiche.',
       'What you will not see': 'Ce que tu ne verras pas',
       'Sessions. Automation runs only appear in the drawings, and only the last 14 days.': 'Les sessions. Les exécutions d’automatisations n’apparaissent que dans les dessins, et seulement sur les 14 derniers jours.',
-      'Which agent team worked in which project, beyond each project’s 40 most recent sessions. It is only known when an agent team was activated in a session.': 'Quelle Agent Team a travaillé dans quel projet, au-delà des 40 sessions les plus récentes de chaque projet. On ne le sait que lorsqu’une Agent Team a été activée dans une session.',
+      'Which AI agent team worked in which project, beyond each project’s 40 most recent sessions. It is only known when an AI agent team was activated in a session.': 'Quelle équipe d’agents IA a travaillé dans quel projet, au-delà des 40 sessions les plus récentes de chaque projet. On ne le sait que lorsqu’une équipe d’agents IA a été activée dans une session.',
       'Account memory fact by fact. It can hold hundreds, so it is one node with a count.': 'La mémoire du compte fait par fait. Elle peut en contenir des centaines : c’est donc un seul nœud avec un compteur.',
       'Memories, when no account is linked.': 'Les mémoires, quand aucun compte n’est relié.',
       'Links no file declares. Names are the only thing it guesses from.': 'Les liens qu’aucun fichier ne déclare. Les noms sont la seule chose dont il se sert pour deviner.',
@@ -134,13 +134,13 @@ window.__ModuleLoader__.load({
       'Got it': 'Compris',
       'Start from': 'Partir de',
       'Choose…': 'Choisir…',
-      'Search a project, agent team, skill…': 'Chercher un projet, une Agent Team, une skill…',
+      'Search a project, AI agent team, skill…': 'Chercher un projet, une équipe d’agents IA, une skill…',
       'Search': 'Rechercher',
       'No match': 'Aucun résultat',
-      'Pick a project or an agent team in “Start from”.': 'Choisis un projet ou une Agent Team dans « Partir de ».',
+      'Pick a project or an AI agent team in “Start from”.': 'Choisis un projet ou une équipe d’agents IA dans « Partir de ».',
       'Not read. Link your kybernos.app account to see memory.': 'Non lue. Relie ton compte kybernos.app pour voir la mémoire.',
       'Who works on this project, what they use and what they know.': 'Qui travaille sur ce projet, ce qu’il utilise et ce qu’il sait.',
-      'Where this agent team is used, what it uses and what it knows.': 'Où cette Agent Team est utilisée, ce qu’elle utilise et ce qu’elle sait.',
+      'Where this AI agent team is used, what it uses and what it knows.': 'Où cette équipe d’agents IA est utilisée, ce qu’elle utilise et ce qu’elle sait.',
       ' Hover a name to follow its lines.': ' Survole un nom pour suivre ses lignes.',
       'Show fewer': 'En montrer moins',
       'Nothing here.': 'Rien ici.',
@@ -183,19 +183,19 @@ window.__ModuleLoader__.load({
       'Inferred links': 'Liens déduits',
       'The rings as a stack that turns on its own. Drag to turn it yourself.': 'Les anneaux en pile qui tourne toute seule. Fais-la tourner en la faisant glisser.',
       'Memories were not read, so any problem with them is not listed.': 'Les mémoires n’ont pas été lues : leurs éventuels problèmes ne sont donc pas listés.',
-      'Sessions were not ready, so agent teams are not tied to projects. Click Update in a moment.': 'Les sessions n’étaient pas prêtes : les Agent Teams ne sont donc pas rattachées aux projets. Clique sur Mettre à jour dans un instant.',
+      'Sessions were not ready, so AI agent teams are not tied to projects. Click Update in a moment.': 'Les sessions n’étaient pas prêtes : les équipes d’agents IA ne sont donc pas rattachées aux projets. Clique sur Mettre à jour dans un instant.',
       'Open the session': 'Ouvrir la session',
       'Could not open the session.': 'Impossible d’ouvrir la session.',
       'Reading the Atlas': 'Lecture de l’Atlas',
       'Reading seven sources on this computer. Nothing leaves it.': 'Lecture de sept sources sur cet ordinateur. Rien n’en sort.',
       'The Atlas could not be read': 'L’Atlas n’a pas pu être lu',
-      'None of the sources answered. DSH may be restarting. Wait a moment, then try again.': 'Aucune source n’a répondu. DSH redémarre peut-être. Patiente un instant, puis réessaie.',
+      'None of the sources answered. Kybernos may be restarting. Wait a moment, then try again.': 'Aucune source n’a répondu. Kybernos redémarre peut-être. Patiente un instant, puis réessaie.',
       'Try again': 'Réessayer',
       'Nothing read yet': 'Rien n’a encore été lu',
       'The Atlas reads your files and plugins only when you ask. Opening this page reads nothing; the first Update is kept here, and the page shows it next time.': 'L’Atlas ne lit tes fichiers et tes plugins que lorsque tu le demandes. Ouvrir cette page ne lit rien ; la première mise à jour est gardée ici, et la page l’affichera la prochaine fois.',
       'Update': 'Mettre à jour',
       'Nothing to map yet': 'Rien à cartographier pour l’instant',
-      'The Atlas fills in as you add agent teams, skills, automations and memories. Create an agent team or install a skill, then click Update.': 'L’Atlas se remplit à mesure que tu ajoutes des Agent Teams, des skills, des automatisations et des mémoires. Crée une Agent Team ou installe une skill, puis clique sur Mettre à jour.',
+      'The Atlas fills in as you add AI agent teams, skills, automations and memories. Create an AI agent team or install a skill, then click Update.': 'L’Atlas se remplit à mesure que tu ajoutes des équipes d’agents IA, des skills, des automatisations et des mémoires. Crée une équipe d’agents IA ou installe une skill, puis clique sur Mettre à jour.',
       'View': 'Vue',
       'Zoom in': 'Zoomer',
       'Zoom out': 'Dézoomer',
@@ -207,7 +207,7 @@ window.__ModuleLoader__.load({
       'Reading…': 'Lecture…',
       'Not read yet': 'Pas encore lue',
       'Could not read': 'Lecture impossible',
-      'Every project, agent team, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits anything. Its last reading is kept in this browser.': 'Chaque projet, Agent Team, skill, mémoire, leçon, automatisation et app, et la façon dont ils se pointent les uns vers les autres. Il ne fait que lire ; il ne modifie jamais rien. Sa dernière lecture est gardée dans ce navigateur.',
+      'Every project, AI agent team, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits anything. Its last reading is kept in this browser.': 'Chaque projet, équipe d’agents IA, skill, mémoire, leçon, automatisation et app, et la façon dont ils se pointent les uns vers les autres. Il ne fait que lire ; il ne modifie jamais rien. Sa dernière lecture est gardée dans ce navigateur.',
       'reading…': 'lecture…',
       'waiting': 'en attente',
       'Rings. ': 'Anneaux. ',
@@ -413,7 +413,7 @@ window.__ModuleLoader__.load({
         if (d && d.mission !== '') bits.push(cut(firstSentence(d.mission), 140) + '.')
         if (d && d.roles.length) bits.push(kt('Rôles : ', 'Roles: ') + d.roles.join(', ') + '.')
         if (l) bits.push(kt(l.total + (l.total > 1 ? ' leçons' : ' leçon') + ', ' + l.runs + (l.runs > 1 ? ' exécutions.' : ' exécution.'), l.total + (l.total === 1 ? ' lesson' : ' lessons') + ', ' + l.runs + (l.runs === 1 ? ' run.' : ' runs.')))
-        if (!d) bits.unshift(tr('No agent team definition found; only its lessons and runs remain.'))
+        if (!d) bits.unshift(tr('No AI agent team definition found; only its lessons and runs remain.'))
         add({ id: 'k:' + kid, kind: 'kyber', file: d ? d.file : '', rootId: d ? d.rootId : '', label: d ? d.name : kid, area: mainWs(kid), days: l ? daysSince(l.lastActivity, now) : null, path: '~/.dsh/kybers/' + kid, note: bits.join(' ') || tr('No description.'), sub: d ? (d.roles.length ? kt('Rôles : ', 'Roles: ') + d.roles.slice(0, 3).join(', ') : '') : tr('lessons only') })
         for (const wid of Object.keys(obj(kyberWs[kid]))) link('k:' + kid, 'p:' + wid, 'derived')
       }
@@ -429,7 +429,7 @@ window.__ModuleLoader__.load({
           // A skill kept inside a kyber's own folder: real, just not in the shared catalogue.
           const lo = localOf[low(name)]; const lid = 's:local:' + lo.kid + ':' + low(lo.name)
           if (localNodes[lid] === undefined) {
-            localNodes[lid] = add({ id: lid, kind: 'skill', label: lo.name, area: byId['k:' + lo.kid].area, days: null, path: '~/.dsh/kybers/' + lo.kid + '/skills/' + lo.name, note: kt('Une skill gardée dans l’Agent Team « ' + byId['k:' + lo.kid].label + ' », pas dans le catalogue partagé.', 'A skill kept inside the agent team “' + byId['k:' + lo.kid].label + '”, not in the shared catalogue.') })
+            localNodes[lid] = add({ id: lid, kind: 'skill', label: lo.name, area: byId['k:' + lo.kid].area, days: null, path: '~/.dsh/kybers/' + lo.kid + '/skills/' + lo.name, note: kt('Une skill gardée dans l’équipe d’agents IA « ' + byId['k:' + lo.kid].label + ' », pas dans le catalogue partagé.', 'A skill kept inside the AI agent team “' + byId['k:' + lo.kid].label + '”, not in the shared catalogue.') })
             link(lid, 'k:' + lo.kid, 'declared')
           }
           if (ownerId !== 'k:' + lo.kid) link(ownerId, lid, 'declared')
@@ -466,14 +466,14 @@ window.__ModuleLoader__.load({
       // Memory. Account memory is one node (it applies to every kyber). Cloud kybers keep a count per workspace.
       const mem = src.memory
       if (mem && mem.connected) {
-        add({ id: 'm:account', kind: 'memory', label: tr('Account memory'), area: 'none', days: null, path: kt('kybernos.app · compte', 'kybernos.app · account'), note: kt(mem.accountCount + (mem.accountCount > 1 ? ' faits gardés' : ' fait gardé') + ' dans ton compte' + (mem.pinned ? ', ' + mem.pinned + (mem.pinned > 1 ? ' épinglés' : ' épinglé') : '') + '. Ils valent pour toutes les Agent Teams, donc ils ne sont pas dessinés un par un.', mem.accountCount + (mem.accountCount === 1 ? ' fact' : ' facts') + ' kept in your account' + (mem.pinned ? ', ' + mem.pinned + ' pinned' : '') + '. They apply to every agent team, so they are not drawn one by one.') })
+        add({ id: 'm:account', kind: 'memory', label: tr('Account memory'), area: 'none', days: null, path: kt('kybernos.app · compte', 'kybernos.app · account'), note: kt(mem.accountCount + (mem.accountCount > 1 ? ' faits gardés' : ' fait gardé') + ' dans ton compte' + (mem.pinned ? ', ' + mem.pinned + (mem.pinned > 1 ? ' épinglés' : ' épinglé') : '') + '. Ils valent pour toutes les équipes d’agents IA, donc ils ne sont pas dessinés un par un.', mem.accountCount + (mem.accountCount === 1 ? ' fact' : ' facts') + ' kept in your account' + (mem.pinned ? ', ' + mem.pinned + ' pinned' : '') + '. They apply to every AI agent team, so they are not drawn one by one.') })
         for (const c of mem.cloud) {
           add({ id: 'm:cloud:' + c.id, kind: 'memory', label: kt('Mémoire ' + c.name, c.name + ' memory'), area: workspaces.some((w) => w.id === c.workspaceId) ? 'p:' + c.workspaceId : 'none', days: null, path: 'kybernos.app · ' + c.name, note: kt(c.count + (c.count > 1 ? ' faits gardés' : ' fait gardé') + ' pour « ' + c.name + ' ».', c.count + (c.count === 1 ? ' fact' : ' facts') + ' kept for “' + c.name + '”.') })
           link('m:cloud:' + c.id, 'p:' + c.workspaceId, 'declared')
         }
         for (const kid of Object.keys(mem.byKyber)) {
           if (byId['k:' + kid] === undefined || mem.byKyber[kid] === 0) continue
-          add({ id: 'm:kyber:' + kid, kind: 'memory', label: kt('Mémoire ' + byId['k:' + kid].label, byId['k:' + kid].label + ' memory'), area: byId['k:' + kid].area, days: null, path: kt('kybernos.app · Agent Team ', 'kybernos.app · agent team ') + kid, note: kt(mem.byKyber[kid] + (mem.byKyber[kid] > 1 ? ' faits gardés' : ' fait gardé') + ' pour cette Agent Team.', mem.byKyber[kid] + (mem.byKyber[kid] === 1 ? ' fact' : ' facts') + ' kept for this agent team.') })
+          add({ id: 'm:kyber:' + kid, kind: 'memory', label: kt('Mémoire ' + byId['k:' + kid].label, byId['k:' + kid].label + ' memory'), area: byId['k:' + kid].area, days: null, path: kt('kybernos.app · Équipe d’agents IA ', 'kybernos.app · AI agent team ') + kid, note: kt(mem.byKyber[kid] + (mem.byKyber[kid] > 1 ? ' faits gardés' : ' fait gardé') + ' pour cette équipe d’agents IA.', mem.byKyber[kid] + (mem.byKyber[kid] === 1 ? ' fact' : ' facts') + ' kept for this AI agent team.') })
           link('m:kyber:' + kid, 'k:' + kid, 'declared')
         }
       }
@@ -528,11 +528,11 @@ window.__ModuleLoader__.load({
     }
     const COLS = [
       { get title () { return tr('Project') }, groups: [['area', '']] },
-      { get title () { return tr('Agent Teams & automations') }, get groups () { return [['kyber', tr('Agent Teams')], ['routine', tr('Automations')]] } },
+      { get title () { return tr('AI Agent Teams & automations') }, get groups () { return [['kyber', tr('AI Agent Teams')], ['routine', tr('Automations')]] } },
       { get title () { return tr('Skills & apps') }, get groups () { return [['skill', tr('Skills')], ['app', tr('Apps')]] } },
       { get title () { return tr('Memory & lessons') }, get groups () { return [['memory', tr('Memory')], ['lesson', tr('Lessons')]] } }
     ]
-    const KIND_NAME = lazyTable(() => ({ area: tr('Project'), kyber: tr('Agent Team'), routine: tr('Automation'), skill: tr('Skill'), app: tr('App'), memory: tr('Memory'), lesson: tr('Lesson') }))
+    const KIND_NAME = lazyTable(() => ({ area: tr('Project'), kyber: tr('AI Agent Team'), routine: tr('Automation'), skill: tr('Skill'), app: tr('App'), memory: tr('Memory'), lesson: tr('Lesson') }))
     const KIND_ORDER = ['area', 'kyber', 'routine', 'skill', 'app', 'memory', 'lesson']
     const byKindThenLabel = (a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || a.label.localeCompare(b.label)
     const CAP = 5
@@ -547,7 +547,7 @@ window.__ModuleLoader__.load({
         case 'routine': return has('tasks') ? { label: tr('Automations'), patch: { view: 'tasks' } } : null
         case 'app': return n.id.indexOf('a:toolkit:') === 0 && has('connectors') ? { label: tr('Connectors'), patch: { view: 'connectors' } } : null
         case 'area': return n.path !== '' && has('project') ? { label: tr('Projects'), patch: { view: 'project', projectId: n.path } } : null
-        case 'kyber': return n.file && has('teaminfo') ? { label: tr('Agent Teams'), patch: { view: 'teaminfo', detailPath: n.file, detailRoot: n.rootId } } : null
+        case 'kyber': return n.file && has('teaminfo') ? { label: tr('AI Agent Teams'), patch: { view: 'teaminfo', detailPath: n.file, detailRoot: n.rootId } } : null
         case 'run': return n.run && n.run.sessionId ? { label: tr('the session'), session: n.run.sessionId } : null
         default: return null
       }
@@ -584,7 +584,7 @@ window.__ModuleLoader__.load({
       const out = []
       const proj = g.nodes.filter((n) => n.kind === 'area'); const ky = g.nodes.filter((n) => n.kind === 'kyber')
       if (proj.length) { out.push({ head: tr('Projects') }); proj.forEach((n) => out.push({ id: n.id, label: n.label, sub: linkCount(n.deg) })) }
-      if (ky.length) { out.push({ head: tr('Agent Teams') }); ky.sort((a, b) => a.label.localeCompare(b.label)).forEach((n) => out.push({ id: n.id, label: n.label, sub: linkCount(n.deg) })) }
+      if (ky.length) { out.push({ head: tr('AI Agent Teams') }); ky.sort((a, b) => a.label.localeCompare(b.label)).forEach((n) => out.push({ id: n.id, label: n.label, sub: linkCount(n.deg) })) }
       return out
     }
     // Where the Map opens: the project or kyber with the most links, so the first view is never empty
@@ -602,7 +602,7 @@ window.__ModuleLoader__.load({
     // and every layout, so test-client.mjs can check them without a browser.
     const CANVAS_VIEWS = ['rings', 'circle', 'areas', 'links', 'timeline', 'orbit']
     const LAYERS = ['core', 'projects', 'kybers', 'knowledge', 'skills', 'automations', 'apps', 'runs']
-    const LAYER_NAME = lazyTable(() => ({ core: tr('Workspace'), projects: tr('Projects'), kybers: tr('Agent Teams'), knowledge: tr('Memory & lessons'), skills: tr('Skills'), automations: tr('Automations'), apps: tr('Apps'), runs: tr('Runs') }))
+    const LAYER_NAME = lazyTable(() => ({ core: tr('Workspace'), projects: tr('Projects'), kybers: tr('AI Agent Teams'), knowledge: tr('Memory & lessons'), skills: tr('Skills'), automations: tr('Automations'), apps: tr('Apps'), runs: tr('Runs') }))
     const LAYER_OF = { root: 'core', area: 'projects', kyber: 'kybers', memory: 'knowledge', lesson: 'knowledge', skill: 'skills', routine: 'automations', app: 'apps', run: 'runs' }
     const KIND_NAME_ALL = lazyTable(() => Object.assign({ root: tr('Workspace'), run: tr('Run') }, KIND_NAME))
     const RING_R = [0, 125, 210, 295, 380, 460, 530, 600]
@@ -735,7 +735,7 @@ window.__ModuleLoader__.load({
     }
 
     // ══ 2. LOADING ═══════════════════════════════════════════════════════════
-    const sources = () => [['projects', tr('Projects')], ['kybers', tr('Agent Teams')], ['skills', tr('Skills')], ['lessons', tr('Lessons')], ['memory', tr('Memory (cloud)')], ['automations', tr('Automations')], ['apps', tr('Apps')]]
+    const sources = () => [['projects', tr('Projects')], ['kybers', tr('AI Agent Teams')], ['skills', tr('Skills')], ['lessons', tr('Lessons')], ['memory', tr('Memory (cloud)')], ['automations', tr('Automations')], ['apps', tr('Apps')]]
     const TIMEOUT = 15000
     async function getJson (url, init) {
       const ctl = typeof AbortController === 'function' ? new AbortController() : null
@@ -1023,7 +1023,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
 .kbat-dot[data-t="busy"]{background:transparent;border:2px solid var(--dsw-alias-border-l3);border-top-color:var(--dsw-alias-label-primary);animation:kbat-spin .8s linear infinite}
 @keyframes kbat-spin{to{transform:rotate(360deg)}}
 /* The « ? How it works » pill: the same look as the Suite's (kybernos-hub), so every page has one form of the button. Under the page class: the page's own button rule (font:inherit) would win otherwise. */
-.kbat-page .kbat-help{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.kbat-page .kbat-help{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:30px;padding:0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
 .kbat-page .kbat-help:hover{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}
 .kbat-page .kbat-help:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 .kbat-helpq{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
@@ -1248,11 +1248,11 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         h('div', { className: 'kbat-mcard', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbat-help-t', ref, tabIndex: -1 },
           h('button', { type: 'button', className: 'kbat-x', 'aria-label': tr('Close help'), onClick: p.onClose }, '×'),
           h('h2', { id: 'kbat-help-t' }, tr('How to read the Atlas')),
-          h('p', { className: 'kbat-lead' }, tr('Every project, agent team, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits anything. Its last reading is kept in this browser.')),
+          h('p', { className: 'kbat-lead' }, tr('Every project, AI agent team, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits anything. Its last reading is kept in this browser.')),
           h('p', null, tr('The Atlas shows how the things you set up fit together. It reads your files and plugins only when you click Update, and never edits them. It keeps its last reading in this browser, so the page opens on it.')),
           h('section', null, h('h3', null, tr('The views')),
             h('dl', null,
-              h('dt', null, tr('Around')), h('dd', null, tr('Pick a project or an agent team in “Start from”. Four columns show who works there, what they use and what they know. Hover a name to light up its lines.')),
+              h('dt', null, tr('Around')), h('dd', null, tr('Pick a project or an AI agent team in “Start from”. Four columns show who works there, what they use and what they know. Hover a name to light up its lines.')),
               h('dt', null, tr('Rings')), h('dd', null, tr('The whole workspace: one ring per layer, the workspace in the middle, each project keeping its wedge.')),
               h('dt', null, tr('Circle')), h('dd', null, tr('Every node on one ring, grouped by project. Links cross the middle.')),
               h('dt', null, tr('Areas')), h('dd', null, tr('One cluster per project. Lines between clusters show what crosses projects.')),
@@ -1260,25 +1260,25 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
               h('dt', null, tr('Timeline')), h('dd', null, tr('Automation runs of the last 14 days on top, everything else by last change below.')),
               h('dt', null, tr('Orbit')), h('dd', null, tr('The rings as a stack that turns on its own. Drag to turn it.')),
               h('dt', null, tr('List')), h('dd', null, tr('The same things as a table. The text version of every drawing.')))),
-          h('section', null, h('h3', null, tr('In the drawings')), h('p', null, tr('Click a dot for details; the card has an Open button when the thing has a page in Kybernos (a skill, an agent team, a project, an automation, a connector, or the session of a run). Search finds a name and flies to it. Click a legend chip to isolate it. Names shows every name, Motion lets the dots drift, and Lessons adds the lessons, which are many and so off by default. Ctrl or ⌘ + scroll, or the + and − buttons, zoom.'))),
+          h('section', null, h('h3', null, tr('In the drawings')), h('p', null, tr('Click a dot for details; the card has an Open button when the thing has a page in Kybernos (a skill, an AI agent team, a project, an automation, a connector, or the session of a run). Search finds a name and flies to it. Click a legend chip to isolate it. Names shows every name, Motion lets the dots drift, and Lessons adds the lessons, which are many and so off by default. Ctrl or ⌘ + scroll, or the + and − buttons, zoom.'))),
           h('section', null, h('h3', null, tr('The lines')),
             h('ul', { className: 'kbat-key' },
-              h('li', null, line(undefined), h('span', null, h('b', null, tr('Solid. ')), tr('Written in a file. For example, an agent team lists a skill.'))),
-              h('li', null, line('4 4'), h('span', null, h('b', null, tr('Dashed. ')), tr('Guessed from a name. For example, an app that matches one of an agent team’s tools.'))),
+              h('li', null, line(undefined), h('span', null, h('b', null, tr('Solid. ')), tr('Written in a file. For example, an AI agent team lists a skill.'))),
+              h('li', null, line('4 4'), h('span', null, h('b', null, tr('Dashed. ')), tr('Guessed from a name. For example, an app that matches one of an AI agent team’s tools.'))),
               h('li', null, h('span', { className: 'kbat-ghostkey' }, 'brand-voice'), h('span', null, h('b', null, tr('Crossed out, red. ')), tr('Points to something that no longer exists, such as a skill that is not installed.'))))),
           h('section', null, h('h3', null, tr('To check')), h('p', null, tr('Red items are broken links. Amber items look wrong, for example an automation whose last run failed. Click one to see where it is on the map. Skills that nobody declares are not listed: skills are mostly used by name, on demand.'))),
           h('section', null, h('h3', null, tr('Words')),
             h('dl', null,
-              h('dt', null, tr('Project')), h('dd', null, tr('A workspace in DSH.')),
-              h('dt', null, tr('Agent Team')), h('dd', null, tr('A team of agents with its own roles, skills and lessons.')),
-              h('dt', null, tr('Skill')), h('dd', null, tr('A reusable instruction set an agent team or a project can use.')),
+              h('dt', null, tr('Project')), h('dd', null, tr('A workspace in Kybernos.')),
+              h('dt', null, tr('AI Agent Team')), h('dd', null, tr('A team of agents with its own roles, skills and lessons.')),
+              h('dt', null, tr('Skill')), h('dd', null, tr('A reusable instruction set an AI agent team or a project can use.')),
               h('dt', null, tr('Memory')), h('dd', null, tr('Facts kept in your kybernos.app account. Needs a linked account.')),
-              h('dt', null, tr('Lesson')), h('dd', null, tr('Something an agent team learned from a past run. The most recent few are shown.')),
+              h('dt', null, tr('Lesson')), h('dd', null, tr('Something an AI agent team learned from a past run. The most recent few are shown.')),
               h('dt', null, tr('Automation')), h('dd', null, tr('A scheduled task. Its last run is shown on its card.')))),
           h('section', null, h('h3', null, tr('What you will not see')),
             h('ul', null,
               h('li', null, tr('Sessions. Automation runs only appear in the drawings, and only the last 14 days.')),
-              h('li', null, tr('Which agent team worked in which project, beyond each project’s 40 most recent sessions. It is only known when an agent team was activated in a session.')),
+              h('li', null, tr('Which AI agent team worked in which project, beyond each project’s 40 most recent sessions. It is only known when an AI agent team was activated in a session.')),
               h('li', null, tr('Account memory fact by fact. It can hold hundreds, so it is one node with a count.')),
               h('li', null, tr('Memories, when no account is linked.')),
               h('li', null, tr('Links no file declares. Names are the only thing it guesses from.')))),
@@ -1309,7 +1309,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
           h('svg', { width: 10, height: 10, viewBox: '0 0 10 10', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' }, h('path', { d: 'M2 3.5 5 6.5 8 3.5' }))),
         open ? h('div', { className: 'kbat-pop' },
           h('input', {
-            ref: input, type: 'search', value: q, placeholder: tr('Search a project, agent team, skill…'), 'aria-label': tr('Search'),
+            ref: input, type: 'search', value: q, placeholder: tr('Search a project, AI agent team, skill…'), 'aria-label': tr('Search'),
             onChange: (e) => { setQ(e.target.value); setIdx(0) },
             onKeyDown: (e) => {
               if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (options.length) setIdx((idx + (e.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length) }
@@ -1348,7 +1348,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         const ro = new ResizeObserver(() => measure()); ro.observe(host)
         return () => ro.disconnect()
       }, [measure])
-      if (!model) return h('div', { className: 'kbat-state' }, h('p', null, tr('Pick a project or an agent team in “Start from”.')))
+      if (!model) return h('div', { className: 'kbat-state' }, h('p', null, tr('Pick a project or an AI agent team in “Start from”.')))
       const cur = hot || p.sel
       const ids = new Set(); const nbs = new Set()
       model.cols.forEach((c) => c.groups.forEach((gr) => { gr.items.forEach((n) => ids.add(n.id)); gr.ghosts.forEach((x) => ids.add(x.id)) }))
@@ -1369,9 +1369,9 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         onClick: () => p.onSelect(x.src), onPointerEnter: () => setHot(x.id), onPointerLeave: () => setHot(null)
       }, h('span', { className: 'kbat-pt' }, h('b', null, x.label), h('i', null, x.sub)), h('span', { className: 'kbat-pw' }, h(Glyph, { kind: 'warn', size: 13 })))
       const focusNode = model.focus
-      const noMemoryNote = g.memory ? kt('La mémoire du compte (' + g.memory.accountCount + (g.memory.accountCount > 1 ? ' faits' : ' fait') + ') est partagée par toutes les Agent Teams.', 'Account memory (' + g.memory.accountCount + (g.memory.accountCount === 1 ? ' fact' : ' facts') + ') is shared by every agent team.') : tr('Not read. Link your kybernos.app account to see memory.')
+      const noMemoryNote = g.memory ? kt('La mémoire du compte (' + g.memory.accountCount + (g.memory.accountCount > 1 ? ' faits' : ' fait') + ') est partagée par toutes les équipes d’agents IA.', 'Account memory (' + g.memory.accountCount + (g.memory.accountCount === 1 ? ' fact' : ' facts') + ') is shared by every AI agent team.') : tr('Not read. Link your kybernos.app account to see memory.')
       return h('div', { className: 'kbat-around' },
-        h('p', { className: 'kbat-cap' }, 'Around ', h('b', null, focusNode.label), '. ', focusNode.kind === 'area' ? tr('Who works on this project, what they use and what they know.') : tr('Where this agent team is used, what it uses and what it knows.'), tr(' Hover a name to follow its lines.')),
+        h('p', { className: 'kbat-cap' }, 'Around ', h('b', null, focusNode.label), '. ', focusNode.kind === 'area' ? tr('Who works on this project, what they use and what they know.') : tr('Where this AI agent team is used, what it uses and what it knows.'), tr(' Hover a name to follow its lines.')),
         h('div', { className: 'kbat-grid', ref: gridRef, 'data-hover': on ? '1' : undefined },
           h('svg', { className: 'kbat-lines', width: geo.w, height: geo.h, 'aria-hidden': 'true' },
             geo.paths.map((q) => h('path', { key: q.key, d: q.d, 'data-inf': q.inf ? '1' : undefined, 'data-hot': on && (q.s === cur || q.t === cur) ? '1' : undefined }))),
@@ -1690,7 +1690,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       const failedNames = sources().filter((s) => st.status[s[0]] && st.status[s[0]].state === 'failed').map((s) => s[1])
       const skippedMemory = st.status.memory && st.status.memory.state === 'skipped'
       const notes = []
-      if (st.result && st.result.src.storeReady === false) notes.push(tr('Sessions were not ready, so agent teams are not tied to projects. Click Update in a moment.'))
+      if (st.result && st.result.src.storeReady === false) notes.push(tr('Sessions were not ready, so AI agent teams are not tied to projects. Click Update in a moment.'))
       if (skippedMemory) notes.push(tr('Memories were not read, so any problem with them is not listed.'))
       if (failedNames.length) notes.push(kt(failedNames.join(', ') + (failedNames.length === 1 ? ' n’a pas été lue' : ' n’ont pas été lues') + ' : les problèmes associés ne sont donc pas listés.', failedNames.join(', ') + (failedNames.length === 1 ? ' was' : ' were') + ' not read, so related problems are not listed.'))
       const flyTo = (id) => { setTimeout(() => { if (canvasApi.current) canvasApi.current.fly(id) }, 40) }
@@ -1728,9 +1728,9 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       const card = (float) => (sel && nodeOf(sel) ? h(DetailCard, { graph: g, extra: data ? data.model : null, id: sel, tab, focus, float, openAction: openAction(nodeOf(sel)), hideLinked: tab === 'around', onClose: () => setSel(null), onGo: showNode, onFocus: (id) => { setFocus(id); setTab('around') }, onFly: isCanvas ? () => flyTo(sel) : null, onToast: setToast }) : null)
       let body
       if (loading) body = h('div', { className: 'kbat-state', role: 'status' }, h('h2', null, tr('Reading the Atlas')), h('p', null, tr('Reading seven sources on this computer. Nothing leaves it.')), h(SourceList, { status: st.status }))
-      else if (st.phase === 'error') body = h('div', { className: 'kbat-state', role: 'alert' }, h('h2', null, tr('The Atlas could not be read')), h('p', null, tr('None of the sources answered. DSH may be restarting. Wait a moment, then try again.')), h(SourceList, { status: st.status }), h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', onClick: load }, tr('Try again')))
+      else if (st.phase === 'error') body = h('div', { className: 'kbat-state', role: 'alert' }, h('h2', null, tr('The Atlas could not be read')), h('p', null, tr('None of the sources answered. Kybernos may be restarting. Wait a moment, then try again.')), h(SourceList, { status: st.status }), h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', onClick: load }, tr('Try again')))
       else if (st.phase === 'idle') body = h('div', { className: 'kbat-state' }, h('h2', null, tr('Nothing read yet')), h('p', null, tr('The Atlas reads your files and plugins only when you ask. Opening this page reads nothing; the first Update is kept here, and the page shows it next time.')), h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', onClick: load }, tr('Update')))
-      else if (empty) body = h('div', { className: 'kbat-state' }, h('h2', null, tr('Nothing to map yet')), h('p', null, tr('The Atlas fills in as you add agent teams, skills, automations and memories. Create an agent team or install a skill, then click Update.')))
+      else if (empty) body = h('div', { className: 'kbat-state' }, h('h2', null, tr('Nothing to map yet')), h('p', null, tr('The Atlas fills in as you add AI agent teams, skills, automations and memories. Create an AI agent team or install a skill, then click Update.')))
       else {
         const cap = CAPTION[tab]
         body = h('div', { className: 'kbat-body' },

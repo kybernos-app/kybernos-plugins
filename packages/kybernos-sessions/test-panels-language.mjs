@@ -84,7 +84,7 @@ const VUES = {
     ['leçon réutilisée', 'lesson reused'],
     ['leçon n° 3 — son compteur d’utilisations a été augmenté', 'lesson #3 — its uses counter was raised'],
     ['Ouvrir Mémoire & Leçons ›', 'Open Memory & Lessons ›'],
-    ['Registre de l’Agent Team', 'Agent Team ledger'],
+    ['Registre de l’équipe d’agents IA', 'AI Agent Team ledger'],
     ['Exécutions enregistrées', 'Runs recorded'],
     ['Leçons écrites', 'Lessons written'],
     ['Leçons réutilisées', 'Lessons reused'],

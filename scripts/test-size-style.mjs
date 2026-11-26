@@ -8,6 +8,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { execEntry } from '../packages/kybernos-plugin/lib-i18n-test.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (f) => readFileSync(join(root, f), 'utf8')
@@ -124,7 +125,8 @@ ok('the media type is NOT a row of the type picker: the Audio & Video family alr
 })
 
 ok('its label exists in French and English', () => {
-  assert.ok(/'deliv\.type\.media': \{ kybernos: '[^']+', en: 'Audio \/ Video' \}/.test(core))
+  const e = execEntry('deliv.type.media') // [key, fr, en], null when a language is missing
+  assert.ok(e !== null && e[2] === 'Audio / Video')
 })
 
 console.log('size style: ' + n + ' checks')

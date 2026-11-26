@@ -1,0 +1,136 @@
+--- a/src/index.ts	2026-11-25 15:00:15
++++ b/src/index.ts	2026-11-25 15:00:15
+@@ -10,7 +10,9 @@
+ import type { CompactionResult, CompactionTrigger } from '@deepseek-ai/dsh-compaction'
+ import type { EpochHeader, Session, SessionSeq } from '@deepseek-ai/dsh-session'
+ import type { ProjectionHandle } from '@deepseek-ai/dsh-session-projection'
+-import { CONTEXT_WINDOW_EXCEEDED_CODE, LlmError } from '@deepseek-ai/dsh-llm'
++import {
++  ACCOUNT_QUOTA_EXCEEDED_CODE, CONTEXT_WINDOW_EXCEEDED_CODE, LlmError, QUOTA_EXCEEDED_CODE,
++} from '@deepseek-ai/dsh-llm'
+ import { assertNever } from '@deepseek-ai/dsh-util-values'
+ import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
+ import type { CommandId } from '@deepseek-ai/dsh-commands/types'
+@@ -57,6 +59,70 @@
+ /** Resolve the exact provider/model durably routed for the latest request. */
+ function routedTarget(session: Session): SummaryRoute | undefined {
+   return completeRoute(session.requestHeader()?.config)
++}
++
++/**
++ * Failures that justify retrying the summary on another route: the failed
++ * attempt produced no durable checkpoint, so a different provider can still
++ * write one. Deliberately excludes AUTH, INVALID_* and MAX_TOKENS: those fail
++ * identically everywhere, or mean a truncated but real summary.
++ */
++const SUMMARY_FALLBACK_CODES: ReadonlySet<string> = new Set([
++  ACCOUNT_QUOTA_EXCEEDED_CODE,
++  QUOTA_EXCEEDED_CODE,
++  'RATE_LIMIT',
++  'SERVER',
++  'TIMEOUT',
++  'TRANSPORT',
++  'STREAM_CLOSED',
++  'EMPTY_RESPONSE',
++  'MALFORMED_RESPONSE',
++  'CONTEXT_WINDOW_EXCEEDED',
++  'HTTP_413',
++  'HTTP_429',
++  'HTTP_500',
++  'HTTP_502',
++  'HTTP_503',
++  'HTTP_504',
++])
++
++/** True when another route could plausibly summarize the same conversation. */
++function isRetryableSummaryFailure(error: unknown): boolean {
++  const code = (error as { code?: unknown } | null)?.code
++  return typeof code === 'string' && SUMMARY_FALLBACK_CODES.has(code)
++}
++
++/**
++ * Ordered summary routes for one condensation: an explicit operator pin first,
++ * then the route that last answered (its prefix is warm), then the latest
++ * routed header, then the agent options. Duplicates collapse, so a fallback
++ * never retries the route that just failed.
++ * @param pinned - the configured summary target, when one is set.
++ * @param agent - supplies the latest header and the live fallback options.
++ * @param answered - route recorded on the latest assistant message.
++ * @returns the candidate routes, best first; empty when none is known.
++ */
++function summaryCandidates(
++  pinned: SummaryRoute | undefined,
++  agent: Agent,
++  answered: AnsweredRoute,
++): SummaryRoute[] {
++  const candidates: SummaryRoute[] = []
++  const seen = new Set<string>()
++  const offered = [
++    pinned,
++    completeRoute(answered ?? undefined),
++    routedTarget(agent.session),
++    completeRoute(agent.options),
++  ]
++  for (const route of offered) {
++    if (route === undefined) continue
++    const key = `${route.provider}/${route.model}`
++    if (seen.has(key)) continue
++    seen.add(key)
++    candidates.push(route)
++  }
++  return candidates
+ }
+ 
+ /**
+@@ -290,11 +356,49 @@
+     agent: Agent,
+     signal?: AbortSignal,
+   ): Promise<SummaryResult> {
+-    const target = conversationTarget(agent, (await this.answeredRoute).stateOf(agent.session))
++    const answered = (await this.answeredRoute).stateOf(agent.session)
++    const target = conversationTarget(agent, answered)
+     const config = target === undefined
+       ? this.config
+       : resolveTargetPolicy(this.config, target)
+-    return summarizeWithLlm(this.ctx, config, input, agent, target, signal)
++    const pinned = config.summarizationProvider.length === 0
++      ? undefined
++      : { provider: config.summarizationProvider, model: config.summarizationModel }
++    const candidates = summaryCandidates(pinned, agent, answered)
++    if (candidates.length === 0) {
++      return summarizeWithLlm(this.ctx, config, input, agent, pinned, signal)
++    }
++    // A configured pin is honoured on the first attempt only: the fallbacks are
++    // the conversation's own routes, and must not be forced back onto the pin.
++    const unpinned = {
++      summarizationProvider: '',
++      summarizationModel: '',
++      maxTokens: config.maxTokens,
++    }
++    let failure: unknown
++    for (const [index, route] of candidates.entries()) {
++      try {
++        return await summarizeWithLlm(
++          this.ctx,
++          index === 0 && pinned !== undefined ? config : unpinned,
++          input,
++          agent,
++          route,
++          signal,
++        )
++      } catch (error: unknown) {
++        failure = error
++        signal?.throwIfAborted()
++        const next = candidates[index + 1]
++        if (next === undefined || !isRetryableSummaryFailure(error)) throw error
++        const code = (error as { code?: unknown }).code
++        this.ctx.logger.warn(
++          `summarization on ${route.provider}/${route.model} failed (${String(code)}); `
++          + `retrying on ${next.provider}/${next.model}`,
++        )
++      }
++    }
++    throw failure
+   }
+ 
+   /**

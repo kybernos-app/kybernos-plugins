@@ -26,6 +26,7 @@ const e = turnEntry({ asked: 'Écris   un message\nà mon garage <b>vite</b> ' +
 ok('an entry carries the time, the channel, the body, the tools and the refusals', e.at === '2026-10-20T09:15:00.000Z' && e.channel === 'telegram' && e.body === 'cloud' && e.tools.bash === 1 && e.refused === 2, e)
 ok('what was asked is one short line without markup', e.asked.length <= ASKED_CHARS && !/[\n<>]/.test(e.asked) && e.asked.startsWith('Écris un message à mon garage'), e.asked)
 ok('a turn with no words of the person has no entry', turnEntry({ asked: '   ', tools: {}, channel: 'chat', body: 'computer', now: at('2026-10-20T09:15:00Z') }) === null)
+ok('a request an outside assistant relayed is its own channel in the journal', turnEntry({ asked: 'Summarise my invoices', tools: {}, channel: 'assistant', body: 'cloud', now: at('2026-10-20T09:15:00Z') }).channel === 'assistant')
 ok('an unknown channel or body is written as a word, never as free text', turnEntry({ asked: 'hi', tools: {}, channel: 'x'.repeat(40) + '<>', body: 'moon', now: at('2026-10-20T09:15:00Z') }).channel === 'other')
 
 // ── the file: one line per entry, one file per UTC day, private, pruned ───────────────────────────────────────

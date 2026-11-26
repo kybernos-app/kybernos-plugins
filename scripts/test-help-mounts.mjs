@@ -66,6 +66,12 @@ const EXEMPT = new Map([
     reason: 'host/dock: it frames other bundles’ panels and owns no header (their panels carry their own help)',
     check: (source) => !source.includes('role="dialog"') && !source.includes('settings.section'),
   }],
+  // One quiet line above the chat composer, drawn only on the phone with the small model on: no page, no dialog, no header of its own
+  // (its card is shown on the Suite › Plugins page). The day it grows a page or a dialog, the exemption fails and it owes the pill.
+  ['kybernos-phone-model', {
+    reason: 'one line on the chat input dock: no page, no dialog, no header of its own',
+    check: (source) => source.includes('conversation.input.dock') && !source.includes('role="dialog"') && !source.includes('settings.section'),
+  }],
   // No page and no DOM at all: the check is the absence of a mount point, so the day one of them starts drawing, the
   // exemption fails and the bundle owes the pill.
   ['kybernos-registry', {

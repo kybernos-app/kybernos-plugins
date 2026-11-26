@@ -141,7 +141,7 @@ window.__ModuleLoader__.load({
         // computer
         compH: ['Ordinateur de {NAME}', '{NAME}’s computer'], compLead: ['La machine sur laquelle {NAME} travaille.', 'The machine {NAME} works on.'],
         // « This computer » is the machine that runs Kybernos: a choice that needs no server and no account.
-        thisComputer: ['Cet ordinateur', 'This computer'], ready: ['Prêt', 'Ready'], cloudName: ['{name} (cloud)', '{name} (cloud)'],
+        thisComputer: ['Cet ordinateur', 'This computer'], thisPhone: ['Ce téléphone', 'This phone'], ready: ['Prêt', 'Ready'], cloudName: ['{name} (cloud)', '{name} (cloud)'],
         txt_local: ['{NAME} travaille sur cet ordinateur quand tu lui écris ici. Garde Kybernos ouvert.', '{NAME} works on this computer when you write to it here. Keep Kybernos open.'],
         noHome: ['Créé à ta première demande qui en a besoin.', 'Made at your first request that needs one.'],
         onRequest: ['À la demande', 'On request'],
@@ -161,7 +161,7 @@ window.__ModuleLoader__.load({
         manage: ['Gérer dans mon compte', 'Manage in my account'],
         // the native conversation
         openChat: ['Ouvrir la conversation avec {NAME}', 'Open the conversation with {NAME}'],
-        openChatHint: ['Une vraie conversation DSH : même composeur, même rendu, avec la mémoire de ton compte. Ce qui s’y dit va aussi sur le fil que {NAME} partage avec Telegram.', 'A real DSH chat: same composer, same rendering, with your account’s memory. What is said there also goes on the thread {NAME} shares with Telegram.'],
+        openChatHint: ['Une vraie conversation Kybernos : même composeur, même rendu, avec la mémoire de ton compte. Ce qui s’y dit va aussi sur le fil que {NAME} partage avec Telegram.', 'A real Kybernos chat: same composer, same rendering, with your account’s memory. What is said there also goes on the thread {NAME} shares with Telegram.'],
         openChatFail: ['La conversation n’a pas pu s’ouvrir.', 'The conversation could not be opened.'],
         // states of the whole
         refresh: ['Actualiser', 'Refresh'],
@@ -269,6 +269,19 @@ window.__ModuleLoader__.load({
           return await r.json()
         } catch (e) { return null }
       }
+      // The phone link's status (kybernos-mobile). On the phone app's own engine the route is cut on purpose (onPhoneHost, kybernos-mobile) and never comes back: inside the app it is not
+      // asked at all; anywhere else a 404 is asked once, then not again (the console filled with 404 at every open and every 30 s, phone test 2026-11-08).
+      let remoteAbsent = false
+      const readRemote = async () => {
+        if (remoteAbsent) return null
+        try { if (/KybernosHost\/[0-9][0-9A-Za-z.+-]* \((?:ios|android)\)/.test(String(window.navigator.userAgent))) { remoteAbsent = true; return null } } catch (e) { /* no navigator: asked as anywhere else */ }
+        try {
+          const r = await fetch('/kybernos-mobile/remote/status', { credentials: 'same-origin', cache: 'no-store' })
+          if (r.status === 404) { remoteAbsent = true; return null }
+          if (!r.ok) return null
+          return await r.json()
+        } catch (e) { return null }
+      }
       const postJson = async (path, body) => {
         try {
           const r = await fetch(path, { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body === undefined ? {} : body) })
@@ -279,7 +292,7 @@ window.__ModuleLoader__.load({
       const load = async () => {
         state.loading = true
         emit()
-        const [kyber, server, remote] = await Promise.all([readJson('/kybernos-cloud/kyber'), readJson('/kybernos-cloud/server'), readJson('/kybernos-mobile/remote/status')])
+        const [kyber, server, remote] = await Promise.all([readJson('/kybernos-cloud/kyber'), readJson('/kybernos-cloud/server'), readRemote()])
         state.view = derive(kyber, server)
         // The phone link's own answer (kybernos-mobile); null when this DSH has none or it is not running: the strip then says nothing of it.
         state.remote = remote !== null && typeof remote === 'object' && remote.ok === true ? remote : null
@@ -619,10 +632,10 @@ window.__ModuleLoader__.load({
         const st = hm === null ? '' : hm.state
         const busy = state.busy !== ''
         const clouds = cloudChoices(v)
-        const options = [h('option', { key: 'local', value: 'local' }, L('thisComputer'))].concat(clouds.map((c) => h('option', { key: c.id, value: c.id }, L('cloudName', { name: c.name }))))
+        const options = [h('option', { key: 'local', value: 'local' }, localWord())].concat(clouds.map((c) => h('option', { key: c.id, value: c.id }, L('cloudName', { name: c.name }))))
         const picked = local ? 'local' : (hm !== null && clouds.some((c) => c.id === hm.id) ? hm.id : clouds[0].id)
         const onPick = (e) => pickWhere(e.target.value)
-        const field = h('label', { className: 'kbky-field', 'data-kb': 'kybernos-kyber-field' }, h(Mark, null, Ic(local ? 'monitor' : 'cloud', 18)),
+        const field = h('label', { className: 'kbky-field', 'data-kb': 'kybernos-kyber-field' }, h(Mark, null, Ic(local ? (onPhoneApp() ? 'phone' : 'monitor') : 'cloud', 18)),
           h('select', { className: 'kbky-fsel', 'aria-label': L('pickLead'), 'data-kb': 'kybernos-kyber-pick', value: picked, disabled: options.length < 2, onChange: onPick }, options),
           local ? h('span', { className: 'kbky-chip ok', 'data-kb': 'kybernos-kyber-computer-state' }, L('ready')) : computerChip(hm, 'kybernos-kyber-computer-state'))
         const line = local ? h('p', { className: 'kbky-line', 'data-kb': 'kybernos-kyber-local-line' }, L('txt_local'))
@@ -740,11 +753,15 @@ window.__ModuleLoader__.load({
         if (n > 0) return { key: 'linked', cls: 'ok', chip: L(n === 1 ? 'rmChip1' : 'rmChipN', { n }), sub: L(n === 1 ? 'rmSub1' : 'rmSubN', { n }) }
         return { key: 'ready', cls: 'ok', chip: L('rmChipReady'), sub: L('rmSubReady') }
       }
+      /** Inside the Kybernos phone app (its WebView says `KybernosHost/<v> (ios|android)`) the engine runs ON the phone: « This computer » is « This phone » there. */
+      const APP_UA = /KybernosHost\/[0-9][0-9A-Za-z.+-]* \((?:ios|android)\)/
+      const onPhoneApp = () => { try { return APP_UA.test(String(window.navigator.userAgent)) } catch (e) { return false } }
+      const localWord = () => L(onPhoneApp() ? 'thisPhone' : 'thisComputer')
       /** The computer {NAME} works on, as a chip and as a sentence. */
       const computerFace = () => {
         const v = state.view
         const ok = v !== null && v.kind === 'ok'
-        if (!ok || whereOf(state.where, v) === 'local') return { key: 'local', cls: 'ok', icon: 'monitor', chip: L('thisComputer') + ' · ' + L('ready'), sub: L('thisComputer') + ' · ' + L('ready') }
+        if (!ok || whereOf(state.where, v) === 'local') return { key: 'local', cls: 'ok', icon: onPhoneApp() ? 'phone' : 'monitor', chip: localWord() + ' · ' + L('ready'), sub: localWord() + ' · ' + L('ready') }
         const hm = v.home
         const name = hm !== null && hm.name !== '' ? hm.name : HOME_NAME
         const st = hm === null ? L('onRequest') : (S['st_' + hm.state] !== undefined ? L('st_' + hm.state) : hm.state)
@@ -861,7 +878,11 @@ window.__ModuleLoader__.load({
       // the same origin, so it can read which one it is in. Once DSH lists its sessions and workspaces its own startup restoration has run, so the call below is the
       // later navigation and wins: Kaby's conversation opens, by the same openChat() as the sidebar row (which makes the chat the first time). Never throws.
       const KABY_APP_PATH = '/__kb/kaby/'
-      const inKabyApp = () => { try { return window.parent !== window && window.parent.location.pathname === KABY_APP_PATH } catch (e) { return false } }
+      // The Kybernos phone app can also ask for « Kaby mode » (its WebView's user agent ends with `KybernosHost/<v> (ios|android) KabyMode/<n>`, see kybernos-mobile): then the page opens on Kaby's conversation,
+      // whatever DSH it shows (a cloud computer, the person's own computer, an engine on the phone). The test is the user agent itself, so it does not depend on which bundle loaded first.
+      const KABY_MODE_UA = /KybernosHost\/[0-9][0-9A-Za-z.+-]* \((?:ios|android)\) KabyMode\/[1-9][0-9]{0,2}/
+      const inKabyMode = () => { try { return KABY_MODE_UA.test(String(window.navigator.userAgent)) } catch (e) { return false } }
+      const inKabyApp = () => { try { return inKabyMode() || (window.parent !== window && window.parent.location.pathname === KABY_APP_PATH) } catch (e) { return false } }
       const shellReady = () => {
         try {
           const snap = svc('sessions').list.getSnapshot()
@@ -1083,10 +1104,12 @@ window.__ModuleLoader__.load({
         '.kbky-pop{position:absolute;z-index:30;inset-inline-start:8px;bottom:calc(100% + 8px);width:min(460px,calc(100% - 16px));padding:8px 12px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));background:var(--dsw-alias-bg-layer-1,#fff);box-shadow:var(--dsw-elevation-prominent,0 12px 32px rgba(0,0,0,.25))}',
         '.kbky-statuslist .kbky-crow{padding-block:6px}',
         // the help card opens upwards by default (the strip is above the composer, at the foot of a chat), downwards when there is no room above (placeHelp)
+        // on a phone the list is a card at the foot of the screen, as the help card is: opened above the strip it covered the logo and the headline of the home
+        '@media (max-width:520px){.kbky-pop{position:fixed;inset-inline:16px;width:auto;top:auto;bottom:16px;max-height:min(70vh,560px);overflow:auto}}',
         '.kbky-strip .kbky-pillwrap [data-kb="help-panel"]{top:auto;bottom:calc(100% + 8px);max-height:min(70vh,560px,var(--kbky-pop-h,70vh))}',
         '.kbky-strip .kbky-pillwrap[data-dir="down"] [data-kb="help-panel"]{top:calc(100% + 8px);bottom:auto}',
         // a phone: the pill is mid-row, so no side of it holds the card; it becomes a sheet at the foot of the screen
-        '@media (max-width:520px){.kbky-strip .kbky-pillwrap [data-kb="help-panel"],.kbky-strip .kbky-pillwrap[data-dir] [data-kb="help-panel"]{position:fixed;inset-inline:16px;width:auto;top:auto;bottom:16px;max-height:min(70vh,560px)}}',
+        '@media (max-width:520px){.kbky-strip .kbky-pillwrap [data-kb="help-panel"],.kbky-strip .kbky-pillwrap[data-dir] [data-kb="help-panel"]{position:fixed;inset-inline:16px!important;width:auto;top:auto;bottom:16px;max-height:min(70vh,560px)}}',
         '.kbky-intro{margin:0 0 12px;max-width:68ch;color:var(--dsw-alias-label-secondary,#666);line-height:1.5}',
         '.kbky-help{margin:-4px 0 0;font-size:12.5px;line-height:1.45;color:var(--dsw-alias-label-secondary,#666)}',
         '.kbky-steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px;counter-reset:s}',
@@ -1178,7 +1201,7 @@ window.__ModuleLoader__.load({
         name: 'kybernos-kyber',
         // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
         inject: ['slots', 'sidebarRightTabs', 'sessions', 'workspaces', 'uiWorkspace'],
-        __test: { inKabyApp, KABY_APP_PATH, askFirst, ASK_PRESET, S, L, kt, derive, pairingFace, clock, whereOf, whereView, cloudChoices, pickWhere, remoteFace, computerFace, CSS, TYPE_ID, KIND, state, BRAND, NAME, views: { Strip, StatusList, Pane, ChannelsColumn, ComputerBlock, TelegramPanel, ChannelPanel, KybyDock, Page }, actions: { load, pairStart, pairPoll, pairCancel, unlink, setComputer, setWhere, computerAction, telegramSwitch, whatsappSwitch, channelSwitch, telegramRow, whatsappRow, settle, readSessionPointer }, listeners },
+        __test: { inKabyApp, inKabyMode, KABY_APP_PATH, askFirst, ASK_PRESET, S, L, kt, derive, pairingFace, clock, whereOf, whereView, cloudChoices, pickWhere, remoteFace, computerFace, CSS, TYPE_ID, KIND, state, BRAND, NAME, views: { Strip, StatusList, Pane, ChannelsColumn, ComputerBlock, TelegramPanel, ChannelPanel, KybyDock, Page }, actions: { load, pairStart, pairPoll, pairCancel, unlink, setComputer, setWhere, computerAction, telegramSwitch, whatsappSwitch, channelSwitch, telegramRow, whatsappRow, settle, readSessionPointer }, listeners },
         apply (ctx) {
           CTX = ctx
           // The plugin is applied again when a service it asks for comes back: the new scope replaces the sheet, and the old scope's

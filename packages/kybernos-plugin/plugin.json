@@ -8,8 +8,8 @@
     "fr": "Cœur Kybernos"
   },
   "description": {
-    "en": "The core: Agent Teams, resources, settings and presets.",
-    "fr": "Le cœur : Agent Teams, ressources, réglages et préréglages."
+    "en": "The core: AI Agent Teams, resources, settings and presets.",
+    "fr": "Le cœur : équipes d’agents IA, ressources, réglages et préréglages."
   },
   "icon": "cube",
   "family": "base",
@@ -45,7 +45,7 @@
       "class": "instruction",
       "validator": "builtin",
       "summary": {
-        "en": "A ready-made Agent Team a pack can offer in its kit: roles, stages, bounded prompts."
+        "en": "A ready-made AI Agent Team a pack can offer in its kit: roles, stages, bounded prompts."
       }
     },
     {
@@ -60,6 +60,7 @@
     }
   ],
   "permissions": [
+    "ui.slot:contextMenu.icon",
     "ui.slot:conversation.chat.assistant-actions",
     "ui.slot:conversation.chat.node",
     "ui.slot:conversation.composer.dock",

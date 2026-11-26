@@ -14,9 +14,9 @@ import { fileURLToPath } from 'node:url'
 
 const ICI = join(dirname(fileURLToPath(import.meta.url)))
 import {
-  lireCompat, testerCompatibilite, testerNoeud, comparerVersions, inspecterFraicheur, versionDuGlobal, etatDoctor, planUpgrade,
+  lireCompat, testerCompatibilite, testerNoeud, plageDeNoeud, noeudRepond, comparerVersions, inspecterFraicheur, versionDuGlobal, etatDoctor, planUpgrade,
   photographier, restaurerPhoto, photoLaPlusRecente, journaliser, lireJournal,
-  alignerPins, alignerLiens, verifierBundles, ecrireLisezMoi,
+  alignerPins, alignerLiens, retirerRangeesPatch, verifierBundles, ecrireLisezMoi,
   DEPUIS_VERS, motifDeRetrait, migrerProfil
 } from './lifecycle-engine.mjs'
 
@@ -121,6 +121,38 @@ ok('sous le minimum → refus aussi', c4.verdict === 'refuse', JSON.stringify(c4
     const real = JSON.parse(readFileSync(join(ICI, '..', 'dsh-compat.json'), 'utf8'))
     return real.dsh.node?.min === '24.9.0' && comparerVersions(real.dsh.max, real.dsh.node.from) >= 0 && testerNoeud({ cible: real.dsh.max, compat: real, noeud: '22.23.4' }).verdict === 'refuse'
   })())
+  // From DSH 0.2.3-alpha.1 the engine declares a RANGE: "^24.22.3 || >=26.13.1". A single floor cannot say it (24.22.3 would pass 26.7.0).
+  const RANGE = '^24.22.3 || >=26.13.1'
+  ok('noeudRepond reads the range DSH writes: the 24 line from 24.22.3, the 26 line from 26.13.1, nothing in between', (() => {
+    const r = (v) => noeudRepond(v, RANGE)
+    return r('24.22.3') === true && r('24.30.0') === true && r('v26.13.1') === true && r('27.0.0') === true
+      && r('24.22.2') === false && r('24.9.0') === false && r('25.5.0') === false && r('26.7.0') === false && r('26.13.0') === false
+  })())
+  ok('noeudRepond: a part it does not read gives null (never a refusal), a readable alternative still wins', noeudRepond('26.7.0', '>=24') === null && noeudRepond('26.7.0', '') === null && noeudRepond('24.22.3', '^24.22.3 || something') === true)
+  const avecPlages = { dsh: { min: '0.1.6-alpha.2', max: '0.2.3-alpha.2', node: { min: '24.9.0', from: '0.2.2-alpha.2', ranges: [{ from: '0.2.3-alpha.1', node: RANGE }] } } }
+  ok('plageDeNoeud: none before the engine that declares it, the range from it on, the newest entry wins in any order', (() => {
+    const e = avecPlages.dsh.node
+    const deux = { ranges: [{ from: '0.2.3-alpha.1', node: RANGE }, { from: '0.2.4-rc.1', node: '^24.30.0' }] }
+    const inverse = { ranges: deux.ranges.slice().reverse() }
+    return plageDeNoeud(e, '0.2.2-rc.5') === null && plageDeNoeud(e, '0.2.3-alpha.1') === RANGE && plageDeNoeud(e, '0.2.3-alpha.2') === RANGE && plageDeNoeud(e, '0.2.3') === RANGE
+      && plageDeNoeud(deux, '0.2.4-rc.2') === '^24.30.0' && plageDeNoeud(inverse, '0.2.4-rc.2') === '^24.30.0' && plageDeNoeud(deux, '0.2.3-alpha.2') === RANGE
+      && plageDeNoeud({ min: '24.9.0' }, '0.2.3-alpha.2') === null && plageDeNoeud(undefined, '0.2.3-alpha.2') === null
+  })())
+  ok('0.2.3-alpha.2 on Node 26.7.0 is refused (the floor of the line before would let it through), in English, with the way out', (() => {
+    const r = testerNoeud({ cible: '0.2.3-alpha.2', compat: avecPlages, noeud: '26.7.0' })
+    return r.verdict === 'refuse' && r.bloquant === true && /does not fit/.test(r.raison) && r.raison.includes(RANGE) && /brew upgrade node/.test(r.raison) && /Nothing was changed/.test(r.raison) && /--force/.test(r.raison)
+  })())
+  ok('0.2.3-alpha.2 fits Node 26.13.1 and 24.22.3, is refused on 24.9.0 and 22', ['26.13.1', 'v26.13.1', '24.22.3', '27.1.0'].every((n) => testerNoeud({ cible: '0.2.3-alpha.2', compat: avecPlages, noeud: n }).verdict === 'ok')
+    && ['24.9.0', '24.22.2', '22.23.4', '25.0.0'].every((n) => testerNoeud({ cible: '0.2.3-alpha.2', compat: avecPlages, noeud: n }).verdict === 'refuse'))
+  ok('the engine before keeps the plain floor: rc.5 still runs on Node 26.7.0 and 24.9.0, and --force goes on with a warning on the new one', testerNoeud({ cible: '0.2.2-rc.5', compat: avecPlages, noeud: '26.7.0' }).verdict === 'ok'
+    && testerNoeud({ cible: '0.2.2-rc.5', compat: avecPlages, noeud: '24.9.0' }).verdict === 'ok'
+    && (() => { const r = testerNoeud({ cible: '0.2.3-alpha.2', compat: avecPlages, noeud: '26.7.0', force: true }); return r.verdict === 'force' && r.bloquant === false && /not supported/.test(r.raison) })())
+  ok('a range the gate cannot read never blocks', testerNoeud({ cible: '0.2.3-alpha.2', compat: { dsh: { ...avecPlages.dsh, node: { ...avecPlages.dsh.node, ranges: [{ from: '0.2.3-alpha.1', node: '>=24' }] } } }, noeud: '22.0.0' }).verdict === 'inconnu')
+  ok('the repository\'s dsh-compat.json carries the range for 0.2.3-alpha.1 and later, and the gate applies it to its own file', (() => {
+    const real = JSON.parse(readFileSync(join(ICI, '..', 'dsh-compat.json'), 'utf8'))
+    const g = (n) => testerNoeud({ cible: '0.2.3-alpha.2', compat: real, noeud: n }).verdict
+    return plageDeNoeud(real.dsh.node, '0.2.3-alpha.2') === RANGE && g('26.7.0') === 'refuse' && g('26.13.1') === 'ok' && g('24.22.3') === 'ok'
+  })())
 }
 
 // ── 2. versions ────────────────────────────────────────────────────────────
@@ -210,6 +242,35 @@ const pkgLiens = JSON.parse(ecrits.find((e) => e.p === join(PROFIL, 'package.jso
 ok('alignerLiens : ajoute un @local manquant avec link:', pkgLiens.dependencies['@local/kybernos-maintenance'] === 'link:' + join(R, 'packages', 'kybernos-maintenance'))
 ok('alignerLiens : le bundle suit le lien', pkgLiens.dsh.profile.bundles.includes('@local/kybernos-maintenance'))
 ok('alignerLiens : ne duplique pas un lien existant', pkgLiens.dsh.profile.bundles.filter((b) => b === '@local/kybernos').length === 1)
+// ── 7a. a bundle whose folder was deleted from the repository leaves the profile that still carries it ──
+{
+  const faux = (fichiers) => ({ existe: (p) => p in fichiers, lire: (p) => fichiers[p], ecrire: (p, c) => { fichiers[p] = c } })
+  const PKG = JSON.stringify({ dependencies: { '@local/kybernos': 'link:' + join(R, 'packages', 'kybernos-plugin'), '@local/kybernos-computers': 'link:/gone/packages/kybernos-computers', '@local/kybernos-registrynom': '^1.0.0' }, dsh: { profile: { bundles: ['@local/kybernos', '@local/kybernos-computers'] } } })
+  const PATCH = '- id: tools\n  disabled: false\n\n- id: kybernos-computers\n  disabled: true\n\n- id: other\n  disabled: false\n'
+  const RET = [{ dir: 'kybernos-computers', nom: '@local/kybernos-computers', patchId: 'kybernos-computers' }]
+  const PACK = [{ dir: 'kybernos-plugin', nom: '@local/kybernos' }]
+  let f = { [join(PROFIL, 'package.json')]: PKG, [join(PROFIL, 'cordis.patch.yml')]: PATCH }
+  alignerLiens({ fs: faux(f), profilDir: PROFIL, repoDir: R, packages: PACK, retires: RET })
+  const apres = JSON.parse(f[join(PROFIL, 'package.json')])
+  ok('retires: the link and the bundle of the vanished package leave the profile', apres.dependencies['@local/kybernos-computers'] === undefined && !apres.dsh.profile.bundles.includes('@local/kybernos-computers'))
+  ok('retires: the other links and bundles stay', apres.dependencies['@local/kybernos'] !== undefined && apres.dsh.profile.bundles.includes('@local/kybernos'))
+  ok('retires: a dependency that is not a link is left alone', apres.dependencies['@local/kybernos-registrynom'] === '^1.0.0')
+  ok('retires: the `disabled` row of the package leaves cordis.patch.yml with no gap, the other rows stay', f[join(PROFIL, 'cordis.patch.yml')] === '- id: tools\n  disabled: false\n\n- id: other\n  disabled: false\n', JSON.stringify(f[join(PROFIL, 'cordis.patch.yml')]))
+  f = { [join(PROFIL, 'package.json')]: PKG, [join(PROFIL, 'cordis.patch.yml')]: PATCH }
+  alignerLiens({ fs: faux(f), profilDir: PROFIL, repoDir: R, packages: PACK })
+  ok('retires: with no list nothing changes (the link stays)', JSON.parse(f[join(PROFIL, 'package.json')]).dependencies['@local/kybernos-computers'] !== undefined && f[join(PROFIL, 'cordis.patch.yml')] === PATCH)
+  const PORTEUSE = '- id: kybernos-computers\n  config:\n    apiKeyEnv: E2B_API_KEY\n\n- id: other\n  disabled: false\n'
+  f = { [join(PROFIL, 'cordis.patch.yml')]: PORTEUSE }
+  const r = retirerRangeesPatch({ fs: faux(f), profilDir: PROFIL, ids: ['kybernos-computers'] })
+  ok('retires: a row that carries anything but `disabled` is kept and named', r.gardees.join() === 'kybernos-computers' && r.retirees.length === 0 && f[join(PROFIL, 'cordis.patch.yml')] === PORTEUSE)
+  ok('retires: no cordis.patch.yml, no error', retirerRangeesPatch({ fs: faux({}), profilDir: PROFIL, ids: ['x'] }).retirees.length === 0)
+  ok('retires: an id that is not in the file changes nothing', retirerRangeesPatch({ fs: faux({ [join(PROFIL, 'cordis.patch.yml')]: PATCH }), profilDir: PROFIL, ids: ['nope'] }).retirees.length === 0)
+  // The real list: a retired package has no folder left under packages/ and is not in the managed list (else the robot would link it back).
+  const REEL = JSON.parse(readFileSync(join(ICI, 'lifecycle-packages.json'), 'utf8'))
+  const retiresReels = Array.isArray(REEL.retires) ? REEL.retires : []
+  ok('retires (real list): every entry names a dir and a package, and says since when', retiresReels.length > 0 && retiresReels.every((e) => typeof e.dir === 'string' && typeof e.nom === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(e.depuis ?? '')), retiresReels.map((e) => e.dir))
+  ok('retires (real list): none of them is still a package folder or a managed package', retiresReels.every((e) => !existsSync(join(ICI, '..', 'packages', e.dir, 'package.json')) && !REEL.packages.some((p) => p.nom === e.nom || p.dir === e.dir)), retiresReels.map((e) => e.dir))
+}
 // ── 7b. move to packages/: an old flat link is re-pointed, a foreign link is not ──
 {
   const pkgAncien = JSON.stringify({
@@ -433,6 +494,30 @@ ok('le cache de racine tombe quand le moteur change', /RACINE_CACHE = null[\s\S]
     migrerProfil({ fs: fsDur, profilDir: profil('migrer-d', null), cible: '0.2.2-alpha.2' }).retires.length === 0
     && migrerProfil({ fs: fsDur, profilDir: a, cible: '' }).retires.length === 0
     && migrerProfil({ fs: fsDur, profilDir: a, cible: undefined }).retires.length === 0)
+
+  // ── the `agent-team` row: the member cap moved to the `subagent` row on 0.2.2-rc.2 (measured 2026-11-18 on rc.5) ──
+  const equipe = '- id: agent-team\n  config:\n    maxMembers: 16\n    maxTasks: 256\n    maxPendingMessagesPerMember: 64\n    maxMessageBytes: 65536\n    disposalTimeoutMs: 5000\n'
+  const apres = '# patches\n- id: tool-web\n  config:\n    fetch: true\n\n' + equipe + '- id: subagent\n  config:\n    maxActiveSubagents: 20\n    maxDepth: 2\n'
+  const e1 = profil('migrer-e1', apres)
+  const re1 = migrerProfil({ fs: fsDur, profilDir: e1, cible: '0.2.2-rc.5' })
+  ok('migrerProfil: the four refused keys of the agent-team row go, maxTasks stays', re1.nettoyes.length === 1 && re1.nettoyes[0].cles.length === 4 && re1.nettoyes[0].supprimee === false
+    && !/maxMembers|maxMessageBytes|disposalTimeoutMs|maxPendingMessagesPerMember/.test(lire(e1)) && /- id: agent-team\n  config:\n    maxTasks: 256\n/.test(lire(e1)))
+  ok('migrerProfil: the subagent row (the real member cap) and the other rows are untouched', /- id: subagent\n  config:\n    maxActiveSubagents: 20\n    maxDepth: 2\n/.test(lire(e1)) && /- id: tool-web\n  config:\n    fetch: true/.test(lire(e1)))
+  ok('migrerProfil: a second run on the agent-team row changes nothing', migrerProfil({ fs: fsDur, profilDir: e1, cible: '0.2.2-rc.5' }).nettoyes.length === 0)
+  const e2 = profil('migrer-e2', '- id: agent-team\n  config:\n    maxMembers: 16\n- id: x\n  config: {}\n')
+  const re2 = migrerProfil({ fs: fsDur, profilDir: e2, cible: '0.2.2-rc.2' })
+  ok('migrerProfil: a row left with no key goes away with a comment that says why, on 0.2.2-rc.2 already', re2.nettoyes.length === 1 && re2.nettoyes[0].supprimee === true
+    && !/id: agent-team/.test(lire(e2)) && /removed by dsh-lifecycle: `agent-team` takes no maxMembers/.test(lire(e2)) && /- id: x\n  config: \{\}/.test(lire(e2)))
+  const e3 = profil('migrer-e3', apres)
+  ok('migrerProfil: on 0.2.2-rc.1 (and alpha.2) the agent-team row is NOT touched — the engine still accepts it there', ['0.2.2-rc.1', '0.2.2-alpha.2'].every((v) => migrerProfil({ fs: fsDur, profilDir: e3, cible: v }).nettoyes.length === 0) && lire(e3) === apres)
+  const e4 = profil('migrer-e4', '- id: agent-team\n  config: !!js ({ maxMembers: 16 })\n')
+  const re4 = migrerProfil({ fs: fsDur, profilDir: e4, cible: '0.2.2-rc.5' })
+  ok('migrerProfil: an agent-team row with no plain key lines is left alone', re4.nettoyes.length === 0 && re4.gardes.length === 0 && /maxMembers/.test(lire(e4)))
+  const e5 = profil('migrer-e5', '- id: agent-team\n  config:\n    maxMembers:\n      deep: 1\n')
+  const re5 = migrerProfil({ fs: fsDur, profilDir: e5, cible: '0.2.2-rc.5' })
+  ok('migrerProfil: a nested agent-team row is kept and named, not mangled', re5.nettoyes.length === 0 && re5.gardes.length === 1 && /deep: 1/.test(lire(e5)))
+  const e6 = profil('migrer-e6', '- id: agent-team\n  config:\n    maxTasks: 128\n    defaultEnabled: true\n')
+  ok('migrerProfil: an agent-team row that only carries accepted keys is not touched', migrerProfil({ fs: fsDur, profilDir: e6, cible: '0.2.2-rc.5' }).nettoyes.length === 0 && /maxTasks: 128\n    defaultEnabled: true/.test(lire(e6)))
 }
 
 console.log(ko === 0 ? `\nMOTEUR DE CYCLE DE VIE — ${n} assertions, 0 échec` : `\n✗ ${ko} échec(s) sur ${n}`)

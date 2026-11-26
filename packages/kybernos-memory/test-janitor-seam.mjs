@@ -193,10 +193,10 @@ try {
     check('a « replaces » verdict is a conflict, not a merge', conflicted.ok === true && conflicted.conflicts === 1 && conflicted.merges === 0 && conflicted.changed === false, conflicted)
     check('both contradictory lessons are kept', lessonsOf(kybers, 'default').length === 2)
     check('the model route and the call count are reported', conflicted.model.route === 'fixture/study' && conflicted.model.calls >= 1, conflicted.model)
-    // a « same » verdict merges
+    // a « same » verdict is a suggestion only: the model never merges alone (2026-11-20)
     fake.llm = makeLlm('same').llm
     const merged = await seam.scanAndClean({ apply: true, bounds: {}, backupPath: join(ROOT, 'backups', 'same.json') })
-    check('a « same » verdict merges the pair', merged.ok === true && merged.merges === 1 && merged.changed === true && lessonsOf(kybers, 'default').length === 1, merged)
+    check('a « same » verdict does NOT merge the pair by itself', merged.ok === true && merged.merges === 0 && merged.changed === false && lessonsOf(kybers, 'default').length === 2, merged)
   }
 
   console.log('── bounds: inspected, candidates, model calls, removals ──')

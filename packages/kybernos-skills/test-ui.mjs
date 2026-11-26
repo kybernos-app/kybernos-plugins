@@ -633,6 +633,16 @@ console.log('Yours: what Kaby suggests waits, and nothing is active before Accep
     check('the subtitle and the chip say how many wait', page(root).includes('2 suggested by Kaby') && kb(root, 'learned-chip').length === 1)
     check('a host that reads the Skills page makes the count available to the menu (window.__KB_LEARNED__)', typeof globalThis.window.__KB_LEARNED__ === 'object' && globalThis.window.__KB_LEARNED__.count() === 2, globalThis.window.__KB_LEARNED__ && globalThis.window.__KB_LEARNED__.count())
 
+    // the Suggestions tab (list items 04 and 19): the place of what Kaby proposes, with its count; looking at it clears the dot of the menu, never the count of the tab
+    check('a Suggestions tab with its count stands first while something waits, and Yours is the selected one', kb(root, 'seg-suggestions').length === 1 && textOf(kb(root, 'seg-suggestions')[0]).replace(/\s+/g, ' ').trim() === 'Suggestions 2' && kb(root, 'seg-suggestions')[0].props['aria-selected'] === 'false')
+    check('before the tab is looked at, the menu dot has 2 new suggestions and the tab counts the same 2', globalThis.window.__KB_LEARNED__.count() === 2 && globalThis.window.__KB_LEARNED__.waiting() === 2)
+    await click(root, kb(root, 'seg-suggestions')[0])
+    check('the Suggestions tab shows the suggestions only, and is the selected tab', kb(root, 'learned-card').length === 2 && cardOf(root, 'sql-queries') === undefined && kb(root, 'seg-suggestions')[0].props['aria-selected'] === 'true')
+    check('having it on screen clears what is new for the menu dot (count 0), the tab still counts what waits (2)', globalThis.window.__KB_LEARNED__.count() === 0 && globalThis.window.__KB_LEARNED__.waiting() === 2 && textOf(kb(root, 'seg-suggestions')[0]).includes('2'))
+    check('the seen list is kept by id, so a later suggestion lights the dot again', (() => { try { const j = JSON.parse(globalThis.localStorage.getItem('kybernos.skills.learned-seen')); return Array.isArray(j) && j.includes('p:p_aaaa1111') && j.includes('p:p_bbbb2222') } catch (e) { return false } })(), globalThis.localStorage.getItem('kybernos.skills.learned-seen'))
+    await click(root, all(root, (n) => n.tag === 'button' && n.props.role === 'tab' && textOf(n).trim().startsWith('Yours'))[0])
+    check('Yours puts everything back, and the Suggestions tab is not selected any more', cardOf(root, 'sql-queries') !== undefined && kb(root, 'seg-suggestions')[0].props['aria-selected'] === 'false')
+
     // the chip filters to the suggestions
     await click(root, kb(root, 'learned-chip')[0])
     check('the chip shows the suggestions only', kb(root, 'learned-card').length === 2 && cardOf(root, 'sql-queries') === undefined && cardOf(root, 'proj-only') === undefined)
@@ -881,8 +891,8 @@ console.log('Learned skills V1: changes Kaby made on its own are said, with Keep
     check('and it is saved once the person stops', posted(w, '/kybernos-skills/learned/settings/set').length === before + 1 && posted(w, '/kybernos-skills/learned/settings/set')[before].body.threshold === 99, posted(w, '/kybernos-skills/learned/settings/set').slice(-1))
     // the audit trail and the kill switch
     await click(root, kb(root, 'settings-journal')[0])
-    check('the journal button sends the person to the Skills page, on the journal', sess.get('kybernos.skills.journal') === '1' && opened.some((o) => o.view === 'skills'))
-    sess.delete('kybernos.skills.journal')
+    check('the journal button opens the embedded Journal tab, without leaving Settings', kb(root, 'section-journal')[0].props['aria-selected'] === 'true' && kb(root, 'learned-journal-tab').length === 1 && sess.get('kybernos.skills.journal') === undefined && opened.length === 0)
+    await click(root, kb(root, 'section-settings')[0])
     await click(root, kb(root, 'learned-stop')[0])
     check('the kill switch asks again before it does anything', kb(root, 'learned-stop-yes').length === 1 && posted(w, '/kybernos-skills/learned/stop').length === 0)
     await click(root, kb(root, 'learned-stop-yes')[0])
@@ -909,7 +919,7 @@ console.log('Learned skills V1: changes Kaby made on its own are said, with Keep
   {
     const w = world()
     const root = await openSettings(w)
-    check('a host that was not restarted says so instead of showing settings that do nothing', page(root).includes('These settings are not available: restart DSH') && kb(root, 'learned-levels').length === 0)
+    check('a host that was not restarted says so instead of showing settings that do nothing', page(root).includes('These settings are not available: restart Kybernos') && kb(root, 'learned-levels').length === 0)
     const fr = await openSettings(settingsWorld(), 'fr')
     check('in French the page and the levels speak French', page(fr).includes('Compétences apprises') && page(fr).includes('Demande-moi à chaque fois') && page(fr).includes('Seuil de confiance'))
   }
@@ -1233,6 +1243,62 @@ console.log('Learned skills V2: the notice under a finished answer, the weekly c
     const bare = await mount2(setWorld(), LearnedSettingsScreen, {})
     check('Settings › Learned skills without the Suite keeps the line under its title', learnedLines(bare).length === 1 && learnedLines(bare)[0] === LEAD, learnedLines(bare))
     check('both Settings pages draw their head through the shared pageHead, and the Settings title class has no size, weight or font of its own (no `.kbss-h1` declaration, no `kbhp-row`, no `kbss-headrow`)', (SOURCE.match(/pageHead\(\{[^}]*className: 'kbss-h1'/g) || []).length === 3 && !/\.kbss-h1\s*\{/.test(SOURCE) && !/kbhp-row|kbss-headrow/.test(SOURCE))
+  }
+  // Settings › Learned skills tabs (item 19): Settings (default), Learned, Journal, Suggestions (navigates to Skills › Suggestions)
+  {
+    const hash = (c) => c.repeat(64)
+    const prop = { id: 'p_tab1', name: 'daily-brief', kind: 'auto', createdAt: '2026-10-21T08:00:00.000Z', description: 'Brief. Use when asked.', body: '# x', from: { automation: { id: 't1', runs: 5 } }, checks: [], hits: [], score: { total: 92, signals: [], risky: false }, stops: ['asks'], hard: [] }
+    const lrn = entry({ name: 'statistical-analysis', ver: 2, uses: 4, auto: true, reviewed: false, shared: false, shareReady: true })
+    const w = setWorld({}, { proposals: [prop], learned: [lrn] })
+    w.answers['GET /kybernos-skills/learned/journal'] = { ok: true, verified: true, brokenAt: null, count: 1, entries: [
+      { n: 1, t: '2026-10-21T08:00:00.000Z', act: 'created', skill: 'statistical-analysis', by: 'kaby', mode: 'auto', kind: 'auto', ver: 1, score: 94, sig: [['evidence', 35]], from: { automation: { id: 't1', name: 'Nightly', runs: 5 } }, prev: hash('0'), hash: hash('a') },
+    ] }
+    w.answers['POST /kybernos-skills/learned/undo'] = (b) => ({ ok: true, name: b.name, ver: 1 })
+    opened.length = 0
+    sess.clear()
+    const root = await mount2(w, LearnedSettingsScreen, {})
+    check('the fallback tab bar is a tablist with Settings selected by default and no data-kb-pres in the page', kb(root, 'learned-tabs').length === 1 && kb(root, 'learned-tabs')[0].props.role === 'tablist' && kb(root, 'learned-tabs')[0].props.className === 'kbss-tabs' && kb(root, 'section-settings')[0].props['aria-selected'] === 'true' && kb(root, 'learned-levels').length === 1 && all(root, (n) => n.props['data-kb-pres'] !== undefined).length === 0)
+    check('Suggestions shows the waiting count (1 proposal + 1 unreviewed auto = 2) and is highlighted when > 0', part(root, 'learned-sug-count') === '2' && hasClass(kb(root, 'learned-sug-count')[0], 'hot'))
+    // Switch to Learned tab
+    await click(root, kb(root, 'section-learned')[0])
+    check('the Learned tab shows the learned skills from the existing API without duplicating proposal controls', kb(root, 'section-learned')[0].props['aria-selected'] === 'true' && kb(root, 'learned-list').length === 1 && kb(root, 'learned-item').length === 1 && part(root, 'learned-list').includes('statistical-analysis') && part(root, 'learned-list').includes('v2') && part(root, 'learned-list').includes('used 4×') && kb(root, 'learned-accept').length === 0)
+    await click(root, kb(root, 'learned-open-skills')[0])
+    check('Open in Skills sets the learned hint and opens the Skills page', sess.get('kybernos.skills.learned') === '1' && opened.some((o) => o.view === 'skills'))
+    sess.delete('kybernos.skills.learned')
+    // Switch to Journal tab (inline JournalPanel)
+    await click(root, kb(root, 'section-journal')[0])
+    check('the Journal tab reuses JournalPanel inline (no close button) with entries and Undo', kb(root, 'section-journal')[0].props['aria-selected'] === 'true' && kb(root, 'learned-journal-tab').length === 1 && kb(root, 'learned-journal').length === 1 && part(root, 'learned-journal').includes('statistical-analysis Created by Kaby') && all(kb(root, 'learned-journal')[0], (n) => n.props['aria-label'] === 'Close').length === 0)
+    await click(root, all(kb(root, 'journal-entry')[0], (n) => n.tag === 'button')[0])
+    await click(root, kb(root, 'journal-undo')[0])
+    check('Undo inside the embedded Journal posts to learned/undo', posted(w, '/kybernos-skills/learned/undo').length === 1 && posted(w, '/kybernos-skills/learned/undo')[0].body.name === 'statistical-analysis')
+    // Suggestions tab navigates to Skills › Suggestions via sessionStorage
+    opened.length = 0
+    await click(root, kb(root, 'section-suggestions')[0])
+    check('clicking Suggestions writes kybernos.skills.suggestions and opens Skills, leaving the current tab active', sess.get('kybernos.skills.suggestions') === '1' && opened.some((o) => o.view === 'skills') && kb(root, 'section-journal')[0].props['aria-selected'] === 'true')
+    // Opening Skills consumes kybernos.skills.suggestions once and lands on the Suggestions tab
+    const wSkills = world()
+    wSkills.answers['GET /kybernos-skills/learned'] = { ok: true, proposals: [prop], learned: [], discarded: [], week: { used: 0, cap: 3 }, sensitive: false, settings: SET, rules: [], limits: { maxPending: 5, pendingDays: 30, discardedDays: 30 } }
+    const skillsRoot = await open(wSkills)
+    check('the Skills page reads kybernos.skills.suggestions once and opens on its Suggestions tab', sess.has('kybernos.skills.suggestions') === false && kb(skillsRoot, 'seg-suggestions').length === 1 && kb(skillsRoot, 'seg-suggestions')[0].props['aria-selected'] === 'true')
+    // Zero suggestions: counter stays visible at 0, not highlighted; Learned empty state renders cleanly
+    const wEmpty = setWorld()
+    const emptyRoot = await mount2(wEmpty, LearnedSettingsScreen, {})
+    check('with 0 suggestions waiting, the counter reads 0 and is not highlighted', part(emptyRoot, 'learned-sug-count') === '0' && !hasClass(kb(emptyRoot, 'learned-sug-count')[0], 'hot'))
+    await click(emptyRoot, kb(emptyRoot, 'section-learned')[0])
+    check('with 0 learned skills, the Learned tab shows its empty state', kb(emptyRoot, 'learned-list-empty').length === 1 && part(emptyRoot, 'learned-list-empty').includes('No learned skills yet'))
+    // Shared window.__KB_TABS__.Bar contract (same as Automations)
+    const seenBars = []
+    globalThis.window.__KB_TABS__ = { Bar: (props) => { seenBars.push(props); return React.createElement('div', { 'data-kb': 'shared-tabs-bar', role: 'tablist' }, props.tabs.map((x) => React.createElement('button', { key: x.id, type: 'button', role: 'tab', 'data-kb': 'shared-' + x.id, onClick: () => props.onChange(x.id) }, x.label))) } }
+    try {
+      const sharedRoot = await mount2(w, LearnedSettingsScreen, {})
+      const lastBar = seenBars[seenBars.length - 1]
+      check('when window.__KB_TABS__.Bar is published, LearnedSettingsPage uses it with the Automations contract', kb(sharedRoot, 'shared-tabs-bar').length === 1 && lastBar.dataKb === 'learned-tabs' && lastBar.value === 'settings' && lastBar.tabs.map((x) => x.id).join() === 'settings,learned,journal,suggestions')
+      await click(sharedRoot, kb(sharedRoot, 'shared-learned')[0])
+      check('...and switching tabs through window.__KB_TABS__.Bar works', kb(sharedRoot, 'learned-list').length === 1)
+    } finally { delete globalThis.window.__KB_TABS__ }
+    // French tabs
+    const frTabs = await mount2(w, LearnedSettingsScreen, {}, 'fr')
+    check('in French, the tab bar labels speak French', textOf(kb(frTabs, 'learned-tabs')[0]).includes('Réglages') && textOf(kb(frTabs, 'learned-tabs')[0]).includes('Appris') && textOf(kb(frTabs, 'learned-tabs')[0]).includes('Journal') && textOf(kb(frTabs, 'learned-tabs')[0]).includes('Suggestions'))
   }
 }
 

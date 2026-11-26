@@ -42,6 +42,7 @@ const LABELS = {
     kActive: 'Active time', kWaited: 'Waited for people', kCrews: 'Crews', kHandovers: 'Handovers', kOpen: 'open', kErrors: 'Errors', kRecovered: 'all recovered', kCost: 'Cost', kTokens: 'Tokens', kFree: 'no price known', kDeliverables: 'Deliverables',
     tokens: 'tokens', costTitle: 'Over the chat', costOver: 'Cost over the chat', tokensOver: 'Tokens over the chat', timeTitle: 'Where the time went', timeCrews: 'Crews', timePeople: 'Waiting for people', timeChat: 'The chat itself',
     crewsTitle: 'Crews', crew: 'Crew', members: 'Members', failed: 'failed', finished: 'finished', isRunning: 'is running', connectorsTitle: 'Connected apps', calls: 'calls', errorsN: 'errors',
+    subagents: 'Sub-agents', viewStory: 'Story', viewFlow: 'Flow', flowTitle: 'Flow of this chat', steps: 'steps', flowStart: 'Start', flowCut: 'The flow shows the first steps. The rest is in the Story view.',
     storyTitle: 'Story of this chat', moments: 'moments', prev: 'Previous', next: 'Next', page: 'Page', of: 'of', perPage: 'Per page', textHidden: 'Text not included', decisionHidden: 'Who decided is not included.',
     you: 'A person', automation: 'Automation', reply: 'Reply', skill: 'Skill', memory: 'Memory', permissionAsked: 'Permission asked', questionAsked: 'Question asked', delivered: 'Delivered', model: 'Model', objective: 'Objective', actions: 'Actions', files: 'files',
     startsOn: 'starts on', switchedTo: 'switched to', savedNote: 'saved a note', lookedUp: 'looked something up', callFailed: 'call failed', recovered: 'Recovered on a later call',
@@ -60,6 +61,7 @@ const LABELS = {
     kActive: 'Temps actif', kWaited: 'Attente de personnes', kCrews: 'Équipes', kHandovers: 'Passages à un humain', kOpen: 'en attente', kErrors: 'Erreurs', kRecovered: 'toutes rattrapées', kCost: 'Coût', kTokens: 'Tokens', kFree: 'aucun prix connu', kDeliverables: 'Livrables',
     tokens: 'tokens', costTitle: 'Au fil du chat', costOver: 'Coût au fil du chat', tokensOver: 'Tokens au fil du chat', timeTitle: 'Où est passé le temps', timeCrews: 'Équipes', timePeople: 'Attente de personnes', timeChat: 'Le chat lui-même',
     crewsTitle: 'Équipes', crew: 'Équipe', members: 'Membres', failed: 'en échec', finished: 'terminée', isRunning: 'en cours', connectorsTitle: 'Applications connectées', calls: 'appels', errorsN: 'erreurs',
+    subagents: 'Sous-agents', viewStory: 'Histoire', viewFlow: 'Flow', flowTitle: 'Flow de ce chat', steps: 'étapes', flowStart: 'Départ', flowCut: 'Le flow montre les premières étapes. La suite est dans la vue Histoire.',
     storyTitle: 'Histoire de ce chat', moments: 'moments', prev: 'Précédent', next: 'Suivant', page: 'Page', of: 'sur', perPage: 'Par page', textHidden: 'Texte non inclus', decisionHidden: 'Qui a décidé n’est pas inclus.',
     you: 'Une personne', automation: 'Automatisation', reply: 'Réponse', skill: 'Skill', memory: 'Mémoire', permissionAsked: 'Autorisation demandée', questionAsked: 'Question posée', delivered: 'Livré', model: 'Modèle', objective: 'Objectif', actions: 'Actions', files: 'fichiers',
     startsOn: 'démarre sur', switchedTo: 'passe sur', savedNote: 'a enregistré une note', lookedUp: 'a cherché quelque chose', callFailed: 'appel en échec', recovered: 'Rattrapé à un appel suivant',
@@ -111,6 +113,7 @@ export function journalDocument ({ story, include, lang, logos, seal, evidence, 
     else if (m.kind === 'reply') { out.model = slice(m.model, 80); out.text = inc.prompts ? flat(m.text, 600) : null }
     else if (m.kind === 'crew') { out.crewId = slice(m.crewId, 80); out.status = calm(m.status === 'failed' || m.status === 'running' ? m.status : 'done') }
     else if (m.kind === 'connector' && isObj(m.connector)) { out.connectorId = slice(m.connector.id, 60); out.action = slice(m.connector.action, 80); out.status = m.status === 'error' ? calm('error') : (m.status === 'running' ? 'running' : 'ok'); out.recovered = m.recovered === true }
+    else if (m.kind === 'worker' && isObj(m.worker)) { out.workerId = slice(m.worker.instanceId || m.worker.id, 64); out.label = slice(m.worker.name, 80); out.model = slice(m.worker.model, 80); out.reason = slice(m.worker.reason, 40); out.cacheHitPct = num(m.worker.cacheHitPct); out.status = m.status === 'error' ? calm('error') : (m.status === 'running' ? 'running' : 'ok') }
     else if (m.kind === 'skill') { out.name = slice(m.subject, 80); out.op = slice(m.op, 20) }
     else if (m.kind === 'memory') { out.op = m.op === 'write' ? 'write' : 'read'; out.text = inc.prompts ? flat(m.subject, 200) : null }
     else if (m.kind === 'handover') {
@@ -136,7 +139,7 @@ export function journalDocument ({ story, include, lang, logos, seal, evidence, 
   const crews = (Array.isArray(story.crews) ? story.crews : []).slice(0, 30).map((c) => ({
     id: slice(c.id, 80), name: slice(c.name, 120), state: calm(c.state === 'failed' || c.state === 'running' ? c.state : 'done'), startedAt: num(c.startedAt), endedAt: num(c.endedAt),
     durMs: inc.timing ? num(c.durMs) : null, tokens: num(c.tokens), costEur: num(c.costEur),
-    members: (Array.isArray(c.members) ? c.members : []).slice(0, 12).map((m) => ({ label: slice(m.label, 80), phase: slice(m.phase, 60), model: slice(m.model, 80) })),
+    members: (Array.isArray(c.members) ? c.members : []).slice(0, 12).map((m) => ({ label: slice(m.label, 80), phase: slice(m.phase, 60), model: slice(m.model, 80), tokens: num(m.tokens), costEur: num(m.costEur) })),
   }))
   const connectors = (Array.isArray(story.connectors) ? story.connectors : []).slice(0, 40).map((c) => ({ id: slice(c.id, 60), name: slice(c.name, 60), calls: num(c.calls) || 0, errors: inc.timing ? (num(c.errors) || 0) : 0 }))
   const logoMap = {}

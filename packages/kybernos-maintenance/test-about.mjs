@@ -171,7 +171,7 @@ const ETAT = {
 }
 const avec = (extra) => ({ ...ETAT, ...extra })
 const DEPASSE = avec({
-  problemes: ['2 DSH packages of the profile are pinned to a different version than the engine.', 'Package @local/kybernos-flow is not linked to the profile.'],
+  problemes: ['2 Kybernos packages of the profile are pinned to a different version than the engine.', 'Package @local/kybernos-flow is not linked to the profile.'],
   niveau: 'Partial', maj: { niveau: 'Recommended', cible: '0.2.0-rc.2', note: 'A newer engine version would re-enable the patches that are not applied.' },
 })
 const HORS_ZONE = avec({
@@ -215,6 +215,12 @@ console.log('── pure logic ──')
   check('Kybernos number: the semver when the host read one', T.versionPlugin({ version: '1.0.0-beta.1', plugin: 'a1b2c3d' }) === '1.0.0-beta.1')
   check('Kybernos number: else the git hash the state already has', T.versionPlugin({ version: null, plugin: 'a1b2c3d' }) === 'a1b2c3d' && T.versionPlugin({ plugin: 'a1b2c3d' }) === 'a1b2c3d')
   check('Kybernos number: nothing is invented', T.versionPlugin({}) === 'unknown' && T.versionPlugin({ version: '', plugin: '' }) === 'unknown')
+  {
+    const APP = 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36 KybernosHost/0.1.0 (android) KybernosCaps/where'
+    check('in the phone app, with no version file and no hash, the page shows the app\'s version (it read « Version unknown »)', T.versionPlugin({ version: null, plugin: 'unknown' }, APP) === '0.1.0' && T.versionPlugin({}, APP) === '0.1.0')
+    check('...but the shipped semver and the git hash still come first', T.versionPlugin({ version: '1.0.0', plugin: 'a1b2c3d' }, APP) === '1.0.0' && T.versionPlugin({ plugin: 'a1b2c3d' }, APP) === 'a1b2c3d')
+    check('outside the app nothing is invented', T.versionPlugin({ version: null, plugin: 'unknown' }, 'Mozilla/5.0 Chrome/130') === 'unknown' && T.versionApp('KybernosHost/9.9.9 (ios)') === '9.9.9' && T.versionApp('') === null)
+  }
   check('tested zone text: min → max, min only, absent', T.zoneTexte({ min: '0.1.6', max: '0.2.0' }) === '0.1.6 → 0.2.0' && T.zoneTexte({ min: '0.1.6', max: null }) === '0.1.6' && T.zoneTexte(null) === '—' && T.zoneTexte({ min: null, max: null }) === '—')
   const s = (e) => { const r = T.statutDe(e); return r.tone + '/' + r.cle }
   check('status: in sync is green', s(ETAT) === 'ok/ok')
@@ -288,7 +294,7 @@ console.log('── above the fold ──')
   check('ONE status block, green, with state and one-line verdict', statut.length === 1 && statut[0].props['data-tone'] === 'ok' && texte(parClasse(statut[0], 'kbmz-kicker')[0]) === 'In sync' && texte(parClasse(statut[0], 'kbmz-verdict')[0]) === 'All good — engine and plugin in sync')
   check('green and nothing to do: no action hint', parKb(tree, 'maintenance-copy-upgrade').length === 0)
   const tuiles = parClasse(tree, 'kbmz-tuile')
-  check('three tiles: DSH engine, Kybernos, Tested zone', tuiles.length === 3 && tuiles.map((x) => texte(parClasse(x, 'kbmz-tuile-l')[0])).join('|') === 'DSH engine|Kybernos|Tested zone', tuiles.map(texte))
+  check('three tiles: Engine, Kybernos, Tested zone', tuiles.length === 3 && tuiles.map((x) => texte(parClasse(x, 'kbmz-tuile-l')[0])).join('|') === 'Engine|Kybernos|Tested zone', tuiles.map(texte))
   check('tile values: engine version, shipped semver, min → max', tuiles.map((x) => texte(parClasse(x, 'kbmz-tuile-v')[0])).join('|') === '0.2.0-rc.2|1.0.0-beta.1|0.1.6-alpha.2 → 0.2.0-rc.2')
   const liens = texte(parKb(tree, 'maintenance-links')[0])
   check('links row: licence, trademark policy, modules', liens === 'License Apache-2.0Trademark policyModules: Kybernos Suite', liens)
@@ -296,7 +302,7 @@ console.log('── above the fold ──')
   check('none of the technical cards leaks above the fold', ['maintenance-engine-card', 'maintenance-plugin-card', 'maintenance-compat-card', 'maintenance-update-card', 'maintenance-last-op', 'maintenance-journal', 'maintenance-contract-card', 'maintenance-compat-matrix', 'maintenance-surfaces', 'maintenance-copy'].every((kb) => horsPanneau(kb).length === 0), ['maintenance-last-op'].map(horsPanneau).map((x) => x.length))
   check('no old Simple/Advanced toggle anywhere (hook, pressed state, words)', parKb(tree, 'maintenance-vue-simple').length === 0 && parKb(tree, 'maintenance-vue-avance').length === 0 && trouver(tree, (x) => x.props['aria-pressed'] !== undefined).length === 0 && !/Simple|Advanced/.test(texte(tree)))
   const fr = rendrePage(ETAT, 'fr')
-  check('French: title, tiles, links, status', texte(fr.kids[0]) === 'À propos' && parClasse(fr, 'kbmz-tuile').map((x) => texte(parClasse(x, 'kbmz-tuile-l')[0])).join('|') === 'Moteur DSH|Kybernos|Zone testée' && texte(parKb(fr, 'maintenance-links')[0]) === 'Licence Apache-2.0Politique de marqueModules : Kybernos Suite' && texte(parClasse(fr, 'kbmz-kicker')[0]) === 'Synchronisé')
+  check('French: title, tiles, links, status', texte(fr.kids[0]) === 'À propos' && parClasse(fr, 'kbmz-tuile').map((x) => texte(parClasse(x, 'kbmz-tuile-l')[0])).join('|') === 'Moteur|Kybernos|Zone testée' && texte(parKb(fr, 'maintenance-links')[0]) === 'Licence Apache-2.0Politique de marqueModules : Kybernos Suite' && texte(parClasse(fr, 'kbmz-kicker')[0]) === 'Synchronisé')
   check('French: the check button and the disclosure', texte(parKb(fr, 'maintenance-refresh')[0]) === 'Vérifier maintenant' && texte(parKb(fr, 'maintenance-details-toggle')[0]).startsWith('Détails techniques'))
 }
 
@@ -312,7 +318,7 @@ console.log('── the status block: problems and the action hint ──')
 {
   const tree = rendrePage(DEPASSE, 'en')
   const statut = parKb(tree, 'maintenance-status')[0]
-  check('orange, state « To check », the first problem is the verdict', statut.props['data-tone'] === 'warn' && texte(parClasse(statut, 'kbmz-kicker')[0]) === 'To check' && texte(parClasse(statut, 'kbmz-verdict')[0]) === '2 DSH packages of the profile are pinned to a different version than the engine.')
+  check('orange, state « To check », the first problem is the verdict', statut.props['data-tone'] === 'warn' && texte(parClasse(statut, 'kbmz-kicker')[0]) === 'To check' && texte(parClasse(statut, 'kbmz-verdict')[0]) === '2 Kybernos packages of the profile are pinned to a different version than the engine.')
   check('the other problems stay visible, in the status block', texte(parClasse(statut, 'kbmz-problemes')[0]) === 'Package @local/kybernos-flow is not linked to the profile.')
   const copier = parKb(statut, 'maintenance-copy-upgrade')
   check('« Copy the command » is the action hint when an update is advised, inside the status block', copier.length === 1 && texte(copier[0]) === 'Copy the command' && copier[0].props['data-primaire'] === 'true')
@@ -323,7 +329,7 @@ console.log('── the status block: problems and the action hint ──')
   check('partial level without problems: orange with its own sentence', texte(parClasse(rendrePage(avec({ niveau: 'Partial' }), 'en'), 'kbmz-verdict')[0]) === 'It starts, but some patches are not applied on this engine: updating is recommended.')
   check('unknown level no longer says « All good » next to « discrepancies »', texte(parClasse(rendrePage(avec({ niveau: 'Unknown' }), 'en'), 'kbmz-verdict')[0]) === 'Compatibility could not be measured: the compatibility range is missing from the repository.')
   const fr = parKb(rendrePage(DEPASSE, 'fr'), 'maintenance-status')[0]
-  check('French: the host sentence is shown in French (the host speaks English)', texte(parClasse(fr, 'kbmz-verdict')[0]) === '2 paquets DSH du profil sont épinglés à une autre version que le moteur.' && texte(parKb(fr, 'maintenance-copy-upgrade')[0]) === 'Copier la commande')
+  check('French: the host sentence is shown in French (the host speaks English)', texte(parClasse(fr, 'kbmz-verdict')[0]) === '2 paquets Kybernos du profil sont épinglés à une autre version que le moteur.' && texte(parKb(fr, 'maintenance-copy-upgrade')[0]) === 'Copier la commande')
 }
 
 console.log('── Technical details: ONE collapsed disclosure ──')
@@ -412,12 +418,12 @@ console.log('── nothing is lost: everything the old page showed is in the pa
   // entry would stay English in a French page. The frames are read from the host sources, so a new sentence fails here until it has its entry.
   const SURFACES = readFileSync(join(ICI, 'surfaces.mjs'), 'utf8')
   const PHRASES = [
-    [' DSH packages of the profile are pinned to a different version than the engine.', HOST, '2 DSH packages of the profile are pinned to a different version than the engine.'],
-    ['A DSH package of the profile is pinned to a different version than the engine.', HOST, 'A DSH package of the profile is pinned to a different version than the engine.'],
+    [' Kybernos packages of the profile are pinned to a different version than the engine.', HOST, '2 Kybernos packages of the profile are pinned to a different version than the engine.'],
+    ['A Kybernos package of the profile is pinned to a different version than the engine.', HOST, 'A Kybernos package of the profile is pinned to a different version than the engine.'],
     [' is not linked to the profile.', HOST, 'Package @local/x is not linked to the profile.'],
     [' is not declared.', HOST, 'Bundle @local/x is not declared.'],
     ['has never been tested with this plugin.', HOST, 'Engine version (0.3.0) has never been tested with this plugin.'],
-    ['The server started before the last update: it is still serving the old engine. Restart DSH.', HOST, 'The server started before the last update: it is still serving the old engine. Restart DSH.'],
+    ['The server started before the last update: it is still serving the old engine. Restart Kybernos.', HOST, 'The server started before the last update: it is still serving the old engine. Restart Kybernos.'],
     ['The installed engine cannot be found: the surface audit is not possible.', SURFACES, 'The installed engine cannot be found: the surface audit is not possible.'],
     ['is no longer true in the installed engine', SURFACES, 'Our patch: “a form” is no longer true in the installed engine (path/file.js).'],
     ['OVERLAP — ', SURFACES, 'OVERLAP — Our patch: the engine now carries “a form” (measured on the clean backup file.js.orig).'],
@@ -432,7 +438,7 @@ console.log('── nothing is lost: everything the old page showed is in the pa
   check('in English a host sentence is shown as the host wrote it', PHRASES.every(([, , phrase]) => dedans(phrase, 'en').includes(phrase)), PHRASES.filter(([, , phrase]) => !dedans(phrase, 'en').includes(phrase)).map(([, , phrase]) => phrase.slice(0, 50)))
   const restes = PHRASES.map(([, , phrase]) => [phrase, dedans(phrase, 'fr')]).filter(([, vu]) => ANGLAIS.test(vu)).map(([phrase]) => phrase.slice(0, 50))
   check('in French, none of the host sentences stays English (problems list and the engine surfaces)', restes.length === 0, restes)
-  check('French: the plural and the singular of the pinned packages, « tu » for the restart', dedans('A DSH package of the profile is pinned to a different version than the engine.', 'fr').includes('Un paquet DSH du profil est épinglé à une autre version que le moteur.') && dedans('The server started before the last update: it is still serving the old engine. Restart DSH.', 'fr').includes('Redémarre DSH.'))
+  check('French: the plural and the singular of the pinned packages, « tu » for the restart', dedans('A Kybernos package of the profile is pinned to a different version than the engine.', 'fr').includes('Un paquet Kybernos du profil est épinglé à une autre version que le moteur.') && dedans('The server started before the last update: it is still serving the old engine. Restart Kybernos.', 'fr').includes('Redémarre Kybernos.'))
   check('French: a quoted piece of the audit is translated inside its frame', dedans('Our patch: “the session host accepts edit / remove / steer” is no longer true in the installed engine (x.js).', 'fr').includes('« l’hôte de session accepte edit / remove / steer » n’est plus vrai dans le moteur installé (x.js).') && dedans('queue-move patch: “no native queue move (no "move" case)” is no longer true in the installed engine (x.js).', 'fr').includes('retouche queue-move : « aucun déplacement de file natif (pas de case "move") »'))
   check('French: the clean-backup and bare-bench variants of the overlap', dedans(PHRASES[8][2], 'fr').includes('DOUBLON — ') && dedans(PHRASES[8][2], 'fr').includes('sauvegarde vierge file.js.orig') && dedans(PHRASES[9][2], 'fr').includes('banc nu /x'))
   // Everything the audit module can quote (a probe, a native capability) has a French twin in the client: no English piece stays in a French sentence.
@@ -476,6 +482,51 @@ console.log('── the wordmark: shared brand component, never a throw ──')
   check('the page only ever uses the contract, never draws a logo (no svg besides the chevron, no image)', trouver(rendrePage(ETAT, 'en'), (x) => x.tag === 'svg').length === 1 && trouver(rendrePage(ETAT, 'en'), (x) => x.tag === 'img').length === 0)
 }
 
+console.log('── the parts other bundles file under About (item 28) ──')
+{
+  const A = () => createElement('p', { 'data-kb': 'part-a' }, 'Part A')
+  const B = () => createElement('p', { 'data-kb': 'part-b' }, 'Part B')
+  const Boom = () => { throw new Error('boom') }
+  const blocs = (tree) => parKb(tree, 'about-extras')
+  check('no list on the window: no block, the page is as it was', blocs(rendrePage(ETAT, 'en')).length === 0)
+  win.__KB_ABOUT_EXTRA__ = []
+  check('an empty list: no block either', blocs(rendrePage(ETAT, 'en')).length === 0)
+  win.__KB_ABOUT_EXTRA__ = [{ id: 'b', order: 30, component: B }, { id: 'a', order: 20, component: A }, null, 'x', { id: '', component: A }, { id: 'no-component' }, { id: 'boom', order: 25, component: Boom }]
+  const tree = rendrePage(ETAT, 'en')
+  const direct = tree.kids.filter((k) => typeof k !== 'string').map((k) => k.props.className || '')
+  check('one block, right after the links row and before the disclosure (the rest of the order is the page\'s own)', blocs(tree).length === 1 && JSON.stringify(direct) === JSON.stringify(['kbhp-title', 'kbmz-haut', 'kbmz-status', 'kbmz-tuiles', 'kbmz-liens', 'kbmz-extras', '']), direct)
+  check('the parts come in their order (20 before 30), an entry that is not an object, has no id or has no component is left out, and the one that throws draws nothing', blocs(tree)[0].kids.map(texte).join('|') === 'Part A|Part B', blocs(tree)[0].kids.map(texte))
+  check('a part that throws is cut off by the boundary: the others and the page stay', parKb(tree, 'part-a').length === 1 && parKb(tree, 'part-b').length === 1 && parKb(tree, 'maintenance-status').length === 1)
+  // a part filed AFTER the page opened is drawn when the event is heard (load order is not promised)
+  const entendus = []
+  win.addEventListener = (ev, fn) => { entendus.push({ ev, fn }) }
+  win.removeEventListener = () => {}
+  win.__KB_ABOUT_EXTRA__ = []
+  const s2 = monter(createElement(T.Page, { etat: ETAT, onRafraichir: () => {}, charge: false }))
+  const ecoute = entendus.find((e) => e.ev === 'kb-about-extra')
+  check('the page listens to kb-about-extra', ecoute !== undefined && blocs(s2.tree).length === 0)
+  win.__KB_ABOUT_EXTRA__.push({ id: 'a', order: 1, component: A })
+  ecoute.fn()
+  check('a part filed after the page opened is drawn once the event is heard', parKb(s2.tree, 'part-a').length === 1)
+  win.__KB_ABOUT_EXTRA__.length = 0
+  ecoute.fn()
+  check('...and gone once it is taken back', parKb(s2.tree, 'part-a').length === 0 && blocs(s2.tree).length === 0)
+  // the state that cannot be read must not hide account and help
+  win.__KB_ABOUT_EXTRA__ = [{ id: 'a', order: 1, component: A }]
+  modele.apply({ slots: { inject: (nom, fn) => { entendus.push({ page: fn() }) }, register: (meta, comp) => ({ meta, comp }) } })
+  const Section2 = entendus.filter((e) => e.page !== undefined).pop().page.comp
+  reponse = 'reseau-ko'
+  lang = 'en'
+  const s3 = monter(createElement(Section2))
+  await tick(); await tick()
+  check('when the engine\'s state cannot be read, the page says so AND still draws the parts (account, help stay reachable)', texte(parKb(s3.tree, 'maintenance-status')[0]).includes('Status unavailable') && parKb(s3.tree, 'part-a').length === 1)
+  check('the seam is documented where it is read', /window\.__KB_ABOUT_EXTRA__/.test(SOURCE) && /kb-about-extra/.test(SOURCE))
+  delete win.__KB_ABOUT_EXTRA__
+  delete win.addEventListener
+  delete win.removeEventListener
+  reponse = null
+}
+
 console.log('── the container: loading, failing, refreshing ──')
 {
   const enregistre = []
@@ -504,7 +555,7 @@ console.log('── the container: loading, failing, refreshing ──')
     const asked = privacy.slice(privacy.indexOf('| Asked |')).split('\n').filter((l) => /^\| (The latest|The signed)/.test(l))
     check('docs/privacy.md lists three requests behind the switch', asked.length === 3, asked.length)
   }
-  check('the sentence under the switch names the same three: the suite version, the DSH version, the signed catalogue', /which suite version/.test(texte(carte()[0])) && /which DSH version/.test(texte(carte()[0])) && /signed catalogue/.test(texte(carte()[0])) && /none of the three/.test(texte(carte()[0])), texte(carte()[0]))
+  check('the sentence under the switch names the same three: the suite version, the engine version, the signed catalogue', /which suite version/.test(texte(carte()[0])) && /which engine version/.test(texte(carte()[0])) && /signed catalogue/.test(texte(carte()[0])) && /none of the three/.test(texte(carte()[0])), texte(carte()[0]))
   interrupteur().props.onClick()
   await tick(); await tick()
   check('pressing it posts { autoCheck: false } and then reads OFF, from what the host answered', appelsReglage[appelsReglage.length - 1] === 'POST {"autoCheck":false}' && interrupteur().props['aria-checked'] === 'false', appelsReglage)
@@ -525,7 +576,7 @@ console.log('── the container: loading, failing, refreshing ──')
   reglageReponse = 'reseau-ko'
   interrupteur().props.onClick()
   await tick(); await tick()
-  check('the network down: the switch is back and the alert says the DSH server did not answer', interrupteur().props['aria-checked'] === 'false' && alerte().length === 1 && texte(alerte()[0]) === 'Setting not saved: the DSH server did not answer', alerte().map(texte))
+  check('the network down: the switch is back and the alert says the Kybernos server did not answer', interrupteur().props['aria-checked'] === 'false' && alerte().length === 1 && texte(alerte()[0]) === 'Setting not saved: the Kybernos server did not answer', alerte().map(texte))
   reglageReponse = 'vide-403'
   interrupteur().props.onClick()
   await tick(); await tick()
@@ -701,7 +752,7 @@ console.log('update: hosted instance and one-click restart')
   // the restart that follows the install
   const reponse = (statut, corps) => async () => ({ status: statut, json: async () => corps })
   check('RESTART: the hub confirms (200, ok:true) → true', await T.updRelancer(reponse(200, { ok: true })) === true)
-  check('RESTART: no relaunch tool on this machine (500) → false, the dialog keeps saying "restart DSH"', await T.updRelancer(reponse(500, { ok: false, error: 'relaunch-tool-missing' })) === false)
+  check('RESTART: no relaunch tool on this machine (500) → false, the dialog keeps saying "restart Kybernos"', await T.updRelancer(reponse(500, { ok: false, error: 'relaunch-tool-missing' })) === false)
   check('RESTART: a refusal (400/403/409) → false', await T.updRelancer(reponse(400, { ok: false })) === false && await T.updRelancer(reponse(403, { ok: false })) === false && await T.updRelancer(reponse(409, { ok: false })) === false)
   check('RESTART: a 200 that does not say ok → false', await T.updRelancer(reponse(200, {})) === false && await T.updRelancer(reponse(200, null)) === false)
   check('RESTART: a network error or a non-JSON answer → false, never a throw', await T.updRelancer(async () => { throw new Error('offline') }) === false && await T.updRelancer(async () => ({ status: 200, json: async () => { throw new Error('html') } })) === false)

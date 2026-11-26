@@ -140,7 +140,7 @@ console.log('── every worker the host knows is dressed ──')
   const noLogo = []
   for (const w of WORKERS) {
     if (T.identityLine(w) === '') known.push(w.id)
-    const sym = w.id === 'zcode' ? 'term' : { 'claude-code': 'claude', codex: 'codex', gemini: 'gemini', opencode: 'opencode', qwen: 'qwen', hermes: 'hermes' }[w.id]
+    const sym = w.id === 'zcode' ? 'term' : { 'claude-code': 'claude', codex: 'codex', gemini: 'gemini', antigravity: 'antigravity', opencode: 'opencode', qwen: 'qwen', hermes: 'hermes' }[w.id]
     if (!source.includes('id="kbwk-lg-' + sym + '"') && !source.includes('id=\\"kbwk-lg-' + sym + '\\"')) noLogo.push(w.id)
   }
   ok('each worker has a vendor · account line', known.length === 0, known.join())

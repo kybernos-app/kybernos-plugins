@@ -127,16 +127,17 @@ try {
 
   console.log('── the tabs ──')
   const tabNames = await js('Array.from(document.querySelectorAll(\'[data-kb="kaby-custom-tab"]\')).map((t) => t.textContent.trim())')
-  check('four tabs: Identity & voice, Video calls, Work, Permissions', Array.isArray(tabNames) && tabNames.join('|') === 'Identity & voice|Video calls|Work|Permissions', tabNames)
-  check('the first tab is open and it is the only panel on screen', (await js('document.querySelector(\'[data-kb="kaby-custom-tab"][aria-selected="true"]\').getAttribute("data-tab")')) === 'look' && JSON.stringify(await shownPanels()) === '["kaby-custom-panel-look"]')
-  for (const [id, hooks] of [['face', ['kaby-custom-face']], ['work', ['kaby-custom-where', 'kaby-custom-wake']], ['permissions', ['kaby-custom-mandate']], ['look', ['kaby-custom-identity', 'kaby-custom-voice']]]) {
+  check('five tabs: Identity, Voice, Video calls, Work, Permissions', Array.isArray(tabNames) && tabNames.join('|') === 'Identity|Voice|Video calls|Work|Permissions', tabNames)
+  check('the first tab is open and it is the only panel on screen', (await js('document.querySelector(\'[data-kb="kaby-custom-tab"][aria-selected="true"]\').getAttribute("data-tab")')) === 'identity' && JSON.stringify(await shownPanels()) === '["kaby-custom-panel-identity"]')
+  for (const [id, hooks] of [['face', ['kaby-custom-face']], ['work', ['kaby-custom-where', 'kaby-custom-wake']], ['permissions', ['kaby-custom-mandate']], ['voice', ['kaby-custom-voice', 'kaby-custom-own-voice']], ['identity', ['kaby-custom-identity']]]) {
     await openTab(id)
     await shot('01b-tab-' + id)
     const open = await shownPanels()
     check('the « ' + id + ' » tab shows its own panel only, with its cards on screen', JSON.stringify(open) === JSON.stringify(['kaby-custom-panel-' + id]) && (await js(`${JSON.stringify(hooks)}.every((k) => { const e = document.querySelector('[data-kb="' + k + '"]'); return e !== null && e.getClientRects().length > 0 })`)) === true, open)
   }
-  check('the arrow keys move between tabs and keep the focus on the tab', (await js('(() => { const bar = document.querySelector(\'[data-kb="kaby-custom-tabs"]\'); const first = bar.querySelector(\'[data-tab="look"]\'); first.focus(); first.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })); return true })()')) === true && await waitFor(page, 'document.activeElement && document.activeElement.getAttribute("data-tab") === "face"', 3000) === true)
-  await openTab('look')
+  // The loop above ends on Identity on purpose: the arrow keys move from the open tab.
+  check('the arrow keys move between tabs and keep the focus on the tab', (await js('(() => { const bar = document.querySelector(\'[data-kb="kaby-custom-tabs"]\'); const first = bar.querySelector(\'[data-tab="identity"]\'); first.focus(); first.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })); return true })()')) === true && await waitFor(page, 'document.activeElement && document.activeElement.getAttribute("data-tab") === "voice"', 3000) === true)
+  await openTab('identity')
 
   console.log('── identity ──')
   check('the default name is Kaby', (await js('document.querySelector(\'[data-kb="kaby-custom-name"]\').value')) === 'Kaby')
@@ -177,7 +178,7 @@ try {
   await shot('02c-strip')
   check('a click on it opens Settings › Kaby', (await js('document.querySelector(\'[data-kb="kybernos-kyber-customise"]\').click(), true')) === true && await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-page"]\') !== null', 30000) === true)
   await sleep(600)
-  await click('[data-kb="kaby-custom-remove-portrait"]')
+  await click('[data-kb="kaby-custom-use-k"]')
   check('removing the portrait removes it from the page and from the host', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-portrait"]\') === null', 8000) === true && (await api('/profile')).json.profile.portrait === null)
   await click('[data-kb="kaby-custom-import"]')
   await sleep(300)
@@ -187,19 +188,22 @@ try {
   check('and takes the file once it is ticked', (await js('document.querySelector(\'[data-kb="kaby-custom-file"]\').disabled')) === false)
 
   console.log('── voice ──')
-  await openTab('look')
+  await openTab('voice')
   const pills = await js('Array.from(document.querySelectorAll(\'[data-kb="kaby-custom-voice-pill"]\')).map((e) => e.dataset.voice)')
   check('the app voice pill is there and pressed', Array.isArray(pills) && pills[0] === 'default' && (await js('document.querySelector(\'[data-kb="kaby-custom-voice-pill"]\').getAttribute("aria-pressed")')) === 'true', pills)
   check('the core’s voices are offered as pills (the machine has at least one ready engine)', Array.isArray(pills) && pills.length > 1, pills)
+  check('the short list holds the app voice and five voices at most; every voice has its own Listen (item 17)', Array.isArray(pills) && pills.length <= 6 + 1 && (await js('document.querySelectorAll(\'[data-kb="kaby-custom-listen"]\').length')) === (await js('document.querySelectorAll(\'[data-kb="kaby-custom-voice-pill"]:not([data-voice="custom"])\').length')), pills)
+  check('the two groups: « Kybernos voices » holds the voices, « Your voice » holds the recording button', (await js('(() => { const a = document.querySelector(\'[data-kb="kaby-custom-voice"]\'); const b = document.querySelector(\'[data-kb="kaby-custom-own-voice"]\'); return !!a && !!b && a.textContent.includes("Kybernos voices") && b.textContent.includes("Your voice") && !!b.querySelector(\'[data-kb="kaby-custom-custom-voice"]\') && !a.querySelector(\'[data-kb="kaby-custom-custom-voice"]\') })()')) === true)
+  check('the rest of the voices is folded under « More voices » (closed by default)', (await js('(() => { const d = document.querySelector(\'[data-kb="kaby-custom-more"]\'); return d === null || d.open === false })()')) === true)
   if (Array.isArray(pills) && pills.length > 1) {
     await click('[data-kb="kaby-custom-voice-pill"][data-voice="' + pills[1] + '"]')
     await sleep(700)
     const v = (await api('/profile')).json.profile.voice
     check('picking a voice keeps engine, voice and language', v.pick === 'voice' && v.voice === pills[1] && typeof v.engine === 'string', v)
-    await click('[data-kb="kaby-custom-preview"]')
+    await click('[data-kb="kaby-custom-listen"][data-voice="' + pills[1] + '"]')
     await sleep(900)
     const asked = await js('window.__kc.speak')
-    check('Preview asked the voice engine for that voice, with the name in the sentence', asked.length === 1 && asked[0].voice === pills[1] && asked[0].text.includes('Léa'), asked)
+    check('Listen asked the voice engine for that voice, with the name in the sentence', asked.length === 1 && asked[0].voice === pills[1] && asked[0].text.includes('Léa'), asked)
     check('a voice engine that fails is told to the person, not swallowed', (await js('(() => { const e = document.querySelector(\'[data-kb="kaby-custom-voice-error"]\'); return !!e && e.textContent.includes("faked") })()')) === true)
   }
   await click('[data-kb="kaby-custom-voice-pill"][data-voice="default"]')

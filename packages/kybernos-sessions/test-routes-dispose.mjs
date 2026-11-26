@@ -33,13 +33,13 @@ const host = () => {
 
 const h = host()
 const off = monterRoutes(h, opts())
-assert.equal(h.mounted.size, 14, 'the 14 routes are mounted: ' + [...h.mounted].join(' '))
+assert.equal(h.mounted.size, 16, 'the 16 routes are mounted: ' + [...h.mounted].join(' '))
 assert.equal(typeof off, 'function', 'monterRoutes gives back the way to take them off')
 off()
 assert.equal(h.mounted.size, 0, 'taking them off removes every route it added')
 monterRoutes(h, opts())
-assert.equal(h.mounted.size, 14, 'and mounting again works (it threw « duplicate exact route » when nothing had been removed)')
-ok('14 routes mounted, removed by the function monterRoutes returns, mounted again')
+assert.equal(h.mounted.size, 16, 'and mounting again works (it threw « duplicate exact route » when nothing had been removed)')
+ok('16 routes mounted, removed by the function monterRoutes returns, mounted again')
 
 // apply(): the routes go through ctx.effect, and the host unloading the plugin removes them.
 {
@@ -52,7 +52,7 @@ ok('14 routes mounted, removed by the function monterRoutes returns, mounted aga
     inject: (_names, cb) => cb(ctx),
   }
   apply(ctx)
-  assert.equal(h2.mounted.size, 14, 'apply mounts the routes')
+  assert.equal(h2.mounted.size, 16, 'apply mounts the routes')
   assert.equal(disposers.length, 1, 'inside ONE effect the host can dispose')
   disposers[0]()
   assert.equal(h2.mounted.size, 0, 'unloading the plugin removes the routes')
@@ -65,7 +65,7 @@ ok('14 routes mounted, removed by the function monterRoutes returns, mounted aga
   const svc = { register: (r) => { bare.add(r.path) } }
   const ctx = { get: () => svc, webServer: svc, inject: () => {} }
   apply(ctx)
-  assert.equal(bare.size, 14)
+  assert.equal(bare.size, 16)
   ok('with no effect service and a register that returns nothing, the routes still mount')
 }
 console.log('\nSESSIONS ROUTES DISPOSE — ' + pass + ' check(s), 0 échec')

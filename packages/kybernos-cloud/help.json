@@ -1,7 +1,7 @@
 {
   "what": {
-    "fr": "Connecte DSH à ton compte Kybernos : les modèles proposés par Kybernos (selon ta formule) et la mémoire du compte, partagée avec tes agents.",
-    "en": "Connects DSH to your Kybernos account: the models Kybernos offers (according to your plan) and the account memory, shared with your agents."
+    "fr": "Connecte cette appli à ton compte Kybernos : les modèles proposés par Kybernos (selon ta formule) et la mémoire du compte, partagée avec tes agents.",
+    "en": "Connects this app to your Kybernos account: the models Kybernos offers (according to your plan) and the account memory, shared with your agents."
   },
   "steps": [
     {
@@ -17,8 +17,8 @@
       "en": "The bottom of the sidebar shows your workspace and plan; click it for “Account”, “Settings” or “Sign out”."
     },
     {
-      "fr": "Réglages › Kybernos : tes instructions, le réimport des modèles, l'envoi des chats DSH. Souvenirs du compte : Memory & Lessons.",
-      "en": "Settings › Kybernos: your instructions, model re-import, DSH chats. Account memories: Settings › Memory & Lessons."
+      "fr": "Réglages › Kybernos : tes instructions, le réimport des modèles, l'envoi des chats Kybernos. Souvenirs du compte : Memory & Lessons.",
+      "en": "Settings › Kybernos: your instructions, model re-import, Kybernos chats. Account memories: Settings › Memory & Lessons."
     }
   ],
   "where": {
@@ -38,8 +38,8 @@
         "en": "Settings › Kybernos"
       },
       "what": {
-        "fr": "Ce qui reste sur cet ordinateur : les instructions que tes agents lisent à chaque conversation, l’import de tes modèles Kybernos, et l’envoi de tes chats DSH vers ton compte.",
-        "en": "What stays on this computer: the instructions your agents read in every conversation, the import of your Kybernos models, and the sending of your DSH chats to your account."
+        "fr": "Ce qui reste sur cet ordinateur : les instructions que tes agents lisent à chaque conversation, l’import de tes modèles Kybernos, et l’envoi de tes chats Kybernos vers ton compte.",
+        "en": "What stays on this computer: the instructions your agents read in every conversation, the import of your Kybernos models, and the sending of your Kybernos chats to your account."
       },
       "steps": [
         {
@@ -51,8 +51,8 @@
           "en": "Open “Advanced”: “Re-import” refreshes your plan’s list without changing account."
         },
         {
-          "fr": "« Envoyer les chats DSH » demande d’abord confirmation : la page annonce ce qui part, et un refus ne touche à rien.",
-          "en": "“Send DSH chats” asks for confirmation first: the page says what goes, and refusing changes nothing."
+          "fr": "« Envoyer les chats Kybernos » demande d’abord confirmation : la page annonce ce qui part, et un refus ne touche à rien.",
+          "en": "“Send Kybernos chats” asks for confirmation first: the page says what goes, and refusing changes nothing."
         }
       ],
       "where": {

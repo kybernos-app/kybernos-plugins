@@ -34,6 +34,44 @@ const kt = (fr, en) => {
 
 const NAME = 'dsh-db-viewer'
 const KIND = 'dsh-db-viewer'
+let GATE = null // the right-column gate (see KB-TABGATE): the tab closes itself in a chat that never used a database
+/** The calls that mean « this chat used a database »: the Tables tools, or any .sqlite file named in a call. */
+const DB_USED = /(?:^|__)(?:db_(?:create|list|archive|restore)|records_(?:create|get|import|list|update)|object_define|field_(?:add|update)|relation_add|view_save)$|\.sqlite/
+/** Whether a chat's calls (the nodes the conversation holds) used a database: a call whose name or arguments match DB_USED. null when the nodes are not a list. Bounded. */
+function dbUsed (nodes) {
+  if (!Array.isArray(nodes)) return null
+  const budget = { n: 20000 }
+  const walk = (v, depth) => {
+    if (v === null || typeof v !== 'object' || depth > 8 || budget.n <= 0) return false
+    budget.n -= 1
+    if (Array.isArray(v)) return v.some((x) => walk(x, depth + 1))
+    if (typeof v.callId === 'string') {
+      const c = v.call !== null && typeof v.call === 'object' ? v.call : v
+      const name = typeof c.name === 'string' && c.name !== '' ? c.name : (typeof v.name === 'string' ? v.name : '')
+      if (name !== '' && DB_USED.test(name)) return true
+      let args = ''
+      try { args = JSON.stringify(c.args !== undefined ? c.args : (c.argsRaw !== undefined ? c.argsRaw : (c.arguments !== undefined ? c.arguments : v.args))).slice(0, 2000) } catch (e) { args = '' }
+      if (DB_USED.test(args)) return true
+    }
+    return Object.keys(v).some((k) => v[k] !== null && typeof v[k] === 'object' && walk(v[k], depth + 1))
+  }
+  return nodes.some((n) => walk(n, 0))
+}
+/** The calls of the chats read so far, by chat id (the last 12): the gate asks `dbUsed` of them when the Start page or a Databases tab is on screen. */
+const CHAT_NODES = new Map()
+/** Renders nothing: files the calls of the chat on screen under its id (the conversation hands its nodes to a slot of the composer dock). */
+function UsedProbe (props) {
+  const p = props !== null && props !== undefined ? props : {}
+  const sid = typeof p.sessionId === 'string' ? p.sessionId : ''
+  const nodes = typeof p.useChat === 'function' ? p.useChat((c) => { try { return c.nodes.valuesCache } catch (e) { return null } }) : null
+  React.useEffect(() => {
+    if (sid === '' || !Array.isArray(nodes)) return
+    CHAT_NODES.delete(sid)
+    CHAT_NODES.set(sid, nodes)
+    while (CHAT_NODES.size > 12) CHAT_NODES.delete(CHAT_NODES.keys().next().value)
+  }, [sid, nodes])
+  return null
+}
 const TYPE_ID = 'dsh-db-viewer-panel'
 
 /** Card header colours — a drawdb-style pastel palette, indexed by table. */
@@ -781,7 +819,8 @@ function Graphiques (props) {
 }
 
 /** Body of the right-sidebar tab: database picker + internal views. */
-function TabBody () {
+function TabBody (props) {
+  if (GATE !== null) GATE.useEmptyClose(props)
   const [bases, setBases] = React.useState(null)
   const [baseId, setBaseId] = React.useState(null)
   const [schema, setSchema] = React.useState(null)
@@ -846,7 +885,7 @@ function TabBody () {
 
   if (erreur !== null) kids.push(h('div', { className: 'dshdb-err', key: 'err' }, erreur))
   if (bases !== null && bases.length === 0) {
-    kids.push(h('div', { className: 'dshdb-note', key: 'vide' }, kt('Aucune base pour l’instant — une Agent Team la crée avec « crm.cjs init ».', 'No database yet — an Agent Team creates one with “crm.cjs init”.')))
+    kids.push(h('div', { className: 'dshdb-note', key: 'vide' }, kt('Aucune base pour l’instant — une équipe d’agents IA la crée avec « crm.cjs init ».', 'No database yet — an AI Agent Team creates one with “crm.cjs init”.')))
   } else if (baseId !== null && schema !== null) {
     if (onglet === 'diagramme') kids.push(h(Diagramme, { key: 'v', schema }))
     else if (onglet === 'graphiques') kids.push(h(Graphiques, { key: 'v', baseId, schema }))
@@ -893,6 +932,118 @@ function apply (ctx) {
   // KB-TABICON-BEGIN
   const KB_TAB_ICON = (props) => { const px = (props !== null && props !== undefined && typeof props.size === 'number') ? props.size : 22; return React.createElement('svg', { width: px, height: px, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: (props !== null && props !== undefined) ? props.className : undefined }, ['M3 5a9 3 0 1 0 18 0a9 3 0 1 0-18 0', 'M3 5v14a9 3 0 0 0 18 0V5', 'M3 12a9 3 0 0 0 18 0'].map((d, i) => React.createElement('path', { key: i, d }))) }
   // KB-TABICON-END
+  // KB-TABGATE-BEGIN
+  // A tool of the right column shows only in a chat that has something for it: its tile of the « Start » page is hidden (a style sheet, no engine patch)
+  // and a tab of it left in such a chat closes itself. ONE registry per page (the first bundle to load makes it, the others join it): one poll, one
+  // style sheet. `spec.has(sessionId)` answers true, false or null (cannot tell): only false hides or closes anything.
+  const kbTabGate = (spec) => {
+    const w = typeof window !== 'undefined' ? window : null
+    if (w === null || !w.document) return { join: () => () => {}, useEmptyClose: () => {} }
+    const G = w.__KB_TABGATE__ || (w.__KB_TABGATE__ = { kinds: new Map(), hidden: new Set(), cache: new Map(), sid: '', busy: false, timer: 0, style: null })
+    const key = () => {
+      for (const e of G.kinds.values()) {
+        try {
+          const ui = e.ctx.get('uiSession')
+          const k = ui && ui.adapter && ui.adapter.current ? ui.adapter.current.getSnapshot().key : ''
+          if (typeof k === 'string' && k !== '') return k
+        } catch (x) { /* the next bundle may still answer */ }
+      }
+      return ''
+    }
+    const ask = async (kind, sid, fresh) => {
+      const e = G.kinds.get(kind)
+      if (e === undefined || sid === '') return null
+      const ck = kind + '|' + sid
+      const c = G.cache.get(ck)
+      if (!fresh && c !== undefined && Date.now() - c.at < 1000) return c.v
+      let v = null
+      try { v = await Promise.race([Promise.resolve(e.has(sid)), new Promise((r) => setTimeout(() => r(null), 3000))]) } catch (x) { v = null }
+      v = v === true || v === false ? v : null
+      if (G.cache.size > 200) G.cache.clear()
+      G.cache.set(ck, { v, at: Date.now() })
+      return v
+    }
+    const paint = () => {
+      let el = G.style
+      if (el === null || el.parentNode === null) {
+        el = w.document.createElement('style')
+        el.setAttribute('data-kb-tabgate', '')
+        w.document.head.appendChild(el)
+        G.style = el
+      }
+      el.textContent = Array.from(G.hidden).map((k) => 'div:has(> [data-sidebar-right-guide-entry="' + k + '"]){display:none!important}').join('\n')
+    }
+    const refresh = async () => {
+      if (G.busy) return
+      G.busy = true
+      try {
+        const sid = key()
+        // a new chat: every tool is held back until it has answered, so a tile never shows for a moment and then vanishes
+        if (sid !== G.sid) { G.sid = sid; G.hidden = new Set(sid === '' ? [] : G.kinds.keys()); paint() }
+        if (sid === '') return
+        const kinds = Array.from(G.kinds.keys())
+        const answers = await Promise.all(kinds.map((k) => ask(k, sid, false)))
+        if (key() !== sid) return // the person went elsewhere while we asked
+        G.hidden = new Set(kinds.filter((k, i) => answers[i] === false))
+        paint()
+      } finally { G.busy = false }
+    }
+    const tick = () => {
+      let tiles = false
+      try { tiles = w.document.querySelector('[data-sidebar-right-guide-entry]') !== null } catch (x) { tiles = false }
+      if (tiles || key() !== G.sid) refresh()
+    }
+    const join = () => {
+      G.kinds.set(spec.kind, { ctx: spec.ctx, has: spec.has })
+      if (G.sid !== '') G.hidden.add(spec.kind)
+      if (G.timer === 0) G.timer = setInterval(tick, 1200)
+      tick()
+      return () => {
+        const mine = G.kinds.get(spec.kind)
+        if (mine !== undefined && mine.has === spec.has) G.kinds.delete(spec.kind)
+        G.hidden.delete(spec.kind)
+        if (G.kinds.size === 0) {
+          clearInterval(G.timer)
+          G.timer = 0
+          G.sid = ''
+          if (G.style !== null && G.style.parentNode !== null) G.style.parentNode.removeChild(G.style)
+          G.style = null
+        } else paint()
+      }
+    }
+    // Called by the tab body at every render: a tab of this tool left in a chat that has nothing for it closes itself (two empty answers in a row,
+    // so a deck that is still being written never closes its own tab).
+    const useEmptyClose = (props) => {
+      const p = props !== null && props !== undefined ? props : {}
+      const info = typeof p.useTabInfo === 'function' ? p.useTabInfo() : null
+      const sid = typeof p.sessionId === 'string' ? p.sessionId : ''
+      const close = info !== null && info.tab !== undefined && info.tab.actions !== undefined && typeof info.tab.actions.close === 'function' ? info.tab.actions.close : null
+      React.useEffect(() => {
+        if (close === null || sid === '') return undefined
+        let dead = false
+        let misses = 0
+        const check = async () => {
+          const v = await ask(spec.kind, sid, true)
+          if (dead) return
+          if (v !== false) { misses = 0; return }
+          misses += 1
+          if (misses >= 2) { dead = true; try { close() } catch (x) { /* already gone */ } }
+        }
+        const t0 = setTimeout(check, 1500)
+        const t = setInterval(check, 2500)
+        return () => { dead = true; clearTimeout(t0); clearInterval(t) }
+      }, [sid, close])
+    }
+    return { join, useEmptyClose }
+  }
+  // KB-TABGATE-END
+  GATE = kbTabGate({ ctx, kind: KIND, has: async (sid) => {
+    // A database is « of the chat » when the chat called a database tool (Tables) or touched a .sqlite file. Until the probe has read the chat, we cannot tell: nothing is hidden.
+    const nodes = CHAT_NODES.get(sid)
+    return nodes === undefined ? null : dbUsed(nodes)
+  } })
+  tenter('tool gate', () => ctx.effect(() => GATE.join(), 'dsh-db-viewer: right tool gate'))
+  tenter('used probe', () => ctx.effect(() => slots.inject('conversation.composer.dock', () => slots.register({ name: 'conversation.composer.dock', id: 'dsh-db-viewer-probe', order: 92 }, (props) => { try { return React.createElement(UsedProbe, props || {}) } catch (e) { return null } })), 'dsh-db-viewer: used-database probe'))
   if (sidebarTabs !== undefined && sidebarTabs !== null && typeof sidebarTabs.register === 'function') {
     tenter('sidebarTabs.register', () => ctx.effect(() => sidebarTabs.register({
       id: TYPE_ID,
@@ -903,7 +1054,7 @@ function apply (ctx) {
       guide: [{
         icon: KB_TAB_ICON,
         title: () => kt('Base de données', 'Databases'),
-        description: () => kt('Diagramme, graphiques, données et SQL des petites bases SQLite des Agent Teams', 'Diagram, charts, data and SQL of the small SQLite databases of Agent Teams'),
+        description: () => kt('Diagramme, graphiques, données et SQL des petites bases SQLite des équipes d’agents IA', 'Diagram, charts, data and SQL of the small SQLite databases of AI Agent Teams'),
       }],
     }), 'dsh-db-viewer: right sidebar tab type'))
   }
@@ -927,5 +1078,5 @@ return {
   // registered, entry missing from the guide).
   inject: ['slots', 'sidebarRightTabs'],
   apply,
-  __test: { calculerDisposition, ancresRelation, cheminLien, PALETTE, profiler, construireGraphiques, construireCalendrier, positionsFinales, noteSql, limiteSqlSuivante, PAGE_SQL, PAGE_SQL_MAX },
+  __test: { dbUsed, calculerDisposition, ancresRelation, cheminLien, PALETTE, profiler, construireGraphiques, construireCalendrier, positionsFinales, noteSql, limiteSqlSuivante, PAGE_SQL, PAGE_SQL_MAX },
 }

@@ -408,10 +408,10 @@ try {
     await click(p, 'wk-savekey-gemini')
     await waitCard(p, 'gemini', /Key saved/)
     ok('the key was handed to the credentials service under GEMINI_API_KEY', JSON.stringify(await p.evaluate(() => window.__credentialSets)) === '[["GEMINI_API_KEY","AIza-secret-value"]]')
-    ok('the key is on no page text, and the field is gone (replaced by "a key is saved: restart DSH")', !(await p.textContent('body')).includes('AIza-secret-value') && (await p.$('[data-kb="wk-key-gemini"]')) === null && (await p.$('[data-kb="wk-key-stored-gemini"]')) !== null)
-    ok('and a restart is asked for', (await p.$('.kbwk-relance')) !== null)
+    ok('the key is on no page text, and the field is gone (replaced by "a key is saved (no restart needed)")', !(await p.textContent('body')).includes('AIza-secret-value') && (await p.$('[data-kb="wk-key-gemini"]')) === null && (await p.$('[data-kb="wk-key-stored-gemini"]')) !== null && /no restart needed/i.test(await p.textContent('[data-kb="wk-key-stored-gemini"]')))
+    ok('and no restart banner is asked for', (await p.$('.kbwk-relance')) === null)
     world.env.add('GEMINI_API_KEY')
-    // DSH restarted: it now has the key in its environment
+    // The credentials store now holds the key (resolved live without restart)
     await click(p, 'wk-check-gemini')
     await waitStatus(p, 'gemini', /Ready/)
     ok('once DSH has the key in its environment the same check goes Ready, and the page only says "API key found"', /API key found/.test(await card(p, 'gemini')) && !(await card(p, 'gemini')).includes('AIza'))

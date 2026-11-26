@@ -1,0 +1,28 @@
+{
+  "name": "@local/kybernos-knowledge",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "Local document knowledge base and Markdown wiki (.md, .txt, .csv, .docx, .pdf) with citable BM25 search for Workspaces, Kaby and Front Desk.",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test-knowledge.mjs && node test-write-guard.mjs"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json",
+    "./plugin.json": "./plugin.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}

@@ -38,6 +38,7 @@ const mkLoc = (opts) => {
   // DSH's host scope: its snapshot has a value once the stored language has been read.
   let hostValue = opts && opts.unsettled ? undefined : {}
   const locales = [{ id: 'zh' }, { id: 'en' }, { id: 'kybernos' }]
+  if (opts && opts.fr) locales.push({ id: 'fr' }) // DSH 0.2.2-rc.5 ships its own French
   return {
     calls,
     host: opts && opts.noHost ? undefined : { getSnapshot: () => ({ value: hostValue }) },
@@ -51,6 +52,7 @@ const mkLoc = (opts) => {
     },
     register(ns, id, entries) { calls.register.push({ ns, id, entries }); revision += 1; return () => { calls.disposed += 1 } },
     subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn) },
+    setLocale(id) { calls.setLocale = (calls.setLocale || []).concat(id); active = id; for (const fn of Array.from(listeners)) fn() },
     _set(id) { active = id; for (const fn of Array.from(listeners)) fn() },
   }
 }
@@ -192,6 +194,94 @@ const rtFor = (f, loc, ctx) => kbLangRuntimeStart(ctx, loc, f.env)
   check('stored preference = English while this browser stayed on es: Kybernos aligns', f.storage.getItem('kybernos.theme.lang') === 'en' && f.reloads.n === 1, { lang: f.storage.getItem('kybernos.theme.lang'), n: f.reloads.n })
 }
 
+
+// ── the phone: one language end to end (Kaby mode) ─────────────────────────
+console.log('\n── Kaby mode: DSH follows the French of Kybernos ──')
+{
+  const f = mkEnv(); const loc = mkLoc(); const ctx = mkCtx()
+  const w = rtFor(f, loc, ctx).wanted
+  check('DSH\'s own French over another Kybernos language: Kybernos goes French (never the id "fr")', w('fr', 'en') === 'kybernos' && w('fr', 'es') === 'kybernos')
+  check('DSH\'s own French over a French Kybernos, or over no choice: nothing to change', w('fr', 'kybernos') === null && w('fr', null) === null && w('fr', 'fr') === null)
+}
+const phone = (extra, locOpts, stored) => {
+  const f = mkEnv(Object.assign({ kaby: () => true }, extra || {}))
+  const loc = mkLoc(Object.assign({ fr: true }, locOpts || {}))
+  const ctx = mkCtx()
+  if (stored !== undefined && stored !== null) f.storage.setItem('kybernos.theme.lang', stored)
+  const rt = rtFor(f, loc, ctx)
+  return { f, loc, rt }
+}
+{
+  const { f, loc } = phone(null, { active: 'en' }, 'kybernos')
+  check('before DSH is read nothing moves yet (800 ms)', (loc.calls.setLocale || []).length === 0)
+  f.advance(900)
+  check('Kybernos French, DSH on English: DSH is put on its own French (kept on the host by the locale service)', JSON.stringify(loc.calls.setLocale) === '["fr"]', loc.calls.setLocale)
+  f.advance(KB_LANG_GRACE_MS + 10); f.advance(500)
+  check('… and Kybernos stays French: no reload, the choice is untouched', f.reloads.n === 0 && f.storage.getItem('kybernos.theme.lang') === 'kybernos', { n: f.reloads.n, lang: f.storage.getItem('kybernos.theme.lang') })
+  loc._set('fr'); f.advance(500)
+  check('French over French is stable (no loop)', f.reloads.n === 0)
+  loc._set('en'); f.advance(500)
+  check('the person then picks English in DSH: that is a CHOICE, Kybernos follows it (one reload)', f.storage.getItem('kybernos.theme.lang') === 'en' && f.reloads.n === 1, { lang: f.storage.getItem('kybernos.theme.lang'), n: f.reloads.n })
+}
+{
+  const { f, loc } = phone(null, { active: 'kybernos' }, null)
+  f.advance(900)
+  check('no stored choice and DSH on its « kybernos » language: French, so DSH goes to fr', JSON.stringify(loc.calls.setLocale) === '["fr"]', loc.calls.setLocale)
+}
+{
+  const { f, loc } = phone(null, { active: 'en' }, null)
+  f.advance(900); f.advance(KB_LANG_GRACE_MS + 10)
+  check('no stored choice and DSH on English: Kybernos is English too, nothing is moved', (loc.calls.setLocale || []).length === 0 && f.reloads.n === 0)
+}
+{
+  const { f, loc } = phone(null, { active: 'en' }, 'en')
+  f.advance(900); f.advance(KB_LANG_GRACE_MS + 10); f.advance(500)
+  check('an explicit English choice is never undone', (loc.calls.setLocale || []).length === 0 && f.reloads.n === 0 && f.storage.getItem('kybernos.theme.lang') === 'en')
+}
+{
+  const { f, loc } = phone(null, { active: 'en' }, 'es')
+  f.advance(900)
+  check('another translated language: DSH is not sent to French', (loc.calls.setLocale || []).length === 0)
+}
+{
+  const { f, loc } = phone(null, { active: 'fr' }, 'kybernos')
+  f.advance(900); f.advance(KB_LANG_GRACE_MS + 10); f.advance(500)
+  check('DSH already on fr (the next start): nothing is set, nothing reloads', (loc.calls.setLocale || []).length === 0 && f.reloads.n === 0)
+}
+{
+  const { f, loc } = phone({ kaby: () => false }, { active: 'en' }, 'kybernos')
+  f.advance(900); f.advance(KB_LANG_GRACE_MS + 10); f.advance(500)
+  check('not in Kaby mode (the desktop): DSH stays English under a French Kybernos, by design', (loc.calls.setLocale || []).length === 0 && f.reloads.n === 0)
+  loc._set('en'); f.advance(500)
+  check('… and English there is still no change', f.reloads.n === 0 && f.storage.getItem('kybernos.theme.lang') === 'kybernos')
+}
+{
+  const { f, loc } = phone(null, { active: 'en', fr: false }, 'kybernos')
+  f.advance(900); f.advance(KB_LANG_GRACE_MS + 10); f.advance(500)
+  loc._set('en'); f.advance(500)
+  check('an engine with no French (before rc.5): nothing is set, Kybernos stays French, no reload', (loc.calls.setLocale || []).length === 0 && f.reloads.n === 0 && f.storage.getItem('kybernos.theme.lang') === 'kybernos')
+}
+{
+  const { f, loc } = phone(null, { active: 'en', unsettled: true }, 'kybernos')
+  for (let i = 0; i < 4; i += 1) f.advance(1000)
+  check('DSH has not read its stored language yet: it is not touched', (loc.calls.setLocale || []).length === 0)
+  loc._settle(); f.advance(1000)
+  check('as soon as it has, it is put on fr', JSON.stringify(loc.calls.setLocale) === '["fr"]', loc.calls.setLocale)
+}
+{
+  const { f, loc } = phone(null, { active: 'en', noHost: true }, 'kybernos')
+  f.advance(900)
+  check('settled status unknown: waits for the grace period, then acts', (loc.calls.setLocale || []).length === 0)
+  f.advance(KB_LANG_GRACE_MS + 100)
+  check('… and then moves DSH to fr', JSON.stringify(loc.calls.setLocale) === '["fr"]', loc.calls.setLocale)
+}
+{
+  const f = mkEnv({ kaby: () => { throw new Error('no document') } }); const loc = mkLoc({ fr: true, active: 'en' }); const ctx = mkCtx()
+  f.storage.setItem('kybernos.theme.lang', 'kybernos')
+  let threw = false
+  try { rtFor(f, loc, ctx); f.advance(900); f.advance(KB_LANG_GRACE_MS + 10) } catch (e) { threw = true }
+  check('a Kaby check that throws: swallowed, DSH stays as it is', threw === false && (loc.calls.setLocale || []).length === 0)
+}
 
 // ── DSH slow to read its stored language ─────────────────────────────────
 console.log('\n── DSH slow to read its stored language ──')

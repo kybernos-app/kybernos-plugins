@@ -51,8 +51,7 @@ window.__ModuleLoader__.load({
         planLimits: ['Limites du plan {name}', '{name} plan limits'],
         planLimitsNoName: ['Limites de ton plan', 'Your plan limits'],
         rolling: ['Fenêtres glissantes : l’usage ancien en sort peu à peu.', 'Rolling windows: older use drops out gradually.'],
-        credits: ['Crédits restants', 'Credits left'],
-        creditsUnit: ['crédits', 'credits'],
+        balance: ['Crédit restant', 'Credit left'],
         viaPlan: ['Cette session passe par ton plan : elle compte en pourcentage, pas en dollars.', 'This session runs on your plan: it counts as a percentage, not in dollars.'],
         sessionOwn: ['Cette session · {model}', 'This session · {model}'],
         cacheLine: ['{tokens} tokens, dont {pct} lus dans le cache (environ {saved} évités).', '{tokens} tokens, {pct} of them read from the cache (about {saved} saved).'],
@@ -144,6 +143,24 @@ window.__ModuleLoader__.load({
         limitOwnSub: ['Réglages › Fournisseur IA et modèles', 'Settings › AI provider and models'],
         limitAsk: ['Demande à un administrateur de ton équipe de choisir un plan.', 'Ask an admin of your team to choose a plan.'],
         pageFor: ['Il couvre tous les modèles utilisés ici : un modèle du plan Kybernos, une clé à toi ou un modèle local. La console Kybernos garde le détail du plan par membre et par jour.', 'It covers every model you use here: a Kybernos plan model, a key of your own or a local model. The Kybernos console keeps the plan’s detail per member and per day.'],
+        workersSec: ['Workers externes', 'External workers'],
+        workersSecSub: ['quotas et charge en direct', 'live quotas and load'],
+        workersLeft: ['{pct} restant', '{pct} left'],
+        workersActive: ['{n} en cours', '{n} active'],
+        workersAuthNeeded: ['Connexion requise pour lire les limites', 'Sign in required to read limits'],
+        workersCooldown: ['En pause (limite atteinte)', 'Cooling down (limit reached)'],
+        workersCache: ['cache {pct}', 'cache {pct}'],
+        workersRefresh: ['Actualiser', 'Refresh'],
+        ctxBreakdown: ['Composition du contexte', 'Context breakdown'],
+        ctxTools: ['Sorties d’outils', 'Tool outputs'],
+        ctxChat: ['Conversation', 'Conversation'],
+        ctxInjected: ['Contexte injecté', 'Injected context'],
+        ctxSystem: ['Système & outils', 'System & tools'],
+        ctxTopTools: ['Outils les plus lourds : {list}', 'Heaviest tools: {list}'],
+        ctxCompactions: ['{n} compactages dans cette session', '{n} compactions in this session'],
+        ctxCompactions1: ['1 compactage dans cette session', '1 compaction in this session'],
+        ctxCompressed: ['{n} sorties shell compressées', '{n} shell outputs compressed'],
+        ctxCompressed1: ['1 sortie shell compressée', '1 shell output compressed'],
       }
       const L = (key, p) => { const v = S[key]; return v === undefined ? key : fill(kt(v[0], v[1]), p) }
 
@@ -358,7 +375,8 @@ window.__ModuleLoader__.load({
             v = {
               connected: true,
               name: sp !== null && typeof sp.label === 'string' ? sp.label : null,
-              credits: sp !== null && typeof sp.credit_balance_credits === 'number' && Number.isFinite(sp.credit_balance_credits) ? sp.credit_balance_credits : null,
+              // Dollars, as the server gives them (`credit_balance_usd`): the person never sees the internal « credits » unit. A balance the server gave only in credits draws no row.
+              usd: sp !== null && typeof sp.credit_balance_usd === 'number' && Number.isFinite(sp.credit_balance_usd) ? sp.credit_balance_usd : null,
               blocked: quota.payment_blocked === true,
               noPlan: quota.no_plan === true,
               // Who is asking decides what the strip may offer: a person buys for a personal space, an admin for a team, a member of a team only asks.
@@ -392,6 +410,7 @@ window.__ModuleLoader__.load({
         if (days === 31) { summaryStore.inflight = p; p.then((v) => { summaryStore.value = v; summaryStore.at = Date.now(); summaryStore.inflight = null }) }
         return p
       }
+      const loadWorkersRuntime = () => getJson('/kybernos-workers/runtime').then((j) => (isObj(j) && j.ok === true && Array.isArray(j.quotas) ? j.quotas : []))
 
       // ── styles: one <style data-plugin>, tokens with fallbacks, prefix kbus- ─────────────────────────────────
       const CSS = `
@@ -513,6 +532,10 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
 .kbus-sw::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--dsw-alias-label-secondary,#cfd3d6);transition:transform .15s}
 .kbus-sw[aria-checked="true"]{background:var(--dsw-alias-state-business-primary,#4176e6)}
 .kbus-sw[aria-checked="true"]::after{transform:translateX(16px);background:#fff}
+.kbus-wk-grid{display:grid;gap:12px}
+.kbus-wk-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.kbus-wk-chips{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.kbus-wk-warn{margin:10px 0 0;padding:8px 10px;border-radius:10px;border:1px solid var(--dsw-alias-state-warn-primary,#f59e0b);color:var(--dsw-alias-state-warn-primary,#f59e0b);font-size:12.5px}
 @media (prefers-reduced-motion:reduce){.kbus-sw::after{transition:none}}
 @media (max-width:760px){.kbus-page{padding:0 0 24px}.kbus-kpis{grid-template-columns:minmax(0,1fr)}.kbus-row{grid-template-columns:minmax(0,1fr) auto}.kbus-row .sh{display:none}}
 `
@@ -539,8 +562,48 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
       const LimitRows = ({ windows }) => h('div', { className: 'kbus-lim' }, windows.map((w, i) => h('div', { key: i },
         h('div', { className: 'kbus-r' }, h('span', null, w.label), h('span', { className: 'kbus-v' }, h('b', null, w.pct + NB + '%'), w.back !== null ? ' · ' + L('resetsIn', { t: w.back }) : '')),
         h('div', { className: 'kbus-meter ' + tone(w.pct), 'data-kb': 'kybernos-usage-window' }, h('i', { style: { width: w.pct + '%' } })))))
-      const CreditsRow = ({ credits }) => (credits === null ? null : h('div', { className: 'kbus-lim' },
-        h('div', { className: 'kbus-r' }, h('span', null, L('credits')), h('span', { className: 'kbus-v' }, h('b', null, Math.round(credits).toLocaleString(lang().slice(0, 2) === 'fr' || lang() === 'kybernos' ? 'fr-FR' : 'en-US')), ' ' + L('creditsUnit')))))
+      const dollars = (n) => { try { return new Intl.NumberFormat(lang().slice(0, 2) === 'fr' || lang() === 'kybernos' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'USD', currencyDisplay: 'narrowSymbol' }).format(n) } catch (e) { return '$' + n.toFixed(2) } }
+      const BalanceRow = ({ usd }) => (usd === null ? null : h('div', { className: 'kbus-lim' },
+        h('div', { className: 'kbus-r' }, h('span', null, L('balance')), h('span', { className: 'kbus-v' }, h('b', null, dollars(usd))))))
+
+      /** External workers rolling limits & live load card (shown only when kybernos-workers reports quotas). */
+      function WorkersBlock ({ quotas, onRefresh, refreshing }) {
+        if (!Array.isArray(quotas) || quotas.length === 0) return null
+        const visible = quotas.filter((q) => isObj(q) && (q.authRequired === true || q.coolingDown === true || (Array.isArray(q.windows) && q.windows.length > 0) || (num(q.activeRuns) || 0) > 0))
+        if (visible.length === 0) return null
+        return h('div', { className: 'kbus-sec', 'data-kb': 'kybernos-usage-workers' },
+          h('h3', null, L('workersSec'), h('small', null, L('workersSecSub')),
+            typeof onRefresh === 'function' ? h('button', { type: 'button', className: 'kbus-btn2', 'data-act': 'refresh-workers', disabled: refreshing === true, style: { marginLeft: 'auto', height: 26, fontSize: 12 }, onClick: onRefresh }, L('workersRefresh')) : null),
+          h('div', { className: 'kbus-wk-grid' }, visible.map((q) => {
+            const wins = Array.isArray(q.windows) ? q.windows.filter((w) => isObj(w) && w.source !== 'auth-required' && num(w.remainingPct) !== null) : []
+            const active = num(q.activeRuns) || 0
+            const hit = isObj(q.cacheStats) ? num(q.cacheStats.cacheHitPct) : null
+            const cls = q.coolingDown === true ? 'err' : (q.authRequired === true ? 'warn' : '')
+            return h('div', { key: String(q.workerId), className: 'kbus-card ' + cls, 'data-kb': 'kybernos-usage-worker-card' },
+              h('div', { className: 'kbus-wk-hd' },
+                h('h4', null, String(q.label || q.workerId)),
+                h('div', { className: 'kbus-wk-chips' },
+                  active > 0 ? h('span', { className: 'kbus-chip' }, L('workersActive', { n: active })) : null,
+                  hit !== null ? h('span', { className: 'kbus-chip free' }, L('workersCache', { pct: hit + NB + '%' })) : null,
+                  q.coolingDown === true ? h('span', { className: 'kbus-chip warn' }, L('workersCooldown')) : null)),
+              q.authRequired === true
+                ? h('div', { className: 'kbus-wk-warn', role: 'status' }, typeof q.authMessage === 'string' && q.authMessage.trim() !== '' ? q.authMessage : L('workersAuthNeeded'))
+                : (wins.length > 0 ? h('div', { className: 'kbus-lim' }, wins.map((w, i) => {
+                  const rem = Math.min(100, Math.max(0, Math.round(w.remainingPct)))
+                  const usedPct = 100 - rem
+                  let resetBack = null
+                  if (typeof w.resetAt === 'string') {
+                    const at = Date.parse(w.resetAt)
+                    if (Number.isFinite(at) && at > Date.now()) resetBack = duration(Math.max(1, Math.round((at - Date.now()) / 60000)))
+                  }
+                  return h('div', { key: String(w.key || i) },
+                    h('div', { className: 'kbus-r' },
+                      h('span', null, String(w.label || w.key)),
+                      h('span', { className: 'kbus-v' }, h('b', null, L('workersLeft', { pct: rem + NB + '%' })), resetBack !== null ? ' · ' + L('resetsIn', { t: resetBack }) : '')),
+                    h('div', { className: 'kbus-meter ' + tone(usedPct) }, h('i', { style: { width: rem + '%' } })))
+                })) : null))
+          })))
+      }
 
       // ── the chip and its card ────────────────────────────────────────────────────────────────────────────────
       // Every session the store knows (the chat and its sub-agents) is reported to the host, throttled: the host turns
@@ -625,6 +688,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
         const [open, setOpen] = React.useState(false)
         const [price, setPrice] = React.useState(undefined)
         const [month, setMonth] = React.useState(null)
+        const [ctxInsight, setCtxInsight] = React.useState(null)
         const wrap = React.useRef(null)
         useLangTick()
 
@@ -655,6 +719,15 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
           })
           return () => { alive = false }
         }, [open, key, onPlan])
+        React.useEffect(() => {
+          if (!open || typeof sessionId !== 'string' || sessionId === '') return undefined
+          let alive = true
+          fetch('/kybernos-usage/context?session=' + encodeURIComponent(sessionId))
+            .then((r) => (r.ok ? r.json() : null))
+            .then((d) => { if (alive && isObj(d) && d.ok === true) setCtxInsight(d) })
+            .catch(() => {})
+          return () => { alive = false }
+        }, [open, sessionId])
         React.useEffect(() => {
           if (!open) return undefined
           const esc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) } }
@@ -690,6 +763,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
               h('div', { className: 'kbus-r' }, h('span', null, L('context')), h('span', { className: 'kbus-v' }, h('b', null, fmtPct(pressure.pressureTokens / pressure.contextWindow)), ' · ' + fmtTok(pressure.pressureTokens) + ' / ' + fmtTok(pressure.contextWindow))),
               h('div', { className: 'kbus-meter' }, h('i', { style: { width: Math.min(100, pressure.pressureTokens / pressure.contextWindow * 100) + '%' } }))))
             : null,
+          ContextInsightBlock({ insight: ctxInsight }),
           !onPlan && tokens !== null ? h('div', null, h('div', { className: 'kbus-sep' }), OwnBlock({ key, kind, tokens, price, month })) : null,
           h('div', { className: 'kbus-sep' }),
           plan === undefined ? h('p', { className: 'kbus-line', style: { margin: 0 } }, L('loading'))
@@ -698,7 +772,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
                 h('div', { className: 'kbus-hd' }, h('span', null, plan.name !== null ? L('planLimits', { name: plan.name }) : L('planLimitsNoName'))),
                 h(LimitRows, { windows }),
                 h('p', { className: 'kbus-line' }, L('rolling')),
-                plan.credits !== null ? h('div', null, h('div', { className: 'kbus-sep' }), h(CreditsRow, { credits: plan.credits })) : null),
+                plan.usd !== null ? h('div', null, h('div', { className: 'kbus-sep' }), h(BalanceRow, { usd: plan.usd })) : null),
           onPlan ? h('p', { className: 'kbus-line' }, L('viaPlan')) : null,
           h('p', { className: 'kbus-line' }, L('detailHint')))
 
@@ -707,6 +781,37 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
             h('span', { className: 'kbus-ico' }, onPlan ? h(Ring, { pct: worst }) : svg(ICON.coin)),
             h('span', { className: 'kbus-n' }, label)),
           card)
+      }
+
+      /** Read-only context composition breakdown for the active session window. */
+      function ContextInsightBlock ({ insight }) {
+        if (!isObj(insight) || !isObj(insight.active) || !(insight.active.totalTokens > 0)) return null
+        const a = insight.active
+        const total = a.totalTokens
+        const rows = [
+          [L('ctxTools'), a.toolTokens | 0, 'var(--dsw-static-amber-500,#f59e0b)'],
+          [L('ctxChat'), a.conversationTokens | 0, 'var(--dsw-static-deepseek-500,#4176e6)'],
+          [L('ctxInjected'), a.injectedTokens | 0, 'var(--dsw-static-green-500,#22c55e)'],
+          [L('ctxSystem'), a.systemTokens | 0, 'var(--dsw-static-neutral-500,#8a9096)']
+        ].filter((r) => r[1] > 0)
+        if (rows.length === 0) return null
+        const topTools = Array.isArray(a.topTools) ? a.topTools.slice(0, 3).filter((t) => isObj(t) && t.tokens > 0) : []
+        const topText = topTools.map((t) => String(t.name) + ' ' + fmtPct(t.tokens / total)).join(' · ')
+        const compN = isObj(insight.compactions) ? (insight.compactions.count | 0) : 0
+        const compShell = isObj(insight.compression) ? (insight.compression.compressedCount | 0) : 0
+        return h('div', { style: { marginTop: 10 }, 'data-kb': 'kybernos-context-insight' },
+          h('div', { className: 'kbus-hd' }, h('span', null, L('ctxBreakdown'))),
+          h('div', { className: 'kbus-split', 'aria-hidden': 'true' },
+            rows.map((r, i) => h('i', { key: i, style: { flex: Math.max(1, r[1]), background: r[2] } }))),
+          h('ul', { className: 'kbus-leg' },
+            rows.map((r, i) => h('li', { key: i },
+              h('span', { className: 'd', style: { background: r[2] } }),
+              h('span', null, r[0]),
+              h('span', { className: 't' }, fmtTok(r[1])),
+              h('span', { className: 'c' }, fmtPct(r[1] / total))))),
+          topText !== '' ? h('p', { className: 'kbus-line', style: { marginTop: 6 } }, L('ctxTopTools', { list: topText })) : null,
+          compN > 0 ? h('p', { className: 'kbus-line', style: { marginTop: 4 } }, compN === 1 ? L('ctxCompactions1') : L('ctxCompactions', { n: compN })) : null,
+          compShell > 0 ? h('p', { className: 'kbus-line', style: { marginTop: 4 } }, compShell === 1 ? L('ctxCompressed1') : L('ctxCompressed', { n: compShell })) : null)
       }
 
       /** The «this session, on your own key» block of the card. */
@@ -746,6 +851,8 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
         const [summary, setSummary] = React.useState(undefined) // undefined: loading · null: failed
         const [prices, setPrices] = React.useState({})
         const [plan, setPlan] = React.useState(undefined)
+        const [workerQuotas, setWorkerQuotas] = React.useState([])
+        const [workersRefreshing, setWorkersRefreshing] = React.useState(false)
         const [budget, setBudget] = React.useState({ usd: '', alert: true })
         const [budgetOpen, setBudgetOpen] = React.useState(false)
         const [flash, setFlash] = React.useState('')
@@ -763,6 +870,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
             setBudget({ usd: s.budget && s.budget.usd !== null ? String(s.budget.usd) : '', alert: !(s.budget && s.budget.alert === false) })
           })
           loadPlan(true).then((v) => { if (alive) setPlan(v) })
+          loadWorkersRuntime().then((q) => { if (alive) setWorkerQuotas(q) })
           return () => { alive = false }
         }, [])
         React.useEffect(() => { placeCss(); return load() }, [load])
@@ -775,6 +883,15 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
           for (const d of cut) for (const k of Object.keys(d.models)) models[k] = addTo(models[k] === undefined ? zero() : models[k], d.models[k])
           return { summary: Object.assign({}, summary, { daily: cut, models }), agg: aggregate({ daily: cut, models }, prices) }
         }, [summary, prices, days])
+
+        const refreshWorkers = async () => {
+          setWorkersRefreshing(true)
+          try {
+            await postJson('/kybernos-workers/runtime/route', { action: 'probe' })
+            const q = await loadWorkersRuntime()
+            setWorkerQuotas(q)
+          } finally { setWorkersRefreshing(false) }
+        }
 
         const saveBudget = async () => {
           const usd = budget.usd === '' ? null : Number(budget.usd)
@@ -791,7 +908,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
           return h('div', { className: 'kbus-card ' + (limitState(plan) === 'out' ? 'err' : (worst >= LIMIT_NEAR ? 'warn' : '')), 'data-kb': 'kybernos-usage-plan' },
             h('div', { className: 'kbus-hd' }, h('h4', null, plan.name !== null ? L('planSolo', { name: plan.name }) : L('planSec'))),
             h(LimitRows, { windows: plan.windows }),
-            plan.credits !== null ? h('div', null, h('div', { className: 'kbus-sep' }), h(CreditsRow, { credits: plan.credits })) : null,
+            plan.usd !== null ? h('div', null, h('div', { className: 'kbus-sep' }), h(BalanceRow, { usd: plan.usd })) : null,
             h('p', { className: 'kbus-line' }, L('rolling')))
         }
 
@@ -878,6 +995,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
           leadFallback('kbus-lead kbus-for', L('pageFor')),
           overBanner,
           h('div', { className: 'kbus-sec' }, h('h3', null, L('planSec'), h('small', null, L('planSecSub'))), planCard()),
+          h(WorkersBlock, { quotas: workerQuotas, onRefresh: refreshWorkers, refreshing: workersRefreshing }),
           h('div', { className: 'kbus-sec' },
             h('h3', null, L('ownSec'), h('small', null, L('ownSecSub'))),
             h('div', { style: { margin: '0 0 4px' } }, h('span', { className: 'kbus-seg', role: 'group', 'aria-label': L('ownSec') },
@@ -972,7 +1090,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
       return {
         name: 'kybernos-usage',
         inject: ['slots'],
-        __test: { S, L, kt, fmtMoney, fmtTok, fmtPct, priceOf, costOf, saved, kindOf, aggregate, sessionCost, windowView, tone, splitKey, FREE_PROVIDERS, CSS, reportOne, storeSignature, OwnBlock, loadPlan, planStore, CreditsRow, LIMIT_NEAR, bindingWindow, limitState, clockAt, backSentence, isHidden, hide, forgetHidden, pitchStore, LimitStrip, TURN_SETTLE_MS },
+        __test: { S, L, kt, fmtMoney, fmtTok, fmtPct, priceOf, costOf, saved, kindOf, aggregate, sessionCost, windowView, tone, splitKey, FREE_PROVIDERS, CSS, reportOne, storeSignature, OwnBlock, ContextInsightBlock, WorkersBlock, loadPlan, planStore, BalanceRow, LIMIT_NEAR, bindingWindow, limitState, clockAt, backSentence, isHidden, hide, forgetHidden, pitchStore, LimitStrip, TURN_SETTLE_MS },
         apply (ctx) {
           // After the sessions pills (order 5) and the changes chip (order 4). The id must NOT be `kybernos-usage`:
           // the core's usage probe already registers that id in this slot.

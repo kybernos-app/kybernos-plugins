@@ -9,6 +9,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
+import { hasEntry } from './lib-i18n-test.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -124,8 +125,41 @@ const between = (a, b) => {
   const root = between("return h('div', { className: 'kbct-root'", "ctx.effect(() => slots.inject('conversation.session.header.actions', () => slots.register(\n      { name: 'conversation.session.header.actions', id: 'kybernos-chat-tools'")
   assert.ok(!/'data-kb':/.test(root.split("className: 'kbct-menu'")[0]) && !/h\('span'/.test(root), 'the menu root has no data-kb and no span: mobile.css parks it on a phone like the roots it replaces')
   assert.ok(/\.kbtg-root\[data-empty="1"\]\{display:none\}/.test(plugin), '« Teams 0 » is hidden until the chat has a team or a call to validate')
-  for (const k of ["'kbct.title'", "'kbct.share'", "'kbct.id'", "'kbct.working'", "'kbct.failed'"]) assert.ok(plugin.includes(k + ': { kybernos:'), 'the string ' + k + ' has both languages')
+  for (const k of ['kbct.title', 'kbct.share', 'kbct.id', 'kbct.working', 'kbct.failed']) assert.ok(hasEntry(k), "the string '" + k + "' has both languages")
   ok('the plugin\'s three header buttons are entries of the menu, after the call, parked on a phone like before; « Teams 0 » is hidden while empty')
+}
+
+// 4. the same entries in DSH's own « More actions » menu (owner, 2026-11-19: the « + » and « More actions » were doubles): rows built from the registry, the « + » gone when the
+//    engine's menu service took them, and kept when it is not there.
+{
+  const ctx = vm.createContext({})
+  vm.runInContext('const KB_NATIVE_ICON_PREFIX = "kybernos.chat-tool."\n' + between('const kbChatToolsNativeActions', '// <chat-tools-native:end>') + '\n;globalThis.actions = kbChatToolsNativeActions; globalThis.P = KB_NATIVE_ICON_PREFIX', ctx)
+  const ran = []
+  const run = (t, o) => { ran.push(t.id + ':' + o.sessionId) }
+  const o = { sessionId: 'session-abcdef0123456789', title: 'T' }
+  const tools = [
+    { id: 'send', label: () => 'Send to another session', run () {} },
+    { id: 'share', label: 'Copy public link', hint: 'x', run () {} },
+    { id: 'chat-id', label: () => 'Copy chat ID', hint: (x) => String(x.sessionId).replace(/^session-/, '').slice(0, 8), run () {} },
+    { id: 'hidden', label: 'Never', available: () => false, run () {} },
+    { id: 'boom', label: () => { throw new Error('a broken label') }, run () {} },
+    { id: 'late', label: 'After', available: () => true, run () {} },
+  ]
+  const rows = ctx.actions(tools, o, run)
+  assert.deepEqual(Array.from(rows.map((r) => r.id)), ['send', 'share', 'chat-id', 'late'], 'the available entries, in the registry order; a broken one is skipped, an unavailable one is not shown')
+  assert.deepEqual(Array.from(rows.map((r) => r.label)), ['Send to another session', 'Copy public link · x', 'Copy chat ID · abcdef01', 'After'], 'a label is a value or a function; the hint is said after it')
+  assert.equal(rows[0].separatorBefore, true, 'the group starts after a separator')
+  assert.ok(rows.slice(1).every((r) => r.separatorBefore === undefined), 'and only the first row has one')
+  assert.ok(rows.every((r) => r.icon.key === ctx.P + r.id), 'each row has the icon key of its entry')
+  rows[1].run()
+  assert.deepEqual(ran, ['share:session-abcdef0123456789'], 'a row runs its entry on the clicked session')
+  assert.equal(ctx.actions([], o, run).length, 0, 'no entry, no row (and no separator)')
+  assert.equal(ctx.actions([{ id: 'only', label: 'A', available: () => false, run () {} }], o, run).length, 0, 'only unavailable entries: no row')
+  assert.ok(/ctx\.inject\(\['slots', 'contextMenus'\], \(scope\) => \{/.test(plugin) && /id: 'kybernos\.chat-tools', target: 'sessionHeader', order: 200/.test(plugin), 'the entries are registered on the engine\'s « sessionHeader » menu, through ctx.inject (no contextMenus: nothing happens)')
+  assert.ok(/kbNativeMenuSet\(true\)/.test(plugin) && /kbNativeMenuSet\(false\)\n\s+unsub\(\)/.test(plugin), 'the « + » leaves once the registration succeeded, and comes back when it is withdrawn')
+  assert.ok(/const native = kbNativeMenu\.on === true/.test(plugin) && /native \? null : h\('button'/.test(plugin) && /open === true && !native/.test(plugin) && /\.kbct-root\.kbct-native\{display:none\}/.test(plugin), 'the « + » button and its menu are not drawn while the native menu has the entries')
+  assert.ok(/'contextMenu\.icon', \(\) => scope\.slots\.register\(\{ name: 'contextMenu\.icon', key \}, KbNativeToolIcon\)/.test(plugin), 'each row has its keyed icon')
+  ok('the chat tools are rows of DSH\'s « More actions » menu (separator, hints, unavailable and broken entries), and the « + » is drawn only when the engine has no such menu')
 }
 
 console.log('\n' + pass + ' checks passed')

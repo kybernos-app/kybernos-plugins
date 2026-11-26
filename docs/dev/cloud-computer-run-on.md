@@ -1,5 +1,7 @@
 # Running a chat on the Cloud Computer — what exists, what does not
 
+> 2026-11-23: the E2B plugin (`kybernos-computers`) named below was removed (2 uses in 1,094 chats). Its code is in the tag `archive/kybernos-computers-avant-suppression`. Where this note compares with « E2B », read it as history; the cloud plugin's own menu is the only one left.
+
 The new-chat page shows the Cloud Computer and can wake it, put it to sleep and open it (`/kybernos-cloud/computer/{resume,suspend,open}`).
 Since 2026-11-03 the composer's environment menu also lists the person's cloud computers and **lets them choose one, like E2B** (see « How it is built » below):
 the chat stays a local session, and the agent hands missions to that computer. Checked on 2026-10-15 in the server's code (`kybernos-server`, ADR 0052 and 0053); re-checked on 2026-10-24 against its `origin/dev` and on 2026-11-03: what moved is marked below.

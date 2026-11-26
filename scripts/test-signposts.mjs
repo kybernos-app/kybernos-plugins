@@ -35,6 +35,7 @@ const PLACES = {
   templates: ['modèles', 'plantillas'],
   language: ['langue', 'idioma'],
   'memory & lessons': ['mémoire & leçons'],
+  'knowledge base': ['base de connaissances'],
   'learned skills': ['compétences apprises'],
   models: ['modelos'],
   kybernos: [],
@@ -52,23 +53,24 @@ const PLACES = {
   'ollama local models': ['modèles locaux ollama'],
   automations: ['automatisations'],
   'free llms': [],
+  'kaby mcp': [],
   'kybernos suite': [],
   tools: ['outils', 'herramientas'],
   workers: [],
   connectors: ['connecteurs'],
-  'code sandbox (e2b)': ['bac à sable de code (e2b)'],
   calls: ['appels'],
   kaby: [],
   usage: [],
   widget: [],
   'activity log': ['journal d’activité'],
   'phone and channels': ['téléphone et canaux'],
+  'remote connection': ['connexion à distance'],
 }
 // A page that lives INSIDE another one under the same name as a page of the menu (a tab or a row, not a second entry): the Voice
 // tab of Calls, the Language row of General (it opens the Language page), the Models list of the AI provider page.
 const NESTED_OK = new Set(['calls>voice', 'general>language', 'general>langue', 'ai provider and models>models', 'fournisseur ia et modèles>models'])
 // The sidebar rows (a flat list; « Kybernos » is the wordmark on top, not a menu).
-const SIDEBAR_ROWS = ['kaby', 'dashboards', 'tableaux de bord', 'agent teams', 'workspaces', 'creations', 'automations', 'skills', 'compétences', 'connectors', 'connecteurs']
+const SIDEBAR_ROWS = ['kaby', 'dashboards', 'tableaux de bord', 'ai agent teams', 'équipes d’agents ia', 'workspaces', 'creations', 'automations', 'automatisations', 'skills', 'compétences', 'connectors', 'connecteurs']
 // Pointers that are NOT ours, by the snippet that follows the arrow: the Composio dashboard's own menu.
 const EXTERNAL = ['api keys']
 // « <Word> Settings › » is another thing than the Settings menu (macOS System Settings, DSH's General › Kybernos Settings card…).

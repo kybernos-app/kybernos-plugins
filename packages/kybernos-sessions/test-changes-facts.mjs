@@ -38,6 +38,10 @@ const travail = (chemins, extra) => Object.assign({ fait: false, quoi: 'write', 
 console.log('not a project')
 check('no folder: not git, and why', JSON.stringify(faitsChangements(null, 'sid', null)) === JSON.stringify({ git: false, pourquoi: 'dossier' }))
 check('a folder outside git: not git, and why', faitsChangements({ git: { git: false }, chemin: '/x' }, 'sid', null).pourquoi === 'git')
+check('a non-git folder with rewind turns carries them in the view', (() => {
+  const f = faitsChangements({ git: { git: false }, chemin: '/x' }, 'sid', null, { turns: [{ id: 't1', index: 1, fileCount: 2 }] })
+  return f.git === false && f.rewind !== undefined && f.rewind.url === '/kybernos-sessions/rewind' && f.rewind.turns.length === 1
+})())
 
 console.log('a clean main folder')
 {

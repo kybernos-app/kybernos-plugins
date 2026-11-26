@@ -8,6 +8,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { entry, hasEntry } from './lib-i18n-test.mjs'
 
 const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'client.js'), 'utf8')
 const nocomment = src.replace(/^\s*\/\/.*$/gm, '')
@@ -29,39 +30,68 @@ for (const [mode, text] of [['auto', m[1]], ['per-role', m[2]]]) {
 }
 console.log('  ✓ the automatic and per-role summaries say they are declared and what runs today')
 
-// ── « Delete this Agent Team » deletes nothing (L1-81, AGT-14 is NOT_BUILT, 2026-10-25): the button is off, says so, and nothing above it promises the removal ──
+// ── « Delete this Agent Team » (AGT-14, built 2026-11-08): it works for a team of the person's own DSH home and, everywhere else, it is off AND says why in a sentence on the page ──
+// (it was a disabled button with a hover title « Not available yet »: invisible on a phone, and a person could not remove an installed team at all)
 {
   const a = src.indexOf("return h('div', { style: card },\n          h('span', { className: 'kb8-name' }, kbt('kbui.dangerzone'))")
   const b = src.indexOf('\n      })()', a)
   assert.ok(a > 0 && b > a, 'found the danger zone of the Agent Team page')
   const dict = (key, lang) => {
-    const e = new RegExp("'" + key.replace(/\./g, '\\.') + "': \\{ kybernos: '((?:[^'\\\\]|\\\\.)*)', en: '((?:[^'\\\\]|\\\\.)*)' \\}").exec(src)
-    assert.ok(e !== null, key + ' exists in both languages')
-    return e[lang === 'fr' ? 1 : 2].replace(/\\'/g, '\'')
+    assert.ok(hasEntry(key), key + ' exists in both languages')
+    return entry(key)[lang === 'fr' ? 'kybernos' : 'en']
   }
   const { createLite } = await import('./lib-lite-react-test.mjs')
   const lite = createLite()
-  let navigated = 0
-  const zone = (protectedTeam) => lite.mount(new Function('h', 'card', 'kbt', 'draft', 'protectedTeam', 'set', src.slice(a, b))(
-    // (`kbui.frag.removed` is the sentence the page used to show; it is gone from the dictionary, so a page that still asks for it gets the old words and fails below)
-    lite.React.createElement, {}, (k) => (k === 'kbui.frag.removed' ? ' will be removed with its chats, memory and creations.' : dict(k, 'en')), { name: 'Research Desk' }, protectedTeam, () => { navigated += 1 }))
-  for (const protectedTeam of [false, true]) {
-    const root = zone(protectedTeam)
+  const asked = []
+  const zone = (protectedTeam, canDelete, delErr) => lite.mount(new Function('h', 'card', 'kbt', 'draft', 'protectedTeam', 'canDelete', 'delErr', 'setDelAsk', 'setDelErr', src.slice(a, b))(
+    lite.React.createElement, {}, (k) => dict(k, 'en'), { name: 'Research Desk' }, protectedTeam, canDelete, delErr, (v) => { asked.push(v) }, () => {}))
+  const cases = [
+    { name: 'a team of the DSH home', protectedTeam: false, canDelete: true, sentence: /moved to « agent-teams-trash »[^]*nothing is erased/, can: true },
+    { name: 'a team of a project folder', protectedTeam: false, canDelete: false, sentence: /lives in a project folder/, can: false },
+    { name: 'the Digital Clone', protectedTeam: true, canDelete: false, sentence: /Digital Clone/, can: false },
+  ]
+  for (const c of cases) {
+    asked.length = 0
+    const root = zone(c.protectedTeam, c.canDelete, '')
     const buttons = lite.find(root.tree, (n) => n.tag === 'button')
-    assert.equal(buttons.length, 1, 'one button in the danger zone')
+    assert.equal(buttons.length, 1, c.name + ': one button in the danger zone')
     const btn = buttons[0]
-    assert.equal(lite.textOf(btn), 'Delete this Agent Team', 'it keeps its name')
-    assert.equal(btn.props.disabled, true, (protectedTeam ? 'the Digital Clone: ' : 'any team: ') + 'the button is disabled, whatever the team')
-    assert.equal(btn.props.title, 'Not available yet', 'with a short reason for the pointer and the screen reader')
-    if (typeof btn.props.onClick === 'function') btn.props.onClick({})
-    assert.equal(navigated, 0, 'and a click (a script can still click a disabled button) does not take the person anywhere as if it had worked')
+    assert.equal(lite.textOf(btn), 'Delete this AI Agent Team', c.name + ': it keeps its name')
+    assert.equal(btn.props.disabled, !c.can, c.name + ': the button is ' + (c.can ? 'enabled' : 'disabled'))
+    assert.equal(btn.props.title, undefined, c.name + ': the reason is not a tooltip (a phone has none)')
     const said = lite.textOf(root.tree)
-    assert.ok(!/will be removed|sera supprimé/.test(said), 'nothing above it promises that the team « will be removed with its chats, memory and creations »')
-    assert.equal(/Digital Clone/.test(said), protectedTeam, 'the Digital Clone keeps its own sentence (it cannot be deleted, which is true)')
+    assert.match(said, c.sentence, c.name + ': a sentence ON THE PAGE says what the button does, or why it is off')
+    assert.ok(!/will be removed with its chats|sera supprimé avec/.test(said), c.name + ': nothing promises an erasure that does not happen')
+    if (typeof btn.props.onClick === 'function') btn.props.onClick({})
+    assert.deepEqual(asked, c.can ? [true] : [], c.name + ': a click ' + (c.can ? 'opens the confirmation' : '(a script can click a disabled button) does nothing'))
   }
-  assert.equal(dict('kbui.delete.soon', 'en'), 'Not available yet')
-  assert.equal(dict('kbui.delete.soon', 'fr'), 'Pas encore disponible')
-  console.log('  ✓ « Delete this Agent Team » is disabled with « Not available yet » and the page no longer promises the removal')
+  const failed = zone(false, true, 'Delete this AI Agent Team — disk full')
+  assert.match(lite.textOf(failed.tree), /disk full/, 'a failure of the host is written on the page')
+  assert.ok(lite.find(failed.tree, (n) => n.props !== null && n.props !== undefined && n.props.role === 'alert').length === 1, 'and announced to a screen reader')
+  assert.ok(!/kbui\.delete\.soon/.test(src) && entry('kbui.delete.soon') === null, 'the « Not available yet » string is gone, nothing asks for it (nor does the dictionary hold it)')
+  for (const k of ['kbui.delete.what', 'kbui.delete.project', 'kbui.delete.confirm.title', 'kbui.delete.confirm.body']) { dict(k, 'en'); dict(k, 'fr') }
+  assert.ok(/tu peux le remettre en place à la main/.test(dict('kbui.delete.what', 'fr')) && /put it back by hand/.test(dict('kbui.delete.what', 'en')), 'the sentence says it can be put back, in both languages')
+  console.log('  ✓ « Delete this AI Agent Team »: on for an installed team (confirmation first), off with a visible sentence for a project team and the Digital Clone, errors written on the page')
+}
+
+// ── The template preview does not claim anything about a model the person never chose, and the marketplace says things once (N3/N4, 2026-11-08) ──
+{
+  assert.ok(/'role-model-yours'/.test(src) && /kbt\('kbui\.crew\.usesyours'\)/.test(src), 'a role with no model declared reads « Uses the model you choose » (it used to read « ? absent from your settings, no fallback »)')
+  const row = src.slice(src.indexOf("'data-kb': 'role-model-yours'") - 400, src.indexOf("'data-kb': 'role-model-yours'") + 900)
+  assert.ok(/flexWrap: 'wrap'/.test(row) && /maxWidth: '100%'/.test(row), 'and the chip of a role that has one wraps instead of running off the right edge')
+  assert.ok(/'kbui\.market\.cloud\.below'/.test(src) && /marketReason\(marketCloud\) !== '' \? 'kbui\.market\.cloud\.below' : 'kbui\.market\.cloud\.none'/.test(src), 'the second marketplace line never contradicts the first (« catalogue is empty » then « did not answer »)')
+  assert.ok(/data-kb': 'market-help-sub'/.test(src) && /data-kb': 'market-sub'/.test(src), 'the long « Two sources… » explainer is in the « ? » panel as well as on the page (the phone layer shows only the « ? »)')
+  const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'kybernos-mobile', 'mobile.css'), 'utf8')
+  assert.ok(/\[data-kb="market-sub"\]/.test(css) && /\[data-kb="market-help-sub"\]\[hidden\]/.test(css), 'the phone layer hides the page copy and shows the « ? » copy')
+  console.log('  ✓ template preview: no « absent from your settings » claim, chip wraps; marketplace: one honest line, the explainer lives behind the « ? »')
+}
+
+// ── What the page says about a team it just wrote, and the button that cannot be undone (recette 2026-11-08 retest) ──
+{
+  assert.ok(/res\.rootId === 'installed' \? kbe\(' — the copy is in your own folder\.'\) : kbe\(' — the copy lands in the workspace root \(host limitation\)\.'\)/.test(src), 'the clone toast says where the copy went (the route answers `rootId`): a phone does not hear « workspace root »')
+  assert.ok(/' — la copie est dans ton propre dossier\.': ' — the copy is in your own folder\.'/.test(src), 'and the new sentence has its French')
+  assert.ok(/\.kb-task-confirm \.kb-task-btn\.danger\{border-color:var\(--dsw-alias-state-error-primary\);color:var\(--dsw-alias-state-error-primary\)/.test(src), 'the confirmation button is red at rest, not only on hover (a phone has no hover)')
+  console.log('  ✓ clone toast names the real place; the destructive confirmation button is red at rest')
 }
 
 // ── The workflow of a team is drawn by the shared canvas, so its steps follow the theme like every other graph (2026-11-04) ──
@@ -72,4 +102,4 @@ console.log('  ✓ the automatic and per-role summaries say they are declared an
   assert.ok(/h\(KbFlowCanvas, \{\s+nodes: kbWfCards\(graphe\)/.test(pane), 'the Workflow tab draws its steps with the shared canvas')
   console.log('  ✓ a workflow step is a card of the shared canvas: no fixed colour, no second graph library')
 }
-console.log('\n5 checks passed')
+console.log('\n7 checks passed')

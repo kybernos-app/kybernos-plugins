@@ -201,6 +201,48 @@ ok('a theme without a style is a plan with no style, not an error', () => {
   assert.equal(p.style, null)
 })
 
+/* ═══ the plan's Menu line: the names the field gives to menu rows, never ticked for the person ═══ */
+const previewWith = (pack) => [{ point: 'kybernos/core#domain-pack', class: 'instruction', files: [{ file: 'domains/clinic.json', value: pack }], rejected: [] }]
+ok('the plan carries the Menu line of the pack\'s labels, untick: { labels, tick: false }', () => {
+  const p = T.planTheme(PREVIEW)
+  assert.deepEqual(p.menu, { labels: { tasks: { en: 'Visits' } }, tick: false })
+  const more = T.planTheme(previewWith(Object.assign({}, PACK, { menu: { labels: { tasks: { en: 'Visits', fr: 'Visites', es: 'Visitas', ar: 'زيارات', de: 'Besuche' }, aiteams: { en: 'Clinic team' } }, hide: [] } })))
+  assert.deepEqual(more.menu, { labels: { tasks: { en: 'Visits', fr: 'Visites', es: 'Visitas', ar: 'زيارات' }, aiteams: { en: 'Clinic team' } }, tick: false }, 'a language the page does not speak is dropped')
+  assert.equal(more.menu.tick, false)
+  assert.equal(JSON.stringify(T.planTheme(PREVIEW).menu), JSON.stringify(T.planTheme(PREVIEW).menu))
+})
+ok('a pack that renames nothing has no Menu line (null), whatever else its menu says', () => {
+  assert.equal(T.planTheme(previewWith(Object.assign({}, PACK, { menu: { labels: {}, hide: ['documents'] } }))).menu, null)
+  assert.equal(T.planTheme(previewWith(Object.assign({}, PACK, { menu: { hide: ['documents'] } }))).menu, null)
+  const bare = Object.assign({}, PACK); delete bare.menu
+  assert.equal(T.planTheme(previewWith(bare)).menu, null)
+  assert.equal(T.planTheme(previewWith(Object.assign({}, PACK, { menu: 'tasks' }))).menu, null)
+  assert.equal(T.planTheme(previewWith(Object.assign({}, PACK, { menu: { labels: ['tasks'] } }))).menu, null)
+})
+ok('a Menu line keeps only what a menu row may carry: never workspaces/projects/settings/account, a bounded name, no markup, at most 24 rows', () => {
+  const long = 'x'.repeat(41)
+  const labels = {
+    tasks: { en: 'Visits' },
+    workspaces: { en: 'Nope' }, projects: { en: 'Nope' }, settings: { en: 'Nope' }, account: { en: 'Nope' },
+    Skills: { en: 'Bad id' }, a: { en: 'Too short' }, ['k' + 'x'.repeat(24)]: { en: 'Too long an id' },
+    skills: { en: '<b>Skills</b>' }, connectors: { en: long }, kyber: {}, deliverables: 'Creations', documents: { fr: '' },
+    dashboards: { en: '  Sales \u0007  board  ', fr: '' },
+  }
+  const line = T.planTheme(previewWith(Object.assign({}, PACK, { menu: { labels, hide: [] } }))).menu
+  assert.deepEqual(line, { labels: { tasks: { en: 'Visits' }, dashboards: { en: 'Sales board' } }, tick: false })
+  const many = {}
+  for (let i = 0; i < 30; i++) many['row-' + String.fromCharCode(97 + (i % 26)) + String(i)] = { en: 'Row ' + String(i) }
+  assert.equal(Object.keys(T.planTheme(previewWith(Object.assign({}, PACK, { menu: { labels: many, hide: [] } }))).menu.labels).length, 24)
+})
+ok('the shipped e-commerce theme\'s plan has a Menu line that renames dashboards, aiteams and tasks (and the line is never ticked)', () => {
+  const pack = JSON.parse(readFileSync(join(here, 'themes', 'ecommerce', 'domains', 'ecommerce.json'), 'utf8'))
+  const line = T.planTheme(previewWith(pack)).menu
+  assert.notEqual(line, null)
+  assert.deepEqual(Object.keys(line.labels).sort(), Object.keys(pack.menu.labels).sort())
+  assert.equal(line.tick, false)
+  for (const id of Object.keys(line.labels)) assert.equal(typeof line.labels[id].en, 'string')
+})
+
 /* ═══ the pre-install pre-check agrees with the registry's table (the anti-drift gate) ═══ */
 ok('dataPluginProblems and the registry\'s dataPackageProblems agree on five fixtures', () => {
   const dir = fresh('a6-d6-')
@@ -531,7 +573,7 @@ ok('the page block is marked in client.js, so the tests run the browser\'s own c
   assert.notEqual(core, null)
   assert.equal(page, true)
 })
-const coreMod = await import('data:text/javascript,' + encodeURIComponent(core[1] + '\nexport { kbThApply, kbThRemove, kbThFingerprint, kbThLabel, kbThManagerIssue }'))
+const coreMod = await import('data:text/javascript,' + encodeURIComponent(core[1] + '\nexport { kbThApply, kbThRemove, kbThFingerprint, kbThLabel, kbThManagerIssue, kbThMenuLine, kbThPresetOf, kbThGid }'))
 const PLAN = T.planTheme(PREVIEW)
 /** A fake profile: the lookups answer what `seen` says, the writes are recorded, nothing leaves the process. */
 const fake = (seen) => {
@@ -752,6 +794,129 @@ ok('the page reads the manager\'s answer instead of "not null", and the Themes c
   assert.doesNotMatch(view, /kbg-card/)
   assert.match(view, /className: 'kbgal-card'/)
   assert.doesNotMatch(src, /\[data-kb-page="themes"\] \.kbg-card/, 'the old overrides are gone with the cards they served')
+})
+
+/* ═══ the template as ONE record: the seam's { preset, apply } form (the plan screen's Menu line) ═══ */
+/** The fake profile of `fake()` plus the seam's template port: it records what it is given and answers `answer` (a value or a function). */
+const withPreset = (seen, answer) => {
+  const f = fake(seen)
+  const presets = []
+  f.ports.preset = async (preset, apply) => { presets.push({ preset, apply }); return typeof answer === 'function' ? answer() : (answer === undefined ? { ok: true, id: 'clinic' } : answer) }
+  return { calls: f.calls, ports: f.ports, presets }
+}
+await okA('the template goes in as ONE record holding its look and its menu names; the look and the menu apply as ticked, the look port is not called', async () => {
+  const f = withPreset({})
+  const r = await coreMod.kbThApply(PLAN, Object.assign({}, TICKS, { menu: true }), f.ports)
+  assert.equal(r.ok, true)
+  assert.deepEqual(f.presets, [{ preset: { name: 'Clinic', settings: { acc: '#1B7F76' }, menuLabels: { tasks: { en: 'Visits' } }, gid: 'clinic' }, apply: { appearance: true, menu: true } }])
+  assert.equal(f.calls.filter((c) => c.m === 'STYLE').length, 0, 'the look went through the record, not a second door')
+  assert.deepEqual([r.style, r.menu, r.added], ['applied', 'applied', 7], JSON.stringify(r))
+})
+await okA('the Menu line is NOT ticked by default: the record is stored with its menu names, only the look applies, and the report says the menu was skipped', async () => {
+  const f = withPreset({})
+  const r = await coreMod.kbThApply(PLAN, TICKS, f.ports)
+  assert.equal(f.presets.length, 1)
+  assert.deepEqual(f.presets[0].apply, { appearance: true, menu: false })
+  assert.deepEqual(f.presets[0].preset.menuLabels, { tasks: { en: 'Visits' } }, 'the names are kept with the template either way')
+  assert.deepEqual([r.style, r.menu, r.added], ['applied', 'skipped', 6])
+})
+await okA('with neither part ticked the record is kept only when the screen asks (record), and nothing changes', async () => {
+  const off = { style: false, goals: ['recall'], skills: ['patient-reminders'], teams: ['clinic-assist'], automations: ['daily-recall'] }
+  const none = withPreset({})
+  await coreMod.kbThApply(PLAN, off, none.ports)
+  assert.deepEqual(none.presets, [], 'a kit-only install by another door (the Apps page) never touches the library')
+  const kept = withPreset({})
+  const r = await coreMod.kbThApply(PLAN, Object.assign({}, off, { record: true }), kept.ports)
+  assert.deepEqual(kept.presets.map((x) => x.apply), [{ appearance: false, menu: false }])
+  assert.deepEqual([r.style, r.menu], ['skipped', 'skipped'])
+  assert.equal(r.added, 4, 'the field, the skill, the team, the automation: nothing else changed')
+})
+await okA('a seam that refuses the form (an older theme bundle) or throws: the look goes the old way, the menu says unavailable, the install does not fail', async () => {
+  for (const answer of [{ ok: false, reason: 'no known setting' }, () => { throw new Error('boom') }, () => null]) {
+    const f = withPreset({}, answer)
+    const r = await coreMod.kbThApply(PLAN, Object.assign({}, TICKS, { menu: true }), f.ports)
+    assert.equal(r.ok, true)
+    assert.equal(f.calls.filter((c) => c.m === 'STYLE').length, 1, 'the old door applies the look')
+    assert.deepEqual([r.style, r.menu, r.added], ['applied', 'unavailable', 6])
+  }
+})
+await okA('no template port at all: the old behaviour, the Menu tick is reported unavailable', async () => {
+  const f = fake({})
+  const r = await coreMod.kbThApply(PLAN, Object.assign({}, TICKS, { menu: true }), f.ports)
+  assert.deepEqual([r.ok, r.style, r.menu, r.added], [true, 'applied', 'unavailable', 6])
+  assert.equal(f.calls.filter((c) => c.m === 'STYLE').length, 1)
+})
+await okA('a replay still applies a Menu tick (the page reuses the record by its gid), and writes nothing else', async () => {
+  const seen = { skills: ['patient-reminders'], teams: ['clinic-assist', 'assist'], tasks: ['Daily recall'], profil: 'clinic', goals: ['recall'] }
+  const f = withPreset(seen)
+  const r = await coreMod.kbThApply(PLAN, Object.assign({}, TICKS, { style: false, menu: true }), f.ports)
+  assert.equal(f.presets.length, 1)
+  assert.deepEqual(f.presets[0].apply, { appearance: false, menu: true })
+  assert.deepEqual([r.ok, r.menu, r.added, r.failed], [true, 'applied', 1, 0])
+  assert.deepEqual(f.calls.filter((c) => c.m === 'POST' && c.body.action !== 'list'), [], 'no consent, no kit write on a replay')
+  // and an unchanged replay (the Menu not ticked) is the no-op it always was
+  const again = withPreset(seen)
+  const r2 = await coreMod.kbThApply(PLAN, TICKS, again.ports)
+  assert.deepEqual([r2.already, r2.added, again.presets.length], [true, 0, 0])
+})
+await okA('a style that has no settings of its own keeps the old door for the look and still stores the menu names', async () => {
+  const noSettings = Object.assign({}, PLAN, { style: { id: 'clinic-style', name: { en: 'Clinic style' }, settings: null, file: 'themes/clinic.json' } })
+  const f = withPreset({})
+  const r = await coreMod.kbThApply(noSettings, Object.assign({}, TICKS, { menu: true }), f.ports)
+  assert.deepEqual(f.presets.map((x) => [Object.keys(x.preset).sort().join(), x.apply]), [['gid,menuLabels,name', { appearance: false, menu: true }]])
+  assert.equal(f.calls.filter((c) => c.m === 'STYLE').length, 1)
+  assert.deepEqual([r.style, r.menu], ['applied', 'applied'])
+})
+ok('the record\'s name is the page\'s word for the template, cut to the 40 characters a library record may carry; its gid is the plugin id as a slug', () => {
+  const plan = Object.assign({}, PLAN, { id: 'acme/Vet Clinic_2', pack: Object.assign({}, PLAN.pack, { name: { en: 'A very long template name that goes past forty characters', fr: 'Clinique' } }) })
+  assert.equal(coreMod.kbThPresetOf(plan, coreMod.kbThLabel).name.length <= 40, true)
+  assert.equal(coreMod.kbThPresetOf(plan, (v) => v.fr).name, 'Clinique')
+  assert.equal(coreMod.kbThPresetOf(plan, coreMod.kbThLabel).gid, 'acme-vet-clinic-2')
+  assert.equal(coreMod.kbThGid({ id: '///', pack: { id: 'clinic' } }), 'clinic')
+  assert.equal(coreMod.kbThGid({ id: '', pack: {} }), null)
+  assert.match(coreMod.kbThGid({ id: 'x'.repeat(90) }), /^[a-z0-9][a-z0-9-]{0,63}$/)
+  // neither part: no record
+  assert.equal(coreMod.kbThPresetOf(Object.assign({}, PLAN, { style: null, menu: null }), coreMod.kbThLabel), null)
+  assert.equal(coreMod.kbThPresetOf(Object.assign({}, PLAN, { style: { id: 'x', settings: {} }, menu: null }), coreMod.kbThLabel), null)
+  // menu only: the record has no `settings` key at all
+  assert.deepEqual(Object.keys(coreMod.kbThPresetOf(Object.assign({}, PLAN, { style: null }), coreMod.kbThLabel)).sort(), ['gid', 'menuLabels', 'name'])
+})
+ok('the Menu line, read against the rows the menu can draw now: renames, unchanged names, rows this menu does not have, the page\'s language only', () => {
+  const menu = { labels: { aiteams: { en: 'Shop team', fr: 'Équipe boutique' }, tasks: { en: 'Customer follow-ups' }, skills: { en: 'Skills' }, dashboards: { en: 'Shop dashboards' } }, tick: false }
+  const rows = [{ id: 'kyber', name: 'Kaby' }, { id: 'tasks', name: 'Automations' }, { id: 'skills', name: 'Skills' }, { id: 'aiteams', name: 'Agent Teams' }]
+  assert.deepEqual(coreMod.kbThMenuLine(menu, rows, 'en'), {
+    renames: [{ id: 'aiteams', from: 'Agent Teams', to: 'Shop team' }, { id: 'tasks', from: 'Automations', to: 'Customer follow-ups' }],
+    absent: [{ id: 'dashboards', to: 'Shop dashboards' }],
+  })
+  // a label that equals the name already shown is not a rename; a row with no label in the page's language keeps its name (never another language's label)
+  assert.deepEqual(coreMod.kbThMenuLine(menu, rows, 'fr'), { renames: [{ id: 'aiteams', from: 'Agent Teams', to: 'Équipe boutique' }], absent: [] })
+  assert.equal(coreMod.kbThMenuLine(menu, rows, 'es'), null, 'no Spanish name: nothing would change')
+  assert.equal(coreMod.kbThMenuLine(menu, rows, ''), null, 'a page language the menu cannot name: no line')
+  // a name equal up to case is not a rename either; an unnamed default falls back to the id
+  assert.deepEqual(coreMod.kbThMenuLine({ labels: { skills: { en: 'SKILLS' }, tasks: { en: 'Visits' } } }, [{ id: 'skills', name: 'Skills' }, { id: 'tasks', name: '' }], 'en'), { renames: [{ id: 'tasks', from: 'tasks', to: 'Visits' }], absent: [] })
+  for (const junk of [null, undefined, {}, [], 'x', { labels: null }, { labels: [] }]) assert.equal(coreMod.kbThMenuLine(junk, rows, 'en'), null)
+  assert.deepEqual(coreMod.kbThMenuLine(menu, null, 'en').renames, [], 'without any row every labelled row is absent, nothing is invented')
+})
+ok('the page wires the form through the one door: ports.preset reads the seam with kbObThemeSeam and hands it { preset, apply }; the screen opens with the Menu line UNTICKED', () => {
+  const ports = src.slice(src.indexOf('const kbThPorts = () => {'), src.indexOf('const kbThPresence ='))
+  const presetPort = ports.match(/preset: async \(preset, apply\) => \{[\s\S]*?\n        \},/)
+  assert.notEqual(presetPort, null, 'the template port is there')
+  assert.match(presetPort[0], /kbObThemeSeam\(window\)/)
+  assert.match(presetPort[0], /fn\(\{ preset, apply \}\)/, 'the seam gets the preset form')
+  assert.match(presetPort[0], /catch \(e\) \{ return \{ ok: false, reason: 'seam-failed' \} \}/, 'a throw is an answer, never an exception')
+  assert.equal(ports.split('__KB_THEME_APPLY__').length - 1, 0, 'no second raw read of the seam')
+  const defaults = src.slice(src.indexOf('const kbThDefaultTicks = ('), src.indexOf('const kbThAppliedLook ='))
+  assert.match(defaults, /menu: false,/)
+  // the plan screen keeps the template in the library (record) and draws the Menu line as a switch that starts off
+  assert.match(src, /setTicks\(Object\.assign\(kbThDefaultTicks\(answer\.plan, seen\), \{ demo: [^}]*, record: true \}\)\)/)
+  const dialog = src.slice(src.indexOf('const planDialog = () => {'), src.indexOf('const reportDialog = () => {'))
+  assert.match(dialog, /swh\('theme-switch-menu', menuTitle, ticks\.menu === true/)
+  assert.match(dialog, /'data-kb': 'theme-menu-note'/)
+  assert.match(dialog, /Not ticked: your menu stays as it is\. You can apply it later from Theme › Presets\./)
+  // the Apps page's template add never changes the look or the menu: its ticks name neither
+  const add = src.slice(src.indexOf('// <kb-templates-seam>'), src.indexOf('// </kb-templates-seam>'))
+  assert.match(add, /style: false, goals: \[\]/)
+  assert.doesNotMatch(add, /menu:|record:/)
 })
 
 console.log('\n' + count + ' checks passed')

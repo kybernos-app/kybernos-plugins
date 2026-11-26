@@ -11,6 +11,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { hasEntry } from './lib-i18n-test.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -57,8 +58,7 @@ const css = block.slice(cssStart + 'styles.insert(`'.length, block.lastIndexOf('
 // 4. strings: both languages, French and English
 {
   for (const key of ['show', 'hide', 'pin', 'unpin', 'rename', 'save', 'err']) {
-    const m = new RegExp("'kbfold\\." + key + "': \\{ kybernos: '([^']+)', en: '([^']+)' \\}").exec(src)
-    assert.ok(m !== null, 'kbfold.' + key + ' has both languages')
+    assert.ok(hasEntry('kbfold.' + key), 'kbfold.' + key + ' has both languages')
   }
   assert.match(src, /\n  cardLines: \[/, 'the toggle glyph exists')
   ok('every string has French and English; the glyph is drawn')
@@ -74,6 +74,9 @@ const css = block.slice(cssStart + 'styles.insert(`'.length, block.lastIndexOf('
   assert.match(css, /\[data-kb="changes"\]\[data-state="ok"\],[^{]*\[data-kb="changes"\]\[data-state="unavailable"\]\{display:none!important\}/, 'a healthy save chip and the « tracking unavailable » chip (nothing to act on) hidden')
   assert.ok(!/\.kbch-|\.kbcl-/.test(css), 'no class of another bundle is named (the bundles share one class namespace)')
   assert.match(css, /@media \(max-width:700px\)\{\.kbfold-root\{display:none\}\}/, 'the phone keeps its own parked actions')
+  // the three popovers of the header were clipped by DSH's title cluster (overflow:clip + fade mask): measured on the real DSH, 2026-11-18
+  assert.match(css, /\[class\*="_titleCluster"\]:has\(\.kbfold-pop,\.kbct-menu,\.kbtg-pop\)\{overflow-y:visible!important;-webkit-mask-image:none!important;mask-image:none!important\}/, 'while a popover of the header is open, the title cluster gives up its vertical clip and its fade mask (the popover would be invisible)')
+  assert.ok(!/overflow-x/.test(css.slice(css.indexOf('_titleCluster'), css.indexOf('_titleCluster') + 200)), 'the horizontal clip is kept (a long title is still cut)')
   ok('hiding keys on [data-slot] hooks, wide screens only, a live call and a save problem stay visible')
 }
 

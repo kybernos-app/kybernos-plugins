@@ -3,13 +3,14 @@ import test, { before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import http from 'node:http'
 import net from 'node:net'
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { randomBytes } from 'node:crypto'
+import { createHmac, randomBytes } from 'node:crypto'
 import { loadConfig } from '../core/config.mjs'
 import { createGate } from '../core/server.mjs'
 import { createLimiter } from '../core/limiter.mjs'
+import { pageKey } from '../core/page-link.mjs'
 
 const PASSWORD = 'correct horse battery'
 const CHEAP = { N: 1024, r: 8, p: 1 }
@@ -568,4 +569,87 @@ test('a password and a ticket service can both be on, and half a ticket configur
   const home = mkdtempSync(join(tmpdir(), 'kb-gate-cfg-'))
   await assert.rejects(() => loadConfig({ KYBERNOS_GATE_TICKET_URL: 'https://api.example.com/x', DSH_HOME: home }), /both KYBERNOS_GATE_TICKET_URL and KYBERNOS_GATE_TICKET_TOKEN/)
   await assert.rejects(() => loadConfig({ KYBERNOS_GATE_TICKET_URL: 'http://api.example.com/x', KYBERNOS_GATE_TICKET_TOKEN: 'kyd_x', DSH_HOME: home }), /must be https/)
+})
+
+// ── the Journal page a cloud computer hands out for a few minutes (page-link.mjs) ──
+const COMPUTER_TOKEN = 'kyd_the-computers-own-token'
+const b64url = (buf) => Buffer.from(buf).toString('base64url')
+/** A link token as the cloud plugin makes it (its own test checks that what it makes is read here). */
+const pageToken = (id, expiresAt, token = COMPUTER_TOKEN) => `${id}.${expiresAt}.${b64url(createHmac('sha256', pageKey(token)).update(`page|${id}|${expiresAt}`).digest())}`
+const PAGE_ID = 'AbCdEfGhIjKlMnOpQrStUv'
+const savePageFor = (home, id, html) => {
+  const dir = join(home, 'kybernos', 'journal-pages')
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(join(dir, id + '.html'), html)
+}
+
+test('a page link shows that one page with no sign-in and gives none; everything else stays closed', async () => {
+  const { port, config, close } = await startTicketGate(noPassword)
+  try {
+    savePageFor(config.dshHome, PAGE_ID, '<!doctype html><html><body>the journal</body></html>')
+    const path = '/__gate/page/' + pageToken(PAGE_ID, Date.now() + 600_000)
+    const ok = await request(port, 'GET', path)
+    assert.equal(ok.status, 200)
+    assert.equal(ok.text, '<!doctype html><html><body>the journal</body></html>')
+    assert.match(ok.headers['content-type'], /^text\/html/)
+    assert.equal(ok.headers['set-cookie'], undefined, 'no session follows from a page link')
+    assert.equal(ok.headers['cache-control'], 'no-store')
+    assert.match(ok.headers['content-security-policy'], /frame-ancestors 'none'/)
+    assert.match(ok.headers['content-security-policy'], /connect-src 'none'/)
+    assert.equal(ok.headers['x-frame-options'], 'DENY')
+    assert.match(ok.headers['x-robots-tag'], /noindex/)
+    assert.equal(ok.headers['referrer-policy'], 'no-referrer')
+    const head = await request(port, 'HEAD', path)
+    assert.equal(head.status, 200)
+    assert.equal(head.text, '')
+    // Still open a second time within its minutes (it is a link, not a ticket)
+    assert.equal((await request(port, 'GET', path)).status, 200)
+    // Nothing else is reachable with it: no cookie was given, so DSH is still behind the gate.
+    assert.equal((await request(port, 'GET', '/', { headers: NAV })).status, 403)
+    assert.equal((await request(port, 'GET', '/echo')).status, 401)
+    assert.equal((await request(port, 'POST', path, { headers: { origin: `http://127.0.0.1:${port}` }, body: '{}' })).status, 405)
+    assert.equal((await request(port, 'GET', path + '/more')).status, 404, 'another path under it is not the page')
+  } finally { await close() }
+})
+
+test('a page link that is over, forged, for another computer or for a page that is not there is refused, and a guesser is locked out', async () => {
+  const { port, config, close } = await startTicketGate(noPassword)
+  try {
+    savePageFor(config.dshHome, PAGE_ID, '<html>the journal</html>')
+    const later = Date.now() + 600_000
+    // Over: said so (the person is told to ask again), not « not found ».
+    const over = await request(port, 'GET', '/__gate/page/' + pageToken(PAGE_ID, Date.now() - 1000))
+    assert.equal(over.status, 410)
+    assert.match(over.text, /over/)
+    assert.doesNotMatch(over.text, /journal/)
+    // A page that is not there, with a good token.
+    assert.equal((await request(port, 'GET', '/__gate/page/' + pageToken('ZzZzZzZzZzZzZzZzZzZzZz', later))).status, 404)
+    // Forged: a later end time on a signature made for an earlier one, another computer's key, a changed id, garbage, a path that tries to leave the folder.
+    const good = pageToken(PAGE_ID, later)
+    const [id, exp, sig] = good.split('.')
+    const forged = [`${id}.${Number(exp) + 3_600_000}.${sig}`, pageToken(PAGE_ID, later, 'kyd_another-computer'), `ZzZzZzZzZzZzZzZzZzZzZz.${exp}.${sig}`, 'x', `${id}.${exp}`, encodeURIComponent('../' + good), '..%2f..%2fetc%2fpasswd']
+    for (const t of forged) {
+      const r = await request(port, 'GET', '/__gate/page/' + t)
+      assert.ok(r.status === 404 || r.status === 429, t + ' -> ' + r.status)
+      assert.doesNotMatch(r.text, /journal/)
+    }
+    // Five refusals in, the same client is locked, and a good link is refused for the lock's time too.
+    const locked = await request(port, 'GET', '/__gate/page/' + good)
+    assert.equal(locked.status, 429)
+    assert.ok(Number(locked.headers['retry-after']) >= 1)
+  } finally { await close() }
+})
+
+test('a page link needs a cloud computer: with a password only (no ticket service) there is none, and a page over the size limit is not served', async () => {
+  const { gate, port, config } = await startGate()
+  try {
+    savePageFor(config.dshHome, PAGE_ID, '<html>the journal</html>')
+    assert.equal(config.pageKey, null)
+    assert.equal((await request(port, 'GET', '/__gate/page/' + pageToken(PAGE_ID, Date.now() + 600_000))).status, 404)
+  } finally { await gate.close() }
+  const t = await startTicketGate(noPassword)
+  try {
+    savePageFor(t.config.dshHome, PAGE_ID, 'x'.repeat(8 * 1024 * 1024 + 1))
+    assert.equal((await request(t.port, 'GET', '/__gate/page/' + pageToken(PAGE_ID, Date.now() + 600_000))).status, 404)
+  } finally { await t.close() }
 })

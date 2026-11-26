@@ -1,12 +1,12 @@
 {
   "what": {
-    "fr": "La page « À propos » : version de Kybernos, moteur DSH installé, plage de versions testée, et un avis discret quand une mise à jour est disponible.",
-    "en": "The “About” page: Kybernos version, installed DSH engine, tested version range, and a discreet notice when an update is available."
+    "fr": "La page « À propos » : version de Kybernos, moteur installé, plage de versions testée, et un avis discret quand une mise à jour est disponible.",
+    "en": "The “About” page: Kybernos version, installed engine, tested version range, and a discreet notice when an update is available."
   },
   "steps": [
     {
-      "fr": "Ouvre « À propos » : tu vois la version de Kybernos, celle de DSH et la zone de DSH testée avec cette version.",
-      "en": "Open “About”: you see the Kybernos version, the DSH version and the DSH range tested with this version."
+      "fr": "Ouvre « À propos » : tu vois la version de Kybernos, celle du moteur et la zone testée avec cette version.",
+      "en": "Open “About”: you see the Kybernos version, the engine version and the range tested with this version."
     },
     {
       "fr": "Le bloc d’état dit en une phrase si tout est en phase ; « Vérifier maintenant » refait la mesure.",
@@ -17,8 +17,8 @@
       "en": "If an update is advised, “Copy the command”, then paste it in a terminal."
     },
     {
-      "fr": "« Détails techniques » (replié par défaut) : dernière opération, mises à jour passées, compatibilité par version de DSH.",
-      "en": "“Technical details” (closed by default): last operation, earlier updates, compatibility by DSH version."
+      "fr": "« Détails techniques » (replié par défaut) : dernière opération, mises à jour passées, compatibilité par version de Kybernos.",
+      "en": "“Technical details” (closed by default): last operation, earlier updates, compatibility by Kybernos version."
     }
   ],
   "where": {

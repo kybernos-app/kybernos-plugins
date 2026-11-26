@@ -59,7 +59,7 @@ window.__ModuleLoader__.load({
       const errorText = (r) => {
         const j = plain(r) && plain(r.json) ? r.json : {}
         const status = plain(r) ? r.status : 0
-        if (status === 401 || status === 403 || (status === 503 && typeof j.error === 'string' && /secret|session/i.test(j.error))) return kt('Ta session DSH a expiré : recharge la page.', 'Your DSH session has expired: reload the page.')
+        if (status === 401 || status === 403 || (status === 503 && typeof j.error === 'string' && /secret|session/i.test(j.error))) return kt('Ta session Kybernos a expiré : recharge la page.', 'Your Kybernos session has expired: reload the page.')
         switch (j.error) {
           case 'not_ready': {
             const names = MISSING()
@@ -75,7 +75,7 @@ window.__ModuleLoader__.load({
           case 'start_failed': return kt('Le service ne démarre pas.', 'The service does not start.') + (typeof j.detail === 'string' && j.detail !== '' ? ' ' + j.detail.slice(0, 200) : '')
           case 'too_big': return kt('Ce texte est trop long.', 'That text is too long.')
           case 'service_stopped': return kt('Le service est arrêté.', 'The service is stopped.')
-          default: return status === 0 ? kt('DSH ne répond pas.', 'DSH is not answering.') : kt('Ça n’a pas marché. Réessaie dans un instant.', 'That did not work. Try again in a moment.')
+          default: return status === 0 ? kt('Kybernos ne répond pas.', 'Kybernos is not answering.') : kt('Ça n’a pas marché. Réessaie dans un instant.', 'That did not work. Try again in a moment.')
         }
       }
 
@@ -192,7 +192,7 @@ window.__ModuleLoader__.load({
           const names = MISSING()
           return h('section', { className: 'kbfd-card', 'data-kb': 'fd-service' },
             h('h2', null, kt('Le service', 'The service')),
-            h('p', null, kt('L’assistant tourne sur cet ordinateur, à part de Kaby, avec sa propre clé de modèle. Tant que DSH reste ouvert, il répond à tes visiteurs.', 'The assistant runs on this computer, apart from Kaby, with its own model key. While DSH stays open, it answers your visitors.')),
+            h('p', null, kt('L’assistant tourne sur cet ordinateur, à part de Kaby, avec sa propre clé de modèle. Tant que Kybernos reste ouvert, il répond à tes visiteurs.', 'The assistant runs on this computer, apart from Kaby, with its own model key. While Kybernos stays open, it answers your visitors.')),
             missing.length ? h('p', { className: 'kbfd-err', 'data-kb': 'fd-missing' }, kt('Pour le démarrer, il manque : ', 'To start it, you still need: ') + missing.map((m) => names[m]).filter(Boolean).join(', ') + '.') : null,
             state.service.error ? h('p', { className: 'kbfd-err', role: 'alert', 'data-kb': 'fd-service-error' }, state.service.error) : null,
             h('div', { className: 'kbfd-row' },
@@ -323,7 +323,7 @@ window.__ModuleLoader__.load({
                 h('div', { className: 'kbfd-titlerow' }, h('h1', { className: 'kbfd-title' }, title), h('span', { className: 'kbfd-pill ' + sw.tone, 'data-kb': 'fd-pill', role: 'status' }, h('span', { className: 'kbfd-dot', 'aria-hidden': 'true' }), sw.word), help({ lead: sub, title })),
                 running ? h('button', { type: 'button', className: 'kbfd-btn', 'data-kb': 'fd-head-stop', disabled: busy !== '', onClick: actions.stop }, kt('Arrêter', 'Stop')) : null),
               subFallback(sub),
-              data.stale ? h('div', { className: 'kbfd-banner', role: 'status', 'data-kb': 'fd-stale' }, h('span', { className: 'sp' }, kt('DSH ne répond plus : ce que tu vois peut dater de quelques secondes.', 'DSH is not answering: what you see may be a few seconds old.'))) : null,
+              data.stale ? h('div', { className: 'kbfd-banner', role: 'status', 'data-kb': 'fd-stale' }, h('span', { className: 'sp' }, kt('Kybernos ne répond plus : ce que tu vois peut dater de quelques secondes.', 'Kybernos is not answering: what you see may be a few seconds old.'))) : null,
               restartNeeded ? h('div', { className: 'kbfd-banner warn', role: 'status', 'data-kb': 'fd-restart' },
                 h('span', { className: 'sp' }, h('b', null, kt('Redémarre le service', 'Restart the service')), ' ', kt('pour que ce réglage prenne effet.', 'for this setting to take effect.')),
                 h('button', { type: 'button', className: 'kbfd-btn sm', 'data-kb': 'fd-restart-now', disabled: busy !== '', onClick: actions.restart }, busy === 'restart' ? kt('Redémarrage…', 'Restarting…') : kt('Redémarrer', 'Restart'))) : null,
@@ -411,7 +411,8 @@ window.__ModuleLoader__.load({
           const slots = ctx.slots
           if (slots === null || slots === undefined || typeof slots.inject !== 'function') return
           const Page = build(React)
-          // The row of the menu: declared here, taken back when the plugin is switched off. The core publishes its registry when IT is applied, and the order in
+          // The row of the menu: declared here, taken back when the plugin is switched off. `defaultShown: false`: the default menu of the full app leaves it out (the owner's list, item 05); the page is
+          // mounted all the same and Theme › Menu shows the row for whoever wants it. The core publishes its registry when IT is applied, and the order in
           // which two plugins are applied is DSH's, so the row waits for the registry instead of assuming it is there.
           ctx.effect(() => {
             let off = null
@@ -420,7 +421,7 @@ window.__ModuleLoader__.load({
             const declare = () => {
               timer = null
               try {
-                if (window.__KB_MENU__ && typeof window.__KB_MENU__.register === 'function') { off = window.__KB_MENU__.register({ id: ROW_ID, group: 'business', icon: 'messageCircle', label: { en: 'Front desk', fr: 'Accueil client' }, order: 50 }); return }
+                if (window.__KB_MENU__ && typeof window.__KB_MENU__.register === 'function') { off = window.__KB_MENU__.register({ id: ROW_ID, group: 'business', icon: 'messageCircle', label: { en: 'Front desk', fr: 'Accueil client' }, order: 50, defaultShown: false }); return }
               } catch (e) { return }
               tries += 1
               if (tries < MENU_TRIES) timer = setTimeout(declare, MENU_WAIT_MS)

@@ -32,7 +32,7 @@ h1,h2,h3,p,ul{margin:0}ul{padding:0;list-style:none}
 .kj-crews{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
 .kj-crew{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
 .kj-crew-h{display:flex;align-items:center;justify-content:space-between;gap:8px}.kj-crew-h b{overflow-wrap:anywhere}
-.kj-members{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--mut)}.kj-members li{display:flex;justify-content:space-between;gap:8px}.kj-members em{font-style:normal;color:var(--faint)}
+.kj-members{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--mut)}.kj-members li{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.kj-members em{font-style:normal;color:var(--faint)}
 .kj-cols{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
 .kj-side{display:flex;flex-direction:column;gap:16px;min-width:0}
 .kj-list{display:flex;flex-direction:column}
@@ -68,5 +68,14 @@ h1,h2,h3,p,ul{margin:0}ul{padding:0;list-style:none}
 .kj-lock{max-width:440px;margin:12vh auto 0}.kj-lock h1{font-size:20px}.kj-lockform{display:flex;gap:8px}.kj-lockform .kj-more{margin:0;align-self:auto}
 .kj-pw{flex:1;min-width:0;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--box);color:var(--ink);font:inherit}
 .kj-lockerr{color:var(--err);font-size:13px;min-height:1.2em}
+/* Story / Flow switch, and the flow: a chain of cards joined by a wire (the wire is red after a failed step, amber while a step waits). */
+.kj-viewbar{display:flex;justify-content:flex-end}
+.kj-seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.kj-seg button{font:inherit;font-size:13px;padding:5px 14px;border:0;background:transparent;color:var(--mut);cursor:pointer}.kj-seg button + button{border-left:1px solid var(--line)}.kj-seg button.on{background:var(--box);color:var(--ink);font-weight:650}
+.kj-flow{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.kj-fn{position:relative;display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.kj-fn + .kj-fn{margin-top:16px}.kj-fn + .kj-fn::before{content:"";position:absolute;left:27px;top:-17px;width:2px;height:16px;background:var(--line)}
+.kj-fn.err{border-color:var(--err);background:linear-gradient(90deg,var(--err-bg),transparent 55%)}.kj-fn.err::before{background:var(--err)!important}.kj-fn.wait::before{background:var(--wait)!important}
+.kj-fb{min-width:0}.kj-fb .kj-text{overflow-wrap:anywhere}
 @media (max-width:820px){.kj-cols{grid-template-columns:minmax(0,1fr)}.kj-row{grid-template-columns:32px minmax(0,1fr) auto}.kj-time{grid-column:1/-1;padding:0}.kj-day + .kj-row .kj-time{padding:0}.kj-hero h1{font-size:22px}}
 @media print{body{background:#fff}.kj-more,.kj-pager{display:none}.kj-card,.kj-stat,.kj-crew{break-inside:avoid}}

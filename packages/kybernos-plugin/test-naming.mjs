@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /** One name for one object, on every screen that names it.
  *
- *  The rule (decided by the owner, 2026-10-12):
+ *  The rule (decided by the owner, 2026-10-12; the name widened on 2026-11-24, item 08 of the mobile improvements list):
  *    · what the user builds and chats with — a team of agents on a mission, defined by a `kyber.yml` — is an
- *      **Agent Team** (plural **Agent Teams**), everywhere: the sidebar entry, the page, the tabs, the menus, the consoles.
- *      DSH's own runtime (the Agent Teams roster of a session) has the same name on purpose: an Agent Team is defined by a
+ *      **AI Agent Team** (plural **AI Agent Teams**; French « équipe d’agents IA », « Équipes d’agents IA »), everywhere: the sidebar entry, the page,
+ *      the tabs, the menus, the consoles. Only the label changes: the ids (`aiteams`, `kybers`), the folders and the routes keep their names.
+ *      DSH's own runtime (the Agent Teams roster of a session) is the engine's word and is not renamed here: an AI Agent Team is defined by a
  *      `kyber.yml` and run by DSH's Agent Teams runtime;
  *    · **Team** is the paid workspace / plan (Team plan, Team access, the Team skills tab) and is left alone;
  *    · « Kyber » is not a label any more, and neither is « AI Team ». It stays only as a technical word: the file
@@ -12,15 +13,16 @@
  *  This test keeps both names from coming back by accident, in the English and in the French text of the dictionary, in
  *  the French sentences of `KB_FR_EN`, in the `help.json` of every bundle and in the catalogue built from them.
  *
- *  French: « Agent Team » is kept in English as the product term and is feminine (« une Agent Team », « les Agent Teams »,
- *  « cette Agent Team »): a masculine article in front of it is a bug.
+ *  French: « équipe d’agents IA » is feminine (« une équipe d’agents IA », « les équipes d’agents IA », « cette équipe d’agents IA »): a masculine article in
+ *  front of it is a bug. The one name left in English on purpose is the file format « Agent Team Manifest » (the owner has not decided its rename).
  *
- *  No browser: the dictionary is read from client.js (a browser bundle, not importable).
+ *  No browser: the dictionary is read from i18n/fr.json + i18n/en.json (through lib-i18n-test.mjs), the rest of the checks read client.js (a browser bundle, not importable).
  *  Usage: node packages/kybernos-plugin/test-naming.mjs   (exit 0 = all pass) */
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { table as kbTable, entriesMatching, execEntry } from './lib-i18n-test.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -28,8 +30,7 @@ const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
 const HERE = dirname(fileURLToPath(import.meta.url))
 const PACKAGES = join(HERE, '..')
 const src = readFileSync(join(HERE, 'client.js'), 'utf8')
-const dict = new Map()
-for (const m of src.matchAll(/^\s+'([A-Za-z0-9_.]+)': \{ kybernos: '((?:[^'\\]|\\.)*)', en: '((?:[^'\\]|\\.)*)' \},?\s*$/gm)) dict.set(m[1], { kybernos: m[2], en: m[3] })
+const dict = new Map(Object.entries(kbTable()))
 assert.ok(dict.size > 800, 'the dictionary was read (' + dict.size + ' entries)')
 
 // « kyber » as a technical word: the file, the markers, the skills, the ids and routes. Everything else is a label.
@@ -50,11 +51,11 @@ console.log('kybernos-plugin — one name for one object')
 
 // 1. the nav entry, the page and the right-panel tab agree
 for (const key of ['menu.aiteams', 'kbui.kybers', 'ui.team.guide', 'kbtg.kybers']) {
-  assert.equal(dict.get(key).en, 'Agent Teams', key)
-  assert.equal(dict.get(key).kybernos, 'Agent Teams', key)
+  assert.equal(dict.get(key).en, 'AI Agent Teams', key)
+  assert.equal(dict.get(key).kybernos, 'Équipes d’agents IA', key)
 }
 assert.equal(dict.get('kbui.marketplace.tab').en, 'Marketplace')
-ok('the sidebar entry, the page title, the right-panel tab and the chip all say « Agent Teams » (EN and FR); the second tab says « Marketplace »')
+ok('the sidebar entry, the page title, the right-panel tab and the chip all say « AI Agent Teams » / « Équipes d’agents IA »; the second tab says « Marketplace »')
 
 // 2. « Kyber » is not a label, in any string of the dictionary, in either language
 // The one exception, on purpose: « Kyber » is also the name of the person's OWN assistant (ADR 0053: the one that answers them on Telegram and works on their
@@ -78,23 +79,59 @@ assert.deepEqual(aiTeam, [], 'an « AI Team » label is back: it is an Agent Tea
 ok('no string calls an Agent Team an « AI Team » (« équipe IA » in French)')
 
 // 4. the new-chat menu and the empty states
-assert.equal(dict.get('menu.newchat.newteam').en, 'New Agent Team')
-assert.equal(dict.get('menu.newchat.newteam').kybernos, 'Nouvelle Agent Team')
-assert.equal(dict.get('kbui.new.kyber').en, 'New Agent Team')
-assert.equal(dict.get('kbui.new.kyber').kybernos, 'Nouvelle Agent Team')
-assert.equal(dict.get('menu.newchat.noteam').en, 'No Agent Team installed yet.')
-assert.equal(dict.get('menu.newchat.noteam').kybernos, 'Aucune Agent Team installée pour l’instant.')
-ok('the new-chat menu says « New Agent Team » / « Nouvelle Agent Team » and the empty state agrees with the noun')
+assert.equal(dict.get('menu.newchat.newteam').en, 'New AI Agent Team')
+assert.equal(dict.get('menu.newchat.newteam').kybernos, 'Nouvelle équipe d’agents IA')
+assert.equal(dict.get('menu.newchat.noteam').en, 'No AI Agent Team installed yet.')
+assert.equal(dict.get('menu.newchat.noteam').kybernos, 'Aucune équipe d’agents IA installée pour l’instant.')
+ok('the new-chat menu says « New AI Agent Team » / « Nouvelle équipe d’agents IA » and the empty state agrees with the noun')
 
-// 5. grammar: « an Agent Team » in English, a feminine noun in French
+// 5. grammar: « an AI Agent Team » in English, a feminine noun in French
 const gram = []
 for (const [k, v] of dict) {
-  if (/\ba Agent Team/i.test(v.en)) gram.push(k + ' (en): ' + v.en)
-  if (/\b(?:un|le|ce|du|au|aucun|nouveau|tous les|ceux|celui)\s+Agent Teams?\b/i.test(v.kybernos)) gram.push(k + ' (fr): ' + v.kybernos)
-  if (/\b(?:un|ce|aucun)\s+(?:autre\s+)?Agent Teams?\b/i.test(v.kybernos)) gram.push(k + ' (fr): ' + v.kybernos)
+  if (/\ba (?:AI )?Agent Team/i.test(v.en)) gram.push(k + ' (en): ' + v.en)
+  if (/\b(?:un|le|ce|du|au|aucun|nouveau|tous les|ceux|celui)\s+[ée]quipes?\s+d’agents IA\b/i.test(v.kybernos)) gram.push(k + ' (fr): ' + v.kybernos)
 }
-assert.deepEqual(gram, [], 'an article or an adjective does not agree with « Agent Team »')
-ok('English says « an Agent Team »; French puts the feminine article in front of « Agent Team » (une, la, cette, aucune)')
+assert.deepEqual(gram, [], 'an article or an adjective does not agree with « AI Agent Team » / « équipe d’agents IA »')
+ok('English says « an AI Agent Team »; French puts the feminine article in front of « équipe d’agents IA » (une, la, cette, aucune)')
+
+// 5b. the old bare name does not come back: « Agent Team(s) » is only ever written after « AI » (English) and never in French, but for the file format « Agent Team Manifest »
+const OLD_NAME_OK = /Agent Team Manifest/
+const oldName = []
+for (const [k, v] of dict) {
+  if (/(?<![\w-])(?<!AI )Agent [Tt]eams?(?![\w-])/.test(v.en.replace(OLD_NAME_OK, ''))) oldName.push(k + ' (en): ' + v.en)
+  if (/(?<![\w-])Agent [Tt]eams?(?![\w-])/.test(v.kybernos.replace(OLD_NAME_OK, ''))) oldName.push(k + ' (fr): ' + v.kybernos)
+}
+assert.deepEqual(oldName, [], 'the old name « Agent Team(s) » is back in the dictionary')
+ok('no string of the dictionary says « Agent Team(s) » without « AI » (English) or at all (French), but for « Agent Team Manifest »')
+
+// 5c. the same for the text written inside the other bundles (their own dictionaries, labels, tool descriptions, host messages). The comments and the
+//     console lines are not text a person reads and are left out; so are the files that must keep the old words on purpose: the prompt blocks
+//     already laid on people's machines (`agents-proposition*`: matched by their marker), the model prompts of the session picker, the public catalogue
+//     mirror (`templates-fallback.json`, rebuilt by `scripts/templates-lot.mjs` from the public catalogue) and the `package.json` descriptions.
+const OLD_NAME_FILES = [
+  'kybernos-atlas/client.js', 'kybernos-memory/client.js', 'kybernos-memory/index.js',
+  'kybernos-dashboards/client.js', 'kybernos-dashboards/model.mjs', 'kybernos-dashboards/presets.mjs',
+  'kybernos-composio/client.js', 'kybernos-mobile/client.js', 'kybernos-kaby-customisation/client.js',
+  'kybernos-cloud/client.js', 'kybernos-cloud/index.js', 'kybernos-cloud/marketplace-kyber.mjs',
+  'kybernos-call/client.js', 'kybernos-hub/client.js', 'kybernos-sessions/client.js',
+  'kybernos-search/client.js', 'kybernos-search/sources.mjs', 'kybernos-db/client.js',
+  'dsh-db-viewer/client/client.js', 'dsh-db-viewer/src/plugin.js',
+  'kybernos-plugin/index.js', 'kybernos-plugin/kyber-trash.mjs', 'kybernos-plugin/widget/widget.js',
+]
+const OLD_EN = /(?<![\w-])(?<!AI )Agent [Tt]eams?(?![\w-])|(?<![\w-])(?<!AI )agent teams?(?![\w-])/
+const OLD_FR = /(?<![\w-])[Éé]quipes? d['’]agents(?! IA)(?![\w-])/
+const oldNameFiles = []
+for (const f of OLD_NAME_FILES) {
+  const lines = readFileSync(join(PACKAGES, f), 'utf8').split('\n')
+  lines.forEach((line, i) => {
+    const t = line.trimStart()
+    if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*') || /\bconsole\.(?:log|warn|error|info)\(/.test(t)) return
+    const text = line.replace(OLD_NAME_OK, '').replace(/\s\/\/\s.*$/, '')
+    if (OLD_EN.test(text) || OLD_FR.test(text)) oldNameFiles.push(f + ':' + (i + 1) + ': ' + t.slice(0, 110))
+  })
+}
+assert.deepEqual(oldNameFiles, [], 'the old name « Agent Team(s) » is back in the text of a bundle')
+ok('the ' + OLD_NAME_FILES.length + ' bundle files that write the name say « AI Agent Team(s) » / « équipe(s) d’agents IA », never the bare old name (comments and logs aside)')
 
 // 6. the French sentences of the `KB_FR_EN` table and the code that uses them stay in step
 const tableAt = src.indexOf('const KB_FR_EN = {')
@@ -105,18 +142,18 @@ for (const m of table.matchAll(/^  '((?:[^'\\]|\\.)*)': '((?:[^'\\]|\\.)*)',?\s*
 assert.ok(phrases.length > 500, 'the KB_FR_EN table was read (' + phrases.length + ' phrases)')
 const phraseBad = phrases.filter(([fr, en]) => kyberLeft(fr) !== null || kyberLeft(en) !== null || /\bAI Teams?\b/i.test(en)).map(([fr]) => fr)
 assert.deepEqual(phraseBad, [], 'a French sentence of KB_FR_EN (or its English) still says « Kyber »')
-ok('the ' + phrases.length + ' French sentences of KB_FR_EN and their English say « Agent Team », never « Kyber »')
+ok('the ' + phrases.length + ' French sentences of KB_FR_EN and their English say « AI Agent Team », never « Kyber »')
 
 // 7. the help that explained « Kybers and Agent Teams: two different things » no longer opposes two names
 assert.ok(!/two different things/i.test(dict.get('kbui.kybers.vs.at').en), 'the help title still opposes two names')
 assert.ok(!/Kybers? and Agent Teams?/i.test(dict.get('kbui.kybers.vs.at').en))
-assert.ok(/Agent Team/.test(dict.get('kbui.kybers.vs.at').en) && /Agent Team/.test(dict.get('kbui.kybers.vs.at').kybernos))
+assert.ok(/AI Agent Team/.test(dict.get('kbui.kybers.vs.at').en) && /équipe d’agents IA/.test(dict.get('kbui.kybers.vs.at').kybernos))
 assert.ok(src.includes("h('th', null, kbt('kbat.col.def')), h('th', null, kbt('kbat.col.runtime'))"), 'the help table heads its two columns with the definition and the runtime')
 assert.ok(/kyber\.yml/.test(dict.get('kbat.col.def').en) && /runtime/i.test(dict.get('kbat.col.runtime').en))
 assert.ok(/kyber\.yml/.test(dict.get('kbui.kyber.declares').en) && !/\bagent team\b/i.test(dict.get('kbui.kyber.declares').en), 'the file declares the crew')
-assert.equal(dict.get('kbat.c3.a').en, 'Agent Team')
-assert.ok(/runtime/i.test(dict.get('kbat.c2.a').en) && /runtime/i.test(dict.get('kbat.c2.a').kybernos), 'the second « notion » is the runtime, not a second name for the Agent Team')
-ok('the help says: an Agent Team is defined by a kyber.yml and run by DSH’s Agent Teams runtime; a subagent is another thing')
+assert.equal(dict.get('kbat.c3.a').en, 'AI Agent Team')
+assert.ok(/runtime/i.test(dict.get('kbat.c2.a').en) && /runtime/i.test(dict.get('kbat.c2.a').kybernos), 'the second « notion » is the runtime, not a second name for the AI Agent Team')
+ok('the help says: an AI Agent Team is defined by a kyber.yml and run by DSH’s Agent Teams runtime; a subagent is another thing')
 
 // 8. a team's page: its roles tab is not called « Team », and Roles comes before Identity
 //    (the person asked for that order on 2026-10-30; the first tab is also the one the page opens on)
@@ -128,8 +165,8 @@ ok('an Agent Team’s tabs are Roles · Identity · Workflow · … · Insight (
 
 // 9. the marketplace is one word, and the page header does not change with the tab
 assert.ok(!dict.has('kbui.marketplace.title'), 'no second title for the Marketplace tab (the header moved when it was swapped)')
-assert.ok(/h\('h1', \{ className: 'kb6-title' \}, kbDomainTitle\('aiteams', kbt\('kbui\.kybers'\)\)\)/.test(src), 'the page title is « Agent Teams » (or the field\'s word for that menu row) on both tabs')
-ok('the page header is the same on both tabs (no « Agent Teams Marketplace » title swapped in)')
+assert.ok(/h\('h1', \{ className: 'kb6-title' \}, kbDomainTitle\('aiteams', kbt\('kbui\.kybers'\)\)\)/.test(src), 'the page title is « AI Agent Teams » (or the field\'s word for that menu row) on both tabs')
+ok('the page header is the same on both tabs (no « AI Agent Teams Marketplace » title swapped in)')
 
 // 10. the other bundles: their help.json (EN and FR) and the catalogue built from them
 const jsonStrings = (v, out = []) => {
@@ -155,10 +192,11 @@ const withoutAssistant = (f) => {
 for (const f of files) for (const s of jsonStrings(withoutAssistant(f))) {
   const at = kyberLeft(s)
   if (at !== null) helpBad.push(f.slice(PACKAGES.length + 1) + ': …' + at + '…')
-  if (/\b(?:un|le|ce|du|au|aucun)\s+Agent Teams?\b/i.test(s) || /\ba Agent Team/i.test(s)) helpBad.push(f.slice(PACKAGES.length + 1) + ' (grammar): ' + s)
+  if (/\b(?:un|le|ce|du|au|aucun)\s+[ée]quipes?\s+d’agents IA\b/i.test(s) || /\ba (?:AI )?Agent Team/i.test(s)) helpBad.push(f.slice(PACKAGES.length + 1) + ' (grammar): ' + s)
+  if (/(?<![\w-])(?<!AI )Agent [Tt]eams?(?![\w-])/.test(s) && !/Agent Team Manifest/.test(s) && !/\bDSH/.test(s)) helpBad.push(f.slice(PACKAGES.length + 1) + ' (old name): ' + s.slice(0, 80))
 }
-assert.deepEqual(helpBad, [], 'a help.json or the catalogue says « Kyber » (or does not agree with « Agent Team »)')
-ok('the help.json of every bundle (' + (files.length - 1) + ') and the catalogue say « Agent Team », never « Kyber »')
+assert.deepEqual(helpBad, [], 'a help.json or the catalogue says « Kyber » (or does not agree with « AI Agent Team »)')
+ok('the help.json of every bundle (' + (files.length - 1) + ') and the catalogue say « AI Agent Team », never « Kyber »')
 
 // 11. the strings of the other bundles' browser halves: a capitalised « Kyber(s) » alone in a line of code is a label
 const clientFiles = []
@@ -220,9 +258,9 @@ ok('the French names of Automatisations and Workspaces are the same in the sideb
 
 {
   // UJ-54: a word of a new-chat type tile wider than its tile (77 px at 1440, 69 px at 768 and 390: about 12 letters at 11 px) broke in the middle (« Automatisatio / n »)
-  const tiles = [...src.matchAll(/'kbnc\.t\.([a-z0-9]+)': \{ kybernos: '((?:[^'\\]|\\.)*)', en: '((?:[^'\\]|\\.)*)' \}/g)].map((m) => ({ id: m[1], fr: m[2], en: m[3] }))
+  const tiles = entriesMatching(/^kbnc\.t\.[a-z0-9]+$/).map(([k, fr, en]) => ({ id: k.slice('kbnc.t.'.length), fr, en }))
   assert.ok(tiles.length >= 14, 'the tile labels are read from the dictionary (' + tiles.length + ')')
-  const words = (x) => x.replace(/\\u00ad/g, '\u00ad').split(/[\s-]+/)
+  const words = (x) => x.split(/[\s-]+/)
   const bare = tiles.filter((x) => words(x.fr).some((w) => !w.includes('\u00ad') && w.length >= 13))
   assert.deepStrictEqual(bare.map((x) => x.id + ': ' + x.fr), [], 'a French tile word of 13 letters or more carries a soft hyphen (\\u00ad) so that it breaks at a syllable')
   assert.ok(tiles.every((x) => words(x.en).every((w) => w.length < 13)), 'no English tile word is 13 letters or more')
@@ -231,7 +269,7 @@ ok('the French names of Automatisations and Workspaces are the same in the sideb
 
 {
   // UJ-65: the Automations subtitle named triggers the scheduler does not have (an e-mail, a message); it has schedules, one date and webhooks (README, « Nothing the engine cannot do is promised »)
-  const sub = src.match(/'tasks\.subtitle': \{ kybernos: '((?:[^'\\]|\\.)*)', en: '((?:[^'\\]|\\.)*)' \}/)
+  const sub = execEntry('tasks.subtitle') // [key, fr, en]
   assert.ok(sub !== null, 'the Automations subtitle is read from the dictionary')
   assert.ok(!/e-?mail|message|ticket/i.test(sub[2]) && !/e-?mail|message|ticket/i.test(sub[1]), 'the Automations subtitle promises no e-mail, message or ticket trigger: ' + sub[2])
   assert.ok(/webhook/i.test(sub[2]) && /schedule/i.test(sub[2]), 'it names what the scheduler has: a schedule and a webhook')

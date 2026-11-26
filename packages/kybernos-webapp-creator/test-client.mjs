@@ -51,7 +51,7 @@ sandbox.window.__ModuleLoader__ = { load: (def) => defs.push(def) }
 vm.runInNewContext(source, sandbox, { filename: 'kybernos-webapp-creator/client.js' })
 
 console.log('loading')
-check('the bundle registers itself once, through the module loader', defs.length === 1 && defs[0].id === '@local/kybernos-webapp-creator/client' && typeof defs[0].factory === 'function', defs.map((d) => d.id))
+check('the bundle registers itself once, through the module loader', defs.length === 1 && defs[0].id === '@local/kybernos-webapp-creator' && typeof defs[0].factory === 'function', defs.map((d) => d.id))
 const required = []
 let api = null
 let boot = null

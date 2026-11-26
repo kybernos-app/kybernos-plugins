@@ -115,7 +115,7 @@ console.log('the slash name')
   check('a name is bounded', kbCleanSlug('a'.repeat(80)).length === KB_SLUG_MAX && KB_SLUG_MAX >= 16 && KB_SLUG_MAX <= 64)
   check('typing stays possible: a trailing dash is kept so « a-b » can be typed', kbCleanSlug('a-') === 'a-')
   check('DSH\'s own commands are known (goal, compact, help, plan, feedback)', ['goal', 'compact', 'help', 'plan', 'feedback'].every((c) => KB_DSH_COMMANDS.indexOf(c) !== -1))
-  check('the editor refuses such a name, with its own sentence', /KB_DSH_COMMANDS\.indexOf\(kbCleanSlug\(d\.slug\)\) !== -1\) return \{ msg: '\/' \+ kbCleanSlug\(d\.slug\) \+ ' is one of DSH/.test(src))
+  check('the editor refuses such a name, with its own sentence', /KB_DSH_COMMANDS\.indexOf\(kbCleanSlug\(d\.slug\)\) !== -1\) return \{ msg: '\/' \+ kbCleanSlug\(d\.slug\) \+ ' is one of Kybernos/.test(src))
 }
 
 console.log('the animated help of the Commands page (V-36)')

@@ -31,7 +31,7 @@ const NOW = Date.UTC(2026, 9, 5)
 const iso = (daysAgo) => new Date(NOW - daysAgo * 86400000).toISOString()
 
 console.log('\n── loader and registration ──')
-check('id = @local/kybernos-atlas/client', definition.id === '@local/kybernos-atlas/client')
+check('id = @local/kybernos-atlas', definition.id === '@local/kybernos-atlas')
 check('declares slots and uiWorkspace', Array.isArray(model.inject) && model.inject.includes('slots') && model.inject.includes('uiWorkspace'))
 {
   let threw = false
@@ -121,7 +121,7 @@ const src = { workspaces: ws, kybers: load.kybers, skills, state, memory: mem, t
 const g = T.buildGraph(src, NOW)
 const kind = (k) => g.nodes.filter((n) => n.kind === k)
 check('projects: one node per workspace', kind('area').length === 2)
-check('kybers: definitions + a ledger-only kyber', kind('kyber').length === 3 && g.byId['k:ghost-kyber'].note.includes('No agent team definition'))
+check('kybers: definitions + a ledger-only kyber', kind('kyber').length === 3 && g.byId['k:ghost-kyber'].note.includes('No AI agent team definition'))
 check('kyber is tied to the project of its active sessions (derived)', g.adj['k:reviewer'].has('p:w1') && g.byId['k:reviewer'].area === 'p:w1')
 check('skills: duplicate names collapse to one node', kind('skill').filter((n) => n.label === 'pdf').length === 1)
 check('skill declared by a kyber is linked (declared)', g.adj['k:reviewer'].has('s:code-review') && g.adj['p:w1'].has('s:code-review'))
@@ -153,7 +153,7 @@ check('hub of an orphan = null', T.hubOf(g, g.byId['s:never-declared']) === null
 const set = T.aroundSet(g, 'p:w1')
 check('around a project: its kybers and what they use, not other projects', set.has('k:reviewer') && set.has('s:code-review') && set.has('l:reviewer:0') && !set.has('p:w2'))
 const am = T.aroundModel(g, 'p:w1', {})
-check('four columns, in order', am.cols.map((c) => c.title).join('|') === 'Project|Agent Teams & automations|Skills & apps|Memory & lessons')
+check('four columns, in order', am.cols.map((c) => c.title).join('|') === 'Project|AI Agent Teams & automations|Skills & apps|Memory & lessons')
 check('around a kyber, the first column is "Projects"', T.aroundModel(g, 'k:reviewer', {}).cols[0].title === 'Projects')
 check('ghost pills are placed in the skills group', am.cols[2].groups[0].ghosts.length === 2 || am.cols[2].groups[0].ghosts.some((x) => x.label === 'pitch-deck'))
 check('a line is drawn for each link inside the set, plus one per ghost', am.lines.some((l) => l.s === 'k:reviewer' && l.t === 's:code-review') && am.lines.some((l) => l.t.startsWith('ghost:')))
@@ -231,7 +231,7 @@ console.log('\n── list, picker, default focus ──')
 check('list: problems first', T.listRows(g, '')[0].problem !== null)
 check('list: filter matches name, note or path', T.listRows(g, 'pdf').some((n) => n.label === 'pdf') && T.listRows(g, 'zzzz').length === 0)
 const pk = T.pickerItems(g, '')
-check('picker: Projects then Agent Teams, no skills in the default list', pk[0].head === 'Projects' && pk.some((x) => x.head === 'Agent Teams') && !pk.some((x) => x.label === 'pdf'))
+check('picker: Projects then AI Agent Teams, no skills in the default list', pk[0].head === 'Projects' && pk.some((x) => x.head === 'AI Agent Teams') && !pk.some((x) => x.label === 'pdf'))
 check('picker: a search finds any kind', T.pickerItems(g, 'pdf').some((x) => x.sub === 'Skill'))
 {
   const best = g.nodes.filter((n) => n.kind === 'area' || n.kind === 'kyber').reduce((m, n) => (n.deg > m.deg ? n : m))
@@ -287,10 +287,10 @@ console.log('\n── nothing is read until the user asks ──')
 
 console.log('\n── the « ? » card opens with the page description (it no longer sits under the title) ──')
 {
-  const DESC = 'Every project, agent team, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits anything. Its last reading is kept in this browser.'
+  const DESC = 'Every project, AI agent team, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits anything. Its last reading is kept in this browser.'
   const lead = SOURCE.match(/h\('h2', \{ id: 'kbat-help-t' \}, tr\('How to read the Atlas'\)\),\s*h\('p', \{ className: 'kbat-lead' \}, tr\('([^']+)'\)\)/)
   check('the help card holds the page description as its first paragraph, a lead right under its heading', lead !== null && lead[1] === DESC, lead && lead[1])
-  check('the description is used once, in that card; no line of it is left under the page title', (SOURCE.match(/tr\('Every project, agent team/g) || []).length === 1 && !/kbat-sub[^2]/.test(SOURCE))
+  check('the description is used once, in that card; no line of it is left under the page title', (SOURCE.match(/tr\('Every project, AI agent team/g) || []).length === 1 && !/kbat-sub[^2]/.test(SOURCE))
   check('the page head is the title and the buttons only', /pageHead\(\{ as: 'h1', className: 'kbat-title', title: 'Atlas' \}\),\s*h\('div', \{ className: 'kbat-headr' \}/.test(SOURCE) && !/\.kbat-title\s*\{/.test(SOURCE))
   check('the lead is primary text at 14 px; the French twin of the description is kept', /\.kbat-mcard \.kbat-lead\{color:var\(--dsw-alias-label-primary\);font-size:14px/.test(SOURCE) && SOURCE.includes("'" + DESC + "': 'Chaque projet"))
   check('the pill is a bare « ? » with its words as its accessible name and tooltip', /className: 'kbat-help'[^\n]*'aria-label': tr\('How it works'\), title: tr\('How it works'\) \}, h\('span', \{ className: 'kbat-helpq', 'aria-hidden': 'true' \}, '\?'\)\)/.test(SOURCE))
@@ -300,7 +300,7 @@ console.log('\n── language (A2-19): English is the base, French is the twin,
 {
   const setLang = (l) => { globalThis.window.__KB_LANG_RESOLVE__ = () => { if (l === 'throws') throw new Error('not ready'); return l } }
   const keysUsed = new Set([...SOURCE.matchAll(/\btr\('((?:[^'\\]|\\.)*)'\)/g)].map((m) => m[1].replace(/\\'/g, "'")))
-  const SAME = new Set(['Agent Team', 'Agent Teams', 'Automation', 'Automations', 'Skill', 'Skills', 'App', 'Apps', 'Source', 'Rechercher'])
+  const SAME = new Set(['Automation', 'Automations', 'Skill', 'Skills', 'App', 'Apps', 'Source', 'Rechercher'])
   check('the French table has an entry for every tr(...) the page uses', [...keysUsed].every((k) => T.FR[k] !== undefined), [...keysUsed].filter((k) => T.FR[k] === undefined))
   check('…and no dead entry', Object.keys(T.FR).every((k) => keysUsed.has(k)), Object.keys(T.FR).filter((k) => !keysUsed.has(k)))
   check('every French text is a text of its own (empty or identical only for words that are the same in both languages)', Object.entries(T.FR).every(([en, fr]) => fr.length > 0 && (fr !== en || SAME.has(en))), Object.entries(T.FR).filter(([en, fr]) => fr === en && !SAME.has(en)).map((x) => x[0]))
@@ -308,21 +308,21 @@ console.log('\n── language (A2-19): English is the base, French is the twin,
 
   setLang('en')
   const en = T.buildGraph(src, NOW)
-  check('English: the graph reads as before', en.byId['k:ghost-kyber'].note.includes('No agent team definition') && T.ago(12) === '12 days ago' && T.ago(0) === 'today')
+  check('English: the graph reads as before', en.byId['k:ghost-kyber'].note.includes('No AI agent team definition') && T.ago(12) === '12 days ago' && T.ago(0) === 'today')
   for (const lg of ['es', 'ar', 'zh', 'throws']) {
     setLang(lg)
     const other = T.buildGraph(src, NOW)
-    check(`language « ${lg} »: the graph is the English one (never French)`, JSON.stringify(other.nodes.map((n) => [n.label, n.note, n.sub, n.problem])) === JSON.stringify(en.nodes.map((n) => [n.label, n.note, n.sub, n.problem])) && T.ago(12) === '12 days ago' && T.tr('Update') === 'Update' && T.KIND_NAME_ALL.kyber === 'Agent Team')
+    check(`language « ${lg} »: the graph is the English one (never French)`, JSON.stringify(other.nodes.map((n) => [n.label, n.note, n.sub, n.problem])) === JSON.stringify(en.nodes.map((n) => [n.label, n.note, n.sub, n.problem])) && T.ago(12) === '12 days ago' && T.tr('Update') === 'Update' && T.KIND_NAME_ALL.kyber === 'AI Agent Team')
   }
 
   setLang('kybernos')
   const fr = T.buildGraph(src, NOW)
   const texts = fr.nodes.flatMap((n) => [n.note, n.sub, n.problem ? n.problem.text : '']).join(' | ')
-  check('French: the notes, the subtitles and the problems of the graph are French', /Aucune définition d’Agent Team/.test(texts) && /Déclare la skill « /.test(texts) && /Dernière exécution/.test(texts) && /leçon/.test(texts), texts.slice(0, 300))
-  check('French: no English sentence is left in a note', !/\b(No description|Last run|Declares the skill|facts? kept|Inactive, but|Another skill has|The last run failed|No agent team)\b/.test(texts), texts.slice(0, 300))
+  check('French: the notes, the subtitles and the problems of the graph are French', /Aucune définition d’équipe d’agents IA/.test(texts) && /Déclare la skill « /.test(texts) && /Dernière exécution/.test(texts) && /leçon/.test(texts), texts.slice(0, 300))
+  check('French: no English sentence is left in a note', !/\b(No description|Last run|Declares the skill|facts? kept|Inactive, but|Another skill has|The last run failed|No AI agent team)\b/.test(texts), texts.slice(0, 300))
   check('French: dates', T.ago(null) === 'non enregistré' && T.ago(0) === 'aujourd’hui' && T.ago(1) === 'hier' && T.ago(12) === 'il y a 12 jours' && T.ago(90) === 'il y a 3 mois')
   check('French: how long ago it was read', T.readAgo(1000, 21000) === 'à l’instant' && T.readAgo(0, 5 * 60000) === 'il y a 5 min' && T.readAgo(0, 3 * 3600000) === 'il y a 3 h' && T.readAgo(0, 86400000) === 'il y a 1 jour' && T.readAgo(0, 3 * 86400000) === 'il y a 3 jours')
-  check('French: the names of the kinds, the layers, the columns and the picker', T.KIND_NAME_ALL.kyber === 'Agent Team' && T.KIND_NAME_ALL.lesson === 'Leçon' && T.KIND_NAME_ALL.root === 'Espace de travail' && T.LAYER_NAME.knowledge === 'Mémoire et leçons' && T.COLS[3].title === 'Mémoire et leçons' && T.pickerItems(fr, '')[0].head === 'Projets')
+  check('French: the names of the kinds, the layers, the columns and the picker', T.KIND_NAME_ALL.kyber === 'Équipe d’agents IA' && T.KIND_NAME_ALL.lesson === 'Leçon' && T.KIND_NAME_ALL.root === 'Espace de travail' && T.LAYER_NAME.knowledge === 'Mémoire et leçons' && T.COLS[3].title === 'Mémoire et leçons' && T.pickerItems(fr, '')[0].head === 'Projets')
   check('French: a count of links has its singular', T.linkCount(1) === '1 lien' && T.linkCount(3) === '3 liens')
   check('French: the places a node opens are named in French', T.openTarget({ kind: 'skill' }, ['skills']).label === 'Skills' && T.openTarget({ kind: 'app', id: 'a:toolkit:x' }, ['connectors']).label === 'Connecteurs')
   setLang('en')

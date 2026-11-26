@@ -60,7 +60,7 @@ and `/api` answer like a direct signed-in call, and the same request without the
 
 ## Open
 
-- Four older routes (`kybernos-memory`, `kybernos-slash`, `kybernos-modeles-locaux`, `kybernos-computers`) still compare the
+- Three older routes (`kybernos-memory`, `kybernos-slash`, `kybernos-modeles-locaux`) still compare the
   Origin with the client-supplied `Host`. They pass behind a proxy that keeps `Host`, but they are the weaker rule and should be
   moved to the socket-address rule in their own change.
 - The approved restart (`relancer_dsh`, `scripts/dsh-relance.mjs`) uses `launchctl` or starts a detached `dsh web`; it does not

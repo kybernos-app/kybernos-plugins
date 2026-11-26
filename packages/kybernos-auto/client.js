@@ -330,7 +330,7 @@ window.__ModuleLoader__.load({
       if (code === 'classifieur') return kt('Le classifieur attend un nom de modèle de 200 caractères au plus.', 'The classifier expects a model name of 200 characters at most.')
       if (code === 'settings-illisible') return kt('Rien n’a été enregistré : settings.json est illisible ou n’est pas un objet JSON valide. Répare-le ou supprime-le (une copie du fichier abîmé est gardée à côté quand c’est possible), puis enregistre à nouveau.', 'Nothing was saved: settings.json cannot be read or is not a valid JSON object. Fix or remove it (a copy of the damaged file is kept next to it when possible), then save again.')
       if (code === 'ecriture') return kt('Réglage non enregistré : ', 'Setting not saved: ') + (typeof j.erreur === 'string' ? j.erreur : '')
-      if (code === 'llm-indisponible') return kt('Le service de modèles de DSH n’est pas disponible : rien à vérifier pour l’instant.', 'DSH’s model service is not available: nothing can be checked right now.')
+      if (code === 'llm-indisponible') return kt('Le service de modèles de Kybernos n’est pas disponible : rien à vérifier pour l’instant.', 'Kybernos’s model service is not available: nothing can be checked right now.')
       // A code this page does not know (a newer host) keeps the host's own sentence; no sentence at all is a plain refusal.
       return j !== null && typeof j === 'object' && j.erreur ? String(j.erreur) : kt('Refusé.', 'Rejected.')
     }
@@ -396,8 +396,8 @@ window.__ModuleLoader__.load({
           ...entete(),
           h('div', { className: 'kaa-down', 'data-kb': 'auto-down', role: 'alert' },
             h('span', null, kt(
-              'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarre DSH, puis appuie sur Réessayer.',
-              'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.')),
+              'L’assistant de cette page ne répond pas. Si l’appli vient d’être mise à jour, redémarre-la, puis appuie sur Réessayer.',
+              'This page’s helper is not answering. If the app was just updated, restart it, then press Retry.')),
             h('button', { type: 'button', className: 'kaa-ajout-btn', 'data-kb': 'auto-retry', onClick: () => { setEchec(false); lire() } }, kt('Réessayer', 'Retry'))))
       }
       if (etat === null) return h('div', { className: 'kaa-page', 'data-kb': 'auto-settings' }, '…')
@@ -424,7 +424,7 @@ window.__ModuleLoader__.load({
         setMsg('')
         fetch('/kybernos-auto/probe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
           // A DSH started before the probe route existed answers 404: say what to do instead of a JSON parse error.
-          .then((r) => (r.status === 404 ? Promise.reject(new Error(kt('Le serveur DSH n’a pas encore chargé cette version : redémarre-le.', 'The DSH server has not loaded this version yet: restart it.'))) : r.json()))
+          .then((r) => (r.status === 404 ? Promise.reject(new Error(kt('L’appli n’a pas encore chargé cette version : redémarre-la.', 'The app has not loaded this version yet: restart it.'))) : r.json()))
           .then((j) => { setSondage(false); if (j && j.ok === true) setEtat(j); else setMsg(refusTxt(j)) })
           .catch((e) => { setSondage(false); setMsg(String(e && e.message ? e.message : e)) })
       }

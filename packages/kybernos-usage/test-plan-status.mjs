@@ -3,7 +3,7 @@
 // The page read `status.space_plan`; the host (kybernos-cloud, `statusRoute`) answers `{ ok, connected, state: { …, space_plan } }`. The plan's name and the balance
 // were therefore never found, « Credits left » was never drawn, and every earlier test passed a flat shape that does not exist. Here the answer is made by the host itself:
 // a fake Kybernos API, a connected state file, the host's own profile read (`profileRefreshTick`, which writes the active space's plan into the state) and the host's own
-// `/kybernos-cloud/status` and `/kybernos-cloud/quota` routes (the windows come from the fake server's budget). The page's `loadPlan` and `CreditsRow` are the shipped ones, from client.js.
+// `/kybernos-cloud/status` and `/kybernos-cloud/quota` routes (the windows come from the fake server's budget). The page's `loadPlan` and `BalanceRow` are the shipped ones, from client.js.
 //
 //   node packages/kybernos-usage/test-plan-status.mjs
 import assert from 'node:assert/strict'
@@ -20,7 +20,7 @@ let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
 
 // ── The host and its fake server ────────────────────────────────────────────────────────────────────────────────────────────
-const fake = { balance: 3680 }
+const fake = { balance: 3680, usd: '10.00' }
 const json = (res, status, payload) => { res.writeHead(status, { 'content-type': 'application/json' }); res.end(JSON.stringify(payload)) }
 const server = createServer((req, res) => {
   req.resume()
@@ -30,6 +30,7 @@ const server = createServer((req, res) => {
     if (/^\/v1\/workspaces\/[^/]+\/plan$/.test(req.url)) {
       const body = { source: 'subscription', status: 'active', plan: { key: 'solo', name: 'Solo', kind: 'individual' }, level: 'Studio', seats: 1 }
       if (fake.balance !== null) body.credit_balance_credits = fake.balance
+      if (fake.usd !== null) body.credit_balance_usd = fake.usd
       return json(res, 200, body)
     }
     if (/^\/v1\/workspaces\/[^/]+\/llm\/budget$/.test(req.url)) {
@@ -91,45 +92,48 @@ try {
   assert.equal(quota.ok, true, 'the host\'s quota route answers for the active space')
   assert.equal(status.space_plan, undefined, 'the host answers the plan under `state`, not at the top: that is the shape the page must read')
   assert.equal(status.state.space_plan.credit_balance_credits, 3680, 'the host carries the balance of the active space')
-  ok('the real answer of the host: the plan of the active space is under `state`, with its balance')
+  assert.equal(status.state.space_plan.credit_balance_usd, 10, 'and the server\'s own dollar balance, as a number (nothing is converted here)')
+  ok('the real answer of the host: the plan of the active space is under `state`, with its balance in credits and in dollars')
 
   {
     const plan = await T.loadPlan(true)
     assert.equal(plan.connected, true)
-    assert.equal(plan.credits, 3680, 'the balance is found')
+    assert.equal(plan.usd, 10, 'the dollar balance is found')
     assert.equal(plan.name, 'Solo Studio', 'and so is the plan\'s name')
     assert.deepEqual(plan.windows.map((w) => w.pct), [42, 17])
     ok('loadPlan reads the balance and the name from `state.space_plan` of that answer (the windows still come from the quota)')
-    const row = textOf(T.CreditsRow({ credits: plan.credits }))
-    assert.match(row, /Credits left/)
-    assert.match(row, /3,680/)
-    assert.match(row, /credits/)
-    ok('and the row « Credits left 3,680 credits » is drawn from it')
+    const row = textOf(T.BalanceRow({ usd: plan.usd }))
+    assert.match(row, /Credit left/)
+    assert.match(row, /\$10\.00/)
+    assert.doesNotMatch(row, /credits/i, 'the person never sees the credits unit')
+    ok('and the row « Credit left $10.00 » is drawn from it')
   }
 
-  // A balance the server did not give is `null` in the host's state: no row at all, never « 0 credits ».
+  // A balance the server gave only in credits (no dollar field) draws no row: the page never shows the credits unit and never converts.
   {
-    fake.balance = null
+    fake.usd = null
     status = await realStatus()
     quota = await realQuota()
-    assert.equal(status.state.space_plan.credit_balance_credits, null, 'the host says it does not know')
+    assert.equal(status.state.space_plan.credit_balance_usd, null, 'the host says it does not know the dollars')
     const plan = await T.loadPlan(true)
     assert.equal(plan.connected, true)
-    assert.equal(plan.credits, null, 'unknown stays unknown')
+    assert.equal(plan.usd, null, 'unknown stays unknown')
     assert.equal(plan.name, 'Solo Studio')
-    assert.equal(T.CreditsRow({ credits: plan.credits }), null, 'no row')
-    ok('an unknown balance draws no row (it is not « 0 credits »)')
+    assert.equal(T.BalanceRow({ usd: plan.usd }), null, 'no row')
+    ok('a balance with no dollar field draws no row (no credits unit, no conversion)')
+    fake.usd = '10.00'
   }
 
-  // A balance of zero IS a number: the row says « 0 credits ».
+  // A balance of zero IS a number: the row says « $0.00 ».
   {
-    fake.balance = 0
+    fake.usd = '0.00'
     status = await realStatus()
     quota = await realQuota()
     const plan = await T.loadPlan(true)
-    assert.equal(plan.credits, 0)
-    assert.match(textOf(T.CreditsRow({ credits: plan.credits })), /0/)
-    ok('a balance of zero is drawn as zero')
+    assert.equal(plan.usd, 0)
+    assert.match(textOf(T.BalanceRow({ usd: plan.usd })), /\$0\.00/)
+    ok('a balance of zero is drawn as $0.00')
+    fake.usd = '10.00'
   }
 
   // Signed out: the host answers `connected: false` with no state; the page says so and invents nothing.

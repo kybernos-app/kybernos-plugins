@@ -31,6 +31,28 @@ export const diagnostique = (produit, fait) => {
   return `Subagent product failure (${champs.join('; ')})`
 }
 
+/**
+ * The key to use for THIS run: the config's own, else DSH's credentials store, else the launch environment. The store is
+ * asked per run because that is where the Workers screen saves a key -- DSH keeps it there and never copies it into its own
+ * environment, so a key saved while DSH runs must still reach the next delegation without a restart.
+ */
+export async function cleDuRun (ctx, cleDuConfig, noms) {
+  if (typeof cleDuConfig === 'string' && cleDuConfig !== '') return cleDuConfig
+  if (!Array.isArray(noms)) return ''
+  try {
+    const magasin = ctx?.credentials
+    if (magasin !== undefined && typeof magasin.resolve === 'function') {
+      for (const nom of noms) {
+        const r = await magasin.resolve(nom)
+        const v = typeof r === 'string' ? r : r?.value
+        if (typeof v === 'string' && v !== '') return v
+      }
+    }
+  } catch { /* no store, or a store that refused: the launch environment below is the fallback */ }
+  for (const nom of noms) { const v = process.env[nom]; if (typeof v === 'string' && v !== '') return v }
+  return ''
+}
+
 /** Typed error of an in-house provider run (message without sensitive detail). */
 export class RunFailure extends Error {
   constructor (produit, fait, cause) {

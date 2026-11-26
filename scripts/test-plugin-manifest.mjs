@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { FAMILLES } from './build-catalog.mjs'
+import { FAMILLES, catalogueDuDepot } from './build-catalog.mjs'
 import { describe, unsupportedKeywords, validate } from './schema-subset.mjs'
 import { firstPartyId, manifestErrors, setErrors } from './plugin-manifest.mjs'
 
@@ -123,6 +123,9 @@ refused('net: followed by a star', platform, first, (m) => { m.permissions.push(
 refused('a range with ||', shop, {}, (m) => { m.requires.plugins['kybernos/dashboards'] = '^1 || ^2' })
 refused('an http homepage', platform, first, (m) => { m.homepage = 'http://example.com' })
 refused('an unknown top-level key', platform, first, (m) => { m.scripts = { postinstall: 'x' } }, /not a known key/)
+for (const stage of ['alpha', 'beta']) { const m = clone(platform); m.suite.stage = stage; const e = manifestErrors(m, first); ok('suite.stage "' + stage + '" is accepted', e.length === 0, e) }
+refused('a stage that is neither alpha nor beta', platform, first, (m) => { m.suite.stage = 'gamma' }, /stage/)
+refused('a stage written "stable" (stable is the absence of the tag)', platform, first, (m) => { m.suite.stage = 'stable' }, /stage/)
 refused('a DSH zone without a max', platform, first, (m) => { delete m.requires.dsh.max })
 refused('a name without English', vet, {}, (m) => { m.name = { fr: 'x' } })
 refused('markup in a description', vet, {}, (m) => { m.description = { en: '<b>hi</b>' } })
@@ -164,6 +167,21 @@ console.log('the schema and the rest of the repository')
   ok('the families of the schema are the families of the Suite catalogue', JSON.stringify(schema.properties.family.enum) === JSON.stringify(FAMILLES.map((f) => f.id)), schema.properties.family.enum)
   ok('the schema uses only what the subset interpreter supports, in every branch', unsupportedKeywords(schema).length === 0, unsupportedKeywords(schema))
   ok('a schema outside the subset is found out', unsupportedKeywords({ properties: { a: { patternProperties: {} } } }).join() === '/properties/a/patternProperties')
+}
+
+console.log('the maturity of a module: the manifest says it, the catalogue carries it')
+{
+  const cat = catalogueDuDepot()
+  const tagged = []
+  const wrong = []
+  for (const mod of cat.modules) {
+    const stage = JSON.parse(readFileSync(join(REPO, 'packages', mod.id, 'plugin.json'), 'utf8')).suite?.stage
+    if (stage !== undefined) tagged.push(mod.id)
+    if (mod.maturite !== stage || (stage === undefined && 'maturite' in mod)) wrong.push(mod.id)
+  }
+  ok('every module of the catalogue carries `maturite` exactly when its manifest has a stage', wrong.length === 0, wrong)
+  ok('at least one module is tagged, so the Suite page has a chip to draw', tagged.length > 0, tagged)
+  ok('no featured module is tagged alpha: Featured means the most advanced', cat.modules.every((mod) => mod.vedette === undefined || mod.maturite !== 'alpha'), cat.modules.filter((mod) => mod.vedette !== undefined && mod.maturite === 'alpha').map((mod) => mod.id))
 }
 
 console.log('rules across a set')

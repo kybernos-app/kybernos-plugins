@@ -234,4 +234,30 @@ assert.equal(capped.droppedMoments, 300)
 assert.equal(capped.moments[1199].text, 'm1499')
 ok('texts are cut at 800 characters; a chat of 1500 moments keeps the latest 1200 and says it dropped 300')
 
+// ── external worker delegations (`subagent_<worker>`, excluding `subagent_fork`) ────────
+assert.equal(classifyTool('subagent_codex').kind, 'worker')
+assert.equal(classifyTool('subagent_claude_code').worker.id, 'claude-code')
+assert.equal(classifyTool('subagent_fork').kind, 'work')
+const wkEvents = [
+  ev('turn/start', 0, { turn: 1 }),
+  call(1000, 'w1', 'subagent_codex', { task: 'Implement parser tests' }),
+  result(5000, 'w1', 'All 12 tests passing'),
+  ev('turn/end', 6000, { turn: 1, reason: { kind: 'completed' } }),
+]
+const wkStory = deriveStory(wkEvents, {
+  sessionId: 's-wk',
+  runs: [],
+  workerRuns: [{ runId: 'r-1', sessionId: 's-wk', workerId: 'codex-work', driverId: 'codex', label: 'Codex Work', modelId: 'gpt-5.2-codex', reason: 'cache-affinity', cacheHitPct: 86, startedAt: new Date(T0 + 1100).toISOString() }],
+})
+assert.equal(wkStory.moments.length, 1)
+assert.equal(wkStory.moments[0].kind, 'worker')
+assert.equal(wkStory.moments[0].worker.instanceId, 'codex-work')
+assert.equal(wkStory.moments[0].worker.name, 'Codex Work')
+assert.equal(wkStory.moments[0].worker.model, 'gpt-5.2-codex')
+assert.equal(wkStory.moments[0].worker.reason, 'cache-affinity')
+assert.equal(wkStory.moments[0].worker.cacheHitPct, 86)
+assert.equal(wkStory.stats.workerMs, 4000)
+assert.equal(wkStory.workers.length, 1)
+ok('external worker calls become worker moments enriched by optional RunBinding metadata, while subagent_fork stays internal work')
+
 console.log('\n' + pass + ' groups passed')

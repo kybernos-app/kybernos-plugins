@@ -2,6 +2,7 @@
 // It evaluates the built client.js against stubs (no React, no DOM), then checks the registration, the painters, the
 // stylesheet (every animation gated and defined, reduced motion honoured, no stray colour) and the contract with the core menu.
 import { readFileSync } from 'node:fs'
+import { entry } from '../kybernos-plugin/lib-i18n-test.mjs'
 import { assemble } from './scripts/build.mjs'
 
 let fail = 0
@@ -55,7 +56,7 @@ const realSetInterval = globalThis.setInterval
 globalThis.setInterval = (fn, ms) => { const id = realSetInterval(() => {}, 1e9); timers.push(id); return id }
 
 new Function(src)()
-ok('the bundle registers one module through the loader', captured !== null && captured.id === '@local/kybernos-dashboards/client' && typeof captured.factory === 'function')
+ok('the bundle registers one module through the loader', captured !== null && captured.id === '@local/kybernos-dashboards' && typeof captured.factory === 'function')
 const plugin = captured.factory((name) => { if (name === 'react') return fakeReact; throw new Error('unexpected require ' + name) })
 ok('the factory returns a plugin: inject, apply, test hooks', plugin && Array.isArray(plugin.inject) && typeof plugin.apply === 'function' && typeof plugin.__test === 'object', plugin && Object.keys(plugin))
 ok('it declares the services it needs before apply runs', plugin.inject.includes('slots') && plugin.inject.includes('sidebarRightTabs'))
@@ -258,13 +259,14 @@ const finite = (s) => !/NaN|Infinity|undefined/.test(s)
   const pkg = JSON.parse(text('./package.json'))
   ok('the core knows this bundle by its package name', core.includes("e.id === '" + pkg.name + "'"))
   ok('the core declares the child slot this bundle injects on', core.includes("'main.kybernos-dashboards': { kind: 'single', scope: 'root' }") && src.includes("'main.kybernos-dashboards'"))
-  const row = core.indexOf("row('dashboards', Icon('layoutDashboard'")
-  const next = core.indexOf("row('tasks',")
-  ok('the Dashboards row is the first of the fixed rows, right before Automations', row > 0 && next > row && core.slice(row, next).split('\n').length <= 4, [row, next])
-  ok('the row only shows when the bundle is booted, and steps aside while its Creations source is declared', /\(KB_DB === true && kbCreationSources\.folds\('dashboards'\) !== true \? row\('dashboards'/.test(core))
+  const table = core.indexOf('const KB_MENU_FIXED = Object.freeze([')
+  const row = core.indexOf("id: 'dashboards'", table)
+  const next = core.indexOf("id: 'tasks'", table)
+  ok('the Dashboards row is the first of the fixed rows (after Cloud computer and Kaby), right before Automations', table > 0 && row > table && next > row && core.slice(row, next).split('\n').length <= 2, [table, row, next])
+  ok('the row only shows when the bundle is booted, and steps aside while its Creations source is declared', /dashboards: KB_DB === true && kbCreationSources\.folds\('dashboards'\) !== true,/.test(core) && /dashboards: \(\) => rowOf\('dashboards'/.test(core))
   ok('the view is dispatched and openable from other bundles', core.includes("if (s.view === 'dashboards') return h(KbDashboardsView, props)") && core.includes(".concat(KB_DB === true ? ['dashboards'] : [])"))
   ok('the core renders the mount with a fallback when the slot is empty', core.includes('kbt(\'kbui.dashboards.off\')') && core.includes("slots.entriesOfSlot('main.kybernos-dashboards')"))
-  ok('the menu label and the icon exist in the core tables', core.includes("'kbui.dashboards': { kybernos: 'Dashboards', en: 'Dashboards' }") && /^\s*layoutDashboard: \[/m.test(core))
+  ok('the menu label and the icon exist in the core tables', JSON.stringify(entry('kbui.dashboards')) === JSON.stringify({ kybernos: 'Dashboards', en: 'Dashboards' }) && /^\s*layoutDashboard: \[/m.test(core))
   ok('the chat launcher this bundle uses is the core\'s event', core.includes("window.addEventListener('kb-open-chat-text'") && src.includes("new CustomEvent('kb-open-chat-text'"))
   ok('the door this bundle registers on exists in the core', core.includes('window.__KB_MINIAPP__ = door') && core.includes("register(name, Component)"))
   const hub = text('../kybernos-hub/client.js')

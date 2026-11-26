@@ -1,0 +1,5 @@
+{
+  "_doc": "How a person asks in French to remember something (regex sources). Language data of suggestions.mjs, not UI text: kept out of the code so the French register check reads code only.",
+  "polite": "s['’]il (?:te|vous) pla[iî]t",
+  "lead": "(?:retiens|retenez|souviens[- ]toi|souvenez[- ]vous|rappelle[- ]toi|n['’]oublie pas|n['’]oubliez pas|note|garde en m[ée]moire|m[ée]morise|sache)\\s+(?:que|qu['’])\\s*"
+}

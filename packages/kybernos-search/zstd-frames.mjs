@@ -1,7 +1,7 @@
 import { zstdDecompressSync } from 'node:zlib'
 
 /**
- * A session journal is a run of CONCATENATED zstd frames (one per flush); `zstdDecompressSync` stops after the first one. This walks the
+ * A session journal is a run of CONCATENATED zstd frames (one per flush); `zstdDecompressSync` stopped after the first one up to Node 26.7 (26.13 reads them all); slicing each frame works on both. This walks the
  * frame magic (0x28B52FFD), validating each decompression: a magic candidate can fall INSIDE the compressed data of the previous frame,
  * and a wrong slice then fails to decompress, which moves to the next candidate. Same method as `kybernos-cloud` (duplicated on purpose).
  * @param {Buffer} buf

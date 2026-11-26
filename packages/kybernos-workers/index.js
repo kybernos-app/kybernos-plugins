@@ -17,10 +17,12 @@
 // ═══════════════════════════════════════════════════════
 
 import { execFile, spawn } from 'node:child_process'
-import { accessSync, constants, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { accessSync, chmodSync, constants, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
-import { delimiter, join } from 'node:path'
-import { monterWorkers } from './workers-host.mjs'
+import { delimiter, dirname, join } from 'node:path'
+import { formatActiveWorkerPrompt, monterWorkers, sanitizeActiveWorker } from './workers-host.mjs'
+import { harnessPath, readHarnessFile, writeHarnessFile } from './harness-store.mjs'
+import { readRunsFile, runsPath, writeRunsFile } from './runtime-router.mjs'
 
 export const name = 'kybernos-workers'
 
@@ -125,14 +127,61 @@ export function lancerInstallation (commande, { surDonnees = () => {}, delaiMs =
   })
 }
 
-/** The real I/O of the screen. Kept here so workers-host.mjs stays testable. */
-export function workersDeps (dshHome, env = process.env) {
+/** The real I/O of the screen. Kept here so workers-host.mjs stays testable.
+ * `lireCle(nom)` is optional: it answers the same question through DSH's credentials store, which is where the Workers
+ * screen saves a key and which DSH never copies into its own environment. */
+export function workersDeps (dshHome, env = process.env, lireCle = null) {
   const dossierProfils = join(dshHome, 'profiles')
   const patch = (profil) => join(dossierProfils, profil, 'cordis.patch.yml')
   const profils = () => {
     try { return readdirSync(dossierProfils).filter((n) => /^[A-Za-z0-9_-]+$/.test(n) && existsSync(join(dossierProfils, n, 'package.json'))) } catch { return [] }
   }
   const fichierServeur = join(dshHome, 'mcp', 'zcode-mcp-server.mjs')
+  const fichierHarness = harnessPath(dshHome)
+  const fichierRuns = runsPath(dshHome)
+  const fichierActif = join(dshHome, 'kybernos-workers', 'active-worker.json')
+  const fichierChecks = join(dshHome, 'kybernos-workers', 'checks.json')
+  const lireChecks = () => {
+    try {
+      if (!existsSync(fichierChecks)) return {}
+      const parsed = JSON.parse(readFileSync(fichierChecks, 'utf8'))
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+    } catch { return {} }
+  }
+  const ecrireChecks = (obj) => {
+    mkdirSync(dirname(fichierChecks), { recursive: true })
+    const tmp = fichierChecks + '.tmp-' + process.pid
+    writeFileSync(tmp, JSON.stringify(obj ?? {}, null, 2) + '\n', { encoding: 'utf8', mode: 0o600 })
+    renameSync(tmp, fichierChecks)
+    try { chmodSync(fichierChecks, 0o600) } catch { /* best-effort */ }
+  }
+  const lireActiveWorker = () => {
+    try {
+      if (!existsSync(fichierActif)) return null
+      return sanitizeActiveWorker(JSON.parse(readFileSync(fichierActif, 'utf8')))
+    } catch { return null }
+  }
+  const ecrireActiveWorker = (val) => {
+    if (val === null) {
+      try { if (existsSync(fichierActif)) rmSync(fichierActif, { force: true }) } catch { /* ignore */ }
+      return
+    }
+    mkdirSync(dirname(fichierActif), { recursive: true })
+    const tmp = fichierActif + '.tmp-' + process.pid
+    writeFileSync(tmp, JSON.stringify(val, null, 2) + '\n', { encoding: 'utf8', mode: 0o600 })
+    renameSync(tmp, fichierActif)
+    try { chmodSync(fichierActif, 0o600) } catch { /* best-effort */ }
+  }
+  const fetchJson = async (url, headers = {}) => {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 10000)
+    if (typeof timer.unref === 'function') timer.unref()
+    try {
+      const r = await fetch(url, { headers: { accept: 'application/json', ...headers }, signal: ctrl.signal })
+      if (!r.ok) return null
+      return await r.json()
+    } catch { return null } finally { clearTimeout(timer) }
+  }
   return {
     profils,
     profilParDefaut: (liste) => {
@@ -148,6 +197,14 @@ export function workersDeps (dshHome, env = process.env) {
     },
     sauvegarder: (profil, nom, contenu) => writeFileSync(join(dossierProfils, profil, nom), contenu, 'utf8'),
     cheminPatch: patch,
+    lireHarness: () => readHarnessFile(fichierHarness),
+    ecrireHarness: (h) => writeHarnessFile(fichierHarness, h),
+    lireRuns: () => readRunsFile(fichierRuns),
+    ecrireRuns: (s) => writeRunsFile(fichierRuns, s),
+    lireActiveWorker,
+    ecrireActiveWorker,
+    lireChecks,
+    ecrireChecks,
     maintenant: () => new Date(),
     io: {
       fichierServeur,
@@ -156,10 +213,37 @@ export function workersDeps (dshHome, env = process.env) {
       },
       fichierExiste: (chemin) => { try { return chemin !== '' && existsSync(chemin) } catch { return false } },
       trouver: async (binaire) => trouverBinaire(binaire, env),
-      executer: (binaire, args, opts) => executer(binaire, args, { delaiMs: opts?.delaiMs, env: envSansSecrets(env) }),
+      executer: (binaire, args, opts) => {
+        const baseEnv = envSansSecrets(env)
+        if (opts?.extraEnv && typeof opts.extraEnv === 'object') {
+          for (const [k, v] of Object.entries(opts.extraEnv)) {
+            if (!SECRET.test(k) && typeof v === 'string') baseEnv[k] = v
+          }
+        }
+        return executer(binaire, args, { delaiMs: opts?.delaiMs, env: baseEnv })
+      },
+      fetchJson,
+      homeDir: typeof env.HOME === 'string' && env.HOME.trim() !== '' ? env.HOME.trim() : homedir(),
+      lireCle: async (nom) => {
+        if (typeof lireCle === 'function') {
+          try {
+            const v = await lireCle(nom)
+            if (typeof v === 'string' && v.trim() !== '') return v.trim()
+          } catch { /* fall through to launch env */ }
+        }
+        return typeof env[nom] === 'string' && env[nom].trim() !== '' ? env[nom].trim() : undefined
+      },
       worktreeJetable: () => worktreeJetable(),
-      // Names only: the VALUE of a key never leaves this function.
-      cleDansEnv: (noms) => noms.some((n) => typeof env[n] === 'string' && env[n].trim() !== ''),
+      // Names only: the VALUE of a key never leaves this function (the store is checked before launch env, matching cleDuRun).
+      cleDansEnv: async (noms) => {
+        if (typeof lireCle === 'function') {
+          for (const nom of noms) {
+            const v = await lireCle(nom)
+            if (typeof v === 'string' && v.trim() !== '') return true
+          }
+        }
+        return noms.some((n) => typeof env[n] === 'string' && env[n].trim() !== '')
+      },
       plateforme: () => process.platform,
       lancerInstallation: (commande, opts) => lancerInstallation(commande, { ...opts, env })
     }
@@ -180,11 +264,50 @@ export function apply (ctx) {
   try {
     const dshHome = process.env.DSH_HOME || join(homedir(), '.dsh')
     const liens = { effect: (fn, etiquette) => ctx.effect(fn, etiquette) }
+    const lireCle = async (nom) => {
+      try {
+        const magasin = ctx.credentials
+        if (magasin === undefined || magasin === null || typeof magasin.resolve !== 'function') return undefined
+        const r = await magasin.resolve(nom)
+        return typeof r === 'string' ? r : r?.value
+      } catch { return undefined }
+    }
+    const deps = workersDeps(dshHome, process.env, lireCle)
     const monter = (webServer) => {
-      try { monterWorkers(kbSuivi(webServer), workersDeps(dshHome), liens); dire('routes mounted') } catch (erreur) { dire('routes not mounted: ' + String(erreur?.message ?? erreur)) }
+      try { monterWorkers(kbSuivi(webServer), deps, liens); dire('routes mounted') } catch (erreur) { dire('routes not mounted: ' + String(erreur?.message ?? erreur)) }
     }
     if (ctx.get('webServer') !== undefined) monter(ctx.get('webServer'))
     else ctx.inject(['webServer'], (hote) => monter(hote.webServer))
+    // Inject active Composer worker delegation directive on top-level turns only (never child subagent sessions).
+    const isChildSession = (agent) => {
+      try {
+        const sid = agent?.session?.id ?? agent?.sessionId ?? ''
+        if (typeof sid !== 'string' || sid === '') return false
+        const store = ctx.get('sessions')
+        const sess = store && typeof store.get === 'function' ? store.get(sid) : undefined
+        return typeof sess?.header?.parentSession === 'string' && sess.header.parentSession !== ''
+      } catch { return false }
+    }
+    const attachSystemPrompt = (sp) => {
+      if (!sp || typeof sp.context !== 'function') return
+      sp.context({
+        name: 'kybernos-workers:active-worker',
+        order: 160,
+        interpolate: false,
+        required: true,
+        text: (context) => {
+          try {
+            if (isChildSession(context?.agent)) return ''
+            return formatActiveWorkerPrompt(deps.lireActiveWorker())
+          } catch { return '' }
+        }
+      })
+      dire('active-worker systemPrompt context mounted')
+    }
+    try {
+      if (ctx.get('systemPrompt') !== undefined) attachSystemPrompt(ctx.get('systemPrompt'))
+      else if (typeof ctx.inject === 'function') ctx.inject(['systemPrompt'], (scope) => { try { attachSystemPrompt(scope?.systemPrompt) } catch { /* ignore */ } })
+    } catch (erreur) { dire('active-worker systemPrompt not injected: ' + String(erreur?.message ?? erreur)) }
   } catch (erreur) {
     dire('disabled: ' + String(erreur?.message ?? erreur))
   }

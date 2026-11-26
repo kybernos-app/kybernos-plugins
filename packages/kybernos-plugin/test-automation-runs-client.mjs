@@ -248,10 +248,19 @@ eq('the old rows of the Sessions tab are gone', src.indexOf('kba-srow') < 0 && s
   eq('it reads at most the newest five runs, once each (the answer is kept for the session)', [src.indexOf('const KB_ASHEET_RUNS = 5') >= 0, sheet.indexOf('kbAutoSheetCosts.has(id)') >= 0], [true, true])
   eq('a chat that several runs share is read and counted once', sheet.indexOf('Array.from(new Set(runs.filter((r) => r.sessionId !== null)') >= 0, true)
   eq('the page opens on the sheet, and an automation opened from a list lands on it', src.indexOf("const tabPair = React.useState('overview')") >= 0 && src.indexOf("onOpen: (id) => { setDetail(id); setTab('overview'); setNodeSel(null) }") >= 0, true)
-  eq('the sheet sends a change to where it is already made: the schedule panel, « Edit in chat », the Where it runs tab; the webhook uses the page\'s own generator', ['onEdit: () => setModal(t)', 'onEditChat: () => editInChat(t)', "onWhere: () => setTab('where')", 'onCreateHook: () => { setTab(\'flow\'); genHook() }'].every((x) => src.indexOf(x) >= 0), true)
+  eq('the sheet sends a change to where it is already made: the schedule panel, « Edit in chat »; the webhook uses the page\'s own generator', ['onEdit: () => setModal(t)', 'onEditChat: () => editInChat(t)', 'onCreateHook: () => { setTab(\'flow\'); genHook() }'].every((x) => src.indexOf(x) >= 0), true)
+  eq('Where it runs is in the sheet: the page hands the controls over as an element, the sheet unfolds them and itself calls nothing', [src.indexOf('whereBody: h(KbWhereTab, {') >= 0, sheet.indexOf('props.whereBody') >= 0, sheet.indexOf('KbWhereTab') < 0, sheet.indexOf('cloud-link') < 0], [true, true, true, true])
   eq('no colour of its own: the sheet\'s CSS is tokens only', (() => { const css = src.slice(src.indexOf('.kba-sheet{display:flex'), src.indexOf('.kba-flowwrap{flex:1')); return css.length > 200 && !/#[0-9a-fA-F]{3,8}\b|rgba?\(/.test(css) })(), true)
 }
 eq('the pure block holds no DOM, no network, no React', !/\b(document|window|fetch|React|localStorage)\b/.test(block.replace(/\/\/[^\n]*/g, '')), true)
+
+// The Journal's mode selector (Story / Flow / Advanced) keeps ONE place: the last of its bar, the bar at the right (owner, 2026-11-19: it moved to the left in Advanced).
+eq('the Journal mode selector is the last of its bar and the bar sits at the right in every mode, so it does not jump when the mode changes', [
+  /\.wvs-bar\{display:flex;align-items:center;justify-content:flex-end;/.test(src),
+  /\.wvs-bar > \.wvs-seg\{order:99\}/.test(src),
+  // the three modes and the reading state all draw the selector inside a `wvs-bar` (no other wrapper that could put it somewhere else)
+  (src.match(/El\('div', \{ className: 'wvs-bar' \}, seg/g) || []).length === 3,
+], [true, true, true])
 
 if (fails > 0) { console.log('\n' + fails + ' FAILED'); process.exit(1) }
 console.log('\nALL PASS')
