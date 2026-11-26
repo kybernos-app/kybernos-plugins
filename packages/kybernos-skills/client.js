@@ -606,6 +606,7 @@ window.__ModuleLoader__.load({
         'he.archive_unreadable': { fr: 'Archive illisible.', en: 'Unreadable archive.' },
         'he.skill_not_in_repo': { fr: 'Skill « {name} » introuvable dans {source}.', en: 'Skill “{name}” not found in {source}.' },
         'he.repo_ambiguous': { fr: '{count} dossiers de {source} portent ce nom.', en: '{count} folders of {source} have this name.' },
+        'he.repo_has_links': { fr: 'Rien n’a été installé : le dossier de ce skill dans {source} contient un lien. Seuls des fichiers et des dossiers ordinaires sont installés.', en: 'Nothing was installed: the folder of this skill in {source} holds a link. Only plain files and folders are installed.' },
         'he.copy_incomplete': { fr: 'Copie incomplète : SKILL.md absent.', en: 'Incomplete copy: SKILL.md is missing.' },
         'he.description_required': { fr: 'Une description est requise.', en: 'A description is required.' },
         'he.description_too_long': { fr: 'Description trop longue ({max} caractères au plus).', en: 'Description too long ({max} characters at most).' },

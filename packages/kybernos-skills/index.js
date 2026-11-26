@@ -1114,6 +1114,23 @@ const countFiles = (dir) => {
   return n
 }
 
+/**
+ * The first link under `folder` (itself included) as a path inside it, else null: a symbolic link, wherever it points, or a file
+ * that has more than one name (a hard link). Nothing is followed. A downloaded skill that holds one is refused: copying through a
+ * link put the content of a file of this machine in the installed skill.
+ */
+const firstLinkIn = (folder) => {
+  const pending = ['']
+  while (pending.length > 0) {
+    const rel = pending.pop()
+    const path = rel === '' ? folder : join(folder, rel)
+    const stat = lstatSync(path)
+    if (stat.isSymbolicLink() || (stat.isFile() && stat.nlink > 1)) return rel === '' ? '.' : rel
+    if (stat.isDirectory()) for (const entry of readdirSync(path)) pending.push(rel === '' ? entry : rel + '/' + entry)
+  }
+  return null
+}
+
 const installSkill = async ({ ctx, source, name, root, config, sessionId }) => {
   const cfg = normalizeConfig(config)
   const wRoots = writableRootsOf(cfg)
@@ -1156,12 +1173,15 @@ const installSkill = async ({ ctx, source, name, root, config, sessionId }) => {
     }
     if (found.length === 0) return { ok: false, error: 'skill_not_in_repo', name, source }
     if (found.length > 1) return { ok: false, error: 'repo_ambiguous', count: found.length, source }
+    // Before anything of the folder is copied.
+    const link = firstLinkIn(found[0])
+    if (link !== null) return { ok: false, error: 'repo_has_links', file: link, name, source }
 
     mkdirSync(dest, { recursive: true })
     const target = join(dest, name)
-    // PHYSICAL, dereferenced copy: never a link. A skill placed as a link would be invisible to the
-    // registry (flaw observed on DSH's fs service), hence installed for nothing.
-    cpSync(found[0], target, { recursive: true, dereference: true })
+    // PHYSICAL copy of plain files and folders: no link is followed (they were refused above) and none is written. A skill placed as a
+    // link would be invisible to the registry (flaw observed on DSH's fs service), hence installed for nothing.
+    cpSync(found[0], target, { recursive: true, filter: (src) => !isLink(src) })
     if (existsSync(join(target, MARKER_ACTIVE)) === false) return { ok: false, error: 'copy_incomplete' }
 
     invalidateSkills(ctx, sessionId)

@@ -61,7 +61,7 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 | `GET search?q=&limit=` · `GET curated` · `GET audit?source=&skill=` | search (q ≥ 2 chars, limit ≤ 100) · first-party set · audits |
 | `POST toggle {root,name,active}` | renames `SKILL.md` ⇄ `SKILL.md.disabled` |
 | `POST create {root?,name,description,whenToUse?,body?,modelInvocable?}` | writes a valid `SKILL.md` |
-| `POST install {source,name,root?}` | downloads a GitHub archive, copies the skill folder (answers with the `folder` it sat in) |
+| `POST install {source,name,root?}` | downloads a GitHub archive, copies the skill folder (answers with the `folder` it sat in); a folder that holds a link is refused (`repo_has_links`, with the `file`) |
 | `GET preview?source=&name=` | a Discover card's `folder`, `description` and the start of its `SKILL.md`, read from the repository (listing of its files, then the one file), plus a `check` of that text: `{ level: ok\|warn\|bad, findings: [{ rule, level, names?, chars? }] }` from the rules in `skill-rules.mjs` (empty body, hands over to another skill, reads a folder the install does not bring, needs a program, secret-like text, steering phrases); the host sends codes and facts, the screen words them; `found: false` when the repository has no such folder |
 | `POST skill/read {root,name}` | the real `SKILL.md` (frontmatter included, 128 KiB cap), the folder, a file count and `actions {reveal, edit, duplicate, delete}`: what the host will accept, so the screen offers nothing it would refuse |
 | `POST skill/reveal {root,name,target}` | `target` `folder` or `file`: opens it on this machine (`open`, `open -t`, `xdg-open`, `explorer`; one argument, no shell); refused from another address |
@@ -158,5 +158,6 @@ harness is in this repo.
   skill drops out of the registry).
 - The Discover preview reads GitHub anonymously: 60 requests an hour per address. A limit is said as such, and what the panel
   cannot show (folder, description, text) is not shown; Install still searches the whole archive.
-- Install copies with `dereference: true`: a symlink inside a downloaded repo would be followed (not tested). Skill content is
-  third party; DSH does not audit it, the skills.sh verdicts are shown.
+- Install copies plain files and folders only: a skill folder that holds a symbolic or a hard link is refused (a link elsewhere in
+  the repository stays there). The preview does not say so. Skill content is third party; DSH does not audit it, the skills.sh
+  verdicts are shown.
