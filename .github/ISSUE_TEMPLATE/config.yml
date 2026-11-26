@@ -1,0 +1,9 @@
+# Draft for the owner's validation: issues are for bugs in the code; help and security reports have their own doors.
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability (private)
+    url: https://github.com/kybernos-app/kybernos-plugins/security/advisories/new
+    about: Do not open a public issue for a vulnerability. See SECURITY.md.
+  - name: Ask for help with your own installation
+    url: https://github.com/kybernos-app/kybernos-plugins/blob/main/SUPPORT.md
+    about: The Community edition is provided as is, with no support. SUPPORT.md says where to ask and what the Supported install adds.

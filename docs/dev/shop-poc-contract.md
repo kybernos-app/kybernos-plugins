@@ -6,7 +6,7 @@ Status: **trial, 2026-11-05**. A walking skeleton of the « shop in the chat » 
 
 ## What it is
 
-- One shop per **Kaby account**, held **in the server's memory** (lost at each restart; no table). It starts as a demo of three products; the first `shop_define` replaces them with the
+- One shop per **Kaby account**, kept in the server's **database** (table `product.trial_shops`, one document per shop; the server keeps a working copy in memory, writes the whole shop after each change and reads every shop back when it starts, so a deploy or a restart no longer forgets it; the demo shop is never stored). It starts as a demo of three products; the first `shop_define` replaces them with the
   person's own (id, name, price, cost, stock), names the shop and gives it a public address: `https://<name>-<4 hex>.kaby.app` once that address is open (see « The window's own address »), `<server>/shop/<name>-<4 hex>` until then and whenever it cannot be opened. Money goes through **Stripe, test mode only**
   (a live key is never used): a Standard connected account for the merchant, a direct charge on it.
 - Two doors on the same shop:
@@ -76,7 +76,7 @@ session token are all refused), and act for the person the turn runs for. 60 cal
 - The page is the server's own page: it reads the shop from the first label of its address and calls the server (`/v1/shops/<name>`, `/checkout`, `/photo/<product>`). Its CSP (a `vercel.json` header) lets it call and show pictures from the server's address only.
 - The server answers that page through a **narrow CORS rule**: the origin `https://<name>.kaby.app` is echoed for `/v1/shops/<name>/…` and for nothing else (not another shop's routes, not any other route, no credentials); `GET, POST` and `content-type` only.
 - `shop_define` and `shop_connect` ask for the address and wait up to 8 s; the first one of a server also puts the page online, which can take longer: the answer then carries the server's `/shop/<name>` and the next call (after 30 s) opens the address. Stripe's return addresses and the checkout's `successUrl` follow `shop.url`, so a payment comes back to the address the client started from. **Fallback**: the host does not answer, a domain is refused or taken, or the server has no https address, and the shop simply stays at `<server>/shop/<name>`.
-- State: which addresses are open is kept in the server's memory like the shop (a restart asks the host again, which is idempotent); the shops themselves are lost at a deploy, and their attached addresses stay on the project until a clean-up (an orphan address serves a page whose shop answers `404`).
+- State: which addresses are open is kept in the server's memory (a restart asks the host again, which is idempotent); the shops themselves survive a deploy (database), and the address of a shop that is deleted stays on the project until a clean-up (an orphan address serves a page whose shop answers `404`).
 - Tests (server): `test/shoppoc-window.test.ts` (the host against the fake, the origins, the routes, the whole server's headers).
 
 ### What a client sees (public, no sign-in)
@@ -120,5 +120,5 @@ session token are all refused), and act for the person the turn runs for. 60 cal
 
 ## What it does not do yet
 
-No persistence across restarts (a restart or a deploy empties every shop and forgets the Stripe account it had made), no per-shop table, no WhatsApp surface, no line from the Mini App in
-Kaby's own thread (so Kaby learns of a change made in the Mini App by calling `shop_list`, not by reading the conversation), **photos are a retouch, not a generation** (a poor photo stays poor), they live in the server's memory like the rest (a deploy loses them), WhatsApp photos are not taken, and the Mini App does not show them yet (only the shop window does), no Stripe webhook (a payment is counted when the client comes back to the window), no refund, no shipping, no tax, no application fee, a window in French only.
+One process only (two server instances would each hold their own working copy and the last write would win: documented in the server's `docs/runbooks/sites.md`), no WhatsApp surface, no line from the Mini App in
+Kaby's own thread (so Kaby learns of a change made in the Mini App by calling `shop_list`, not by reading the conversation), **photos are a retouch, not a generation** (a poor photo stays poor), they are kept in the database like the shop (`product.trial_shop_photos`, a JPEG of at most 250 kB per product), WhatsApp photos are not taken, and the Mini App does not show them yet (only the shop window does), no Stripe webhook (a payment is counted when the client comes back to the window), no refund, no shipping, no tax, no application fee, a window in French only.

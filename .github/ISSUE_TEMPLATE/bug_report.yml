@@ -1,0 +1,38 @@
+name: Bug in the code
+description: Something in this repository does not do what its documentation says. For help with your own set-up, see SUPPORT.md; for a vulnerability, see SECURITY.md.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This form is for a bug in the code. It is not a support request (the Community edition is provided as is) and not a security report (use the private advisory form).
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The VERSION file.
+    validations:
+      required: true
+  - type: dropdown
+    id: build
+    attributes:
+      label: Which build is it?
+      options:
+        - An official release, unmodified
+        - A copy or fork I changed
+        - I do not know
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, what you expected, and the smallest way to reproduce it
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before you send
+      options:
+        - label: This is not a vulnerability and I am not asking for help with my own set-up.
+          required: true
