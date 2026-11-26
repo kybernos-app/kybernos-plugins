@@ -1,0 +1,76 @@
+{
+  "name": "real-estate-photos",
+  "style": "professional real-estate listing photography, soft natural daylight, warm tones, wide-angle lens, clean and bright, photorealistic, sharp focus, fine detail, no people, no text, no watermark",
+  "ask": {
+    "width": 1280,
+    "height": 800,
+    "steps": 28
+  },
+  "keep": {
+    "width": 1280,
+    "quality": 82,
+    "maxKb": 220
+  },
+  "cells": [
+    {
+      "name": "willow-lane",
+      "prompt": "a bright apartment living room with a sofa, a green plant and large glass doors opening onto a sunny terrace",
+      "seed": 100
+    },
+    {
+      "name": "garden-flat",
+      "prompt": "a compact bright ground-floor flat interior with a sofa bed, a small light-wood kitchenette and French doors opening onto a small garden terrace with flowers",
+      "seed": 411
+    },
+    {
+      "name": "oak-duplex",
+      "prompt": "an attic-style duplex interior with exposed wooden beams, a wooden staircase up to a mezzanine and big roof windows",
+      "seed": 102
+    },
+    {
+      "name": "canal-house",
+      "prompt": "three narrow colourful townhouses in a calm row with a blue front door and a few flower boxes beside a quiet canal, soft morning light, simple composition, smooth plain facades",
+      "seed": 211
+    },
+    {
+      "name": "elm-court",
+      "prompt": "the exterior of a modern two-storey family house with a lawn and a small tree, sunny afternoon, clear blue sky",
+      "seed": 104
+    },
+    {
+      "name": "old-mill",
+      "prompt": "an industrial loft interior with exposed brick, tall arched windows, a leather sofa and a concrete floor",
+      "seed": 105
+    },
+    {
+      "name": "market-street",
+      "prompt": "a commercial corner unit with a large shop window and a green awning on a lively street",
+      "seed": 106
+    },
+    {
+      "name": "lake-villa",
+      "prompt": "a contemporary white villa with a large swimming pool and glass walls at golden hour",
+      "seed": 107
+    },
+    {
+      "name": "lavender-farm",
+      "prompt": "an old stone farmhouse with a terracotta roof and a lavender garden in front, late afternoon, simple composition, soft focus on the distant fields",
+      "seed": 311
+    },
+    {
+      "name": "harbour-penthouse",
+      "prompt": "a penthouse roof terrace with outdoor lounge furniture overlooking a harbour at sunset",
+      "seed": 109
+    },
+    {
+      "name": "cedar-bungalow",
+      "prompt": "a single-storey bungalow with a wooden porch, a neat lawn and a flowering garden under a blue sky",
+      "seed": 110
+    },
+    {
+      "name": "lakeside-cottage",
+      "prompt": "a whitewashed lakeside cottage with blue shutters and a wooden jetty, calm water",
+      "seed": 111
+    }
+  ]
+}

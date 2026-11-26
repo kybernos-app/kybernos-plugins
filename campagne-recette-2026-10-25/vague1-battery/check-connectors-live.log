@@ -1,0 +1,15 @@
+# check-connectors-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=12629
+
+the page
+  ✓ three sub-tabs: Yours, Discover, MCP servers
+  (3 servers: horloge, kbmx-coingecko, zcode)
+  ✓ the add button offers two ways: a form and pasting JSON
+  ✓ the row actions are quiet until the row is hovered
+  ✓ ...and show when it is
+  ✓ each row says what DSH says of it (a chip), not nothing
+  ✓ a server the skill wrote opens in the form (it used to have no edit button)
+  ✓ ...with its fields filled in
+
+✓ 7 checks, all green
+

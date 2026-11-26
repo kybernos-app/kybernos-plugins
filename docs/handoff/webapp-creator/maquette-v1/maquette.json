@@ -1,0 +1,26 @@
+{
+  "fidelite": "simple",
+  "source": { "kind": "donnees", "ref": "~/.dsh/kybers/rdv-demo/export.json" },
+  "lint": {
+    "requiresControls": ["kbm-btn", "kbm-tag", "kbm-dot", "kbm-pill"],
+    "explication": { "selector": ".mk-explication", "maxCaracteres": 320 }
+  },
+  "regions": [
+    { "nom": "Webapps pane (header + total tag)", "selector": "#wc-pane .wc-head", "source": "donnees" },
+    { "nom": "App row: name, display slug, state dot, count line, Start/Stop + Open", "selector": ".wc-row[data-app=\"rdv-demo\"]", "source": "donnees" },
+    { "nom": "Empty state", "selector": "#wc-empty", "source": "donnees" }
+  ],
+  "render": {
+    "viewport": [900, 700],
+    "ready": "document.querySelector('.wc-row[data-app=\"rdv-demo\"]') !== null",
+    "steps": [
+      {
+        "action": "click",
+        "selector": ".wc-row[data-app=\"rdv-demo\"] [data-act=\"toggle\"]",
+        "expect": "that row's dot turns data-state=\"ongoing\" (idle before), the button swaps Start -> Stop (primary -> outline), the tag reads Running, and the Open button (disabled before) becomes enabled"
+      }
+    ]
+  },
+  "sombre": { "bascule": "#dark" },
+  "responsive": { "480": "#wc-pane" }
+}

@@ -1,0 +1,79 @@
+{
+  "id": "client-needs-review",
+  "cat": "hr",
+  "icon": "bell",
+  "title": {
+    "en": "Weekly client needs review",
+    "fr": "Point hebdomadaire besoins clients"
+  },
+  "cadence": {
+    "en": "Every Monday at 09:00",
+    "fr": "Chaque lundi à 09h00"
+  },
+  "desc": {
+    "en": "Writes a one-page review of every open client need and says what is still missing. Nothing is sent.",
+    "fr": "Écrit une page de revue de chaque besoin client ouvert et dit ce qui manque encore. Rien n’est envoyé."
+  },
+  "cron": "0 9 * * 1",
+  "tags": [
+    "recruitment",
+    "clients"
+  ],
+  "apps": [
+    "gmail",
+    "notion"
+  ],
+  "steps": [
+    {
+      "kind": "ai",
+      "text": {
+        "en": "Read the client notes of the week in this workspace.",
+        "fr": "Lis les notes clients de la semaine dans ce workspace."
+      }
+    },
+    {
+      "kind": "ai",
+      "text": {
+        "en": "Write a one-page review of every open need: the role, the skills, the start date, the rate line when it is there, and what is still missing.",
+        "fr": "Écris une page de revue de chaque besoin ouvert : le poste, les compétences, la date de démarrage, la ligne de tarif quand elle existe, et ce qui manque encore."
+      }
+    },
+    {
+      "kind": "act",
+      "text": {
+        "en": "Ask for what is missing instead of inventing it, and keep the review in this workspace. Send nothing.",
+        "fr": "Demande ce qui manque au lieu de l’inventer, et garde la revue dans ce workspace. N’envoie rien."
+      }
+    }
+  ],
+  "needs": [
+    {
+      "en": "The client notes of the week (in this workspace, or pasted text)",
+      "fr": "Les notes clients de la semaine (dans ce workspace, ou du texte collé)"
+    }
+  ],
+  "guard": [
+    {
+      "en": "Never send the review and never invent a rate or a start date: ask.",
+      "fr": "N’envoie jamais la revue et n’invente jamais un tarif ou une date de démarrage : demande."
+    }
+  ],
+  "ask": [
+    {
+      "q": {
+        "en": "Where are the client notes?",
+        "fr": "Où sont les notes clients ?"
+      },
+      "o": [
+        {
+          "en": "In this workspace",
+          "fr": "Dans ce workspace"
+        },
+        {
+          "en": "I paste them in the chat",
+          "fr": "Je les colle dans le chat"
+        }
+      ]
+    }
+  ]
+}

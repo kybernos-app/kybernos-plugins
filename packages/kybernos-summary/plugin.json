@@ -1,0 +1,39 @@
+{
+  "contract": 1,
+  "id": "kybernos/summary",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Summary",
+    "fr": "Résumé"
+  },
+  "description": {
+    "en": "A Summary tab in the chat's right-hand panel: agents, progress, skills and tools used, files written.",
+    "fr": "Un onglet Résumé dans le panneau de droite du chat : agents, progression, compétences et outils utilisés, fichiers écrits."
+  },
+  "icon": "summary",
+  "family": "base",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-summary",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:conversation.composer.dock",
+    "ui.slot:sidebar.right.pane.tab",
+    "sessions.read"
+  ],
+  "help": "help.json",
+  "suite": {
+    "default": "on"
+  }
+}

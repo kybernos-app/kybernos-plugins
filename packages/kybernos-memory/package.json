@@ -1,0 +1,25 @@
+{
+  "name": "@local/kybernos-memory",
+  "version": "0.1.0",
+  "description": "Memory & Lessons learned: the settings page for the account memory and the lessons of each agent team, plus the lessons themselves — read, written and injected per agent team (compatible with memory.cjs), with on/off switches and tools for the agent.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test-memory-host.mjs && node test-client.mjs"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}

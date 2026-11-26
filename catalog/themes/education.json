@@ -1,0 +1,23 @@
+{
+  "id": "education",
+  "v": 1,
+  "name": "Éducation",
+  "author": "Kybernos",
+  "description": {
+    "fr": "Le violet d’une salle de classe connectée, sur fond clair.",
+    "en": "A connected classroom’s violet, on a light ground."
+  },
+  "settings": {
+    "mode": "light",
+    "acc": "#6c4df6",
+    "ov": {
+      "light:base": "#f7f5ff",
+      "light:l1": "#ffffff",
+      "light:l2": "#efeaff",
+      "light:side": "#f3efff",
+      "light:input": "#ffffff"
+    },
+    "fontText": "poppins",
+    "radius": "soft"
+  }
+}

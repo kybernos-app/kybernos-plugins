@@ -1,0 +1,15 @@
+# check-cloud-menu-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=9164
+
+  ✓ the kybernos-cloud client was found in the served bundle and swapped
+Cloud menu — this checkout's client in the real GUI
+     menu entries: "TE\nTeam\nSwitch team\nSolo\nUpgrade\nTeam settings | TE\nTeam\nSwitch team | Solo | Upgrade | Team settings | Account\nReferral | Account | Referral | Appearance | Appearance | Phone and channels\nSettings | Phone and channels | Settings | Website\nHelp\nSen
+  ✓ the menu has « Teams settings » (the one entry for the team console)
+  ✓ the menu has no « Open the console in your browser » (it did nothing and repeated Teams settings)
+  ✓ the menu head that opens the workspace switcher is there
+     switcher: "Switch team — Create a team Join with an invitation link"
+  ✓ the switcher lists the workspaces and offers to create one
+  ✓ creating a shared space says « team » in the switcher, not « workspace »
+
+6 checks passed
+

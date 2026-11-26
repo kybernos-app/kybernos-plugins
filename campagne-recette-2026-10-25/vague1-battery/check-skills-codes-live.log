@@ -1,0 +1,20 @@
+# check-skills-codes-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=68610
+
+Host refusals — this checkout's client in the real GUI, one faked answer
+  ✓ the client was found in the served bundle and swapped
+  ✓ the faked route was asked for
+  (the GUI is in English)
+  ✓ a code with facts: the screen says "The index did not answer (HTTP 503)."
+  ✓ a code with facts: the code itself is not shown
+  ✓ a code with the relay's own words: the screen says "The index did not answer (HTTP 502). — relay down"
+  ✓ a code with the relay's own words: the code itself is not shown
+  ✓ a refused folder: the screen says "That folder is not one of your writable skills folders."
+  ✓ a refused folder: the code itself is not shown
+  ✓ a code with no sentence is shown as it came, not hidden
+  ✓ an answer in French from a host that was not restarted is shown as it came
+  ✓ no error at all falls back to the screen's own sentence
+  ✓ no script error was thrown during the run
+
+12 checks passed
+

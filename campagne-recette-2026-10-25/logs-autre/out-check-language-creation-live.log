@@ -1,0 +1,122 @@
+
+── language « en » ──
+  ✓ the page resolves the language we set
+  ✓ the sidebar search row is named in the language
+  ✓ the menu button of the phone layout is named in the language of the page (A1-23)
+  ✓ the composer's « where it runs » menu is in the language (A2-18)
+  ✓ the right-sidebar start list names the creation panels in the language (A2-31)
+  ✓ …and no French name in another language, no English name in French
+  ✓ the Bricks panel opens
+  ✓ the Bricks panel speaks the language (A2-31)
+  ✓ the Bricks panel has no word of another language
+  ✓ the Slides panel opens
+  ✓ the Slides panel speaks the language (A2-31)
+  ✓ the Slides panel has no word of another language
+  ✓ the 3D modeller panel opens
+  ✓ the 3D modeller panel speaks the language (A2-31)
+  ✓ the 3D modeller panel has no word of another language
+  ✓ the Summary panel opens
+  ✓ the Summary panel speaks the language (A2-31)
+  ✓ the Summary panel has no word of another language
+  ✓ the Motion panel opens
+  ✓ the Motion panel speaks the language (A2-31)
+  ✓ the Motion panel has no word of another language
+  ✓ the Dashboard panel opens
+  ✓ the Dashboard panel speaks the language (A2-31)
+  ✓ the Dashboard panel has no word of another language
+  ✓ the Atlas page opens
+  ✓ the Atlas page speaks the language (A2-19)
+  ✓ …and nothing of the other language
+  ✓ the Atlas help dialog speaks the language
+
+── language « kybernos » ──
+  ✓ the page resolves the language we set
+  ✓ the sidebar search row is named in the language
+  ✓ the menu button of the phone layout is named in the language of the page (A1-23)
+  ✓ the composer's « where it runs » menu is in the language (A2-18)
+  ✓ the right-sidebar start list names the creation panels in the language (A2-31)
+  ✓ …and no French name in another language, no English name in French
+  ✓ the Bricks panel opens
+  ✓ the Bricks panel speaks the language (A2-31)
+  ✓ the Bricks panel has no word of another language
+  ✓ the Slides panel opens
+  ✓ the Slides panel speaks the language (A2-31)
+  ✓ the Slides panel has no word of another language
+  ✓ the 3D modeller panel opens
+  ✓ the 3D modeller panel speaks the language (A2-31)
+  ✓ the 3D modeller panel has no word of another language
+  ✓ the Summary panel opens
+  ✓ the Summary panel speaks the language (A2-31)
+  ✓ the Summary panel has no word of another language
+  ✓ the Motion panel opens
+  ✓ the Motion panel speaks the language (A2-31)
+  ✓ the Motion panel has no word of another language
+  ✓ the Dashboard panel opens
+  ✓ the Dashboard panel speaks the language (A2-31)
+  ✓ the Dashboard panel has no word of another language
+  ✓ the Atlas page opens
+  ✓ the Atlas page speaks the language (A2-19)
+  ✓ …and nothing of the other language
+  ✓ the Atlas help dialog speaks the language
+
+── language « es » ──
+  ✓ the page resolves the language we set
+  ✓ the sidebar search row is named in the language
+  ✓ the menu button of the phone layout is named in the language of the page (A1-23)
+  ✓ the composer's « where it runs » menu is in the language (A2-18)
+  ✓ the right-sidebar start list names the creation panels in the language (A2-31)
+  ✓ …and no French name in another language, no English name in French
+  ✓ the Bricks panel opens
+  ✓ the Bricks panel speaks the language (A2-31)
+  ✓ the Bricks panel has no word of another language
+  ✓ the Slides panel opens
+  ✓ the Slides panel speaks the language (A2-31)
+  ✓ the Slides panel has no word of another language
+  ✓ the 3D modeller panel opens
+  ✓ the 3D modeller panel speaks the language (A2-31)
+  ✓ the 3D modeller panel has no word of another language
+  ✓ the Summary panel opens
+  ✓ the Summary panel speaks the language (A2-31)
+  ✓ the Summary panel has no word of another language
+  ✓ the Motion panel opens
+  ✓ the Motion panel speaks the language (A2-31)
+  ✓ the Motion panel has no word of another language
+  ✓ the Dashboard panel opens
+  ✓ the Dashboard panel speaks the language (A2-31)
+  ✓ the Dashboard panel has no word of another language
+  ✓ the Atlas page opens
+  ✓ the Atlas page speaks the language (A2-19)
+  ✓ …and nothing of the other language
+  ✓ the Atlas help dialog speaks the language
+
+── language « ar » ──
+  ✓ the page resolves the language we set
+  ✓ the sidebar search row is named in the language
+  ✓ the menu button of the phone layout is named in the language of the page (A1-23)
+  ✓ the composer's « where it runs » menu is in the language (A2-18)
+  ✓ the right-sidebar start list names the creation panels in the language (A2-31)
+  ✓ …and no French name in another language, no English name in French
+  ✓ the Bricks panel opens
+  ✓ the Bricks panel speaks the language (A2-31)
+  ✓ the Bricks panel has no word of another language
+  ✓ the Slides panel opens
+  ✓ the Slides panel speaks the language (A2-31)
+  ✓ the Slides panel has no word of another language
+  ✓ the 3D modeller panel opens
+  ✓ the 3D modeller panel speaks the language (A2-31)
+  ✓ the 3D modeller panel has no word of another language
+  ✓ the Summary panel opens
+  ✓ the Summary panel speaks the language (A2-31)
+  ✓ the Summary panel has no word of another language
+  ✓ the Motion panel opens
+  ✓ the Motion panel speaks the language (A2-31)
+  ✓ the Motion panel has no word of another language
+  ✓ the Dashboard panel opens
+  ✓ the Dashboard panel speaks the language (A2-31)
+  ✓ the Dashboard panel has no word of another language
+  ✓ the Atlas page opens
+  ✓ the Atlas page speaks the language (A2-19)
+  ✓ …and nothing of the other language
+  ✓ the Atlas help dialog speaks the language
+
+112 ✓  0 ✗

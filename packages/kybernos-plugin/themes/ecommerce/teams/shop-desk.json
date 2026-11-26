@@ -1,0 +1,88 @@
+{
+  "id": "shop-desk",
+  "name": {
+    "en": "Shop desk",
+    "fr": "Accueil boutique"
+  },
+  "desc": {
+    "en": "Reads the customer requests, drafts the replies and the stock lists, and stops before anything is sent or ordered.",
+    "fr": "Lit les demandes clients, rédige les réponses et les listes de stock, et s’arrête avant tout envoi ou toute commande."
+  },
+  "mission": {
+    "en": "Take the repetitive replies off the shop owner without sending a word on their behalf.",
+    "fr": "Retirer les réponses répétitives au gérant sans rien envoyer à sa place."
+  },
+  "topology": "pipeline",
+  "tags": [
+    "online shop",
+    "drafts"
+  ],
+  "roles": [
+    {
+      "id": "reader",
+      "kind": "scout",
+      "prompt": {
+        "en": "Read the open customer requests and the order each one is about. Quote the order number and the date.",
+        "fr": "Lis les demandes clients ouvertes et la commande concernée par chacune. Cite le numéro de commande et la date."
+      }
+    },
+    {
+      "id": "writer",
+      "kind": "doer",
+      "prompt": {
+        "en": "Draft one reply per request from the facts only, in the shop's own tone.",
+        "fr": "Rédige une réponse par demande à partir des seuls faits, dans le ton de la boutique."
+      }
+    },
+    {
+      "id": "checker",
+      "kind": "checker",
+      "prompt": {
+        "en": "Check each draft against the order: wrong date, wrong amount or a promise the shop did not make.",
+        "fr": "Vérifie chaque brouillon par rapport à la commande : mauvaise date, mauvais montant ou promesse que la boutique n’a pas faite."
+      }
+    }
+  ],
+  "stages": [
+    {
+      "id": "read",
+      "roles": [
+        "reader"
+      ],
+      "mode": "once",
+      "cap": 3,
+      "gate": false,
+      "inputs": []
+    },
+    {
+      "id": "draft",
+      "roles": [
+        "writer"
+      ],
+      "mode": "once",
+      "cap": 2,
+      "gate": false,
+      "inputs": [
+        "read"
+      ]
+    },
+    {
+      "id": "review",
+      "roles": [
+        "checker"
+      ],
+      "mode": "once",
+      "cap": 1,
+      "gate": true,
+      "inputs": [
+        "draft"
+      ]
+    }
+  ],
+  "skills": [
+    "order-replies",
+    "product-descriptions"
+  ],
+  "icon": "bag",
+  "category": "shop"
+}

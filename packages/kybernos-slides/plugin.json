@@ -1,0 +1,44 @@
+{
+  "contract": 1,
+  "id": "kybernos/slides",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Slides",
+    "fr": "Slides"
+  },
+  "description": {
+    "en": "Decks written live in the sidebar.",
+    "fr": "Decks écrits en direct dans la barre latérale."
+  },
+  "icon": "slides",
+  "family": "create",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-slides",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:sidebar.right.pane.tab",
+    "host.routes:/kybernos-slides:write",
+    "agent.tools"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-slides"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "on"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@local/kybernos-websearch",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Web search for the agents with or without an API key: free engines out of the box, keyed engines when you add one, one fallback chain, one Settings page.",
+  "license": "Apache-2.0",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "check": "node --check index.js && node --check client.js && node --check host.mjs && node --check router.mjs && node --check engines.mjs && node --check parse.mjs",
+    "test": "node test-parse.mjs && node test-engines.mjs && node test-router.mjs && node test-host.mjs && node test-client.mjs"
+  },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}

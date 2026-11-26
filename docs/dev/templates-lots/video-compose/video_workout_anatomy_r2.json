@@ -1,0 +1,133 @@
+{
+  "size": [
+    720,
+    1280
+  ],
+  "fade": 0.35,
+  "shots": [
+    {
+      "file": "work-squat.mp4",
+      "trim": [
+        0,
+        5.26
+      ]
+    },
+    {
+      "file": "work-pushup.mp4",
+      "trim": [
+        0,
+        5.26
+      ]
+    },
+    {
+      "file": "work-pullup.mp4",
+      "trim": [
+        0,
+        5.26
+      ]
+    }
+  ],
+  "texts": [
+    {
+      "at": 0.25,
+      "to": 4.6,
+      "text": "01",
+      "style": "label",
+      "y": 0.07,
+      "color": "#f2372a"
+    },
+    {
+      "at": 0.25,
+      "to": 4.6,
+      "text": "SQUAT",
+      "style": "title",
+      "y": 0.115,
+      "size": 0.07,
+      "anim": "pop"
+    },
+    {
+      "at": 1.7,
+      "to": 4.85,
+      "text": "QUADRICEPS  ·  GLUTES",
+      "style": "lower",
+      "y": 0.8,
+      "anim": "rise"
+    },
+    {
+      "at": 5.16,
+      "to": 9.51,
+      "text": "02",
+      "style": "label",
+      "y": 0.07,
+      "color": "#f2372a"
+    },
+    {
+      "at": 5.16,
+      "to": 9.51,
+      "text": "PUSH-UP",
+      "style": "title",
+      "y": 0.115,
+      "size": 0.07,
+      "anim": "pop"
+    },
+    {
+      "at": 7.8100000000000005,
+      "to": 9.76,
+      "text": "CHEST  ·  TRICEPS",
+      "style": "lower",
+      "y": 0.8,
+      "anim": "rise"
+    },
+    {
+      "at": 10.07,
+      "to": 14.42,
+      "text": "03",
+      "style": "label",
+      "y": 0.07,
+      "color": "#f2372a"
+    },
+    {
+      "at": 10.07,
+      "to": 14.42,
+      "text": "PULL-UP",
+      "style": "title",
+      "y": 0.115,
+      "size": 0.07,
+      "anim": "pop"
+    },
+    {
+      "at": 11.72,
+      "to": 14.67,
+      "text": "LATS  ·  BICEPS",
+      "style": "lower",
+      "y": 0.8,
+      "anim": "rise"
+    }
+  ],
+  "voice": [
+    {
+      "file": "voice-work-1.mp3",
+      "at": 0.5,
+      "gain": 1.25
+    },
+    {
+      "file": "voice-work-2.mp3",
+      "at": 5.5,
+      "gain": 1.25
+    },
+    {
+      "file": "voice-work-3.mp3",
+      "at": 10.4,
+      "gain": 1.25
+    }
+  ],
+  "music": {
+    "file": "music-work.mp3",
+    "start": 0,
+    "gain": 0.4,
+    "fadeIn": 0.4,
+    "fadeOut": 1.5
+  },
+  "ambient": 0.25,
+  "id": "video_workout_anatomy"
+}

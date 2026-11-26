@@ -1,0 +1,21 @@
+{
+  "id": "qwen3.5:2b",
+  "famille": "q",
+  "initiale": "Qw",
+  "tailleGo": 2.7,
+  "ramMin": 8,
+  "score": "II 16 · 2.7–3.1 GB",
+  "input": [
+    "text",
+    "image"
+  ],
+  "badges": [
+    "Vision"
+  ],
+  "desc": {
+    "fr": "Pour les petites machines : le plus petit des Qwen 3.5 avec la vision.",
+    "en": "For small machines: the smallest Qwen 3.5 that does not trade away vision."
+  },
+  "ajoute": "2026-09-27",
+  "ordre": 30
+}

@@ -1,0 +1,113 @@
+{
+  "name": "audio-2",
+  "type": "audio",
+  "note": "The audio examples of the shelf: three spoken pieces played by a wave player (no picture, no video: the sound is an MP3 and the page draws the wave from 96 slices of its loudness kept in the catalogue) in three domains and three languages (a business update in English, an audiobook page in Spanish, the summary of a technical document in Chinese), then the two films of the first audio lot that were kept (guided breathing, bedtime story), then a card of text only (`card: \"prompt\"`): the summary of a ready-made prompt that a click puts straight into the composer, with no dialog. The voices are AI voices; the two examples in the maintainer's own cloned voice of lot 1 were dropped. `hue` is the colour of the wave. `request` is what the example's button puts in the composer; `made.prompt` is the text the voice read.",
+  "cells": [
+    {
+      "id": "audio_business_en",
+      "audio": "audio_business_en.mp3",
+      "hue": 215,
+      "entry": {
+        "name": "Quarterly update, read aloud",
+        "tag": "Business",
+        "line": "A board update turned into a clear voice you can send to the team.",
+        "meta": "0:18 · English · AI voice",
+        "alt": "A modern wave player on a blue gradient, playing a spoken business update"
+      },
+      "request": "Turn this quarterly update into a 20-second audio brief for my team, in a clear, confident English voice: revenue up 18 percent led by subscriptions, churn down to 2.1 percent, onboarding cut from nine days to three, support volume doubled. Give me the audio file and the text.",
+      "made": {
+        "model": "elevenlabs/eleven-v4",
+        "label": "ElevenLabs v4",
+        "prompt": "Good morning, everyone. Here is the quarter in one minute. Revenue grew eighteen percent, led by subscriptions, and churn fell to two point one percent. The new onboarding cut the time to first value from nine days to three. One risk to watch: support volume, which doubled."
+      },
+      "source": "voice ElevenLabs v4 through the AI gateway (Brian), trimmed, loudness -16 LUFS, MP3 128 kbit/s; the figures are invented for the sample"
+    },
+    {
+      "id": "audio_audiobook_es",
+      "audio": "audio_audiobook_es.mp3",
+      "hue": 22,
+      "entry": {
+        "name": "Audiobook page, in Spanish",
+        "tag": "Audiobook",
+        "line": "A page of fiction read like a narrator would, at an unhurried pace.",
+        "meta": "0:20 · Spanish · AI voice",
+        "alt": "A modern wave player on a warm amber gradient, playing a page of fiction read in Spanish"
+      },
+      "request": "Make an audiobook sample from this page of my novel, in Spanish: a warm female narrator, an unhurried pace, a short pause at every full stop. I will paste the text; give me the audio file.",
+      "made": {
+        "model": "elevenlabs/eleven-v4",
+        "label": "ElevenLabs v4",
+        "prompt": "Aquella noche, el faro volvió a encenderse solo. Marta dejó la taza sobre la mesa y escuchó: bajo el rumor del mar, alguien subía despacio la escalera de caracol. No tenía miedo. Hacía veinte años que esperaba ese sonido, y esta vez no pensaba huir."
+      },
+      "source": "voice ElevenLabs v4 through the AI gateway (Matilda), text written for the sample, loudness -16 LUFS, MP3 128 kbit/s"
+    },
+    {
+      "id": "audio_techsummary_zh",
+      "audio": "audio_techsummary_zh.mp3",
+      "hue": 170,
+      "entry": {
+        "name": "Technical doc summary, in Chinese",
+        "tag": "Documents",
+        "line": "A migration guide boiled down to three points and spoken in Mandarin.",
+        "meta": "0:23 · Chinese · AI voice",
+        "alt": "A modern wave player on a teal gradient, playing the summary of a technical document in Mandarin Chinese"
+      },
+      "request": "Summarise this technical document in three points and read the summary aloud in Mandarin Chinese, in a clear, neutral voice. I will attach the document; give me the audio file and the text of the summary.",
+      "made": {
+        "model": "fish-audio/s2.1-pro",
+        "label": "Fish Audio S2.1 Pro",
+        "prompt": "文档摘要：本指南介绍如何将服务从第二版接口迁移到第三版。第一，认证方式由密钥改为令牌，有效期一小时。第二，分页参数改用游标，旧的页码参数将在六月停用。第三，所有错误响应现在都带有统一的错误代码。建议先在测试环境验证，再分批上线。"
+      },
+      "source": "voice Fish Audio S2.1 Pro through the AI gateway (its default voice), text written for the sample (an invented API migration guide), loudness -16 LUFS, MP3 128 kbit/s"
+    },
+    {
+      "id": "audio_ocean_calm_en",
+      "clip": "audio_ocean_calm_en.mp4",
+      "posterAt": 9,
+      "entry": {
+        "name": "Guided breathing",
+        "tag": "Wellness",
+        "line": "A calm voice, the sea and a slow breath: twenty seconds to let go.",
+        "meta": "0:20 · English · AI voice and music",
+        "alt": "A scrolling waveform on a deep teal background while a calm voice guides a breathing exercise, with its captions"
+      },
+      "request": "Make a 20-second guided breathing for the end of a work day: a calm, warm female voice in English over soft ambient music with the feel of the sea. Short sentences with room to breathe between them, captions on screen.",
+      "made": {
+        "model": "elevenlabs/eleven-v4",
+        "label": "ElevenLabs v4 · ACE-Step",
+        "prompt": "Close your eyes. Take a slow breath in and let it go. Listen to the waves rolling in, and rolling out. With every wave, let one worry drift away. You're safe, and there is nowhere else to be."
+      },
+      "source": "voice ElevenLabs v4 through the AI gateway (Sarah), ACE-Step ambient music under the voice, a scrolling waveform and the captions over a gradient, the kybernos mark"
+    },
+    {
+      "id": "audio_bedtime_fr",
+      "clip": "audio_bedtime_fr.mp4",
+      "posterAt": 9,
+      "entry": {
+        "name": "Bedtime story",
+        "tag": "Stories",
+        "line": "A short tale read softly in French, one watercolour for each page.",
+        "meta": "0:21 · French · AI voice and music",
+        "alt": "A watercolour crescent moon smiling over a lake, with a small fox sitting on the shore and a French caption"
+      },
+      "request": "Make a 20-second bedtime story in French for a child who is afraid of the dark: a gentle female voice, a music box, three watercolour pictures of a little fox, captions. A happy ending, no scary image.",
+      "made": {
+        "model": "elevenlabs/eleven-v4",
+        "label": "ElevenLabs v4 · FLUX 2 · ACE-Step",
+        "prompt": "Il était une fois, au bord d'un lac tranquille, un petit renard qui avait peur du noir. Chaque soir, la lune lui souriait, et chaque soir, il osait faire un pas de plus. Alors, ce soir-là, il ferma les yeux, respira doucement et suivit la lumière jusqu'à sa maison."
+      },
+      "source": "voice ElevenLabs v4 through the AI gateway (Sarah, French), three watercolour pictures by FLUX 2 klein 9B with a slow push, ACE-Step music box, captions timed from the transcript, the kybernos mark"
+    },
+    {
+      "id": "audio_podcast_doc",
+      "card": "prompt",
+      "entry": {
+        "name": "Two-host podcast from a document",
+        "tag": "Podcast",
+        "line": "Two hosts talk through your document: a hook, three key points with an example each, a short recap. About 3 minutes, in a natural voice.",
+        "meta": "Prompt"
+      },
+      "request": "Turn the document I attach into a 3-minute two-host podcast episode. Host A is curious and asks the questions, host B explains. Structure: a 15-second hook, three key points each with one concrete example, then a 20-second recap and one question for the listener. Natural spoken English, short sentences, light humour, no jargon. Warm studio voices, a different voice for each host, a soft intro and outro. Before generating, show me the script and the voices you picked; then give me the MP3 and the transcript."
+    }
+  ]
+}

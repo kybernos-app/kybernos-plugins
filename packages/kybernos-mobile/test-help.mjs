@@ -1,0 +1,159 @@
+// kybernos-mobile, the « ? How it works » help of the « Phone and channels » screen: what the card says (help.json) and where the button is.
+// The card must tell a person who is not a developer three things: the phone opens a web app that talks to the computer through a
+// relay that reads nothing (end-to-end encryption), the computer must be switched on and online, and nothing about plans (the link is
+// open to every account, and it is not « direct »). The shape (limits, both languages) is checked by scripts/build-catalog.mjs.
+//   node packages/kybernos-mobile/test-help.mjs
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { fakeHelp } from '../kybernos-hub/fake-help.mjs'
+
+let failed = 0
+const check = (name, ok, detail) => {
+  console.log((ok ? '  ✓ ' : '  ✗ ') + name + (ok || detail === undefined ? '' : '  — ' + JSON.stringify(detail)))
+  if (!ok) failed += 1
+}
+const HERE = fileURLToPath(new URL('.', import.meta.url))
+const SOURCE = readFileSync(join(HERE, 'client.js'), 'utf8')
+const help = JSON.parse(readFileSync(join(HERE, 'help.json'), 'utf8'))
+
+console.log('what the card says')
+{
+  const text = (lang) => [help.what[lang]].concat(help.steps.map((s) => s[lang])).concat([help.where[lang]]).concat(help.good ? [help.good[lang]] : []).join('\n')
+  const fr = text('fr')
+  const en = text('en')
+  check('it says the phone opens a web app that talks to the computer', /application web/i.test(help.what.fr) && /web app/i.test(help.what.en), help.what)
+  check('it says the messages go through a relay that reads nothing', /relais/i.test(fr) && /relay/i.test(en))
+  check('and that the link is end-to-end encrypted', /bout en bout/i.test(fr) && /end-to-end/i.test(en))
+  check('it says the relay cannot read what it carries', /ne lit rien|sans pouvoir les lire|ne peut pas les lire/i.test(fr) && /reads nothing|cannot read/i.test(en))
+  check('it says the computer must be switched on', /allumé/i.test(fr) && /switched on/i.test(en))
+  check('and connected to the internet', /internet/i.test(fr) && /internet/i.test(en))
+  check('it does not call the link direct (it goes through the Kybernos relay)', !/direct|en direct/i.test(fr) && !/direct/i.test(en))
+  check('it does not say it is reserved to paid plans (the link is open to every account)', !/payant|offre|abonnement|réservé/i.test(fr) && !/\b(paid|plans?|subscription|reserved)\b/i.test(en))
+  check('it gives a place to find it', typeof help.where.fr === 'string' && help.where.page === true)
+}
+
+console.log('where the button is')
+{
+  const guarded = "typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-mobile', lead: LEAD(), title: TITLE() }) : null"
+  check('the help button is always asked behind a guard, for the bundle’s own help, with the screen\'s sentence as `lead` and its name as `title`', SOURCE.includes(guarded))
+
+  // The window the account menu opens (« Phone and channels »), rendered on a fake React that only builds a tree.
+  const Help = function Help () { return null }
+  const run = ({ withHelp }) => {
+    const fakeReact = {
+      createElement: (type, props, ...children) => ({ type, props: props || {}, children }),
+      useState: (v) => [typeof v === 'function' ? v() : v, () => {}],
+      useRef: (v) => ({ current: v }),
+      useEffect: () => {},
+      useCallback: (f) => f,
+    }
+    let def = null
+    const win = { __ModuleLoader__: { load: (d) => { def = d } }, matchMedia: () => ({ matches: false }), __KB_LANG_RESOLVE__: () => 'en', addEventListener () {}, removeEventListener () {} }
+    if (withHelp) win.__KB_HELP__ = { version: 1, Help }
+    const doc = {
+      body: {}, head: { appendChild: (c) => c }, baseURI: 'http://127.0.0.1:3080/',
+      createElement: () => ({ dataset: {}, remove () {} }), addEventListener () {}, removeEventListener () {},
+    }
+    globalThis.window = win
+    globalThis.document = doc
+    new Function('window', 'document', SOURCE)(win, doc)
+    const plugin = def.factory((name) => (name === 'react' ? fakeReact : undefined))
+    // Only the phone link's own effects run: the layout is not what is tested here.
+    plugin.apply({ effect: (fn, label) => (/phone and channels|styles|settings section/.test(String(label)) ? fn() : () => {}), inject: (names, cb) => cb({ slots: null }) })
+    const Dialog = win.__KB_MOBILE__ !== undefined ? win.__KB_MOBILE__.Dialog : undefined
+    return { tree: typeof Dialog === 'function' ? Dialog({ web: '', onClose: () => {} }) : null, Panel: Dialog }
+  }
+  // Walks the tree the fake React built, running the small function components on the way (the two cards are some);
+  // the body of the left column (network, timers) is left as an element.
+  const find = (node, test, out = []) => {
+    if (node === null || typeof node !== 'object') return out
+    if (test(node)) out.push(node)
+    let kids = node.children || []
+    if (typeof node.type === 'function' && node.type !== Help && node.type.name !== 'Body') kids = [node.type(node.props)]
+    for (const c of kids) find(c, test, out)
+    return out
+  }
+  const withHelp = run({ withHelp: true })
+  const title = withHelp.tree === null ? [] : find(withHelp.tree, (n) => n.props && n.props.className === 'kbpc-title')
+  const buttons = withHelp.tree === null ? [] : find(withHelp.tree, (n) => n.type === Help)
+  check('the « Phone and channels » window is published', typeof withHelp.Panel === 'function')
+  check('the window is titled « Phone and channels »', title.length === 1 && /Phone and channels/.test(JSON.stringify(title[0])), title.length)
+  check('the window carries one « ? How it works » button, for this bundle’s help', buttons.length === 1 && buttons[0].props.id === 'kybernos-mobile', buttons.map((b) => b.props))
+  // The one sentence the screen says about itself lives in the card (`lead`), not under the title; the row is then one line high.
+  const SENTENCE = 'Open this computer from your phone, and reach Kaby from your messaging apps.'
+  const lead = (tree) => (tree === null ? [] : find(tree, (n) => n.props && /\bkbpc-lead\b/.test(String(n.props.className))))
+  const headOf = (tree) => (tree === null ? [] : find(tree, (n) => n.props && /\bkbpc-head\b/.test(String(n.props.className))))
+  check('window with the Suite: the card gets the sentence as `lead` and the screen name as `title`', buttons.length === 1 && buttons[0].props.lead === SENTENCE && buttons[0].props.title === 'Phone and channels', buttons.map((b) => b.props))
+  check('...and the sentence is no longer drawn under the title (the title row is one line)', lead(withHelp.tree).length === 0 && headOf(withHelp.tree).length === 1 && /\bkbpc-head-solo\b/.test(headOf(withHelp.tree)[0].props.className))
+  const without = run({ withHelp: false })
+  const none = without.tree === null ? [] : find(without.tree, (n) => n.type === Help)
+  check('without the Suite there is no button and the window still draws', without.tree !== null && none.length === 0 && find(without.tree, (n) => n.props && n.props.className === 'kbpc-title').length === 1)
+  check('...and the sentence stays under the title, in the two-row header', lead(without.tree).length === 1 && JSON.stringify(lead(without.tree)[0]).includes(SENTENCE) && headOf(without.tree).length === 1 && !/kbpc-head-solo/.test(headOf(without.tree)[0].props.className))
+  check('the one-line header rules (wide and narrow) outrank the two-row ones', /\.kbpc-head\.kbpc-head-solo\{grid-template-areas:"ic ttl chip help x"/.test(SOURCE) && /@media \(max-width:520px\)\{\.kbpc-head\.kbpc-head-solo\{grid-template-areas:"ic ttl help x";row-gap:0\}\}/.test(SOURCE))
+}
+
+console.log('the animated help of the Settings page (V-05, V-36)')
+{
+  // The Settings page, rendered on the same fake React: the Suite's Help and Intro are stand-ins that only record what the page asks for.
+  const Help = function Help () { return null }
+  const Intro = function Intro () { return null }
+  const draw = ({ lang, hub }) => {
+    const fakeReact = {
+      createElement: (type, props, ...children) => ({ type, props: props || {}, children: children.flat() }),
+      useState: (v) => [typeof v === 'function' ? v() : v, () => {}], useRef: (v) => ({ current: v }), useEffect: () => {}, useCallback: (f) => f,
+    }
+    let def = null
+    const win = { __ModuleLoader__: { load: (d) => { def = d } }, matchMedia: () => ({ matches: false }), __KB_LANG_RESOLVE__: () => lang }
+    if (hub !== undefined) win.__KB_HELP__ = typeof hub === 'function' ? hub(fakeReact) : hub
+    globalThis.window = win
+    globalThis.document = { body: {}, head: { appendChild: (c) => c }, baseURI: 'http://127.0.0.1:3080/', createElement: () => ({ dataset: {}, remove () {} }), addEventListener () {}, removeEventListener () {} }
+    new Function('window', 'document', SOURCE)(win, globalThis.document)
+    const plugin = def.factory((name) => (name === 'react' ? fakeReact : undefined))
+    let page = null
+    const slots = { inject: (name, make) => { if (name === 'settings.section') make() }, register: (d, comp) => { if (d.id === 'kybernos-mobile') page = comp; return () => {} } }
+    plugin.apply({ effect: (fn, label) => (/settings section|phone panel/.test(String(label)) ? fn() : () => {}), inject: (names, cb) => cb({ slots }) })
+    if (page === null) return null
+    const el = page()
+    return typeof el.type === 'function' ? el.type(el.props) : el
+  }
+  const find = (node, test, out = []) => {
+    if (node === null || typeof node !== 'object') return out
+    if (test(node)) out.push(node)
+    let kids = node.children || []
+    if (typeof node.type === 'function' && node.type !== Help && node.type !== Intro && node.type.name !== 'Body') kids = [node.type(node.props)]
+    for (const c of kids) find(c, test, out)
+    return out
+  }
+  const text = (n) => (n === null || typeof n !== 'object' ? String(n) : (n.children || []).map(text).join(' '))
+  const tree = draw({ lang: 'en', hub: (R) => ({ version: 1, actions: true, ...fakeHelp(R, Help), Intro }) })
+  const intros = tree === null ? [] : find(tree, (n) => n.type === Intro)
+  const p = intros.length === 1 ? intros[0].props : null
+  check('the Settings page is drawn', tree !== null)
+  check('it asks the Suite for the animation, keyed by its own bundle', p !== null && p.id === 'kybernos-mobile', intros.length)
+  check('three steps that say show the code, scan it, allow', p !== null && p.steps.length === 3 && /code/i.test(p.steps[0].t) && /scan/i.test(p.steps[1].t) && /allow/i.test(p.steps[2].t), p && p.steps.map((s) => s.t))
+  check('every step has a sentence', p !== null && p.steps.every((s) => s.b.length > 20))
+  check('the mock names the page, the phone, its three states and three labels', p !== null && p.mock.bar === 'Phone and channels' && p.mock.hot.length > 2 && p.mock.states.length === 3 && p.mock.actions.length === 3 && p.mock.actions[2] === 'Allow', p && p.mock)
+  check('it sits after the title row and before the body', (() => { const order = find(tree, (n) => n.type === Intro || (n.props && (/\bkbpc-head\b/.test(String(n.props.className)) || n.type !== 'div' && typeof n.type === 'function' && n.type.name === 'Body'))).map((n) => (n.type === Intro ? 'intro' : /\bkbpc-head\b/.test(String(n.props.className)) ? 'head' : 'body')); return order.join() === 'head,intro,body' })())
+  check('the title row still carries one « ? How it works » button, for this bundle', find(tree, (n) => n.type === Help).length === 1 && find(tree, (n) => n.type === Help)[0].props.id === 'kybernos-mobile')
+  check('the Settings page gives its sentence and its name to that button (`lead`, `title`), and no longer draws the sentence under the title', (() => { const b = find(tree, (n) => n.type === Help)[0].props; return b.lead === 'Open this computer from your phone, and reach Kaby from your messaging apps.' && b.title === 'Phone and channels' && find(tree, (n) => n.props && /\bkbpc-lead\b/.test(String(n.props.className))).length === 0 })())
+  const fr = draw({ lang: 'kybernos', hub: (R) => ({ version: 1, ...fakeHelp(R, Help), Intro }) })
+  const q = fr === null ? null : find(fr, (n) => n.type === Intro)[0]
+  check('in French: the same animation, in French', q !== undefined && q !== null && /code/i.test(q.props.steps[0].t) && /Autoriser/.test(q.props.mock.actions[2]) && q.props.title !== p.title, q && q.props.title)
+  const older = draw({ lang: 'en', hub: (R) => ({ version: 1, ...fakeHelp(R, Help) }) })
+  check('an older Suite without the animation: the page draws, with its button and no animation', older !== null && find(older, (n) => n.type === Intro).length === 0 && find(older, (n) => n.type === Help).length === 1)
+  const none = draw({ lang: 'en' })
+  check('no Suite at all: the page draws with neither', none !== null && find(none, (n) => n.type === Intro || n.type === Help).length === 0)
+  check('...and its sentence stays under the title', find(none, (n) => n.props && /\bkbpc-lead\b/.test(String(n.props.className))).length === 1)
+  check('in French the `lead` is the French sentence', (() => { const b = find(fr, (n) => n.type === Help)[0]; return b !== undefined && /^Ouvre cet ordinateur depuis ton téléphone/.test(b.props.lead) && b.props.title === 'Téléphone et canaux' })())
+}
+
+console.log('the Settings page title has no style of its own')
+{
+  check('the page draws its head through pageHead (the page title style and the button after the text), with the hook class kbpc-page-title', /page \? h\('div', \{ className: 'kbpc-ttl' \}, pageHead\(\{ id: 'kybernos-mobile', lead: LEAD\(\), title: TITLE\(\), as: 'h1', className: 'kbpc-page-title' \}\)\)/.test(SOURCE))
+  const rules = [...SOURCE.matchAll(/(^|\n)([^\n{]*\.kbpc-title[^\n{]*)\{([^}\n]*)\}/g)].map((m) => ({ sel: m[2].trim(), body: m[3] }))
+  check('every rule that sizes or weighs .kbpc-title is scoped to the window (.kbpc-dialog): the page takes the Settings frame\'s title', rules.filter((r) => /font-(size|weight)|line-height|letter-spacing/.test(r.body)).every((r) => /^\.kbpc-dialog /.test(r.sel)), rules)
+}
+
+console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)
+process.exit(failed === 0 ? 0 : 1)

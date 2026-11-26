@@ -1,0 +1,92 @@
+{
+  "id": "audio_bedtime_fr",
+  "size": [
+    1280,
+    800
+  ],
+  "fade": 0.45,
+  "shots": [
+    {
+      "file": "bedtime-1.mp4",
+      "trim": [
+        0,
+        7.4
+      ]
+    },
+    {
+      "file": "bedtime-2.mp4",
+      "trim": [
+        0,
+        7.6
+      ]
+    },
+    {
+      "file": "bedtime-3.mp4",
+      "trim": [
+        0,
+        6.8
+      ]
+    }
+  ],
+  "grade": "eq=contrast=1.04:saturation=1.05",
+  "texts": [
+    {
+      "at": 0.3,
+      "to": 20.4,
+      "text": "VOIX IA · HISTOIRE DU SOIR",
+      "style": "pill",
+      "y": 0.08,
+      "anim": "fade"
+    },
+    {
+      "at": 0.9,
+      "to": 6.3,
+      "text": "Il était une fois, au bord d'un lac tranquille,\\Nun petit renard qui avait peur du noir.",
+      "style": "caption",
+      "y": 0.86,
+      "anim": "fade"
+    },
+    {
+      "at": 6.6,
+      "to": 11.7,
+      "text": "Chaque soir, la lune lui souriait,\\Net chaque soir, il osait faire un pas de plus.",
+      "style": "caption",
+      "y": 0.86,
+      "anim": "fade"
+    },
+    {
+      "at": 12.1,
+      "to": 15.1,
+      "text": "Alors, ce soir-là, il ferma les yeux,",
+      "style": "caption",
+      "y": 0.86,
+      "anim": "fade"
+    },
+    {
+      "at": 15.2,
+      "to": 19.2,
+      "text": "respira doucement et suivit la lumière\\Njusqu'à sa maison.",
+      "style": "caption",
+      "y": 0.86,
+      "anim": "fade"
+    }
+  ],
+  "voice": [
+    {
+      "file": "voice-bedtime-fr.mp3",
+      "at": 0.8
+    }
+  ],
+  "music": {
+    "file": "music-bedtime.mp3",
+    "start": 0,
+    "gain": 0.4,
+    "fadeIn": 1.0,
+    "fadeOut": 2.4,
+    "duck": true
+  },
+  "ambient": 0,
+  "shade": 0.6,
+  "watermark": true,
+  "crf": 23
+}

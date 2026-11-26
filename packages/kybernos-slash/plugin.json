@@ -1,0 +1,51 @@
+{
+  "contract": 1,
+  "id": "kybernos/slash",
+  "kind": "code",
+  "version": "1.0.0",
+  "name": {
+    "en": "Commands",
+    "fr": "Commandes"
+  },
+  "description": {
+    "en": "Slash commands and message actions, created by chat.",
+    "fr": "Commandes / et actions de message, créées par chat."
+  },
+  "icon": "slash",
+  "family": "base",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-slash",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:conversation.chat.assistant-actions",
+    "ui.slot:conversation.input.left",
+    "ui.slot:conversation.input.overlay",
+    "ui.slot:settings.section",
+    "ui.slot:shell.overlay",
+    "ui.dom",
+    "host.routes:/kybernos/slash:write",
+    "fs.write:dsh-home",
+    "sessions.read",
+    "agent.tools"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos/slash"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "off"
+  }
+}

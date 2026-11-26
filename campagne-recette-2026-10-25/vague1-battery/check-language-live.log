@@ -1,0 +1,25 @@
+# check-language-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=51878
+
+
+── the Language page ──
+  ✗ the page opens on the real GUI
+  ✗ two original languages: Français and English, no other one invented — ""
+  ✗ the active language is marked "In use" — null
+  ✓ no flag, no French text mixed with English in the page
+
+── help and animation ──
+  ✗ a "? How it works" button is in the page header, with a tooltip — null
+  ✗ on the first visit (nothing is translated yet) the help is OPEN
+  ✗ it shows the three steps: add, start, use — ""
+  ✗ … and reminds that it is the same choice as in Settings › General › Language
+  ✗ the mini mockup is there (window, two rows, cursor, chips, bar) but is NOT mistaken for a real language
+  ✗ the animation really RUNS (≥ 15 CSS animations, all playing, time advances) — {"anim":{"n":0,"running":true,"t0":null},"t1":-1}
+  ✓ a 12 s loop, the steps are synchronized with the mockup (same duration)
+  ✗ the current step is highlighted, not the others (1 at 1 s, 2 at 6 s, 3 at 9 s) — {"o1":null,"o2a":null,"o2b":null,"o3":null,"o3b":null}
+  ✗ at 6.5 s the mockup bar is half-way (the translation is "advancing") — null
+  ✗ the test itself stopped: SyntaxError: "undefined" is not valid JSON ⏎     at JSON.parse (<anonymous>) ⏎     at file:///Users/miled/kybernos-plugins/scripts/check-language-live.mjs:105:22
+  ✓ no leftover: the language STORED by DSH is back to "en"
+
+3 ✓  12 ✗
+

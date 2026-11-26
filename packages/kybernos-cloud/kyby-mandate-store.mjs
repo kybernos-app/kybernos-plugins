@@ -1,0 +1,95 @@
+// Where Kaby's mandate lives on this computer: three files of <DSH home>/kybernos, written by the host only (mode 0600, replaced atomically).
+//   kyby-mandate.json        the signed record (kyby-mandate.mjs), written by the Settings route and by nothing else.
+//   kyby-mandate-usage.json  the day's count of what ran without a question, counted here and not by Kaby.
+//   kyby-mandate-audit.jsonl one line per signature and per action that ran under it, so « what did you let it do » has an answer. Trimmed when it grows.
+// Every method is safe to call from a hook: none throws, and a file that cannot be read means no mandate, never a permissive one.
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { appendAudit, readJson, writeJson } from './kyby-files.mjs'
+import { countUse, dayKey, decide, describe, mandateText, readRequest, sign, usageOf, verify } from './kyby-mandate.mjs'
+
+const LOG_MAX = 30
+const TEXT_TTL_MS = 1000
+const SAFE_ID = /^[A-Za-z0-9_.:-]{1,80}$/u
+
+/**
+ * @param deps { home: () => string (the DSH home), secret: () => Buffer | null (the machine secret), now?: () => number }
+ */
+export function createMandateStore (deps) {
+  const now = typeof deps.now === 'function' ? deps.now : () => Date.now()
+  const dir = () => join(deps.home(), 'kybernos')
+  const recordFile = () => join(dir(), 'kyby-mandate.json')
+  const usageFile = () => join(dir(), 'kyby-mandate-usage.json')
+  const auditFile = () => join(dir(), 'kyby-mandate-audit.jsonl')
+  const secret = () => { try { return deps.secret() } catch (e) { return null } }
+  let cached = { at: 0, text: '' }
+
+  const audit = (event) => appendAudit(auditFile(), now(), event)
+
+  return {
+    /** What the Settings page shows. */
+    view () {
+      return describe(readJson(recordFile()), secret(), readJson(usageFile()), now())
+    },
+    /**
+     * The person's request from the Settings page (the route has checked the origin and the signed session): the new record is the old fields with the request over them.
+     * @returns { ok: true, view } or { ok: false, error }
+     */
+    set (raw) {
+      try {
+        const old = readJson(recordFile())
+        const base = verify(old, secret()).ok === true ? old : null
+        const req = readRequest(raw, base)
+        if (req.ok !== true) return { ok: false, error: req.error }
+        const signed = sign(req.fields, secret(), now())
+        if (signed.ok !== true) return { ok: false, error: signed.error }
+        writeJson(recordFile(), signed.record)
+        cached = { at: 0, text: '' }
+        const v = describe(signed.record, secret(), readJson(usageFile()), now())
+        audit({ kind: 'signed', preset: v.preset, memory: v.memory, computer: v.computer, memoryPerDay: v.memoryPerDay, computerPerDay: v.computerPerDay, paused: v.paused })
+        return { ok: true, view: v }
+      } catch (e) { return { ok: false, error: 'write_failed' } }
+    },
+    /**
+     * Called by the native gate for a tool of ours in Kaby's chat: true when the mandate covers it right now, in which case the use is counted and written down.
+     * A false is the old behaviour (the question). `source` is 'automation' for a turn an automation started: the audit line says so.
+     */
+    allow (toolName, sessionId, source) {
+      try {
+        const t = now()
+        const verdict = decide(readJson(recordFile()), secret(), readJson(usageFile()), toolName, t)
+        if (verdict.allow !== true) return { allow: false, why: verdict.why }
+        writeJson(usageFile(), countUse(readJson(usageFile()), verdict.klass, t))
+        audit({ kind: 'ran', tool: toolName, klass: verdict.klass, session: typeof sessionId === 'string' && SAFE_ID.test(sessionId) ? sessionId : null, ...(source === 'automation' ? { source } : {}) })
+        return { allow: true, why: 'covered' }
+      } catch (e) { return { allow: false, why: 'error' } }
+    },
+    /** The block for Kaby's prompt, or ''. Read at most once a second. */
+    text () {
+      try {
+        const t = now()
+        if (t - cached.at < TEXT_TTL_MS) return cached.text
+        cached = { at: t, text: mandateText(readJson(recordFile()), secret()) }
+      } catch (e) { cached = { at: 0, text: '' } }
+      return cached.text
+    },
+    /** Today's use, for tests and the page. */
+    usage () { return usageOf(readJson(usageFile()), now()) },
+    /** What ran without a question today (the local day the limits count in), newest first: the audit's `ran` lines, each reduced to the time, the class and the tool's name. */
+    log (limit = LOG_MAX) {
+      try {
+        const today = dayKey(now())
+        const lines = readFileSync(auditFile(), 'utf8').split('\n')
+        const out = []
+        for (let i = lines.length - 1; i >= 0 && out.length < Math.min(LOG_MAX, Math.max(1, limit)); i -= 1) {
+          let e = null
+          try { e = JSON.parse(lines[i]) } catch (err) { continue }
+          if (e === null || typeof e !== 'object' || e.kind !== 'ran' || typeof e.at !== 'string' || dayKey(Date.parse(e.at)) !== today) continue
+          out.push({ at: e.at, klass: e.klass === 'computer' ? 'computer' : 'memory', tool: String(e.tool).slice(0, 60) })
+        }
+        return out
+      } catch (e) { return [] }
+    },
+    files: { record: recordFile, usage: usageFile, audit: auditFile }
+  }
+}

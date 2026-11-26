@@ -1,0 +1,18 @@
+# check-modeleur-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=45373
+
+  ✗ the Modeleur panel is open
+  ✗ the demo model is there (the drawing tools appear)
+
+── A4-07 · the Text tool ──
+  ✗ the pen opens its tools
+  ✗ the A (Text) tool is chosen
+  ✗ a click on the model opens the text field
+  ✗ the field is still there 700 ms later (it was removed within 100 ms)
+  ✗ ...and it has the focus
+  ✓ Enter closes the field
+  ✗ ...and the text is filed as an annotation — {"before":0,"after":0}
+  ✓ the annotations are cleared again
+
+8 FAILED, 2 passed
+

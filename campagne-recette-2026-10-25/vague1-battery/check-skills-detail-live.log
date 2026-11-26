@@ -1,0 +1,20 @@
+# check-skills-detail-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=66120
+
+Skills panels — this checkout's client on the real GUI, the real skills, nothing written
+  ✓ the client was found in the served bundle and swapped
+  ✗ the real catalogue is there  — 0
+Yours
+  ✗ the cards are listed  — 0
+file:///Users/miled/kybernos-plugins/scripts/check-skills-detail-live.mjs:92
+  const js = async (code) => { const r = await page.evalJs(code); if (r.err !== undefined) throw new Error('page script failed: ' + String(r.err).slice(0, 200)); return r.val }
+                                                                                                 ^
+
+Error: page script failed: TypeError: Cannot read properties of undefined (reading 'click')
+    at <anonymous>:1:144
+    at js (file:///Users/miled/kybernos-plugins/scripts/check-skills-detail-live.mjs:92:98)
+    at async open (file:///Users/miled/kybernos-plugins/scripts/check-skills-detail-live.mjs:118:5)
+    at async file:///Users/miled/kybernos-plugins/scripts/check-skills-detail-live.mjs:121:3
+
+Node.js v26.7.0
+

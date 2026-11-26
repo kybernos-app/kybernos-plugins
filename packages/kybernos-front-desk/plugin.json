@@ -1,0 +1,54 @@
+{
+  "contract": 1,
+  "id": "kybernos/front-desk",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Front desk",
+    "fr": "Accueil client"
+  },
+  "description": {
+    "en": "The public assistant of your shop: a chat page, a widget for your site and Telegram, answering with what you checked. It runs on this computer under a spending cap; Kaby drafts, you approve.",
+    "fr": "L’assistant public de ta boutique : page de chat, bulle pour ton site et Telegram, il répond avec ce que tu as validé. Il tourne sur cet ordinateur sous un plafond de dépense ; Kaby prépare, tu valides."
+  },
+  "icon": "desk",
+  "family": "connect",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-front-desk",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0",
+    "plugins": {
+      "kybernos/core": "^1.0"
+    }
+  },
+  "permissions": [
+    "ui.slot:main.kybernos-business",
+    "host.routes:/kybernos-front-desk:write",
+    "fs.read:dsh-home",
+    "fs.write:dsh-home",
+    "net:localhost",
+    "net:api.telegram.org",
+    "exec",
+    "secrets.own",
+    "agent.prompt",
+    "agent.tools"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-front-desk"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "off"
+  }
+}

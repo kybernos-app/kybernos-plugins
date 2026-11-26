@@ -1,0 +1,79 @@
+{
+  "id": "proposal-followups",
+  "cat": "hr",
+  "icon": "bell",
+  "title": {
+    "en": "Proposal follow-ups",
+    "fr": "Relances des propositions"
+  },
+  "cadence": {
+    "en": "Every Monday at 09:00",
+    "fr": "Chaque lundi à 09h00"
+  },
+  "desc": {
+    "en": "Lists the proposals sent last week that got no answer and drafts one follow-up each. Nothing is sent.",
+    "fr": "Liste les propositions envoyées la semaine dernière restées sans réponse et rédige une relance chacune. Rien n’est envoyé."
+  },
+  "cron": "0 9 * * 1",
+  "tags": [
+    "recruitment",
+    "proposals"
+  ],
+  "apps": [
+    "googledocs",
+    "googlesheets"
+  ],
+  "steps": [
+    {
+      "kind": "ai",
+      "text": {
+        "en": "List the proposals sent last week that got no answer, from the list the recruiter provides.",
+        "fr": "Liste les propositions envoyées la semaine dernière restées sans réponse, à partir de la liste fournie par le recruteur."
+      }
+    },
+    {
+      "kind": "ai",
+      "text": {
+        "en": "Draft one follow-up per proposal with the draft-outreach skill, in the client’s tone and language.",
+        "fr": "Rédige une relance par proposition avec la compétence draft-outreach, dans le ton et la langue du client."
+      }
+    },
+    {
+      "kind": "act",
+      "text": {
+        "en": "Put the drafts in this workspace for the recruiter to check. Never send them.",
+        "fr": "Dépose les brouillons dans ce workspace pour que le recruteur les relise. Ne les envoie jamais."
+      }
+    }
+  ],
+  "needs": [
+    {
+      "en": "The list of proposals sent (a file, or pasted text)",
+      "fr": "La liste des propositions envoyées (un fichier, ou du texte collé)"
+    }
+  ],
+  "guard": [
+    {
+      "en": "Drafts only: nothing is sent. Never invent a rate, a date or the client’s answer.",
+      "fr": "Brouillons seulement : rien n’est envoyé. N’invente jamais un tarif, une date ou la réponse du client."
+    }
+  ],
+  "ask": [
+    {
+      "q": {
+        "en": "Where is the list of proposals?",
+        "fr": "Où est la liste des propositions ?"
+      },
+      "o": [
+        {
+          "en": "In a file I drop in the chat",
+          "fr": "Dans un fichier que je dépose dans le chat"
+        },
+        {
+          "en": "I paste it as text",
+          "fr": "Je la colle comme texte"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+# check-registry-live.mjs
+# host=127.0.0.1:3098 status=timeout code=null ms=150492
+
+the registry answers, and the core has told it its point
+  ✓ GET /kybernos-registry/state is 200, version 1
+  ✓ GET /kybernos/domains answers the shipped packs
+  ✓ the point kybernos/core#domain-pack is defined, instruction data
+  ✓ nothing of ours is listed as a plugin yet
+DSH installs a data plugin with its own manager
+

@@ -1,0 +1,34 @@
+{
+  "what": {
+    "fr": "Change l’apparence de Kybernos : thème prêt à l’emploi, accent, fond d’écran, police, transparence, et l’animation affichée pendant que l’agent travaille.",
+    "en": "Changes how Kybernos looks: ready-made themes, accent, wallpaper, font, transparency, and the animation shown while the agent works."
+  },
+  "steps": [
+    {
+      "fr": "Clique sur ce que tu veux changer dans la fenêtre, ou pars d’une ambiance (Travail, Dev, Études, Détente, Nuit).",
+      "en": "Click what you want to change in the window, or start from a vibe (Work, Dev, Study, Chill, Night)."
+    },
+    {
+      "fr": "« Plus d’options » garde le reste ; « Aussi » ouvre l’accent, les effets et l’accessibilité.",
+      "en": "“More options” keeps the rest; “Also” opens the accent, effects and accessibility."
+    },
+    {
+      "fr": "« Enregistrer » garde ton thème ; « Exporter », « Importer » et « Annuler » font le reste.",
+      "en": "“Save” keeps your look; “Export”, “Import” and “Undo” do the rest."
+    },
+    {
+      "fr": "« Éditeur avancé », replié dessous, garde tous les réglages, le partage et la galerie.",
+      "en": "“Advanced editor”, folded below, keeps every setting, sharing and the gallery."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Thème",
+    "en": "Settings › Theme",
+    "page": true
+  },
+  "good": {
+    "fr": "Un fond d’écran ne se voit pas dans les Réglages eux-mêmes, seulement derrière le chat et les autres pages. Le thème ne change que l’interface web, pas le terminal.",
+    "en": "A wallpaper is not visible inside Settings itself, only behind the chat and the other pages. The theme only changes the web interface, not the terminal."
+  },
+  "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
+}

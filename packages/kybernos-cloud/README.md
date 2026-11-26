@@ -1,0 +1,691 @@
+# Kybernos Cloud — DSH plugin
+
+Connects DSH to a **Kybernos Cloud** account and shows the profile in the interface:
+email, name, plan, workspaces (name + number of Agent Teams) and session state.
+On sign-in, **automatic import of the models** of the Kybernos LiteLLM proxy
+(glm, deepseek…) according to the subscription — see “Imported model catalogue”.
+
+A button in the bottom bar of the sidebar — in the slot
+`sidebar.footer.action`, next to Settings — opens a card with three states:
+
+| State | What you see |
+|---|---|
+| Disconnected | “Connect Kybernos Cloud” |
+| Pairing | the device code, “Open activation page” (which also copies the code: the server's page shows nothing of it and asks for it to be pasted or typed, on purpose, and the link already carries the device and the code, which the page reads and removes from its address), “Copy code”, “Cancel request” |
+| Connected | email, plan, workspaces, “Disconnect” (the catalogue, the chats and the memory no longer have a button in this card) |
+
+## Imported model catalogue (cloud feature no. 1)
+
+When the user is signed in, the host half automatically imports the
+catalogue of the Kybernos LiteLLM proxy into the harness:
+
+```
+GET <api>/v1/models        (Authorization: Bearer <device token>)   ← <api> = BUILTIN_API (server-profile.mjs), the new server
+   → { data: [{ id: 'kybernos/doer', … }, …] }    (OpenAI-compatible list)
+```
+
+- **Writes into `~/.dsh/settings.yaml`** (namespace `llm-pi-ai`) a `kybernos`
+  provider route: `displayName: Kybernos Cloud`, `api: openai-completions`,
+  `baseURL: <api>/v1`, `apiKeyEnv: KYBERNOS_API_KEY`,
+  `models: [{ id, name }, …]`. The write goes through the `settings` service
+  (the same path as the native Models page) — the models appear in
+  Settings → Models and in the model selector, without a restart.
+- **Sets the credential** `KYBERNOS_API_KEY` (the `kys-…` token) in the
+  credentials store (`~/.dsh/.credentials.yaml`, 0600). The harness resolves the
+  reference on every request: no secret in settings.yaml.
+- **Filters the product surface**: only the `kybernos/*` routes are kept —
+  not the fallback twins (`-fb1`, `-fb2`…), not the infra routing pools
+  (`*_rg`), not the embeddings route (`kybernos/embed`). `max_tokens` /
+  `context_length` from the catalogue are carried over when LiteLLM provides them.
+- **Creation models are kept apart**: a server catalogue entry of kind `image`, `video` or `speech` (with `unit_pricing: { unit, usd }`, the price
+  of ONE unit: an image, a second, a thousand characters) is never written to `providers.kybernos.models`, because DSH's chat picker lists every
+  model of a route. It goes to `models.creation` of `GET /kybernos-cloud/models`, where the Models page reads it. A price that does not read is
+  left out, an unknown kind is dropped, and the contract the server follows is in `docs/dev/creation-models-contract.md`.
+- **Triggers**: at claim (sign-in), at DSH start-up if already
+  connected, at refresh if nothing has been imported yet, and on demand
+  (POST `/kybernos-cloud/models/sync`, no button calls it any more). An identical
+  import rewrites nothing (no settings churn each time the card is
+  opened).
+- **The subscription is enforced by the proxy**, request by request (gating
+  free < solo < studio < scale, fail-closed): the `GET /v1/models` catalogue
+  is not filtered by plan, so DSH imports no tier logic —
+  a model outside the plan will answer with the proxy's error when called.
+- **Cleanup**: “Disconnect” or a revocation removes the `providers.kybernos`
+  route AND the credential — but only what THIS feature set (recorded in
+  the state: `models.provider`).
+- **Degradation**: catalogue 401/unreadable/unreachable → explicit refusal
+  (`catalogue_refuse`, `catalogue_illisible`, `reseau`), never a
+  disconnection (revocation is decided on `/v1/workspaces`) and the previous
+  import stays in place; `settings`/`credentials` services absent →
+  `settings_absent`, reason shown in the card.
+
+New local routes:
+
+| Route | Response |
+|---|---|
+| `GET /kybernos-cloud/models` | `{ok, connected, plan, models:{provider, base_url, imported_at, plan, count, ids, creation:[{id, name, kind, unit, usd}], settings, credential, cause}}` |
+| `POST /kybernos-cloud/models/sync` | same contract + `wrote`/`reason` — resynchronises now (forced) |
+
+The summary (`count`, `plan`, `imported_at`, `settings`, `credential`) also
+travels in the `state` of the `/status`, `/poll` and `/refresh` responses. The
+full ids stay in the detail route.
+
+## When the server stops knowing this device (and other states of the account)
+
+- **A refused token ends the connection at once.** A device revoked from the account page, or a server on a new database, answers 401 (its own `{ error }` envelope) to every
+  call the host makes with the token. The first such answer, on any route, makes the host ask `/v1/workspaces` once more (one check at a time; a check that finds the token
+  fine is not repeated for 5 s: a route's own 401 signs nobody out). If that is refused too, the imported models leave and the state file goes, **and `kybernos-cloud.json.ended`
+  stays beside it** (the time, never the token). `/status` then answers `{ connected: false, status: 'revoked', ended: { at } }`, and `/console/link` and `/quota` answer
+  `{ status: 'revoked', error: 'session_ended' }`, so the footer says « Sign in again » and why within seconds (no 5-minute wait). A new pairing, a claim or a sign-out clears the marker.
+- **A pairing is asked about by whoever shows it.** The footer polls `/poll` while a pairing is under way and so does the open card; the host makes one call of simultaneous polls
+  (the server hands the token to the first asker), and a refusal or an expiry reaches both.
+- **A team with no plan** answers `/quota` with `no_plan: true` (the plan route says `plan: null`): the notice and the plan slot say « No plan » and offer the plan page. `POST
+  /space/create` does not make such a team active: the answer carries `created: { id, name, plan_key, activated }` and the footer tells the person where they are.
+- **Several spaces: the menu, the plan card, opening a team, the cues** (plan « Équipes », steps 1, 2, 3 and 7; the pure rules are the `teams-menu` block of the client, played by
+  `test-teams-menu.mjs`). Up to `INLINE_SPACES_MAX` (3: Personal + 2 teams) spaces the account menu lists them at its top (tile in the team's colour, name, « Admin · 6 members » or
+  « you · plan », the usage percent and its bar, a check on the active one, « Create a team »); from four the top row stays « Switch team » and opens the full list next to the menu.
+  The rows' usage and head counts come from `GET /spaces/summary` (read when the menu opens, kept 15 s: per space the budget windows as percents, a team's member count, the personal
+  space's plan name; never an amount of money). The plan card follows the role: a team shows « Team » (its pool, the 30-day window) and « You » (the person's 5 hours and 7 days, plus any
+  other window of theirs that is used up); an owner or admin also gets « Manage » (the web Team settings, through the console link) and, once the pool is used up, « Add credits »;
+  a member gets neither; a personal space shows no allowance (no row in the card, no gauge on the footer card: it is the Kybernos plan's number, meaningless to a person on a key of their own, and the composer's chip from kybernos-usage shows it on a Kybernos model) and, on Free, « Upgrade ». The menu's blocks are Teams · Account (Account, Referral) · Appearance, Phone and channels, Settings · Links · Sign out, each pair separated by a rule. A window that has room says how long it is (« Last 7 days »); only a window that is used up
+  says « Back in about 3 h » (the windows are rolling: the server gives `resets_at` only then). **Choosing a team opens its own DSH:** the footer asks `POST /team-dsh/open` (started when it is not running, so the card says « Starting… » for a few seconds), opens the answer's signed address in a window named after the team and leaves this DSH where it is. The host keeps the one model route of a DSH on its space: `POST /space/applied { workspace_id }` says whether the RUNNING route (`settings.describe()`, not the file) names the space, and a route that moved (a profile refresh, a hand edit) is mended by the host by itself at 10 s, 30 s and 2 min (`ROUTE_REPAIR_TUNING`; it stops as soon as the RUNNING route names the space, and never rewrites it under a running reply). The first request of every turn re-aligns the route first, bounded by 10 s, and is REFUSED when it cannot: the turn fails with « Your messages would be billed to <team>. Try again. » (worded by the failure row of the page, in the person's language) instead of going to the previous team (`holdForStaleRoute`, below). **The composer's cues in a team space** (none in the personal one): a pill on memory in the team's colour, in the composer's dock and the new chat's options row (a pill on the
+  working folder only when `state.space_folder` names one: the host names the team's folder, see « One working folder per team » below), « Message <Team>… » in the box (DSH's own placeholder node, put back when the person leaves
+  the team; a disabled box keeps DSH's words, but DSH's plan hint and queue hint are replaced too: nothing on the page tells the placeholder's states apart) and « What is <Team> working on? » over a new chat (the core plugin reads `window.__KB_SPACE_CUE__`). The memory pill says « personal off » only when
+  `PERSONAL_MEMORY_CUT` is `true` in the client: it is `false` until the memory work (`feat/teams-memory-cut`) lands, so the pill does not promise what is not true yet.
+
+- **Joining a team with an invitation link** (plan « Équipes », step 4; the pure rules are the `join-link` block of the client, played by `test-join-link.mjs`; the host routes by
+  `test-join-host.mjs`; the rendered dialog by `test-cloud-client.mjs`; the real page, the real host and a fake server by `scripts/check-join-live.mjs`). The row « Join with an
+  invitation link » sits under « Create a team » in both lists of the account menu. It opens a dialog: the person pastes the link the server e-mails
+  (`<server>/invitations/accept?token=…`) or just the token; the page reads it (the token may ride the query or the fragment; anything else is refused with a sentence, nothing is sent)
+  and presses « Check »: `POST /invitation/preview` asks the ACTIVE server `POST /v1/invitations/preview` (public, no device token) and the card shows the team, who invited, the role and
+  the address it was sent to; « Join the team » then calls `POST /invitation/accept` (`POST /v1/invitations/accept` with the device token: the account must own the invited address).
+  **The token goes to the active server's own API and to no other address**: a pasted link is only a carrier (its host is read to say « this link comes from X; your active server
+  is Y » on a refusal, never called), it travels in the body of a POST, never in an address, a log or an answer. `preview` is strict same-origin; `accept` also needs DSH's signed
+  session (it makes the person a member). The server answers ONE 404 for an unknown, used, withdrawn, expired or someone else's invitation (`invitation_unusable`: one sentence names
+  all of them), 409 `seat_limit` for a full team (`seat_limit`: the link stays valid, nothing is written), 429 (`rate_limited`) and a network failure (`unreachable`); anything else is
+  `refused` and the dialog offers « Open in the browser »: the server's own page for the same invitation, on the ACTIVE server's web address. After an accepted invitation the host reads
+  the list of teams again and the new team's plan (`joined: { id, name, role, plan_key }`) and does NOT activate it: the footer opens the team's own DSH (`team-dsh/open`, a window named after the
+  team), except for a team that has no plan (`plan_key: 'none'`, as for a team the person just created): they stay where they are and are told.
+
+- **One working folder per team** (plan « Équipes », step 6; the host half is `team-folder.mjs`, played by `test-team-folder.mjs` and `test-team-folder-host.mjs`; the rendered footer by
+  `test-cloud-client.mjs`). Since a team has a DSH of its own (below) nothing switches a DSH onto a team's folder any more: the folder is a place the team's files live, named by the pill of
+  the composer in that DSH. Opening a new chat in it by itself is not built.
+  **The folder:** `<Documents>/Kybernos/<Team>` (the root kybernos-multi-device's private folders share: `scripts/test-team-folder-rule.mjs` keeps the two « where is Documents » rules
+  equal; `KYBERNOS_DOCUMENTS_DIR` moves it for tests and the sandbox), made by the host when a team is created (with or without a plan: it is a place to work either way),
+  joined, or found active with none (`POST /space/folder { workspace_id }`, asked once per team and page by the team's own DSH: a team joined before this existed). **The name is hostile input** (a team lead
+  or a colleague wrote it): it is cut down to ONE segment (no separator, drive colon, wildcard, control or invisible character, `..`, leading or trailing dot; 60 characters; a name that
+  leaves nothing or that Windows reserves becomes « Team <id> »), the folder is made as a direct child of the root with a `mkdir` that is NOT recursive, and a name already on the disk
+  (another team's, the person's own, a file) is never taken over: the team gets « <Name> (<last 8 letters and digits of its id>) » (the TAIL: the server's ids are UUIDv7, whose head is the clock, so two teams made in the same minute share their first 8). **Where it is recorded:** `kybernos-cloud-folders.json` beside the
+  state file (`{ <workspace id>: <path> }`), not in it: a sign-out wipes the state, and the team's folder must still be the team's at the next sign-in. Only a direct child of the root
+  is followed or listed. The public state names the ACTIVE team's folder (`space_folder`: the composer's folder pill reads it) and every team's (`team_folders`), never the file. The page names a team,
+  never a path. A disk that refuses (`not_allowed`, `mkdir_failed`) leaves the team without a folder.
+- **DSH follows a role changed, a removal or a team joined within about 30 s** (recette L2-05): the host reads the server by itself only every 5 minutes (`PROFILE_REFRESH_TUNING.tickMs`), so the footer now asks it: `POST /refresh { max_age_ms }` when the window comes back into view, every 30 s while it is visible, and after the team actions it makes itself (create, join, switch by hand), at most one read in flight, no two within 25 s (3 s after an action), never while hidden or signed out. `max_age_ms` is the age of a read the host may skip (`skipped: true`, no call to the server), capped at 10 minutes, so several windows cost the server one read; a call without it (the open Cloud window, after a payment) always reads. A person removed from a team (or who left it) who sends a message before then gets the server's 404 `workspace_not_found`: the failure row of the page words it (« You are no longer in the team this chat was billed to… DSH is now in <space>: send it again »), asks the host to read the account at once (it falls back to a space the person is in) and tells the footer; an old row of a chat's history is worded, never acted on.
+- **A turn is held to the model route** (`holdForStaleRoute`, test `test-route-hold.mjs`). The follow-the-chat switch, the claim-time switch, the turn guard (`turn_running`, `space/busy`)
+  and the deferred switch of option 2 are retired (2026-11-02, `docs/dev/team-profiles-cadrage.md` step 5): a DSH answers one space for good, so a reply can never be billed to two teams.
+  What remains is the safety net of the one route: before a turn (`agent/pre-step`, once per turn) the host reads whether the DSH's route still names the DSH's space (a profile
+  refresh or a hand-edited route can move it); a stale one is rewritten at once, bounded to 10 s, and if it still does not name the space the turn is REFUSED with one sentence that names
+  the team the route points at (`StaleRouteRefusal`: better a refused message than one billed to the wrong team), while the mend is tried again after 10 s, 30 s and 2 min.
+  **A team's own DSH the person has left** (removed, or left on the web; recette W4, J7): it keeps answering that team (`pinnedSpace`), so every message, even in a new chat, is refused by the server (404 `workspace_not_found`) and no mend can change that: the window is bound to the team for good. The window says so instead of promising a retry: the failure row reads « You are no longer in this team… open Personal to carry on » with an « Open Personal » button (a window event the footer turns into `team-dsh/personal`, the call behind choosing Personal in the menu), and the footer card reads « Team you left » instead of falling back to the first entry (Personal) of the list (`teamLeft` in `client.js`: `team_dsh` set and not in `workspaces`).
+- **The failure row of a turn** (`conversation.chat.node`, key `turn-error`): the engine documents that a later entry for a key shadows the shipped one, so the plugin wraps the
+  SHIPPED row (found in the slot's entries, registered at the lowest priority with the shipped entry's own locale). `no adapter registered for provider "kybernos"` (the cloud models
+  are gone: the connection ended or was never made) and `QUOTA` on a team with no plan are drawn by the shipped row with a sentence and an action beside it (« Sign in again »,
+  « Choose a plan »); every other failure is the shipped row, untouched.
+- **The retry row of a turn** (`conversation.chat.node`, key `model-retry`, wrapped the same way): while the account server is down a chat showed only the engine's « Retrying model
+  request (n/m) · 12s ». When the retry is of the `kybernos` route (the `provider` of the engine's `llm/retry` event), the attempt is waiting, and the host's `/quota` read answers
+  `{ ok: false, error: 'injoignable', server: { name, host, can_switch } }` (neither of its two server reads got an answer; the footer reads it every two minutes anyway, the row reads it
+  once per attempt), the engine's label is replaced by « The Kybernos server “X” (host) is not answering: DSH keeps retrying » (the count and the countdown are still the engine's), with
+  « Switch server » beside it when the registry names another server. Another provider's retry, an attempt that started or was cancelled, a server that answers or refuses, a session
+  the server ended, or a host that does not answer: the shipped row, untouched, and no read at all unless the first two hold.
+- **A page of the account asked for by another plugin** (`window` event `kybernos-cloud:account`, `detail: { section }`, cancelable): the footer claims it (cancels it) when the account
+  is connected and opens that page with the same console link as its menu entries (`section`, `open: true`, the active team); a request it does not claim (signed out, no footer) is left
+  to the sender. The core plugin's gift card uses it for « Open the referral page » (and falls back to `<web>/account#referral`, which the app keeps through its own sign-in).
+
+## The Team console in DSH: gone
+
+`GET /kybernos-cloud/relay` is no more. It was how the server's console, framed read-only in DSH, read the account and the team (an allowlist of GET paths, the
+token added by the host). The menu entries Team settings, Account and Referral open the app in the browser instead (`POST /kybernos-cloud/console/link`, ADR 0054
+of the server), so nothing frames the console any more and the route, its allowlist and the page-side broker are removed (`docs/dev/frame-removal.md`).
+
+## Settings › Kybernos (what stays on this computer)
+
+The one Settings section of this bundle (`kybernos-local`, `KybernosSection` in `client.js`) holds the three local functions that used to sit
+on the removed Account pages. It is shown whether connected or not; what needs a server says so when signed out (buttons disabled).
+The account's own pages (profile, security, devices, data, support) are the server's pages, opened from the footer menu in the browser.
+
+- **Custom instructions**: the field and its Save, through the two host routes below (a marked section of `<DSH home>/AGENTS.md`).
+- **Models**: the line says what the last import did (count, plan, date) and that the list updates by itself (the host re-imports at the connection, at boot, at a server switch, on a change of space and when the catalogue changes at the 5-minute refresh). The by-hand button is not on the page: it is under a folded **Advanced** (`ky-adv-toggle`): « Re-import » runs `POST /kybernos-cloud/models/sync`.
+- **DSH chats** (also under Advanced): one sentence says what is sent (the title and date of each DSH chat, never what is said in it), to whom (the person's Kybernos account) and why (the « DSH conversations » list of the web app). « Send DSH chats » then asks « Send the list now? »: only `Yes, send` runs `POST /kybernos-cloud/chats/push`; Cancel sends nothing. The last send is shown.
+
+The "Custom instructions" field used to live in the browser only, so no agent read it.
+It is now a marked section of `<DSH home>/AGENTS.md`, which DSH's own `dsh-agent-instructions` loader hands
+to every new chat (user-global file first, then the project's):
+
+| Route | Answer |
+|---|---|
+| `GET /kybernos-cloud/instructions` | `{ok, present, text, file}`: the section's text and the file's path (the page says where the text went) |
+| `POST /kybernos-cloud/instructions/save` | body `{text}` (at most 2000 characters; an empty text removes the section) → `{ok, present, changed, file}` or `{ok:false, error}` |
+
+- `instructions.mjs` owns the file logic: the section sits between `<!-- kybernos:custom-instructions v1 -->` and
+  its closing marker, is replaced in place, and everything else in the file is left byte for byte. A Windows
+  file keeps its line ends, a symlinked `AGENTS.md` stays a symlink, a write is tmp + rename.
+- A marker typed in the field is refused (`reserved`), and a file with an opening marker but no closing one is
+  refused (`markers-damaged`) instead of guessed at.
+- The write is strict same-origin like the other mutating routes, and the page keeps the text unsaved with the
+  reason when the write fails. Without the route (an older host) the field stays browser-side.
+- Applies to **new** chats: DSH loads the file for the first request of a conversation.
+
+## The footer menu: Upgrade, See plans, a server that does not answer
+
+- **Upgrade** (connected): an entry after the plan row, for a plan that has something above it. It asks the host for the console link on the active
+  workspace's plan page (`section: plan`, the call Team settings makes) and the host opens the system browser: nothing is bought from the menu. It is
+  not offered on Free (that plan keeps its pill, which opens the in-DSH Upgrade dialog), on the top level of the individual plan or on a paid Team plan
+  (the public catalogue, `GET /kybernos-cloud/plans`, says which is the top; not read = the entry stays), nor on a page that is not on loopback (a hosted
+  DSH: the host is not the person's machine, and the server refuses a single-use link that a page started).
+- **See plans** (signed out): opens the server's own `/account#plan` in a tab (the app signs the person in, then shows the plans).
+- **A server that does not answer** (`status: 0`): `POST /kybernos-cloud/console/link` and the seam
+  (`globalThis[Symbol.for('kybernos.cloud')].call`) answer with `server: { name, host, can_switch }`: the active server's label and host, and whether the
+  registry names another one. The footer's notice and kybernos-mobile's panel then say « the server “X” (host) does not answer » and, when `can_switch`,
+  offer « Switch server »: Settings › Servers (the Servers module's page, cell key `kybernos-servers`; the phone link asks the footer for it with the window
+  event `kybernos-cloud:servers`). Tests: `test-console-link.mjs`, `test-cloud-seam.mjs`, `test-cloud-client.mjs`; live: `scripts/check-footer-live.mjs`.
+- **What the seam reaches** (`cloudSeamCall`, `workspace()`): `/v1/remote/…` (the phone link) and three team-space calls for Apps' Publish, `GET …/team-space/hosts`, `POST …/team-space` and
+  `DELETE …/team-space?space=<id>`, under `/v1/workspaces/<id>/` and **only for the active workspace** (any other id is `workspace_refused`). `workspace()` is the active workspace's id (null when signed out).
+  Nothing else is reachable and the token is never handed over. Used by kybernos-mobile and kybernos-db (`remote/cloud-hosting.mjs`).
+
+## Account memory (cloud feature no. 2)
+
+DSH has **no native memory**: its instruction plan is capped at
+65,536 bytes (`maxBytes` of the presets) and, beyond that, the loader **omits** the
+least specific files. The user's durable memories therefore live where they are
+already modelled: the `kybernos.memories` table of their account.
+
+When the account is connected, this half does three things:
+
+1. **It reads** `GET /v1/memories?scope=account` (and `?scope=kyber&kyber_id=` for
+   each linked Agent Team) with the account's token, and fills a cache. The cache is **reloaded** when it is more than 60 s old (plugin timer, released with it), right after any write (tool, capture, card) and when the page opens; a read that fails **keeps** the old content and surfaces the error instead of emptying the prompt.
+2. **It injects** the result into the prompt, at each assembly, via
+   `ctx.systemPrompt.context({ name: 'kybernos:memory', order: 130, text })`.
+   The text is **synchronous** (it reads the cache — never the network in an
+   assembly), bounded to 6,000 characters **frame included**. The
+   **selection** is by freshness: the pinned ones first (capped at 60% of the
+   budget, most recent first), then the most recent free memories, and
+   a memory too long for what remains is skipped. The **rendering** keeps the
+   deterministic order of the server spec (`pinned DESC, created_at ASC, id ASC`, an
+   unstable order breaks the proxy's prompt caching). The old sort “from oldest to
+   most recent, cut at the first overflow” kept only the oldest: on an account
+   with 631 memories, only 12 pinned ones fit and nothing of what the model had just
+   learned. When memories remain outside, the chunk says so and points to
+   `memory_search`. The linked Agent Teams have their share (30%) so that one group
+   does not starve the other. This is a **provisional** step: the real answer is a
+   relevance search on the server side. The content is neutralised: a memory cannot
+   forge a chunk line.
+3. **It lets you write**: two tools (`memory_write`, `memory_search`) and an
+   **automatic end-of-turn capture** (`agent/turn-stopping`) that asks the
+   model in place, in the background (300 tokens max), what is worth
+   remembering — then writes it into the account (`kind` chosen by the model, `source:
+   conversation`). This hook is awaited **serially** by the agent loop:
+   the capture is therefore *fire-and-forget*, it never delays the end of the turn.
+   The text submitted for extraction **names the roles** (`UTILISATEUR :` /
+   `AGENT :`): without a label, the model cannot tell a lesson taught by the
+   user from a claim made by the agent.
+
+   Two safeguards against a **feedback loop** observed live on
+   22/09/2026 (memory #53 was the exact duplicate of #51): the capture
+   rereads the messages of the turn, and the turn carries the injection that this plugin has just
+   written into the prompt — the extraction was therefore rereading its own injection.
+   (1) the injected block is **removed** from the submitted text (`stripMemoryBlock`);
+   (2) a fact already present in the account is **not rewritten** (normalised
+   comparison). Without the second, the same fact is written on every turn that carries it.
+
+   Two more, measured on dev on 2026-10-19 (a test conversation wrote seven memories): the agent's words are no source
+   of memory, and one request is not a preference. (3) After a **question**, or a message long enough to stand alone (over 80
+   characters), only the person's words are submitted: « what do you know about me? » had made the capture write three
+   memories it had just read back. The agent's question is kept as context only for a short reply (« yes, Paris »). (4) A
+   `preference` or a `policy` is kept only when the person says it lasts (`always`, `from now on`, `by default`, `I prefer`,
+   `toujours`, `désormais`, `je préfère`, `siempre`…, `isLasting`): « answer in Spanish » is about one answer. The extraction prompt says both too.
+   (5) A fact **close to** a memory the account already holds is not rewritten (`nearKnown`: word overlap of 0.6, or 0.9 of the shorter one with at least five
+   words, using the tidy-up's own comparison; a negation, or a number the other text does not have, makes it a different fact). The exact-text check of (2) did not see
+   a reworded copy, and an automation's turns wrote ten of them each: replaying the 86 memories of the dev account in order, 27 are repeats (15 of the 31 written since the capture
+   began). It is a guard, not a cleaner: what is already stored stays for the Memory tidy-up.
+   (6) A refusal is a refusal: when the person refused a `memory_write` or a `lesson_write` in the turn (the gate of Kaby's own chat, or a cloud computer's), the capture of that
+   turn does not run (`refusee`). Measured on the real DSH: the card was refused and the same fact appeared in the account a second later, written by the capture.
+
+   The capture is *fail-open* by construction, hence **observable**: each
+   exit writes a state (`hors_connexion`, `desactivee`, `sans_session`,
+   `tour_trop_court`, `llm_indisponible`, `rien_a_retenir`, `deja_connu`, `refusee`, `ecrit`, `erreur`) that the route and the card display. Without
+   that, “nothing to remember” and “the LLM service is missing” would look
+   exactly alike — it is the same blind spot as “the panel is selected” without
+   “the panel is visible”.
+
+Local routes (same-origin guards and strict method, like the others):
+
+| Route | Method | Role |
+| --- | --- | --- |
+| `/kybernos-cloud/memory` | GET | the account's list + cloud Agent Teams + mapping + lesson counters |
+| `/kybernos-cloud/memory/add` | POST | adds a memory (`{content, kind, source?, pinned?}`) |
+| `/kybernos-cloud/memory/update` | POST | pins / unpins / changes the retention (`{id, …}`) |
+| `/kybernos-cloud/memory/delete` | POST | forgets a memory (`{id}`) |
+| `/kybernos-cloud/memory/list` | GET | **paginated and filtered** list of the account (`limit`, `offset`, `show`, `src`, `added`, `q`) |
+| `/kybernos-cloud/memory/settings` | GET | the `memories`, `context`, `capture` switches, and `capture`: where the last capture stands (in memory only) |
+| `/kybernos-cloud/memory/settings/set` | POST | sets one or more switches (booleans; refused as a whole otherwise) |
+
+Each path is **distinct**: the router indexes by path, so two routes
+on `/memory` would mask each other (defect found by the host suite).
+
+### Settings, origin of writes, paginated list
+
+- **Switches** (`memories`, `context`, `capture`, all true by default): file
+  `kybernos-cloud-memory.json`, **next to** the state (0600) and not inside it, because the state
+  disappears at disconnection whereas a “Memory: off” must survive a
+  reconnection. `context=false`: no chunk; `memories=false`: no chunk, tools
+  refused (`memoire_desactivee`), no capture; `capture=false`: the capture costs
+  neither a network call nor a token (state `desactivee`). These switches govern **this
+  plugin**: the Kybernos proxy also injects a memory block for the requests that
+  go through it, and does not know about them yet.
+- **Origin**: the server marks the capture, an agent's tool and the push of
+  lessons with the same `source` (`conversation`). The plugin therefore records locally who wrote
+  what (`kybernos-cloud-memory-origins.json`, 5,000 ids max): `capture`, `agent`,
+  `taught` (the card), `sync`. For a memory written elsewhere, the origin is deduced
+  from `source` and the list carries `originKnown: false`.
+- **List**: `GET /kybernos-cloud/memory/list` computes on the cache, because
+  `GET /v1/memories` returns everything and does not paginate yet. Each row carries `sent`,
+  which comes from the **same** selection as the prompt: the screen cannot announce anything
+  other than what the model reads. The search is textual (`search.mode: exact`,
+  `relevance: false`).
+
+### Agent Team mapping
+
+The identifiers have nothing in common (local: `default`, `dev-team`… ; cloud:
+`kg52d53f4ce522`…). The mapping is therefore **explicit and inspectable**
+(`state.kyberMap`, editable from the card), never guessed: a local Agent Team that is not
+linked pushes nothing, and the push report says so. The lessons go up as
+`scope=kyber`, `kind=policy`, with **deduplication before writing** (content
+already present is not rewritten). The most recent ones go first if the
+cap of 40 cuts.
+
+### Invariants
+
+- offline: no chunk, the tools refuse, **no network request**,
+  and above all not the cache of the previous account (`emptyMemoryCache()`, also called by
+  `disconnect` — a test checks it);
+- a refused read (401) **says it is refused** — it never disguises itself as
+  “no memories” (an empty list and a dead token do not look alike);
+- `kyber_id` is **not exposed to the model**: a model must not be able to target
+  another's Agent Team (server spec §7);
+- the injection is fail-open (no chunk ⇒ the turn continues), the read is
+  fail-loud (the error surfaces all the way to the card).
+
+### Team space: the personal memory is cut
+
+The whole picture of the teams feature (the rules, the files, the seams, the known limits, the tests) is in `docs/dev/teams.md`.
+
+When the active space is a **team**, nothing personal reaches the model and nothing personal is written. This is not a setting; the one
+door from personal to team is the explicit « Propose to team » action (below, « Team lessons »).
+
+- **What a team space is** (`team-space.mjs`, `spaceKind`): the account is connected and the active space (`espaceActif`) is not a record that
+  says `personal: true` (a required boolean of the server's Workspace). Only that exact value is personal: a missing list, an active space
+  that is not in it, a record without the flag, a `personal` that is not a boolean, a model route (`state.models.workspace`) that still names
+  another space than the active one (a failed catalogue import, a stale write: the chat is billed where the ROUTE says), and a state file that
+  exists but cannot be read now (damaged, empty, caught half way by a write, bad rights) all count as a team. **Fail closed**: a wrong cut costs a memory that does not show
+  up, a wrong keep would put a personal memory in front of a team conversation. Not connected (no state file): no teams exist, nothing changes.
+- **What is cut**: the `kybernos:memory` block (it says `[KYBERNOS MEMORY OFF]` first, then the reason). The Kybernos proxy looks for its markers in the
+  system/developer messages only, and a `context` block reaches the model as a user message, so the same marker also leads a real system **section**
+  (`kybernos:memory-off`, empty outside a team space): that is what keeps the proxy from adding the person's account memory to a team request; `memory_write` and `memory_search` (one sentence that points to « Propose to team », nothing sent to the server); the end-of-turn
+  capture (before any model call, and also for a turn that began in a team and ends after a switch back to personal; the memory pill reads « off in a team space »); the lowest door `createMemory` for what the model writes (the
+  tool and the capture) while the person's own hand on the page is not stopped; the scheduled tidy-up (it may ask the Study model, which in a team
+  space is the team's route and bill, and the Study model is not asked by a scan started by hand either); the page's « sent » counts, which read the same plan as the prompt. The lessons block, its two tools and
+  its scheduled tidy-up are kybernos-memory's, which asks through the seam below.
+- **What a team keeps**: `kybernos:team-lessons`, `kybernos:workspace-instructions` (per folder, another bundle), « Propose to team » and the
+  account's own pages. The human's last message is still noted in memory (`noteUserTurn`): it writes nothing, and the team lessons block ranks
+  its lessons with it.
+- **The routes a shell could use** (the model has one, and plugin routes are served before DSH's login): `memory/add`, `memory/update`,
+  `team/lessons/add`, `space/active` and `kyby/native/set` need DSH's signed browser-session cookie besides the Origin
+  (`session: true`, as the deletes do). A shell that reads the machine secret can still forge that cookie: this raises the bar from a bare `curl`,
+  it is not a sandbox (`docs/dev/route-origin-rule.md`).
+- **The seam**: `globalThis[Symbol.for('kybernos.space')]`, a frozen `{ version: 1, isTeam() }` published at `apply`. `isTeam()` reads the state
+  file each time it is called (a system-prompt callback is synchronous and runs at every assembly), so a switch in the middle of a session is
+  seen at the very next assembly, both ways, with no restart. A bundle that finds no seam knows no teams; a seam that throws, has no `isTeam`
+  or answers anything but `false` is read as a team (`kybernos-memory/team-space.mjs`).
+- **Limits, said plainly**: what a session already holds in its history from before a switch from personal to team (the memory block of earlier
+  turns) cannot be taken back by a plugin; the team note asks the model not to use it, and a new chat is the clean way. The state is written
+  before DSH applies the new model route (about 3 s), so right after a switch back to personal a request can still be billed to the team. An
+  agent with a shell can still read files under the DSH home: kybernos-memory refuses the plain ways in a team space (`memory.cjs`, the lessons files,
+  the account's state files, the pages' loopback routes) but nothing here is a sandbox. The Kybernos proxy's own memory injection is workspace-blind:
+  the section above stops it only where DSH sends the system prompt (a title, a compaction or a sub-agent call that carries no prompt can still get the
+  account memory from it until the proxy itself skips non-personal workspaces).
+- **Test**: `node scripts/test-team-memory-cut.mjs` (a canary word in a personal memory and a personal lesson, both bundles mounted, the
+  switch both ways, every fail-closed case).
+
+## A DSH of its own for each team (`team-instances.mjs`)
+
+The plan is in `docs/dev/team-profiles-cadrage.md`: a team gets a whole second DSH (own home, own port) instead of a switch inside one DSH. This
+file is its launcher; the account menu calls it (`openOwnDsh` in `client.js`), and the single-instance switch it replaces is retired.
+
+- **Home.** `<personal home>/teams/<team id>`: a copy of the personal profile (APFS `cp -c`, `--reflink` on Linux), its relative links out of
+  the profile made absolute, the paths that name the personal home pointed at the team's home, plus the MCP folder. Built aside and renamed,
+  so a home is whole or absent; a folder with no `team-home.json` is never replaced. The bundles that belong to the computer or to the account
+  (`PERSONAL_ONLY_BUNDLES`: the restart tool that targets :3080, the apps and LaunchAgents installer, Kaby with its Settings pages, the phone link) are taken out of the copy's profile,
+  and out of an older home when its DSH next starts. The home starts with the first-run wizard done (`seedOnboarding`: tastes only, never who the person is).
+- **Start.** `POST /kybernos-cloud/team-dsh/open {workspace_id}` (strict same-origin, signed session) starts `dsh web` on loopback with
+  `DSH_HOME`, `DSH_WEB_PORT`, `KYBERNOS_PERSONAL_HOME` and `KYBERNOS_TEAM_ID` set, on a port of 3300-3399 that the team keeps, and answers
+  its address once the engine says it is mounted. The keys of the DSH that starts it are passed on. Two calls at once start one DSH.
+  `GET .../team-dsh/list`, `POST .../team-dsh/stop`, `GET .../team-dsh/personal` (the address of the personal DSH, which writes its port in `<personal home>/kybernos/personal-dsh.json`).
+  `open` answers `url` and `signed_url` (the address `dsh web` printed, which signs a browser in: it goes only to the page that asked). The account menu (`openOwnDsh` in `client.js`) opens it in a window named after the team. The registry is `<personal home>/kybernos/team-instances.json` (0600).
+- **Stop.** A team's DSH (the one started with `KYBERNOS_TEAM_ID`) stops itself, as a normal shutdown, after 30 minutes with no request, no reply
+  running and no active automation (`status: 'active'` rows of the engine's `storages/schedule.json`, engine 0.2.2-alpha.2: re-check on an
+  engine bump). Anything it cannot read keeps it alive. The personal DSH never stops.
+- **Its team, and its sign-in (step 2, done):** a team's DSH (`KYBERNOS_TEAM_ID`) has that team as its active space for good (`pinnedSpace`): `space/active` answers `espace_fixe`
+  for another space and nothing follows a chat, so the model route names the team from the first mount. At every opening the host
+  (`seedTeamHome`) gives a home that holds no connection a copy of the personal session (token, user, server, device label, and the list of teams as the personal DSH last read it, so that the card names the team from the first paint: without it a new team DSH showed the person's own name for about 3 s; not the plan or the model-route record, which
+  the team DSH reads itself) and the server registry. One session, two DSH: signing out of a team's DSH does not revoke it. The record of the team folders is the personal home's.
+  The account's memory on the server stays cut there; the local lessons work (`seam.ownHome()`, read by `kybernos-memory`).
+- **What belongs to the account stays out (step 3b, done):** in a team's DSH the routes `kyber`, `kyby/*`, `telegram/*`, `whatsapp/*` and `computer/*` answer `403 personal_only`
+  (`personalOnlyRoute`, in the route wrapper) and the seam to the phone link (`/v1/remote/`) is closed; the pages that draw them (Kaby, its Settings, the phone link) are not loaded.
+  The cloud computers of the agents (`computers*`) stay.
+- **Not done yet:** a window of its own in the desktop app (another repository), the rest of the new home's first setup: the language of the interface and whether the person's own provider keys go with it, the signed address of the team's DSH handed to the page (the session cookie's name comes from host and port, so two DSH in one browser each keep their own). The other bundles were sorted: only the two of `PERSONAL_ONLY_BUNDLES`
+  start something machine-level.
+- **Tests:** `node packages/kybernos-cloud/test-team-instances.mjs` (a stand-in script plays `dsh`; no real DSH starts) and, on a sandbox,
+  `source scripts/sandbox/env.sh && node scripts/check-team-dsh-live.mjs` (a real `dsh web` on a copied profile: 12 s to mounted on a
+  developer's Mac, the cloud plugin answers from it, it stops cleanly).
+  `packages/kybernos-cloud/test-team-personal-only.mjs` plays the refusals through the route wrapper on a real HTTP server, and `scripts/check-team-hidden-live.mjs` opens the real page of a team's DSH
+  next to the personal one on the sandbox and compares them.
+
+## Team skills (server half)
+
+A Team's private catalogue of skills: any member proposes one, an owner or admin approves it, every member can install it. This
+package only talks to the server (contract: `docs/dev/team-skills-contract.md`, routes under `/v1/workspaces/{id}/skills`) with the
+account token, for the **active** workspace, and only on the Team plan (the same `teamWorkspace` rule as the lessons). It never
+reads or writes a skill on disk: `kybernos-skills` does (`team/pack`, `team/install`), and the page carries the files between the two.
+
+| Route | Does |
+| --- | --- |
+| `GET /kybernos-cloud/team/skills?view=approved\|proposed\|mine\|all&limit=&offset=` | a page of skills (metadata), with the caller's role and the counts |
+| `GET /kybernos-cloud/team/skills/item?id=` | one skill with its files |
+| `POST …/add` `{name, description, files, note?}` · `…/review` `{id, decision, note?}` · `…/retire` `{id}` · `…/delete` `{id}` | propose (an admin's skill is approved at once), approve or reject, retire, withdraw |
+
+Every refusal of the server is returned as one word (`team-skills.mjs`: `admin_required`, `scan_rejected`, `invalid_skill` with its
+`reason`, `duplicate`, `not_on_this_server` for a server without the routes, …). The server's own text never reaches the page.
+`node packages/kybernos-cloud/test-team-skills.mjs` (14 checks, stand-in server).
+
+## Team automations (server half)
+
+A Team's private catalogue of automations: a member proposes one of theirs, an owner or admin approves it, every member can install it as a paused copy of their own. Same
+shape as Team skills: this package only calls the server's routes under `/v1/workspaces/{id}/automations` (contract: `docs/dev/team-automations-contract.md`) with the account
+token, for the **active** workspace, and only in a team space (`teamWorkspace`; a personal space or another plan answers `offre_requise`, as skills do).
+The package never reads or writes a local automation: `kybernos-plugin` does (`/kybernos/automation/team-*`), and the page carries the definitions between the two.
+
+| Route | Does |
+| --- | --- |
+| `GET /kybernos-cloud/team/automations?view=approved\|proposed\|mine\|all&limit=&offset=` | a page of automations (metadata, no prompt), with the caller's role and the counts |
+| `GET /kybernos-cloud/team/automations/item?id=` | one automation with its prompt, refused (`version_mismatch`) unless it hashes to the version the server states |
+| `POST …/check` `{key, name, description, prompt, schedule, needs, note?}` | the dry run of a proposal: `{ok, version}` or the word the proposal would get; nothing stored |
+| `POST …/add` (same body) · `…/review` `{id, decision, note?}` · `…/retire` `{id}` · `…/delete` `{id}` | propose (an admin's is approved at once), approve or reject, retire, withdraw |
+
+All the POST routes are strict same origin **and** the signed session (they carry prompts); `add` and `check` take 256 KiB, the others 4 KiB.
+
+- **The words** (`team-automations.mjs`): `admin_required`, `plan_required` (the server's `403 plan_required`, never guessed from a plan's name), `scan_rejected` with the
+  `field` (and the `line` of the prompt), `invalid_automation` with its `reason`, `duplicate`, `not_pending`, `not_approved`, `team_full`, `too_many_proposals`, `too_large`,
+  `not_found` and `not_on_this_server` (the two exact 404 texts of the contract tell them apart), plus `reconnect_required`, `network`, `forbidden`, `conflict`, `bad_request`,
+  `refused_<status>`, `invalid_response`. The server's own text never reaches the page, and neither does a field the contract does not name.
+- **Before the call**: `add` and `check` look at the definition first (`teamAutomationShape`: key, name, description, prompt, a cron or webhook schedule and nothing else, needs),
+  so the page hears `invalid_automation` + `reason` without a round trip, and send only the six fields, the cron on single spaces and the needs sorted. A text with a character no person can
+  see (the tags block, the direction controls, zero-width spaces, a BOM, control characters: `hiddenIn`, decision DL-09, set and list of texts in `docs/dev/team-automations-contract.md`) is
+  `invalid_automation` + `reason: "hidden"` + the `field`, in the name, description, prompt, note, cron and app names. A row says `hidden: true` when its text holds one, so the review sheet
+  never calls it « Checked » (skills: `hiddenPlaceOf` names the place, and `add` refuses before the call).
+- **The version** is the SHA-256 of the canonical form (`canonicalOf`, `versionOf`); the contract's two test vectors are in the test.
+- **The access journal**: `team-automations-access.jsonl`, beside the state file, one line per call that reached the server (`at`, `user`, `workspace`, `action`, `id`, `view`,
+  `decision`, `result`). A closed list of fields, so never a name, a prompt, a description or a note; 0600, two generations of 512 KiB at most, and a journal that cannot be written
+  never fails a call.
+
+`node packages/kybernos-cloud/test-team-automations.mjs` (stand-in server; the routes are also in the lists of `test-cloud-host.mjs`, `test-write-guard.mjs` and `lib-session-routes-test.mjs`).
+
+## Kybernos connections (the account's connected apps)
+
+The person connects Gmail or GitHub once, in the web app or in DSH, through the **server's own Composio Platform project** (not a key typed
+on a machine: ADR 0008 of the Kybernos server), and every agent of theirs can then use it. This package holds the DSH half; it exists only
+for a server whose profile says `services.connections` (an address, on the server's own origin; absent or `false` = not offered: no route
+answers, no tool is registered, nothing is sent: `docs/dev/servers.md`). Pure half in `connections.mjs` (paths, the five statuses, one word
+per refusal, row mappers, JSON-RPC), host half in `connections-host.mjs` (routes and tools), glue in `index.js`.
+
+| Route | Does |
+| --- | --- |
+| `GET /kybernos-cloud/connections[?refresh=1]` | `{ offered, connected, connections: [{id, toolkit, status, accountType, alias, isDefault, createdAt, failure}], limit, entitled, count, web, stale }`; `status` is `pending`, `active`, `failed`, `expired` or `disabled` |
+| `GET …/connections/apps` | the toolkits that may be connected, **for anyone, signed in or not**: `{ offered, connected, apps: [{slug, name, categories, description, needsApiKey, logo}], source }`. The host asks the server's public `GET /v1/connections/catalogue` first (no token is sent: `source: "public"`); a server that has no such route (404, an older server) is asked through the account route with the token (`source: "account"`, signed in only; else `connected: false`). The list is kept on disk (`<DSH home>/kybernos/connections-catalogue/<server>/catalogue.json`, the public list and nothing of the person) and served from there while it is under a day old, so the page opens at once, even offline; `?refresh=1` asks the server anyway, and when the server cannot be asked the older copy is served with `stale: true`. `logo` is only a flag: the picture is the next route |
+| `GET …/connections/logo?slug=` | an app's logo, as an image of this machine's own address (the page never contacts a third party): the host reads the file it kept (`…/logos/<slug>.svg`, re-checked on every read) or else asks the server's public `GET /v1/connections/catalogue/logo?slug=` (no token; a server whose list came from the account route is asked on `GET /v1/connections/logo?slug=` with the token, from this host only), re-checks the SVG (no script, no `foreignObject`, no event handler, no external reference, 256 KiB at most), keeps it on disk and a day in memory (600 at most, one request for any number of simultaneous asks) and answers it with `nosniff` and a `sandbox` CSP. A logo that is refused, missing or too big is a `404`: the page shows a letter. Slug checked first; nothing is asked of the server for a bad one |
+| `GET …/connections/item?id=` | one connection, reconciled at the server on the spot: what the page **polls** (every 5 s) while an add is pending |
+| `POST …/connections/link` `{toolkit, api_key?, alias?}` | starts one: `{ connection: {id, status}, redirectUrl }` (the page opens `redirectUrl` in a new tab); never a `redirect_uri` (the server uses its own page), never a user id; an `api_key` is sent in this one call and never kept, logged or answered back |
+| `POST …/connections/delete` `{id}` | disconnects, at the third party and in the server's table |
+
+**The whole catalogue is loaded in the background, once a day.** About 20 s after DSH starts, then checked every hour (a computer that slept catches up), the host asks the server for the list when its copy is a day old, then for every logo whose file is missing or a day old: three at a time, about 6 a second (the server allows 600 a minute), never blocking DSH or the page. A refusal or a silent server stops the load for 10 minutes (three failed batches in a row); a logo the server does not have is skipped and tried again the next day. Only the public list and the logos are written (one folder per server endpoint, mode 0600); no connection, key or result ever is. Without a folder (tests) nothing is kept and nothing is loaded.
+
+Refusals are one word: `connection_limit` (with `limit`, `count` and, from a server that says it, `entitled`: `false` means the plan does not include connecting apps, so the page offers the plans instead of a limit to reach), `pending_exists` (with `existing: {id, toolkit, status}`, so the page can offer
+“cancel it”), `needs_api_key`, `connection_failed` (the app refused the key), `upstream_unavailable` (with `checkFirst`: an add that may have gone through, so **list before trying again**; an add is
+never sent twice), `connections_disabled`, `reconnect_required`, `not_found`, `not_on_this_server`, `network`. Nothing leaves the machine when
+the server does not offer connections or the account is not connected.
+
+**Three native tools** for the agents, registered while the server offers connections AND the account is connected, and removed when either stops
+(checked every 5 s, so a pairing, a disconnect or a change of server needs no restart): `connections_list` → what is connected, `connections_search_tools`
+`{toolkit, query?, limit?}` → the actions of an app, `connections_execute` `{tool_slug, params, connection_id?}` → runs one with the person's own
+account. They are registered here and not as a `dsh-mcp-client` entry because an entry's headers are fixed when it loads: it would keep the token it
+started with through a re-pairing. Each call posts one JSON-RPC `tools/call` to the endpoint with the live token (stateless: no `initialize`); the person
+is named by the token alone, never by an argument. `connections_execute` acts for real and is not retried.
+
+`node packages/kybernos-cloud/test-connections.mjs` (26 checks, a stand-in server that speaks ADR 0008; the engine's own JSON-schema rules are
+checked for each tool where DSH is installed, `NO_DSH_ENGINE=1` skips them).
+
+## Share panel: members
+
+`POST /kybernos-cloud/members/invite` with `{email, role}` creates a pending invitation (`POST /v1/workspaces/{id}/invitations`, which sends the mail; answers `invited: true`) and with `{user_id, role}` adds an existing user (`POST …/members`); the refusals the panel can act on come back as one word: `already_member`, `seat_limit`, `forbidden`, `rate_limited`.
+
+## Why a separate package
+
+The client half of a Cordis plugin must fit in **a single** `client.js`: the
+DSH loader evaluates `window.__ModuleLoader__.load({ id, factory })`, there is neither a
+bundler nor an import of a neighbouring file. This package therefore keeps the cloud integration
+isolated from the `@local/kybernos` plugin (the local plugin for Agent Teams), which avoids
+write collisions and makes each half deliverable independently.
+
+## How it works (device code flow, RFC 8628)
+
+```
+DSH (host)                    <api> (the active server)         browser (already signed in)
+   │ POST /v1/device/start ───────▶│
+   │ ◀── device_id, device_secret, user_code, activation_url     │
+   │ window.open(activation_url) ───────────────────────────────▶│ /cloud/cli/activate
+   │                               │ ◀── POST /v1/device/approve ─┘ (Supabase JWT, fresh-iat)
+   │ POST /v1/device/poll (2 s) ──▶│  approved → `kys-…` token minted at claim
+   │ ◀── { token, user{id,email,name,plan} }        (once only)
+   │ GET /v1/me + /v1/workspaces (Bearer kys-…) → live profile
+```
+
+The claim carries only a **snapshot** of the profile. Every refresh
+therefore calls `GET /v1/me` again (name, plan — the same source as the claim) in addition to
+`GET /v1/workspaces`: a name filled in or a plan upgrade on the Kybernos
+side comes through without re-pairing. An older server that does not know
+`/v1/me` (404) simply leaves the profile in cache. If `name` is empty —
+which is the case today, no product path writes `kybernos_users.name` —
+the card shows the **local part of the email**, greyed out and annotated as a
+fallback, rather than a mute “—”. This fallback is the **decision taken** (19/09),
+not a stopgap: writing a real name at the source — sign-up onboarding
+or a Profiles screen on the Kybernos side — remains a product option, not planned.
+
+The password is entered **in the browser**, on the page served by
+Kybernos. This plugin never sees a password, a Supabase key or a LiteLLM
+key: it stores only the opaque `kys-…` token, the same kind of token as
+a web session — revocable from the Kybernos app (**Security → Sessions**,
+the device appears as `DSH <machine name>`, and `DSH <machine name> (port N)` when this DSH does not listen on 3080, so two DSH of one computer read differently).
+
+## Security invariants
+
+1. **No secret in the repository.** The state lives in `~/.dsh/kybernos-cloud.json`,
+   created with **0600** (the folder 0700). It is *outside* the repository, never committed.
+   **It survives a cut** (recette L3-83 / L3-57): it is written through a temporary file in the same folder (0600, flushed to disk) renamed over it, so a power cut, a full disk or a kill leaves the
+   old file or the new one, never half of either, and the last good version is kept as `kybernos-cloud.json.bak` (0600, same folder; a damaged file never replaces a good copy). When the file
+   is there but cannot be read (empty, cut, not JSON, not an object, refused by the disk) the `.bak` is read and the next write mends the file; a file that is simply absent is a sign-out and
+   is NOT replaced by its copy (`clearState`, the sign-out and a revoked session remove both). When neither can be read, `GET /status` answers `{ connected: false, status: 'unreadable' }` and the
+   footer says « Session could not be read » under « Sign in again » (the long sentence, « Your session could not be read: ... », is its tooltip and the notice shown when the row flips while the person looks elsewhere; not the first-time words, not « session ended »). The record of the teams' folders (`kybernos-cloud-folders.json`) is written
+   and read the same way. If the system refuses the rename for good (Windows, a process holding the file) the text is written in place, as before.
+2. **The token does not leave the host half.** The `/kybernos-cloud/*` routes
+   return only `{ user, workspaces, device_label, expires_at }` — never the
+   token, never the device secret. The client half only calls them.
+3. **The device secret disappears at claim.** After the first successful poll,
+   `device_secret` and `user_code` are removed from the state file.
+4. **Same-origin.** The mutating routes refuse any origin different from
+   the host's (403), like the other local routes of the plugins.
+5. **Real revocation.** “Disconnect” calls `DELETE /v1/session` on the
+   server side (the token also dies for anyone who might have copied it), then erases the local
+   state. If the Kybernos app revokes the session, the next refresh
+   returns 401 → the card shows “Reconnection required”.
+
+## Activation
+
+The DSH web profile loads plugins by link. Add the dependency and the
+bundle, install, then restart DSH (the profile does not hot-reload
+for a bundle that is still absent):
+
+```bash
+# 1. /Users/<you>/.dsh/profiles/web/package.json
+#    "dependencies": { … , "@local/kybernos-cloud": "link:/path/to/dsh-kybernos/kybernos-cloud" }
+#    "dsh": { "profile": { "bundles": [ … , "@local/kybernos-cloud" ] } }
+
+# 2. link + install
+cd ~/.dsh/profiles/web && pnpm install
+
+# 3. restart DSH (the bundles are resolved at start-up)
+```
+
+> **Already done on this machine (2026-09-19)**: the dependency and the bundle are
+> registered in `~/.dsh/profiles/web/package.json`, the link
+> `node_modules/@local/kybernos-cloud` is in place, and the profile that serves the
+> GUI hot-reloaded the bundle (`patchReload: live`) — verified by
+> `GET http://127.0.0.1:3080/kybernos-cloud/status` → `{"ok":true,…}`.
+> Backup of the profile before the change:
+> `~/.dsh/profiles/web/package.json.bak-20260919-avant-cloud`.
+> To roll back: restore that backup, delete the link, and
+> `POST /kybernos-cloud/disconnect` before removing the entry from the bundles.
+
+Variant without a restart: the session that has the `cordis_*` tools can
+define the plugin hot with the content of `index.js` (host) and `client.js`
+(client) — same mechanism as the `kyber-1` plugin.
+
+## Configuration
+
+| Variable | Default | Role |
+|---|---|---|
+| `KYBERNOS_CLOUD_API` | `BUILTIN_API` of `server-profile.mjs` (the new server; at go-live only this constant changes) | API base; replaces the address of the active server (web, console and connections follow). The old stack remains reachable through a `servers.json` entry (docs/dev/servers.md) |
+| `KYBERNOS_CLOUD_STATE` | `~/.dsh/kybernos-cloud.json` | state file (tests, multiple profiles) |
+
+The origin of the activation page comes from the server (`activation_url`), so
+there is nothing to configure on the client side.
+
+## Tests
+
+```bash
+node scripts/run-all-tests.mjs --only kybernos-cloud   # every test-*.mjs of this folder (CI runs the same files)
+node packages/kybernos-cloud/test-cloud-host.mjs       # the host half, against a fake local Kybernos
+NODE_PATH=<node_modules with react> node packages/kybernos-cloud/test-cloud-client.mjs   # 3 static + render
+# react/react-dom are not dependencies of the repository: without them, the
+# client suite skips cleanly. Otherwise:
+KYBERNOS_CLOUD_REACT_DIR=<node_modules with react> node packages/kybernos-cloud/test-cloud-client.mjs
+```
+
+Since the memory work, the **client** suite starts with a **static** stage that
+runs even without react (wiring of the memory section + completeness of the two
+dictionaries: 61 literal keys present in fr **and** en). Without it,
+the absence of react turned the suite into a silent “all green”.
+
+The **visual proof** of the memory was a separate script (`check-cloud-memory-ui.mjs`, no longer in this repository; the live page check is
+`scripts/check-memory-live.mjs`). What it did: it read the URL with a token (the bare URL answers “dsh web authentication required”),
+opens the card, checks that the section is actually rendered, that what the
+card shows matches what the account contains, that the controls are
+in the card, and that the label of the primary button reaches a 4.5:1 contrast
+(this measurement is what found a white label on a nearly white background, ratio
+1.0: the “Connect” CTA had always been unreadable — the alias
+`--dsw-alias-brand-primary` is a **text** colour in this theme, not a
+background). The two checks that depend on the age of the host half in memory are
+flagged “PENDING”, never green.
+
+The host test mounts the real routes on a fake `webServer` and runs the full
+cycle (start → pending → claimed → profile → revocation), including the
+401 cases, network down, origin refused, invalid method, 0600 permissions and
+absence of token leakage — plus the catalogue cycle: import at claim (`kybernos/*`
+filter), settings write + credential, forced manual sync, catalogue
+401/unreadable, services absent (degradation), cleanup at revocation and at
+disconnection. The client test replays the `__ModuleLoader__.load`
+contract, checks the slot registration and the React rendering.
+
+## Troubleshooting
+
+- **The button does not appear** → the bundle is not loaded: check the two
+  entries in the profile's `package.json`, `pnpm install`, and the restart.
+- **“No models imported”** → the catalogue could not be read
+  (`catalogue_indisponible`, `catalogue_illisible`, `reseau`): disconnecting then
+  reconnecting restarts the import; if the import is partial, the
+  `settings` service refused the write (`settings_refuse`) — look at the DSH
+  log.
+- **A model answers 403** → the subscription does not include its plan: gating
+  is applied by the proxy, at call time (fail-closed), not by DSH.
+- **`demarrage_impossible`** → the API is unreachable or the variable
+  `KYBERNOS_CLOUD_API` points at the wrong environment.
+- **`trop_de_demandes`** → the per-IP limit of `/v1/device/start` (10/min): pending
+  requests expire after 10 minutes.
+- **“Reconnection required”** → the session was revoked (or expired on the
+  server side, 30-day sliding TTL without a call): click “Reconnect”.
+
+## Kaby (ADR 0053 of kybernos-server)
+
+The routes the **Kaby** page (`kybernos-kyber`) uses; the shapes and the words of a refusal are in `kyby.mjs`, tested by
+`test-kyby.mjs`. All add the account's token; every refusal is a short code word, never the server's text.
+
+| Route | Does |
+|---|---|
+| `GET /kybernos-cloud/kyber` | the door's state, the person's cloud computers and the one linked to the assistant (`home`; `manual_control`: false on the Free plan), `server` (the footer's `{ name, host, can_switch }`) and `pairing` (`supported` / `unsupported` / `unknown`: whether the server has the pairing routes, from the status of `GET /v1/me/telegram` and `GET /v1/me/kyby`; a 404 on either is a server older than kybernos-server#230) |
+| `POST /kybernos-cloud/telegram/pairing` | asks for a pairing: `{ id, link, bot, expires_at, qr: { size, modules } }` (the QR is computed here, `qr.mjs`) |
+| `GET /kybernos-cloud/telegram/pairing/state?id=` | `{ state: waiting\|scanned\|done\|declined\|expired, reason?, sender? }` |
+| `POST /kybernos-cloud/telegram/pairing/cancel` `{id}` | “it is not me” |
+| `POST /kybernos-cloud/kyby/computer` `{computer_id}` | the cloud computer linked to the assistant (null = the default Home); `GET /kybernos-cloud/kyber` lists `computers` and gives `home` as the chosen one |
+| `POST /kybernos-cloud/telegram/unlink` | disconnects the account's Telegram |
+| `POST /kybernos-cloud/whatsapp/pairing`, `GET …/whatsapp/pairing/state?id=`, `POST …/whatsapp/pairing/cancel` `{id}`, `POST …/whatsapp/unlink` | the same four calls for the WhatsApp door (ADR 0053 § 13.8, a beta bridge), on the server's `/v1/me/whatsapp[/pairing]`; the pairing's `link` is the number's `wa.me` address with the pairing message typed (`number` is answered, no `bot`). `GET /kybernos-cloud/kyber` carries a `whatsapp` object `{ configured, enabled, available, linked }` only when the server answers `/v1/me/whatsapp`; a server without the door (it answers 404) gives `null` and the page says « Not available on this server yet ». Played end to end on the server's replica (`whatsapp-door` branch, a stand-in bridge): not connected → code → the person's message → Kaby's question → « 1 » → connected → disconnected. |
+| `GET /kybernos-cloud/kyby/native` | which DSH chat is Kaby's (`sessionId`, null before the first time) and its folder (`cwd`, made here) |
+| `POST /kybernos-cloud/kyby/native/set` `{sessionId}` | remembers that chat (null forgets it) |
+| `GET /kybernos-cloud/computers` | the person's cloud computers (personal space) for the load strip of the Automations page: `{ok, connected, computers: [{id, name, isHome, state (awake, asleep, waking, winding_down, off), memoryMb, mode, paused, load}]}`. `load` is what the computer said in its last beat (level, pressure, cpuPerCore, memAvailMb, memTotalMb, running, waiting, allowed, runningTasks), null when it has none (asleep, silent, or an older platform). Read-only, shared for 8 s, a closed set of fields (`computers-view.mjs`, `test-computers-view.mjs`); not connected = an empty list, a failure = `error: "unavailable"` |
+| `GET /kybernos-cloud/computer/target`, `POST /kybernos-cloud/computer/target/set` `{computer_id, name}` (`{computer_id: null}` forgets it) | the cloud computer the person chose in the composer's menu, kept in `kybernos-cloud-computer.json` of the DSH home (0600). Chosen, the prompt section `kybernos:cloud-computer-target` and the tool `cloud_computer_task` (`computer-turn.mjs`: a mission to that computer through the server's hosted-turn route, the answer read back, bounded) are what make a chat use it; nothing chosen, nothing changes |
+| `POST /kybernos-cloud/computers/publish` `{computerId, ops: [{op: put \| delete, ref, task?}]}` | sends automations to a computer, or takes them away (the platform's outbox, `PUT …/computers/{id}/tasks`). Writes on the person's behalf: same origin strictly **and** DSH's signed browser session. Six fields of a definition are read (name, prompt, schedule, active, approvals, needs) and only `approvals: auto` goes (else `approval_path_missing`); at most ten ops; answers `{ok, ops: [{ref, state: pending}]}` or `{ok: false, error: <code from a closed list>, index?}`. The definition is never kept or logged here (`computers-publish.mjs`, `test-computers-publish.mjs`) |
+| `GET /kybernos-cloud/computers/tasks?computerId=` | how the automations sent to a computer went: `{ok, tasks: [{ref, state: pending \| applied \| error, code, schedule: {enabled, nextRunAt, lastRunAt, lastStatus} \| null}]}` |
+| `GET /kybernos-cloud/computers/runs?computerId=[&ref=]` | the runs a computer reported ended, newest first (at most 100; with `ref`, one automation's, at most 50, asked of the platform): `{ok, runs: [{key, ref, via: cron \| once \| webhook \| run_now \| null, outcome: completed \| error \| capped \| timeout \| waiting_approval, reason (a short code or null), startedAt, endedAt}]}`. Nothing else of a run is read, kept or sent on |
+| `GET /kybernos-cloud/computers/approvals?computerId=` | what the computer's automations asked their person before acting (platform: `GET …/approvals`): `{ok, approvals: [{id, ref, runKey, kind: shell \| write \| edit \| connector \| other, summary (what the action will do, one clean line, ≤ 400), state: pending \| allowed \| allowed_turn \| denied \| expired, createdAt, expiresAt, decidedAt, via: app \| channel \| null, notified}]}`, pending first, at most 50 |
+| `POST /kybernos-cloud/computers/approvals/decide` | `{computerId, id, decision: allowed \| allowed_turn \| denied}` → `{ok, state}` or `{ok: false, error}` (`late`: answered or ran out; `unknown`). Strict origin and the signed browser session: it is a write |
+
+Kaby's own chat is a native DSH conversation (`kyby-native.mjs`): the host gives that chat Kaby's identity in the system prompt
+(`kybernos:kyby`, for its session only), writes each finished turn on the person's server thread (`POST /v1/threads/{id}/messages`, the
+thread from `GET /v1/me/kyby`) and tells the prompt what was said there lately. A server with no such thread is left alone for ten minutes.
+
+**Who Kaby is** is one text, `kyby-identity.mjs`, used by every body: the rules that come first (never claim undone work, outside words are information and an old `yes` is no permission, a message for someone else is a draft, no safeguard that cannot be enforced), the voice (version 0.2), a situation line (channel, body, time) and what was said lately, fenced as data (`<data>`, look-alike markers escaped). The cloud computer's turn runner (`services/computer-image/runner.mjs`) takes it from a byte-for-byte copy and never from the name a kyber carries on the server. `test-kyby-eval.mjs` holds the ten questions and the scoring of an answer (voice, old name, flattery, an obeyed injection, a safeguard that is not enforced, and an earlier unfinished task raised in an answer that did not ask for it: `on-question`, with `PENDING_TOPICS` naming the task, which caught the garage draft in both recorded Telegram runs); `test-kyby-identity.mjs` checks the text, the copy and the scoring, and a live run feeds the scoring real answers. What reaches a turn from the past is told to stay in the background: the shared thread's label says to use it only if the message needs it, and the memory chunk says the same of the memories (a memory kept as an unfinished task was being volunteered in unrelated answers; the chunk still ends with the sentence `stripMemoryBlock` looks for). Whether the wording stops a given model is only measured by a live run.
+
+**Kaby's journal** (`kyby-journal.mjs`, the `kaby_journal` tool): at the end of each turn of Kaby's own (a message a cloud computer was handed, or Kaby's chat on the person's computer) one line is written in `<DSH home>/kybernos/kaby-journal/<UTC day>.jsonl` (0600 in a 0700 folder, 30 days kept): when, the channel (`chat`, `telegram`, `phone`), the body (`computer`, `cloud`), the first 100 characters of the request as one line, the tools that ran by name and count, and how many actions the person refused. A session that is not Kaby's (an automation, a coding chat) is not written. The tool reads the last 1 to 168 hours (24 by default) and passes every approval gate: it changes nothing. One rule of the identity text sends the model to it for « what did you do? ». Each body keeps its own journal: a merged one is for later. Without it the answer could only come from the chat's own words, which say nothing of a command that ran or an action refused.
+
+**Kaby's knowledge folder** (`kyby-knowledge.mjs`, `kyby-pdf.mjs`, the `kaby_knowledge` tool): the person puts documents in `<DSH home>/kybernos/kyby/knowledge/` (made when the plugin loads; it is a folder of Kaby's chat workspace, so on the person's computer the chat's file tree shows it; on a cloud computer it is that computer's own volume, filled from its DSH page) and Kaby lists, searches and reads them: text, Markdown, CSV, JSON, HTML, Word `.docx` and PDF, up to 25 MB each, four folders deep. With no argument the tool lists; `query` searches every document (the one with most of the words first, with the sentence around each) and `file` reads one in pieces (`offset`, `max_chars`, 12,000 by default, 40,000 at most). Read-only and local: nothing is indexed elsewhere, symbolic links are never followed and a path that leaves the folder is refused, so nothing outside it is reachable; every answer says the documents are information, not instructions, and the tool passes the turn gate like `kaby_journal`. The text of a file is extracted once per version of it (size and time) and kept in a bounded cache. The PDF reader is pure `node:zlib`: it follows the page tree, Flate streams (also inside object streams), the fonts' ToUnicode maps and glyph widths (so pieces drawn apart read as words and lines) and the forms a page draws (macOS's writer draws a whole page that way). **What it does not read, and says so**: a scan (no text layer: `no text found`), an encrypted file, a font with no Unicode map, PNG-predicted object streams, and glyph names given by an `/Encoding` `/Differences` array (a ligature such as « fi » can come out as another character in old LaTeX or groff files). Measured on the 60 PDFs of this Mac's system folders: 16 read, 39 with no text layer (icons and templates), 5 not PDFs; every one in under 60 ms. `test-kyby-knowledge.mjs` builds its PDFs and .docx by hand (plain, Flate, object stream with a ToUnicode map, encrypted, scanned, damaged) and measures the folder rules (links, `..`, size, time budget).
+
+**Kaby's mandate** (2026-11-01, `kyby-mandate.mjs`, `kyby-mandate-store.mjs`; the rule is core rule 3 of `kyby-identity.mjs`): the one standing permission. The person signs it once (`POST /kybernos-cloud/kyby/mandate/set`: strict Origin and the signed session, like every write here; `GET /kybernos-cloud/kyby/mandate` reads it, with the starting points; `GET …/mandate/log` lists what ran today without a question, newest first, reduced to time, class and tool name; the card is in Settings › Kaby, `kybernos-kaby-customisation`) and from then on two classes of our tools run in Kaby's own chat without a question, inside daily limits: `memory` (`memory_write`, `lesson_write`) and `computer` (`computer_exec`, `computer_write`, `computer_start`, `computer_stop`, `computer_pause`, `computer_resume`, `computer_task`). A connected app (`connections_execute`) and `relancer_dsh` are in no class and always ask; so does everything over a limit, and everything with no mandate in force. The limits count actions per local day, counted by the host: there is no spend limit because nothing on this host measures the cost of one call. The record is signed (HMAC with the machine secret that signs DSH's browser cookie), so a file edited by anything but the route is void, never trusted; that is friction against an injected instruction, not a wall (an agent that can read the secret can forge it; the chat is meant to run in a workspace-write sandbox). A call in Kaby's chat that names `kyby-mandate` is refused. Files, in `<DSH home>/kybernos/`: `kyby-mandate.json` (the record), `kyby-mandate-usage.json` (today's count), `kyby-mandate-audit.jsonl` (every signature and every action that ran under it, trimmed past 256 KB). The prompt carries a `[MANDATE]` block written by the host (`identityBlock({ mandate })`, one exact shape, above the data), the same text from one step to the next. Only the native gate (a computer that is not a cloud computer) reads it; a cloud computer's gate still asks the platform. Tests: `node test-kyby-mandate.mjs` (rules, store, audit) and the mandate block of `test-cloud-host.mjs` (gate, routes, prompt).
+
+**Kaby's scheduled runs** (2026-11-02, `kyby-unattended.mjs`): Kaby wakes by itself through an ordinary automation of the Automations plugin (« Réveil de Kaby », sessionMode `home`, so its runs land in Kaby's own chat): the schedule, the time box, « when I write in its chat » and the Stop button are that automation's own, and nothing about them lives here (the signed rhythm, `kyby-heartbeat*.mjs` and the `…/kyby/heartbeat*` routes were deleted). What this package keeps is the gate. A turn an automation started is told apart by the request id of its message (`kb-task-…`, kept by the engine as `source.rpcId` on the claimed message, so no flag and no seam between bundles); it lasts until a LATER turn claims its inbox, which is the person writing again. During it nobody can answer: `nativeGate` lets what the mandate covers run (counted, audit line tagged `source: automation`), refuses everything else without asking (`it needs a question, and nobody can answer during a scheduled run`), and never offers `ask_user_question`, `schedule_create` or `schedule_update`. The journal writes such a turn as its own channel (`wake`, « Scheduled automation »), and it is never mirrored on the shared thread. Kaby's prompt carries two lines about its list (`[YOUR LIST]`, the file `todo.md` in its workspace, written by Kaby when the person asks in the chat); what an automation asks Kaby to do with it is that automation's own prompt. Desktop only: a cloud computer has its own scheduler. Test: `test-kyby-unattended.mjs` (the rules) and section 15 of `test-cloud-host.mjs` (the gate, the journal and the audit end to end).
+
+**Approvals in Kaby's own chat** (`nativeGate`, step 3 of the plan; with no mandate in force, or for what it does not cover, this is what happens): the tools of our plugins that change something outside the chat (`memory_write`, `lesson_write`, `connections_execute`, `computer_*` that start, write, run or stop, `relancer_dsh`) ask the person through DSH's own approval card (`approval.request`) when Kaby's chat calls them, as a cloud computer's turn asks through the platform. What only reads passes; the engine's own tools (a command, a file) keep DSH's policy, which the chat is set to « ask » when it is made; any other chat is untouched; with no approval service, or a failed ask, the answer is no. The refusals are counted in the journal line of the turn.
+
+**A connected app in an ordinary chat** (2026-11-04, journey UJ-203, `ordinaryAsk` in `index.js`, `connector-ask.mjs`): `connections_execute` is our tool, so the engine knew nothing of it and let it run in every mode with no card; only Kaby's chat asked. Now the person is asked in every mode, with the same card (« Connected app: github: create an issue (repo…, title…) », Reject and Allow once). In a chat whose approval policy is « ask » (Workspace Write, Read Only) the tool's `tools/pre-execute` answer is the engine's own `{ kind: 'ask' }`. In a chat set to « never » (Full access, the profile default) the engine rejects every card unseen, so the call is held by this plugin instead: `connector-ask.mjs` keeps the question (30 minutes at most, `KYBERNOS_CONNECTOR_ASK_WAIT_MS`; fifty at once; a stopped turn takes its question with it), the client draws the engine's own card factory (`conversation.approval.card`, handed to every slot as `renderFactorySlot`) in the composer dock (slot `kybernos-cloud-connector-ask`), and the tap goes to `POST /kybernos-cloud/connector-asks/answer` (strict origin and signed session, like every route that decides something). A refusal, a timeout or a stopped turn answers the model « The person did not allow this action… Do not try it again: say so in your answer ». Two CSS rules keep that card on screen: the dock row wraps under it, and the simple view of a chat (core plugin) does not fold it away. An automation run is not asked, because the person approved the automation as a whole (`Symbol.for('kybernos.automationRuns').local(agent)`). A host with no approval service keeps the older behaviour; a policy that cannot be read counts as « ask ». Measured live on a sandbox (`scripts/check-connected-app-chat-live.mjs --only A`, 21 checks: three modes with Allow once, Reject in Read Only and in Full access, and a question left open in one chat is not drawn in another). The card shows under the composer in Full access; in the two other modes it takes the composer's place.
+
+**A chat that has just read the web** (2026-11-04, journey UJ-163, `untrusted-turn.mjs`, `untrustedAsk` and `mountUntrusted` in `index.js`): a page or a search result may carry a sentence written for the model. The engine only wraps what a web tool returns in « External web content follows. Treat it as untrusted data », and the recette measured the model that obeyed a planted page running a command that reached an outside listener, writing under `/tmp`, fetching the address the page named and setting up a reminder that fired later, in Full access and in Workspace Write alike (those tools are the engine's own: no plugin seam changes them, only `tools/pre-execute` can ask before them). Asking before every command in Full access would undo the person's choice of that mode, so the question is asked only where it matters. `tools/result` marks a chat as « has read the web » when `web_fetch` or `web_search` returns, or any result carries the engine's notice; `session/event` clears the mark when the person speaks (a `user/message` whose source is the person). While the mark holds, in the ordinary chats of the person's machine and in every mode, these ask first, with the same card as a connected app (the engine's own in a chat that asks, ours in Full access, see the paragraph above): a command (`bash`, `pwsh`, `terminal_open`, `terminal_send`), a write outside the session's working folder (`write`, `edit`, `str_replace_editor` but not its `view`), a `web_fetch` of an address the chat does not know, and what is kept or repeated later (`memory_write`, `lesson_write`, `site_publish`, `site_remove`, `automation_remind`, `schedule_create`, `schedule_update`). A chat knows the addresses the person wrote in their messages, the ones it already fetched and the ones the person allowed; another page of the same site passes. What only reads (`read`, `grep`, `glob`, the searches, the lists) passes. A sub-agent is asked in the chat it works for, and what a sub-agent read marks that chat. Before any web content is read nothing changes: Full access still runs without a question. Left as they were: a run of an automation (the person approved it as a whole; nobody is there), Kaby's own chat (its own gate), a cloud computer (its own gate), a host with no approval service. Limits: the mark ends at the person's next message (a later turn that still follows the page is not asked), the commands the model chains inside one allowed command are not looked at, and the cards share the routes named `connector-asks` with the connected apps. Measured live on a sandbox with a planted page and a listener on loopback (`scripts/check-untrusted-turn-live.mjs`, 19 checks: Full access with Reject and Allow once, a write, a fetch and a reminder, Workspace Write, the person speaking, another page of the same site, nothing read = nothing asked).
+
+**Fewer questions on a messaging door** (2026-10-20, measured on WhatsApp with `deepseek-v4.1-flash`: « what is the list of my workspaces? » made Kaby improvise four shell approvals in a row, the fourth stayed unanswered, and the turn ended in `run_timeout` after 10 minutes with no words). What a cloud computer's gate (`turnGate`) does now:
+
+- **Read-only tools pass without a question** (`TURN_GATE_SAFE_TOOLS`, audited tool by tool in the comment above it): besides the earlier ones, `computer_list` (the E2B sandboxes this machine tracks, a local file: the model had taken it for « my computers »), `computer_read`, `connections_search_tools`, `todo_write` and the new `kaby_account`. Still asked: the engine's `bash`/`write`/`edit`, `memory_write`, `lesson_write` (and `lesson_search`, which counts what it returns as used), `connections_execute`, `computer_start/exec/write/stop/pause/resume/task`, `relancer_dsh`, `kybernos_report_feedback`, the file-writing tools of the slides, bricks, modeller, motion and dashboards plugins, and every `mcp__` tool. A shell command is **not** classified as read-only (`ls`, `cat`): parsing a shell line is the classic way around such a list.
+- **`kaby_account`** (`kyby-account.mjs`): the person's workspaces (name, personal or team, their role), the plan of the active workspace and their cloud computers (name, state, sleeps or always on). Names, kinds and states only: no id, address or token; the names are fenced like any outside words. On the person's own computer it reads `/v1/workspaces`, the plan and `/v1/workspaces/{id}/computers` with their token. On a cloud computer the server shows the computer's token **its own workspace only** (ADR 0052 § 10) and refuses the list of computers (counted there as a possible leak), so no call is made for it and the answer says « a cloud computer sees only the workspace it belongs to » and « I cannot see them from a cloud computer; the person sees them in the Kybernos web app ».
+- **`site_publish`, `site_list`, `site_remove`** (`site-publish.mjs`, contract in `docs/dev/site-publish-contract.md`): Kaby puts a static page online at `https://<name>.kaby.app`. The server hosts it on our own Vercel account (the HTML never sits on the API origin); this side only builds the bundle (an `index.html` or a folder with one at its root: at most 50 files, 2 MB each and 4 MB in all, no hidden file, no link followed, `node_modules` left out) and passes the answer on in one plain sentence. On the person's computer the call is `POST /v1/sites` with their account token; on a cloud computer it is `POST /v1/computer/sites` with the computer's token and the turn it belongs to. The person is **asked first, in plain words** (« Publish a page on the internet at pizzaone.kaby.app (from pizzaone/index.html) ») on both bodies, and it is in no mandate (it makes something public); `site_list` only reads and passes. Only where someone can be asked (Kaby's own chat on the Mac, a turn of a cloud computer) is anything sent; in any other chat the tool says so and does nothing. A cloud computer holds the publish route only: no list, no removal. The name comes from `name`, else `title`, else the folder; the server decides if it is taken. `test-site-publish.mjs` (names, bundle, answers, question) and the host suite (both routes against a fake server).
+- **`shop_list`, `shop_stock`, `shop_define`, `shop_connect`, `shop_photo`** (`shop-stock.mjs`, `shop-photo.mjs`, contract in `docs/dev/shop-poc-contract.md`, trial of 2026-11-05): Kaby runs the person's trial shop, the one their Telegram Mini App shows and their clients buy from at its own address. `shop_define` sets the name and the products (price and cost, one call for all, so one question); `shop_connect` asks Stripe for the single-use link where the owner gives their details (test mode); the card is typed by the client on Stripe's page, never by Kaby. `shop_photo` puts the photos the person sent in the chat on their products: it takes each one at the server (`…/shop/photo/raw`), retouches it on the computer with the image library of the cloud image (`sharp`, loaded when the first photo comes, never at start: upright, square crop, light lifted when the photo is dark, sharpened, all metadata dropped, under 245 KB; a retouch, not a generated picture) and puts it (`…/shop/photo/put`). Only a cloud computer inside a turn can call them (`POST /v1/computer/shop`, `…/shop/stock`, `…/shop/define`, `…/shop/connect`, the computer's token and the turn); anywhere else they say so and send nothing. `shop_list` passes the turn's gate (a read); the other four are asked in plain words like any change. Tests: `test-shop-stock.mjs`, `test-shop-photo.mjs` and the gate and host checks of `test-cloud-host.mjs`.
+- **The Publish button of Creations** (`site-page.mjs`, routes `GET /kybernos-cloud/sites`, `POST …/sites/plan`, `…/publish`, `…/remove`; the screen is `KbPublishDialog` in `kybernos-plugin/client.js`): the same hosting as the tool, started by a click on an HTML file of the Creations, so it asks nothing and also works in a chat in Full access. It sends the page and the files it names inside its own folder, remembers which file is which page (`<DSH home>/kybernos/sites-published.json`) for the tile's « Online » mark, and is personal-only (`personal_only` in a team's DSH). Details and what the server does not tell yet (is a name free, the maximum) in `docs/dev/site-publish-contract.md`.
+- **At most three questions per turn**: from the second, the question starts with « (2/3) » and the fourth is not asked at all: the model is told to say what it could not do and what it would need the person to allow (« Allow for this task » is one tap and ends the questions). A refusal by this cap is not counted as the person's.
+- **An unanswered question ends before the turn does**: five minutes at most (`KYBERNOS_TURN_GATE_WAIT_MS`), and never past the end of the turn minus 90 s (`KYBERNOS_TURN_GATE_GRACE_MS`): the runner now says how long the turn may last (`budgetMs`). The model then answers with what it knows instead of the whole turn timing out with no words. With no time left the person is not asked at all.
+- **`ask_user_question` is refused at once** on a computer (nobody is in front of DSH's own question card): the question goes in the reply.
+- **A model that could not be reached says so**: the engine logs every retry (`llm/retry` with `RATE_LIMIT`, `SERVER`, `TIMEOUT`, `TRANSPORT` or `EMPTY_RESPONSE`); a turn that ends with no words after them is reported as `model_429` (a rate limit: the code the server's door already reads as « busy »), `model_server`, `model_timeout`, `model_transport`, `model_empty` or `model_error`, instead of `ended_turn_end`. The runner does not ask such a turn for words again (the nudge would wait through the same retries a second time: about 2 minutes became about 4) and acknowledges it as `model_429` or `empty_answer.model_…`.
+
+`qr.mjs` is a byte-for-byte copy of `kybernos-mobile/qr.mjs` (bundles do not import each other): `node scripts/test-qr-drift.mjs`
+fails when they part. The footer publishes `window.__KB_UPGRADE__.open()` so a page can open the Upgrade dialog.

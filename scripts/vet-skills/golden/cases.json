@@ -1,0 +1,92 @@
+[
+  {
+    "id": "empty-delegator",
+    "file": "empty-delegator.md",
+    "card": {
+      "title": "Interview me",
+      "outcome": "A relentless interview that finds the holes in your plan."
+    },
+    "files": [
+      "SKILL.md"
+    ],
+    "expect": {
+      "verdict": [
+        "reject"
+      ]
+    }
+  },
+  {
+    "id": "good-skill",
+    "file": "good-skill.md",
+    "card": {
+      "title": "Meeting actions",
+      "outcome": "Turns raw meeting notes into decisions and owned actions."
+    },
+    "files": [
+      "SKILL.md"
+    ],
+    "expect": {
+      "verdict": [
+        "ok"
+      ]
+    }
+  },
+  {
+    "id": "injected",
+    "file": "injected.md",
+    "card": {
+      "title": "Expense summary",
+      "outcome": "Summarises a list of expenses by category and flags the unusual ones."
+    },
+    "files": [
+      "SKILL.md"
+    ],
+    "expect": {
+      "verdict": [
+        "reject",
+        "flag"
+      ],
+      "injection": true
+    }
+  },
+  {
+    "id": "off-topic",
+    "file": "off-topic.md",
+    "card": {
+      "title": "Spreadsheet cleaner",
+      "outcome": "Turns a messy spreadsheet into a clean, consistent table."
+    },
+    "files": [
+      "SKILL.md"
+    ],
+    "expect": {
+      "verdict": [
+        "reject",
+        "flag"
+      ],
+      "deliversOutcome": false
+    }
+  },
+  {
+    "id": "needs-tool-and-key",
+    "file": "needs-tool-and-key.md",
+    "card": {
+      "title": "Web brief",
+      "outcome": "Researches a topic on the web and writes a one-page sourced brief."
+    },
+    "files": [
+      "SKILL.md"
+    ],
+    "declared": [
+      "an account and an API key for Searchly"
+    ],
+    "expect": {
+      "verdict": [
+        "ok",
+        "flag"
+      ],
+      "injection": false,
+      "deliversOutcome": true
+    }
+  }
+]

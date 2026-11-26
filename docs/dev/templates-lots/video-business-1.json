@@ -1,0 +1,170 @@
+{
+ "name": "video-business-1",
+ "type": "video",
+ "note": "Real examples of the video type: five clips made by HeyGen Video 1 (480p, 5 s, on the Vercel AI Gateway) and three made by Kybernos Motion (free, local). `request` is what the example's button puts in the composer; `made.prompt` is what the model was given for the sample. The clips and stills stay outside git (~/kybernos-archive/templates-catalogue/video-business-1).",
+ "cells": [
+  {
+   "id": "video_ad_bottle",
+   "clip": "video_ad_bottle.mp4",
+   "poster": "frames/video-ad-bottle.jpg",
+   "entry": {
+    "name": "Product ad",
+    "tag": "Marketing",
+    "line": "Your product photo, set in motion with its own sound.",
+    "meta": "5 seconds · 16:9 · with sound",
+    "alt": "A teal water bottle on a mossy rock beside a forest stream, in soft mist."
+   },
+   "request": "Make a 5-second product ad video from my product photo. Ask me for the photo, the product name and a one-line tagline, and show me the first frame before you animate it.",
+   "made": {
+    "model": "heygen/heygen-video-1",
+    "label": "HeyGen Video 1",
+    "prompt": "Slow gentle push-in on the bottle resting on the mossy rock, water droplets glistening, a light mist drifting over the stream, the forest softly moving in the background, the sound of a gentle stream and soft acoustic guitar",
+    "seed": 4201
+   },
+   "source": "image-to-video from frames/video-ad-bottle.jpg (FLUX-2-klein-9b, seed 4201, 16:9)"
+  },
+  {
+   "id": "video_tryon_coat",
+   "clip": "video_tryon_coat.mp4",
+   "poster": "frames/video-tryon-coat-v.jpg",
+   "entry": {
+    "name": "Virtual try-on",
+    "tag": "Fashion",
+    "line": "The person wears the garment, turns and smiles to the camera.",
+    "meta": "5 seconds · 9:16 · with sound",
+    "alt": "A woman with dark curly hair in a mustard trench coat on a pale studio backdrop."
+   },
+   "request": "Make a 5-second virtual try-on video. Ask me for a photo of the person, a photo of the garment and the colour I want. Show me the still result first, then animate it.",
+   "made": {
+    "model": "heygen/heygen-video-1",
+    "label": "HeyGen Video 1",
+    "prompt": "The woman slowly turns a quarter turn towards the camera and smiles, the trench coat swaying gently, soft studio ambience and light upbeat music",
+    "seed": 4202
+   },
+   "source": "image-to-video from frames/video-tryon-coat-v.jpg (FLUX-2-klein-9b, seed 4212, 9:16)"
+  },
+  {
+   "id": "video_theme_90s",
+   "clip": "video_theme_90s.mp4",
+   "poster": "frames/video-theme-90s.jpg",
+   "entry": {
+    "name": "Photo in a theme",
+    "tag": "Creative",
+    "line": "Your photo in a 90s, manga or space-opera look, then animated.",
+    "meta": "5 seconds · 16:9 · with sound",
+    "alt": "A young man in a denim jacket in front of a neon-lit 90s arcade at night."
+   },
+   "request": "Turn my photo into a 5-second video in a theme I choose (the 90s, manga, space opera...). Ask me for the photo and the theme, show me the restyled still, then animate it.",
+   "made": {
+    "model": "heygen/heygen-video-1",
+    "label": "HeyGen Video 1",
+    "prompt": "The young man nods to the beat, neon sign flickering behind him with a subtle VHS glitch and scanlines, upbeat 90s synth music with a steady drum beat",
+    "seed": 4203
+   },
+   "source": "image-to-video from frames/video-theme-90s.jpg (FLUX-2-klein-9b, seed 4203, 16:9)"
+  },
+  {
+   "id": "video_property_teaser",
+   "clip": "video_property_teaser.mp4",
+   "poster": "frames/video-property-teaser.jpg",
+   "entry": {
+    "name": "Property teaser",
+    "tag": "Real estate",
+    "line": "A listing photo with a slow camera glide and a short caption.",
+    "meta": "5 seconds · 16:9 · with sound",
+    "alt": "A bright living room with a sofa and tall windows, seen from the doorway."
+   },
+   "request": "Make a 5-second teaser video for a property listing. Ask me for the best photo of the property, the address and the price; add a slow camera glide and a short caption.",
+   "made": {
+    "model": "heygen/heygen-video-1",
+    "label": "HeyGen Video 1",
+    "prompt": "Slow smooth camera glide forward into the bright living room, sheer curtains moving gently in the breeze, soft daylight, quiet room tone",
+    "seed": 4104
+   },
+   "source": "image-to-video from the living-room still of images-business-1 (listing, 16:9)"
+  },
+  {
+   "id": "video_clip_latte",
+   "clip": "video_clip_latte.mp4",
+   "posterAt": 1.0,
+   "entry": {
+    "name": "Vertical clip",
+    "tag": "Social",
+    "line": "A 9:16 clip made from an idea, ready for social media.",
+    "meta": "5 seconds · 9:16 · with sound",
+    "alt": "A barista pouring steamed milk into a latte in a bright cafe."
+   },
+   "request": "Make a 5-second vertical clip for social media from my idea. Ask me for the idea and the mood, and add captions.",
+   "made": {
+    "model": "heygen/heygen-video-1",
+    "label": "HeyGen Video 1",
+    "prompt": "A barista pours steamed milk into a latte in a bright cafe, slow close-up, warm morning light, soft cafe ambience",
+    "seed": 4101
+   },
+   "source": "text-to-video, 9:16"
+  },
+  {
+   "id": "video_logo_reveal",
+   "clip": "video_logo_reveal.mp4",
+   "posterAt": 4.4,
+   "entry": {
+    "name": "Logo reveal",
+    "tag": "Branding",
+    "line": "Your logo animated in five seconds, with its sound.",
+    "meta": "5 seconds · 16:9 · with sound",
+    "alt": "An amber ring and dot above the word LUMO and a tagline, on a dark navy background."
+   },
+   "request": "Animate my logo as a 5-second reveal. Ask me for the logo image and my brand colours.",
+   "made": {
+    "model": "kybernos-motion",
+    "label": "Kybernos Motion",
+    "width": 1280,
+    "height": 720
+   },
+   "source": "motion/logo-reveal.scene.json, exported by scripts/motion-export.mjs",
+   "fit": "pad"
+  },
+  {
+   "id": "video_results_recap",
+   "clip": "video_results_recap.mp4",
+   "posterAt": 8.6,
+   "entry": {
+    "name": "Results recap",
+    "tag": "Business",
+    "line": "A table of figures turned into counting numbers and growing bars.",
+    "meta": "10 seconds · 16:9 · with sound",
+    "alt": "Three figure cards and a bar chart on a dark background, the last quarter highlighted."
+   },
+   "request": "Turn my table of figures into a 10-second animated results video. Ask me for the table and which figure to highlight.",
+   "made": {
+    "model": "kybernos-motion",
+    "label": "Kybernos Motion",
+    "width": 1280,
+    "height": 720
+   },
+   "source": "motion/results-recap.scene.json",
+   "fit": "pad"
+  },
+  {
+   "id": "video_lesson_percent",
+   "clip": "video_lesson_percent.mp4",
+   "posterAt": 8.8,
+   "entry": {
+    "name": "Animated lesson",
+    "tag": "Learning",
+    "line": "One idea explained with a diagram, ending on a question.",
+    "meta": "10 seconds · 16:9 · with sound",
+    "alt": "A bar split in four with one quarter highlighted, and the sum 80 divided by 4 equals 20."
+   },
+   "request": "Make a 10-second animated lesson that explains one idea with a diagram and ends with a question. Ask me for the topic and the level.",
+   "made": {
+    "model": "kybernos-motion",
+    "label": "Kybernos Motion",
+    "width": 1280,
+    "height": 720
+   },
+   "source": "motion/lesson-percent.scene.json",
+   "fit": "pad"
+  }
+ ]
+}

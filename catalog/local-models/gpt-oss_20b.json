@@ -1,0 +1,21 @@
+{
+  "id": "gpt-oss:20b",
+  "famille": "o",
+  "initiale": "Gp",
+  "tailleGo": 14,
+  "ramMin": 32,
+  "score": "Ollama library · 14 GB · 128K ctx",
+  "input": [
+    "text"
+  ],
+  "badges": [
+    "Tools",
+    "Thinking"
+  ],
+  "desc": {
+    "fr": "gpt-oss (OpenAI) : outils et réflexion, contexte 128K. Pour 32 Go.",
+    "en": "gpt-oss (OpenAI): tools and thinking, 128K context. For 32 GB."
+  },
+  "ajoute": "2026-10-15",
+  "ordre": 80
+}

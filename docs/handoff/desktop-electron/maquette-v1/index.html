@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%23f2372a'/%3E%3Ctext x='10' y='30' font-family='sans-serif' font-size='30' font-weight='700' fill='white'%3EK%3C/text%3E%3C/svg%3E">
+<title>Kybernos — installation</title>
+<style>
+:root { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; min-width: 720px; min-height: 100vh; padding: 28px;
+  color: var(--dsw-alias-label-primary, #0f1115);
+  background: var(--dsw-alias-bg-layer-1, #f4f5f6);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 15px; line-height: 1.55;
+}
+body[data-theme="dark"] {
+  --dsw-alias-bg-layer-1: #17191d; --dsw-alias-bg-layer-2: #202329;
+  --dsw-alias-label-primary: #f2f3f5; --dsw-alias-label-secondary: #b8bdc7;
+  --dsw-alias-label-tertiary: #858c99; --dsw-alias-border-l2: #ffffff1c;
+  --dsw-alias-border-l3: #ffffff29; --dsw-alias-interactive-bg-hover: #ffffff0d;
+}
+button, input { font: inherit; }
+button { min-height: 38px; }
+button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid #4176e6; outline-offset: 3px; }
+.kbd-preview { display: flex; align-items: center; justify-content: flex-end; gap: 8px; max-width: 1060px; margin: 0 auto 12px; }
+.kbd-preview span { margin-right: auto; color: var(--dsw-alias-label-tertiary, #81858c); font-size: 12px; }
+.kbd-preview button, .kbd-secondary {
+  padding: 7px 12px; border: 1px solid var(--dsw-alias-border-l3, #0000001f); border-radius: 8px;
+  color: var(--dsw-alias-label-secondary, #61666b); background: var(--dsw-alias-bg-layer-2, #fff); cursor: pointer;
+}
+.kbd-preview button:hover, .kbd-secondary:hover { background: var(--dsw-alias-interactive-bg-hover, #2631480f); }
+.kbd-shell {
+  display: grid; grid-template-columns: minmax(280px, 34%) 1fr; max-width: 1060px; min-height: 610px; margin: auto;
+  overflow: hidden; border: 1px solid var(--dsw-alias-border-l2, #0000001a); border-radius: 18px;
+  background: var(--dsw-alias-bg-layer-2, #fff); box-shadow: 0 18px 55px #10182814;
+}
+.kbd-rail { display: flex; flex-direction: column; padding: 40px 34px; border-right: 1px solid var(--dsw-alias-border-l2, #0000001a); }
+.kbd-brand { display: flex; align-items: center; gap: 11px; font-size: 18px; font-weight: 650; letter-spacing: -.02em; }
+.kbd-mark { width: 35px; height: 35px; padding: 6px; border-radius: 10px; background: #fff; box-shadow: 0 1px 4px #00000016; }
+.kbd-rail h1 { max-width: 250px; margin: 66px 0 18px; font-size: clamp(30px, 3.3vw, 40px); line-height: 1.12; letter-spacing: -.045em; font-weight: 650; }
+.kbd-rail p { max-width: 260px; margin: 0; color: var(--dsw-alias-label-secondary, #61666b); }
+.kbd-local { display: flex; align-items: center; gap: 9px; margin-top: auto; padding-top: 36px; color: var(--dsw-alias-label-tertiary, #81858c); font-size: 13px; }
+.kbd-local svg { flex: none; }
+.kbd-main { display: flex; flex-direction: column; justify-content: center; padding: 48px clamp(38px, 6vw, 74px); }
+.kbd-state { max-width: 510px; margin: auto; width: 100%; }
+.kbd-status { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; color: var(--dsw-alias-label-tertiary, #81858c); font-size: 13px; }
+.kbd-status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--dsw-alias-label-tertiary, #81858c); }
+.kbd-status-dot[data-tone="active"] { background: #4176e6; }
+.kbd-status-dot[data-tone="ready"] { background: #21875b; }
+.kbd-status-dot[data-tone="error"] { background: #c53b32; }
+.kbd-state h2 { margin: 0 0 12px; font-size: 27px; line-height: 1.2; letter-spacing: -.03em; font-weight: 640; }
+.kbd-intro { min-height: 48px; margin: 0 0 28px; color: var(--dsw-alias-label-secondary, #61666b); font-size: 16px; }
+.kbd-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin: 0 0 30px; padding: 0; list-style: none; }
+.kbd-step { position: relative; padding-top: 25px; color: var(--dsw-alias-label-tertiary, #81858c); font-size: 13px; }
+.kbd-step::before { content: ""; position: absolute; top: 6px; left: 0; right: 0; height: 2px; background: var(--dsw-alias-border-l2, #0000001a); }
+.kbd-step::after { content: ""; position: absolute; top: 1px; left: 0; width: 12px; height: 12px; border-radius: 50%; background: var(--dsw-alias-border-l3, #0000001f); }
+.kbd-step[data-state="active"] { color: var(--dsw-alias-label-primary, #0f1115); font-weight: 600; }
+.kbd-step[data-state="active"]::after { background: #4176e6; box-shadow: 0 0 0 4px #4176e61a; }
+.kbd-step[data-state="done"] { color: var(--dsw-alias-label-secondary, #61666b); }
+.kbd-step[data-state="done"]::before, .kbd-step[data-state="done"]::after { background: #21875b; }
+.kbd-message { min-height: 46px; margin: -8px 0 18px; color: var(--dsw-alias-label-secondary, #61666b); font-size: 14px; }
+.kbd-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.kbd-primary {
+  min-height: 44px; padding: 10px 18px; border: 1px solid #f2372a; border-radius: 9px;
+  color: #fff; background: #f2372a; font-weight: 600; cursor: pointer;
+}
+.kbd-primary:hover { background: #d92e23; border-color: #d92e23; }
+.kbd-primary:disabled { opacity: .58; cursor: wait; }
+.kbd-autostart { display: flex; align-items: center; gap: 9px; margin-top: 20px; color: var(--dsw-alias-label-secondary, #61666b); font-size: 13px; cursor: pointer; }
+.kbd-autostart input { width: 17px; height: 17px; accent-color: #f2372a; }
+.kbd-diagnostic { margin-top: 24px; border-top: 1px solid var(--dsw-alias-border-l2, #0000001a); padding-top: 16px; }
+.kbd-diagnostic summary { color: var(--dsw-alias-label-secondary, #61666b); font-size: 13px; cursor: pointer; }
+.kbd-diagnostic dl { display: grid; grid-template-columns: 1fr auto; gap: 8px 20px; margin: 16px 0 0; font-size: 13px; }
+.kbd-diagnostic dt { color: var(--dsw-alias-label-tertiary, #81858c); }
+.kbd-diagnostic dd { margin: 0; text-align: right; color: var(--dsw-alias-label-secondary, #61666b); }
+.kbd-ok { color: #21875b !important; }
+.kbd-bad { color: #c53b32 !important; }
+.kbd-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); padding: 10px 16px; border-radius: 9px; color: #fff; background: #202329; box-shadow: 0 5px 20px #0003; }
+[hidden] { display: none !important; }
+@media (max-width: 800px) {
+  body { padding: 16px; }
+  .kbd-shell { grid-template-columns: 250px 1fr; }
+  .kbd-rail { padding: 30px 24px; }
+  .kbd-rail h1 { margin-top: 48px; }
+  .kbd-main { padding: 36px 30px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .kbd-state { animation: kbd-in 220ms ease-out; }
+  .kbd-status-dot[data-tone="active"] { animation: kbd-pulse 1.4s ease-in-out infinite; }
+  @keyframes kbd-in { from { opacity: .4; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+  @keyframes kbd-pulse { 50% { box-shadow: 0 0 0 5px #4176e61a; } }
+}
+</style>
+</head>
+<body>
+<div class="kbd-preview" aria-label="Contrôles de prévisualisation">
+  <span>Maquette interactive — aucune installation réelle</span>
+  <button type="button" data-demo="welcome">Accueil</button>
+  <button type="button" data-demo="error">Panne</button>
+  <button type="button" id="theme" aria-pressed="false">Thème sombre</button>
+</div>
+<main class="kbd-shell">
+  <section class="kbd-rail" aria-label="Kybernos">
+    <div class="kbd-brand">
+      <svg class="kbd-mark" viewBox="-3 -1 38.5 38" aria-hidden="true"><g fill="#f2372a"><path d="M0 0h13v36H0z"/><path d="M21 0h10L13 28.3V12.6z"/><path d="M13 22l9 14h10.5L20.3 16.8H13z"/></g><g fill="#fff"><circle cx="6.5" cy="7.5" r="3.3"/><circle cx="6.5" cy="18" r="3.3"/><circle cx="6.5" cy="28.5" r="3.3"/></g></svg>
+      Kybernos
+    </div>
+    <h1>Votre espace de travail, prêt tout seul.</h1>
+    <p>Installez une fois. Ensuite, ouvrez Kybernos comme n’importe quelle application.</p>
+    <div class="kbd-local"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Vos données restent sur cet ordinateur.</div>
+  </section>
+  <section class="kbd-main">
+    <div class="kbd-state" aria-live="polite">
+      <div class="kbd-status"><span class="kbd-status-dot" id="status-dot"></span><span id="status-label">Première installation</span></div>
+      <h2 id="state-title">Bienvenue dans Kybernos</h2>
+      <p class="kbd-intro" id="state-intro">L’application vérifie ce qui est déjà présent et installe ce qui manque. Vous n’avez rien à configurer.</p>
+      <ol class="kbd-steps" aria-label="Progression">
+        <li class="kbd-step" data-step="install">Installation</li>
+        <li class="kbd-step" data-step="engine">Démarrage</li>
+        <li class="kbd-step" data-step="open">Ouverture</li>
+      </ol>
+      <p class="kbd-message" id="state-message">Trois minutes environ sur une nouvelle machine. Vous pouvez suivre chaque étape ici.</p>
+      <div class="kbd-actions">
+        <button class="kbd-primary" id="primary" type="button">Installer Kybernos</button>
+        <button class="kbd-secondary" id="secondary" type="button" hidden>Voir le diagnostic</button>
+      </div>
+      <label class="kbd-autostart" id="autostart-row"><input type="checkbox" checked> Ouvrir Kybernos quand je démarre l’ordinateur</label>
+      <details class="kbd-diagnostic" id="diagnostic">
+        <summary>Diagnostic et informations techniques</summary>
+        <dl>
+          <dt>Environnement Node.js</dt><dd id="diag-node" class="kbd-ok">Prêt</dd>
+          <dt>Moteur DSH</dt><dd id="diag-engine">Détecté après installation</dd>
+          <dt>Connexion locale</dt><dd id="diag-connection">En attente</dd>
+          <dt>Adresse signée</dt><dd>Jamais affichée ni enregistrée</dd>
+        </dl>
+      </details>
+    </div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id)
+const states = {
+  welcome: { label: 'Première installation', tone: '', title: 'Bienvenue dans Kybernos', intro: 'L’application vérifie ce qui est déjà présent et installe ce qui manque. Vous n’avez rien à configurer.', message: 'Trois minutes environ sur une nouvelle machine. Vous pouvez suivre chaque étape ici.', primary: 'Installer Kybernos', step: 0 },
+  installing: { label: 'Installation en cours', tone: 'active', title: 'Nous préparons votre espace', intro: 'L’application installe le moteur et les modules Kybernos, puis vérifie que tout répond.', message: 'Vérification de l’environnement…', primary: 'Installation en cours…', step: 1 },
+  ready: { label: 'Tout est prêt', tone: 'ready', title: 'Kybernos est prêt', intro: 'Le moteur répond et votre session locale est connectée. Les prochaines ouvertures se feront sans cette étape.', message: 'Installation terminée. Aucune ligne de commande à utiliser.', primary: 'Ouvrir Kybernos', step: 3 },
+  error: { label: 'Action nécessaire', tone: 'error', title: 'Le moteur n’a pas répondu', intro: 'Votre profil et vos données sont intacts. L’application peut réparer le démarrage sans rien effacer.', message: 'La connexion locale n’a pas répondu dans le délai prévu.', primary: 'Réparer l’installation', step: 1 }
+}
+let current = 'welcome'
+let timers = []
+function render(name) {
+  current = name
+  const s = states[name]
+  $('status-label').textContent = s.label
+  $('status-dot').dataset.tone = s.tone
+  $('state-title').textContent = s.title
+  $('state-intro').textContent = s.intro
+  $('state-message').textContent = s.message
+  $('primary').textContent = s.primary
+  $('primary').disabled = name === 'installing'
+  $('secondary').hidden = name !== 'error'
+  $('autostart-row').hidden = name === 'installing' || name === 'ready'
+  $('diag-connection').textContent = name === 'ready' ? 'Connectée' : name === 'error' ? 'Aucune réponse' : 'En attente'
+  $('diag-connection').className = name === 'ready' ? 'kbd-ok' : name === 'error' ? 'kbd-bad' : ''
+  document.querySelectorAll('.kbd-step').forEach((el, i) => {
+    el.dataset.state = s.step === 3 || i < s.step - 1 ? 'done' : (name === 'installing' && i === 0 ? 'active' : '')
+  })
+  document.querySelector('.kbd-state').dataset.current = name
+}
+function toast(text) {
+  const el = document.createElement('div'); el.className = 'kbd-toast'; el.textContent = text
+  document.body.append(el); setTimeout(() => el.remove(), 2400)
+}
+$('primary').addEventListener('click', () => {
+  if (current === 'ready') { toast('La fenêtre Kybernos serait ouverte ici.'); return }
+  timers.forEach(clearTimeout); timers = []
+  render('installing')
+  const messages = ['Environnement prêt. Installation des modules…', 'Modules installés. Démarrage du moteur…', 'Le moteur répond. Connexion de votre session…']
+  messages.forEach((message, i) => timers.push(setTimeout(() => {
+    $('state-message').textContent = message
+    document.querySelectorAll('.kbd-step').forEach((el, j) => { el.dataset.state = j < i ? 'done' : j === i ? 'active' : '' })
+  }, 650 * (i + 1))))
+  timers.push(setTimeout(() => render('ready'), 2900))
+})
+$('secondary').addEventListener('click', () => { $('diagnostic').open = true; $('diagnostic').scrollIntoView({ block: 'nearest' }) })
+document.querySelectorAll('[data-demo]').forEach((button) => button.addEventListener('click', () => { timers.forEach(clearTimeout); timers = []; render(button.dataset.demo) }))
+$('theme').addEventListener('click', () => {
+  const dark = document.body.dataset.theme !== 'dark'
+  document.body.dataset.theme = dark ? 'dark' : 'light'
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+  $('theme').textContent = dark ? 'Thème clair' : 'Thème sombre'
+  $('theme').setAttribute('aria-pressed', String(dark))
+})
+render('welcome')
+</script>
+</body>
+</html>

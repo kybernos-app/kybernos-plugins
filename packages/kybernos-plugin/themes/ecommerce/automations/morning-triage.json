@@ -1,0 +1,80 @@
+{
+  "id": "morning-triage",
+  "cat": "shop",
+  "icon": "bell",
+  "title": {
+    "en": "Morning ticket triage",
+    "fr": "Tri des tickets du matin"
+  },
+  "cadence": {
+    "en": "Every weekday at 08:30",
+    "fr": "Chaque jour ouvré à 08h30"
+  },
+  "desc": {
+    "en": "Sorts the open support tickets into urgent, today and later and drafts a reply for the urgent ones. Nothing is sent.",
+    "fr": "Trie les tickets support ouverts en urgent, aujourd’hui et plus tard, et rédige une réponse pour les urgents. Rien n’est envoyé."
+  },
+  "cron": "30 8 * * 1-5",
+  "tags": [
+    "online shop",
+    "support"
+  ],
+  "apps": [
+    "zendesk",
+    "freshdesk",
+    "gorgias"
+  ],
+  "steps": [
+    {
+      "kind": "ai",
+      "text": {
+        "en": "Read the open tickets from the helpdesk or the inbox that is connected, or from the list the shop pastes. Quote the order each one is about.",
+        "fr": "Lis les tickets ouverts du helpdesk ou de la boîte connectée, ou de la liste collée par la boutique. Cite la commande concernée par chacun."
+      }
+    },
+    {
+      "kind": "ai",
+      "text": {
+        "en": "Sort the tickets into urgent, today and later, and say why for each one.",
+        "fr": "Classe les tickets en urgent, aujourd’hui et plus tard, et dis pourquoi pour chacun."
+      }
+    },
+    {
+      "kind": "act",
+      "text": {
+        "en": "Draft a reply for each urgent ticket and put the list in one place for the owner to read. Send nothing.",
+        "fr": "Rédige une réponse pour chaque ticket urgent et dépose la liste au même endroit pour que le gérant la relise. N’envoie rien."
+      }
+    }
+  ],
+  "needs": [
+    {
+      "en": "A helpdesk or an inbox that is connected, or a list pasted in the chat",
+      "fr": "Un helpdesk ou une boîte connectée, ou une liste collée dans le chat"
+    }
+  ],
+  "guard": [
+    {
+      "en": "Never send a reply and never promise a refund: a missing fact is written as missing.",
+      "fr": "N’envoie jamais de réponse et ne promets jamais de remboursement : un fait manquant est écrit comme manquant."
+    }
+  ],
+  "ask": [
+    {
+      "q": {
+        "en": "Where are the tickets?",
+        "fr": "Où sont les tickets ?"
+      },
+      "o": [
+        {
+          "en": "In my helpdesk or inbox",
+          "fr": "Dans mon helpdesk ou ma boîte"
+        },
+        {
+          "en": "I paste them in the chat",
+          "fr": "Je les colle dans le chat"
+        }
+      ]
+    }
+  ]
+}

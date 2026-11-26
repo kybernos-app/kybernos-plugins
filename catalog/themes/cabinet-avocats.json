@@ -1,0 +1,23 @@
+{
+  "id": "cabinet-avocats",
+  "v": 1,
+  "name": "Cabinet d’avocats",
+  "author": "Kybernos",
+  "description": {
+    "fr": "Le bordeaux feutré d’un cabinet d’avocats, sur fond sombre.",
+    "en": "A law firm’s muted burgundy, on a dark ground."
+  },
+  "settings": {
+    "mode": "dark",
+    "acc": "#7a2236",
+    "ov": {
+      "dark:base": "#16100f",
+      "dark:l1": "#221816",
+      "dark:l2": "#2d201d",
+      "dark:side": "#1a1210",
+      "dark:input": "#261a18"
+    },
+    "fontText": "georgia",
+    "radius": "sharp"
+  }
+}

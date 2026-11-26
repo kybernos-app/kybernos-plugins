@@ -1,0 +1,55 @@
+{
+  "contract": 1,
+  "id": "kybernos/sessions",
+  "kind": "code",
+  "version": "1.0.0",
+  "name": {
+    "en": "Sessions",
+    "fr": "Sessions"
+  },
+  "description": {
+    "en": "Sessions that name and sort themselves.",
+    "fr": "Sessions qui se nomment et se classent seules."
+  },
+  "icon": "chat",
+  "family": "base",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-sessions",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:conversation.composer.dock",
+    "ui.slot:settings.general.item",
+    "ui.dom",
+    "host.routes:/kybernos-sessions:write",
+    "fs.read:workspace",
+    "fs.write:dsh-home",
+    "fs.write:workspace",
+    "net:api.github.com",
+    "net:github.com",
+    "exec:gh",
+    "exec:git",
+    "memory.read",
+    "sessions.read"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-sessions"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "core": true,
+    "default": "on"
+  }
+}

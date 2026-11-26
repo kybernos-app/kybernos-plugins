@@ -1,0 +1,12 @@
+── A4-17 · where it runs ──
+  ✓ no session named: 400, nothing ran (it ran in the home folder)
+  ✓ an empty session (what the page sends when it cannot tell): 400, nothing ran
+  ✓ an unknown session: 400, nothing ran
+  ✓ a real session runs in that session's folder (the sandbox worktree), not in the home folder
+  ✓ a folder sent by the page is not used
+
+── R-A4-01 · the deadline kills the group (30 s) ──
+  ✓ a command that leaves a child behind is answered at the 30 s deadline as a timeout (not when the child ends)
+  ✓ ...and the child it started is gone
+
+ALL PASS, 7 passed

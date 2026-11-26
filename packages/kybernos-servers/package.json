@@ -1,0 +1,30 @@
+{
+  "name": "@local/kybernos-servers",
+  "version": "1.0.0",
+  "description": "Add a Kybernos server from its address, switch between servers and remove them. A person pastes an address and signs in with their account on that server.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test-discovery.mjs && node test-registry.mjs && node test-host.mjs && node test-client.mjs"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-theme"
+      ]
+    }
+  }
+}

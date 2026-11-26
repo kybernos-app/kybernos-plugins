@@ -1,0 +1,66 @@
+# check-connections-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=43191
+
+the mode
+  ✓ the server offers connections: the switch is there, next to the person's own key
+  ✓ Kybernos connections are the mode until the person chooses (no personal key saved: V-34)
+  ✓ Kybernos connections: the account's three connections are listed
+  ✓ each row has its state: two active, one pending
+  ✓ the quota is shown: 3 of 4
+  ✓ the stand-in saw the account's own token and nothing else of the person
+row actions
+  ✓ the actions are hidden until the row is hovered
+  ✓ ...and appear on hover
+a pending connection finishes by itself
+  ✓ the pending row says what to do and keeps its state chip
+  ✓ within a poll or two (5 s each) the page asks the server and the row turns active, with no click
+  ✓ it asked that ONE connection, not the whole list
+connect an app (OAuth)
+  ✓ the add window opens with the server's catalogue
+  ✓ the link button waits for an app
+  ✓ the window shows 48 apps of the 105, and offers the rest
+  ✓ "show more" adds the next 48
+  ✓ ...and the button goes when nothing is left
+  ✓ a search narrows the list (and starts from the first page again)
+  ✓ the new connection is in the list at once
+  ✓ the stand-in got the toolkit and the label, and nothing else (no redirect address, no user id)
+  ✓ the add window closed
+  ✓ and it turns active once the person has agreed at the app
+the quota
+  ✓ 4 of 4: the add button is disabled and says why
+remove
+  ✓ removing asks first, and says what it means
+  ✓ the row goes
+  ✓ the stand-in got one DELETE of that id
+  ✓ its place is free again: the add button is back
+connect an app with an API key
+  ✓ an app that needs a key asks for it, in a password field the browser does not remember
+  ✓ the connection is active at once (no tab to go to)
+  ✓ the key went to the stand-in once, in the body of the one link call
+  ✓ ...and it is on no later call
+  ✓ ...and nowhere on the page
+  ✓ ...nor in the browser's storage
+a refused add that may have gone through
+  ✓ the page tells the person to check the list before trying again
+  ✓ ...and sent that add once only
+  ✓ ...without showing what the server said in its own words
+  ✓ "check the list" asks the server for the list again
+a connection that is already waiting
+  ✓ a second Slack request is refused with the existing one named, and the person may cancel that one
+the account is not connected
+  ✓ the mode is still offered, and asks the person to connect their Kybernos account here
+  ✓ the pairing code is shown while the person approves in the other tab
+  ✓ once approved the connections appear, with no click
+  ✓ ...and the new token is the one used from then on
+a plan without connections
+  ✓ the plan does not include connections: the page says so
+  ✓ ...with its own title, not "0 of 0" and not a limit to reach
+  ✓ the add button cannot be used
+  ✓ the way to the plans is offered (the server's web app, from the profile)
+  ✓ the empty-list invitation to connect Gmail is not shown (it would be a promise the plan does not keep)
+the server stops offering connections
+  ✓ no switch, no panel: the page is what it was
+  ✓ and the stand-in is no longer asked about connections
+
+✓ 48 checks, all green
+

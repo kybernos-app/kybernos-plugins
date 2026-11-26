@@ -1,0 +1,79 @@
+{
+  "size": [
+    720,
+    1280
+  ],
+  "fade": 0.4,
+  "shots": [
+    {
+      "file": "bakery-1b.mp4",
+      "trim": [
+        0,
+        5.26
+      ]
+    },
+    {
+      "file": "bakery-2.mp4",
+      "trim": [
+        0,
+        5.26
+      ]
+    },
+    {
+      "file": "bakery-3.mp4",
+      "trim": [
+        0,
+        5.26
+      ]
+    }
+  ],
+  "texts": [
+    {
+      "at": 0.7,
+      "to": 5.1,
+      "text": "4 a.m. The city is asleep.\\NBut one light is on.",
+      "style": "caption",
+      "y": 0.74,
+      "anim": "rise"
+    },
+    {
+      "at": 5.4,
+      "to": 8.4,
+      "text": "Flour, water,\\Nand a little patience.",
+      "style": "caption",
+      "y": 0.74,
+      "anim": "rise"
+    },
+    {
+      "at": 10.1,
+      "to": 14.3,
+      "text": "And by sunrise, the whole street\\Nsmells like [#ffcf5a]home[/].",
+      "style": "caption",
+      "y": 0.74,
+      "anim": "rise"
+    }
+  ],
+  "voice": [
+    {
+      "file": "voice-bakery-1.mp3",
+      "at": 0.7
+    },
+    {
+      "file": "voice-bakery-2.mp3",
+      "at": 5.4
+    },
+    {
+      "file": "voice-bakery-3.mp3",
+      "at": 10.1
+    }
+  ],
+  "music": {
+    "file": "music-bakery.mp3",
+    "start": 0,
+    "gain": 0.55,
+    "fadeIn": 0.5,
+    "fadeOut": 1.8
+  },
+  "ambient": 0.4,
+  "id": "video_clip_firstloaf"
+}

@@ -1,0 +1,2230 @@
+{
+ "schema": "kybernos.templates/1",
+ "version": 16,
+ "updatedAt": "2026-11-02T00:06:50Z",
+ "locale": "en",
+ "imageBase": "shelf/",
+ "groups": [
+  "Documents",
+  "Media",
+  "Apps",
+  "Automate"
+ ],
+ "types": [
+  {
+   "id": "slides",
+   "name": "Slides",
+   "group": "Documents",
+   "blurb": "A deck you can present, with your own text and charts."
+  },
+  {
+   "id": "doc",
+   "name": "Document",
+   "group": "Documents",
+   "blurb": "A written document: a report, a brief, notes."
+  },
+  {
+   "id": "sheet",
+   "name": "Sheet",
+   "group": "Documents",
+   "blurb": "A spreadsheet with formulas and charts."
+  },
+  {
+   "id": "dashboard",
+   "name": "Dashboard",
+   "group": "Documents",
+   "blurb": "Live charts and numbers from your own data."
+  },
+  {
+   "id": "image",
+   "name": "Image",
+   "group": "Media",
+   "blurb": "A picture made from a description."
+  },
+  {
+   "id": "video",
+   "name": "Video",
+   "group": "Media",
+   "blurb": "A short clip made from a description."
+  },
+  {
+   "id": "audio",
+   "name": "Audio",
+   "group": "Media",
+   "blurb": "A song, a voice or a sound made from a description."
+  },
+  {
+   "id": "model3d",
+   "name": "3D model",
+   "group": "Media",
+   "blurb": "A 3D object you can turn around and export."
+  },
+  {
+   "id": "app",
+   "name": "App",
+   "group": "Apps",
+   "blurb": "Your own tables, built with Kaby."
+  },
+  {
+   "id": "game",
+   "name": "Game",
+   "group": "Apps",
+   "blurb": "A small game you can play right away."
+  },
+  {
+   "id": "website",
+   "name": "Website",
+   "group": "Apps",
+   "blurb": "A site you can publish."
+  },
+  {
+   "id": "miniapp",
+   "name": "Mini-app",
+   "group": "Apps",
+   "blurb": "A small tool for one job."
+  },
+  {
+   "id": "automation",
+   "name": "Automation",
+   "group": "Automate",
+   "blurb": "Something that runs by itself when an event happens."
+  },
+  {
+   "id": "team",
+   "name": "Agent Team",
+   "group": "Automate",
+   "blurb": "Several agents that work together on a job."
+  },
+  {
+   "id": "skill",
+   "name": "Skill",
+   "group": "Automate",
+   "blurb": "A way of working that Kaby can reuse."
+  },
+  {
+   "id": "plugin",
+   "name": "Plugin",
+   "group": "Automate",
+   "blurb": "Connect Kaby to another app."
+  }
+ ],
+ "templates": [
+  {
+   "id": "slides_plan",
+   "type": "slides",
+   "name": "Quarterly plan",
+   "tag": "Business",
+   "line": "One chart per section, a summary at the end.",
+   "meta": "10 slides",
+   "prompt": "Create a 10-slide deck for our Q3 growth plan: three goals (Expand retention, Launch new markets, Improve activation) and one chart per section.",
+   "image": {
+    "src": "slides_plan.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Quarterly plan template preview",
+    "large": "large/slides_plan.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "slides_launch",
+   "type": "slides",
+   "name": "Product launch",
+   "tag": "Marketing",
+   "line": "A bold deck to announce a product.",
+   "meta": "8 slides",
+   "prompt": "Create an 8-slide launch deck for Nova, a smart home speaker: a bold title slide, three feature slides and a pricing slide.",
+   "image": {
+    "src": "slides_launch.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Product launch template preview",
+    "large": "large/slides_launch.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "slides_training",
+   "type": "slides",
+   "name": "Training course",
+   "tag": "Learning",
+   "line": "Steps in order, one idea per slide.",
+   "meta": "12 slides",
+   "prompt": "Create a 12-slide onboarding course for new hires: a four-step agenda and one idea per slide.",
+   "image": {
+    "src": "slides_training.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Training course template preview",
+    "large": "large/slides_training.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "slides_pitch",
+   "type": "slides",
+   "name": "Investor pitch",
+   "tag": "Startup",
+   "line": "The numbers first: traction, market, ask.",
+   "meta": "12 slides",
+   "prompt": "Create a 12-slide investor pitch for Nova: traction, a $4.2B market, the business model and the ask.",
+   "image": {
+    "src": "slides_pitch.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Investor pitch template preview",
+    "large": "large/slides_pitch.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "slides_update",
+   "type": "slides",
+   "name": "Team update",
+   "tag": "Team",
+   "line": "Status in three columns: on track, needs review, blocked.",
+   "meta": "5 slides",
+   "prompt": "Create a 5-slide weekly team update with three columns, On track, Needs review and Blocked, one line and one owner each.",
+   "image": {
+    "src": "slides_update.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Team update template preview",
+    "large": "large/slides_update.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "slides_case",
+   "type": "slides",
+   "name": "Case study",
+   "tag": "Sales",
+   "line": "A customer story with one strong quote.",
+   "meta": "6 slides",
+   "prompt": "Create a 6-slide case study of how Nova helped a customer: a portrait, one strong quote and the result, +38% sales.",
+   "image": {
+    "src": "slides_case.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Case study template preview",
+    "large": "large/slides_case.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "slides_roadmap",
+   "type": "slides",
+   "name": "Roadmap",
+   "tag": "Product",
+   "line": "Four quarters on a single timeline.",
+   "meta": "6 slides",
+   "prompt": "Create a 6-slide product roadmap with four quarters on one timeline: Plan, Build, Launch, Grow.",
+   "image": {
+    "src": "slides_roadmap.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Roadmap template preview",
+    "large": "large/slides_roadmap.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "slides_pricing",
+   "type": "slides",
+   "name": "Pricing",
+   "tag": "Sales",
+   "line": "Three plans side by side, one highlighted.",
+   "meta": "4 slides",
+   "prompt": "Create a 4-slide pricing section with three plans: Starter $12, Pro $29 and Team $59, the middle plan highlighted.",
+   "image": {
+    "src": "slides_pricing.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Pricing template preview",
+    "large": "large/slides_pricing.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "slides_review",
+   "type": "slides",
+   "name": "Year in review",
+   "tag": "Reporting",
+   "line": "Four big numbers, a photo strip and a thank-you.",
+   "meta": "8 slides",
+   "prompt": "Create an 8-slide year in review with four key numbers (12 launches, 48 markets, 72K users, 94% retention) and a photo strip.",
+   "image": {
+    "src": "slides_review.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Year in review template preview",
+    "large": "large/slides_review.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "doc_proposal",
+   "type": "doc",
+   "kind": "prompt",
+   "name": "Client proposal",
+   "tag": "Business",
+   "line": "Write a client proposal with scope, timeline and three price options",
+   "meta": "Prompt",
+   "prompt": "Write a client proposal as a .docx file. First ask me about the client, the problem to solve, the deliverables, the timeline and my rates; if I have none, use an invented client and label the figures as sample. Structure: a cover, a one-paragraph summary, the scope with what is not included, a timeline table, three price options (essential, standard, premium) in a table, terms and next steps. About 4 pages. Check that the totals add up and that names and dates match throughout, then give me the .docx."
+  },
+  {
+   "id": "doc_onboarding",
+   "type": "doc",
+   "kind": "prompt",
+   "name": "Onboarding guide",
+   "tag": "Business",
+   "line": "Prepare a 30-day onboarding guide for a new hire",
+   "meta": "Prompt",
+   "prompt": "Write a 30-day onboarding guide as a .docx file. First ask me for the role, the team, the tools they will use and the people they will meet; if I have none, use an invented role and company and label them as sample. Structure: a welcome page, week-by-week goals, a first-day checklist, a who-to-ask table, a glossary and a 30-day check-in with three questions for the manager. Plain, friendly language, about 5 pages, headings and page numbers, then give me the .docx."
+  },
+  {
+   "id": "doc_lesson",
+   "type": "doc",
+   "kind": "prompt",
+   "name": "Lesson plan",
+   "tag": "Education",
+   "line": "Write a 45-minute lesson plan with an activity and a quick quiz",
+   "meta": "Prompt",
+   "prompt": "Write a lesson plan as a .docx file. First ask me for the subject, the age or level, the learning objective and the time available; if I have none, use a sample topic and label it as sample. Structure: objectives written as what students will be able to do, materials, a timed sequence (hook, teaching, guided practice, independent task), differentiation for struggling and advanced students, a 5-question exit ticket with answers, and homework. Check that the timings add up to the lesson length. About 2 pages, then give me the .docx."
+  },
+  {
+   "id": "doc_studyguide",
+   "type": "doc",
+   "kind": "prompt",
+   "name": "Study guide",
+   "tag": "Education",
+   "line": "Turn my course notes into a study guide with practice questions",
+   "meta": "Prompt",
+   "prompt": "Turn my notes into a study guide as a .docx file. First ask me to attach or paste the notes and tell me the exam format. Use only what the notes say, and flag anything missing or unclear instead of filling it in. Structure: a one-page summary, a table of key terms with definitions, the main ideas as short sections, 10 practice questions of mixed difficulty, then an answer key on the last page. Check every answer against the notes, then give me the .docx."
+  },
+  {
+   "id": "doc_researchproposal",
+   "type": "doc",
+   "kind": "prompt",
+   "name": "Research proposal",
+   "tag": "Research",
+   "line": "Draft a research proposal with question, method and timeline",
+   "meta": "Prompt",
+   "prompt": "Draft a research proposal as a .docx file. First ask me for my field, the question I want to answer, the data or participants I could use and my deadline; if I have none, use a sample question and label it as sample. Structure: title, a 150-word abstract, background, research question and hypotheses, method, ethics and risks, a timeline table by month and expected results. Cite nothing you cannot name: mark every reference still to find as [to add]. About 4 pages, then give me the .docx."
+  },
+  {
+   "id": "doc_litreview",
+   "type": "doc",
+   "kind": "prompt",
+   "name": "Literature review",
+   "tag": "Research",
+   "line": "Write a literature review using only the sources I give you",
+   "meta": "Prompt",
+   "prompt": "Write a literature review section as a .docx file. First ask me for the topic, the sources (attach them or paste their abstracts) and the citation style. Use only those sources and never invent a reference. Group them by theme rather than one by one, compare their methods and findings, point out agreements and contradictions, and end with the gap my work addresses. Add the reference list in my style and a table of sources by theme. Check every claim against its source, then give me the .docx and a list of anything you could not verify."
+  },
+  {
+   "id": "sheet_irr",
+   "type": "sheet",
+   "kind": "prompt",
+   "name": "Investment return calculator",
+   "tag": "Business",
+   "line": "Calculate IRR and payback for a project's cash flows",
+   "meta": "Prompt",
+   "prompt": "Build an investment return spreadsheet. First ask me for the upfront cost, the expected cash flow of each year (up to 10) and my discount rate; if I have none, use sample figures and label them as sample. Make one inputs tab and one results tab with live formulas for IRR, NPV, simple and discounted payback, and a chart of cumulative cash flow. Add a scenario cell that scales every cash flow by -20%, 0% or +20%. Cross-check the key results with an independent calculation, tell me what you could not verify, and say in two lines whether the project clears my rate."
+  },
+  {
+   "id": "sheet_runway",
+   "type": "sheet",
+   "kind": "prompt",
+   "name": "Cash runway forecast",
+   "tag": "Business",
+   "line": "Forecast 12 months of cash with best and worst cases",
+   "meta": "Prompt",
+   "prompt": "Build a 12-month cash forecast. First ask me for the opening balance, monthly revenue, fixed and variable costs and any one-off payments; if I have none, use sample figures and label them as sample. Put the inputs in one tab, with a dropdown that switches between base, best and worst case, and the monthly balance in another, with live formulas. Add a chart of the balance, highlight in red any month below zero, and show how many months of runway remain. Cross-check the key results with an independent calculation, tell me what you could not verify, and summarise the three cases in three lines."
+  },
+  {
+   "id": "sheet_gradebook",
+   "type": "sheet",
+   "kind": "prompt",
+   "name": "Weighted gradebook",
+   "tag": "Education",
+   "line": "Track class grades with weighted categories and letter marks",
+   "meta": "Prompt",
+   "prompt": "Build a gradebook for one class. First ask me for the categories and their weights (for example homework, quizzes, exam), the number of assignments and the grade scale; if I have none, use five students with invented names and label them as sample. One row per student, one column per assignment, live formulas for each category average, the weighted final grade and the letter mark from a lookup table. Colour grades below the pass mark, add the class average and a distribution chart. Check that the weights add up to 100%, cross-check the final grades with an independent calculation and tell me what you could not verify."
+  },
+  {
+   "id": "sheet_study_week",
+   "type": "sheet",
+   "kind": "prompt",
+   "name": "Study-week planner",
+   "tag": "Education",
+   "line": "Split my weekly study hours across courses by exam date and difficulty",
+   "meta": "Prompt",
+   "prompt": "Build a study planner spreadsheet. First ask me for my courses, each exam date, how hard I find each one (1 to 5) and how many hours I can study per week; if I have none, use five courses and label them as sample. With formulas, work out how many hours each course gets per week, weighted by difficulty and by how close its exam is, and lay them out on a Monday to Sunday grid. Check that the grid never exceeds my weekly hours, add a countdown in days to each exam and a chart of hours per course, and cross-check the totals independently."
+  },
+  {
+   "id": "sheet_survey",
+   "type": "sheet",
+   "kind": "prompt",
+   "name": "Survey results analysis",
+   "tag": "Research",
+   "line": "Summarise survey answers with statistics and charts",
+   "meta": "Prompt",
+   "prompt": "Analyse survey results in a spreadsheet. First ask me to attach or paste the responses (CSV or table) and tell me which questions are scales and which are choices; if I have none, create 40 invented responses and label them as sample. Keep the raw data on one tab, untouched. On another tab use formulas for response counts, mean, median and standard deviation per scale question, the share of each choice, and a comparison between two groups I name. Add one chart per question, list the data issues you found (blanks, outliers) and write three plain-language findings. Cross-check the statistics with an independent calculation."
+  },
+  {
+   "id": "sheet_litmatrix",
+   "type": "sheet",
+   "kind": "prompt",
+   "name": "Literature matrix",
+   "tag": "Research",
+   "line": "Compare the papers I read in one literature matrix",
+   "meta": "Prompt",
+   "prompt": "Build a literature review matrix. First ask me for my research question and the papers to include (titles, DOIs or text I paste); never invent a paper or a figure, and write 'not stated' where a paper does not say. One row per paper: year, method, sample, main finding, limitation and a relevance score from 1 to 5. Add filters, a count per method with formulas, a chart of papers per year and a gap tab listing what none of the papers covers. Check that every row is filled and tell me anything you could not verify."
+  },
+  {
+   "id": "dashboard_agency",
+   "type": "dashboard",
+   "name": "Agency overview",
+   "tag": "Real estate",
+   "line": "Listings, the sales pipeline, viewings and mandates, from your own table.",
+   "meta": "9 widgets · your Tables data",
+   "prompt": "Make a dashboard for my real-estate agency from my own table in Tables (the Real estate template makes one, with sample rows). Ask me which table holds my listings and which one my sales, then show me the plan before you write it: active listings, open sales value, viewings to run, mandates ending soon, properties by status, the sales pipeline by stage, leads by source and the next follow-ups. If I have no data yet, use the sample rows and say they are a sample.",
+   "image": {
+    "src": "dashboard_agency.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A real-estate dashboard: four figure cards, a donut of properties by status, the sales pipeline by stage, leads by source and the next viewings and mandates.",
+    "large": "large/dashboard_agency.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "dashboard_shop",
+   "type": "dashboard",
+   "name": "Shop overview",
+   "tag": "E-commerce",
+   "line": "Paid revenue, orders to ship, low stock and customers at a glance.",
+   "meta": "10 widgets · your Tables data",
+   "prompt": "Make a dashboard for my online shop from my own tables in Tables (the E-commerce template makes them, with sample rows). Ask me which tables hold my orders, my products and my customers, then show me the plan before you write it: revenue from paid orders, orders to ship, low stock, repeat customers, orders by status, products by category, the next orders to ship, the stock to reorder, top products and orders by source. If I have no data yet, use the sample rows and say they are a sample.",
+   "image": {
+    "src": "dashboard_shop.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "An online-shop dashboard: revenue, orders to ship, low stock and customers as cards, orders by status, products by category, the next orders to ship and the stock to reorder.",
+    "large": "large/dashboard_shop.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "dashboard_hiring",
+   "type": "dashboard",
+   "name": "Hiring desk overview",
+   "tag": "Recruitment",
+   "line": "Open jobs, candidates in play, placements and client missions.",
+   "meta": "9 widgets · your Tables data",
+   "prompt": "Make a dashboard for my recruitment desk from my own tables in Tables (the Recruitment template makes them, with sample rows). Ask me which tables hold my jobs, my candidates and my client missions, then show me the plan before you write it: open jobs, candidates in play, candidates placed, the oldest open job, candidates by stage, missions by stage, where candidates come from, the next interviews and the jobs open the longest. If I have no data yet, use the sample rows and say they are a sample.",
+   "image": {
+    "src": "dashboard_hiring.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A recruitment dashboard: open jobs, candidates in play and placed, the oldest open job, candidates and missions by stage, where candidates come from and the next interviews.",
+    "large": "large/dashboard_hiring.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "dashboard_usage",
+   "type": "dashboard",
+   "name": "AI usage and tokens",
+   "tag": "Usage",
+   "line": "Tokens per day, per model and per provider, and your busiest sessions.",
+   "meta": "8 widgets · your own usage",
+   "prompt": "Make a dashboard of my own AI usage: tokens per day stacked by model, the share of each provider, the tokens served from cache, tokens by model and my busiest sessions. Ask me how far back to look (14 days by default). Only tokens are stored, no money, so show tokens and say so. Show me the plan before you write it.",
+   "image": {
+    "src": "dashboard_usage.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A usage dashboard: tokens over 14 days, models used, cache read and sessions as cards, a stacked chart of tokens per day by model, a donut by provider, tokens by model and the busiest sessions.",
+    "large": "large/dashboard_usage.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "dashboard_heatmap",
+   "type": "dashboard",
+   "name": "Usage heatmap",
+   "tag": "Usage",
+   "line": "Four months of tokens as a heatmap, with sessions, active days and a favourite model.",
+   "meta": "8 widgets · your own usage",
+   "prompt": "Make a dashboard that tells me how I use my agents over the last 120 days: sessions, total tokens, active days, the models I use, the tokens served from cache, my favourite model, and a calendar heatmap of the tokens per day. Add one playful comparison of the total with a short novel. Show me the plan before you write it.",
+   "image": {
+    "src": "dashboard_heatmap.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A usage overview: sessions, total tokens, active days, models used, tokens served from cache and the favourite model as cards, a calendar heatmap of 120 days of tokens, and a comparison with a short novel.",
+    "large": "large/dashboard_heatmap.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "dashboard_automations",
+   "type": "dashboard",
+   "name": "Automations health",
+   "tag": "Automations",
+   "line": "Runs and failures per day, this week’s calendar and the latest runs.",
+   "meta": "9 widgets · your automations",
+   "prompt": "Make a dashboard of my automations: runs over the last 14 days with the failed ones in red, which automations run the most, what is planned this week as a calendar, the latest runs with a filter for the failed ones, and a list of the ones that failed last, never ran or are paused. Show me the plan before you write it.",
+   "image": {
+    "src": "dashboard_automations.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "An automations dashboard: runs in 14 days, automations, failing now and never run as cards, runs per day with the failed ones in red, a donut of runs by automation, the week as a calendar and the latest runs.",
+    "large": "large/dashboard_automations.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "dashboard_pipeline",
+   "type": "dashboard",
+   "name": "Automation pipeline",
+   "tag": "Automations",
+   "line": "How a scheduled run travels to its files, with a live number on every step.",
+   "meta": "8 widgets · your automations",
+   "prompt": "Make a flow dashboard of my automations: a diagram from the schedule to the run, then succeeded or failed, then the files it made, with a live number on every step read from my automations; add a diagram of which automations fail, a chart of the hours they run, and cards for the active ones, the runs of the last 14 days and the ones planned this week. Show me the plan before you write it.",
+   "image": {
+    "src": "dashboard_pipeline.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A flow dashboard: a diagram from the schedule to the run, its success or failure and the files made, a live number on every step, a diagram of which automations fail and a chart of the hours they run.",
+    "large": "large/dashboard_pipeline.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "dashboard_teams",
+   "type": "dashboard",
+   "name": "Agent Teams",
+   "tag": "Teams",
+   "line": "My teams, the lessons they recorded and the skills they declare.",
+   "meta": "7 widgets · your Agent Teams",
+   "prompt": "Make a dashboard of my Agent Teams: how many teams and roles I have, the lessons each team has recorded, the skills each one declares, the skills installed, and a list of my teams with what each does. Show me the plan before you write it.",
+   "image": {
+    "src": "dashboard_teams.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "An Agent Teams dashboard: teams defined, lessons recorded, skills installed and roles as cards, lessons per team and declared skills per team as bar charts, and the list of teams with what each does.",
+    "large": "large/dashboard_teams.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "image_ad_skincare",
+   "type": "image",
+   "name": "Skincare ad",
+   "tag": "Ads",
+   "line": "A premium product shot with room left for the headline.",
+   "meta": "Landscape · 16:10",
+   "prompt": "Advertising photo for a skincare brand: an amber glass serum bottle with a dropper standing on a wet dark slate stone, a few green leaves behind it, soft morning side light, shallow depth of field, calm empty space on the left for a headline, premium cosmetics campaign look. No text, no lettering, no watermark.",
+   "image": {
+    "src": "image_ad_skincare.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "An amber serum bottle on a wet dark stone with green leaves behind it",
+    "large": "large/image_ad_skincare.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "image_social_latte",
+   "type": "image",
+   "name": "Coffee shop post",
+   "tag": "Social",
+   "line": "A warm flat lay for a seasonal drink launch.",
+   "meta": "Landscape · 16:10",
+   "prompt": "Social media post for a neighbourhood coffee shop launching a seasonal drink: a pumpkin-spice latte with latte art in a ceramic cup beside a cinnamon pastry on a warm wooden table, overhead flat lay, cosy autumn tones, natural window light, a few cinnamon sticks scattered around. No text, no lettering, no watermark.",
+   "image": {
+    "src": "image_social_latte.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A latte with latte art and a cinnamon pastry on a wooden table, seen from above",
+    "large": "large/image_social_latte.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "image_logo_fox",
+   "type": "image",
+   "name": "Start-up logo mark",
+   "tag": "Branding",
+   "line": "A flat, two-colour mark that still reads at small sizes.",
+   "meta": "Landscape · 16:10",
+   "prompt": "Logo mark for a sustainable delivery start-up: a simple geometric fox head built from three flat shapes in burnt orange and deep teal, centred on a plain off-white background, clean vector style, generous margins. No text, no lettering, no watermark.",
+   "image": {
+    "src": "image_logo_fox.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A geometric fox head in orange and teal on an off-white background",
+    "large": "large/image_logo_fox.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "image_banner_jazz",
+   "type": "image",
+   "name": "Festival banner",
+   "tag": "Events",
+   "line": "A bold art-deco banner with space for the title.",
+   "meta": "Landscape · 16:10",
+   "prompt": "Wide banner for a summer jazz festival: art-deco illustration of a saxophone player in silhouette under a huge golden sun, layered geometric rays in navy, gold and cream, calm empty band across the top for the festival name. No text, no lettering, no watermark.",
+   "image": {
+    "src": "image_banner_jazz.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A saxophone player in silhouette under a golden sun with navy and gold rays",
+    "large": "large/image_banner_jazz.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "image_listing_livingroom",
+   "type": "image",
+   "name": "Listing photo",
+   "tag": "Real estate",
+   "line": "A bright, tidy room shot the way agents photograph it.",
+   "meta": "Landscape · 16:10",
+   "prompt": "Real-estate listing photo of a bright Scandinavian living room in a renovated city apartment: light oak floor, a linen sofa, a round coffee table, a large window with sheer curtains, a houseplant, wide-angle lens at eye level, soft daylight, tidy and inviting. No text, no lettering, no watermark.",
+   "image": {
+    "src": "image_listing_livingroom.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A bright living room with a linen sofa, a round table and a large window",
+    "large": "large/image_listing_livingroom.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "image_shop_sneaker",
+   "type": "image",
+   "name": "Product photo",
+   "tag": "E-commerce",
+   "line": "A clean studio shot on a seamless background.",
+   "meta": "Landscape · 16:10",
+   "prompt": "E-commerce product photo of a single white leather sneaker with a pale green sole, three-quarter view, on a seamless light grey studio background, soft box lighting, subtle floor reflection, crisp detail on the stitching. No text, no lettering, no watermark.",
+   "image": {
+    "src": "image_shop_sneaker.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A white leather sneaker with a pale green sole on a light grey background",
+    "large": "large/image_shop_sneaker.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "image_menu_pasta",
+   "type": "image",
+   "name": "Menu dish",
+   "tag": "Food",
+   "line": "A warm close-up that makes a dish worth ordering.",
+   "meta": "Landscape · 16:10",
+   "prompt": "Menu photo for an Italian restaurant: a plate of fresh tagliatelle with basil and cherry tomatoes on a stone-grey ceramic plate, dark wooden table, 45-degree angle, steam rising, warm side light, shallow depth of field. No text, no lettering, no watermark.",
+   "image": {
+    "src": "image_menu_pasta.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A plate of tagliatelle with basil and cherry tomatoes on a dark wooden table",
+    "large": "large/image_menu_pasta.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "image_course_watercycle",
+   "type": "image",
+   "name": "Course illustration",
+   "tag": "Learning",
+   "line": "A clear flat diagram a class can talk through.",
+   "meta": "Landscape · 16:10",
+   "prompt": "Educational illustration for a primary-school science course about the water cycle: a friendly flat-style landscape with mountains, a river, the sea, a sun, clouds and rain, soft arrows showing evaporation, condensation and rainfall, bright clear colours, simple shapes. No text, no lettering, no watermark.",
+   "image": {
+    "src": "image_course_watercycle.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A flat landscape with mountains, a river, the sea, clouds and arrows showing the water cycle",
+    "large": "large/image_course_watercycle.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "image_flashcard_market",
+   "type": "image",
+   "name": "Vocabulary flashcard",
+   "tag": "Learning",
+   "line": "Clearly separate objects to point at and name.",
+   "meta": "Landscape · 16:10",
+   "prompt": "Flashcard illustration for a Spanish vocabulary course, topic at the market: a cheerful flat illustration of a market stall with oranges, tomatoes, bread and a basket, each object clearly separate on a plain pale background, easy to point at and name, bright friendly colours. No text, no lettering, no watermark.",
+   "image": {
+    "src": "image_flashcard_market.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A market stall with oranges, tomatoes, bread and a basket on a pale background",
+    "large": "large/image_flashcard_market.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "video_ad_alderine_r2",
+   "type": "video",
+   "name": "Product ad",
+   "tag": "Marketing",
+   "line": "A brand, a bottle and a tagline: your product photo becomes a 15-second launch film.",
+   "meta": "15 seconds · 16:9 · music and voice-over",
+   "prompt": "Make a 15-second product ad from my product photo. If I have no brand yet, invent one with me. Ask me for the photo, the product name and a tagline, show me the first frame, then add the brand text, music and a one-line voice-over.",
+   "image": {
+    "src": "video_ad_alderine_r2.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "An emerald glass bottle rising out of fog on wet slate, the brand name Alderine in white capitals over it.",
+    "large": "large/video_ad_alderine_r2.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "video_tryon_swap_r3",
+   "type": "video",
+   "name": "Virtual try-on",
+   "tag": "Fashion",
+   "line": "A rail of coats, three looks tried on in one take, each named on screen.",
+   "meta": "15 seconds · 9:16 · voice and music",
+   "prompt": "Make a 15-second virtual try-on video in one take. Ask me for a photo of the person (or use an invented one), the room and up to three garments with their colours. Show me the first frame, then animate her trying each look on, with the name of each look on screen and a short spoken line for each.",
+   "image": {
+    "src": "video_tryon_swap_r3.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A young woman with a dark bob in a bright Paris living room, delighted in a cognac leather jacket, with a camel coat and an emerald coat on the rail behind her.",
+    "large": "large/video_tryon_swap_r3.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "video_theme_90s2_r2",
+   "type": "video",
+   "name": "Photo in a theme",
+   "tag": "Creative",
+   "line": "Your photo in a 90s, manga or space-opera look, then animated.",
+   "meta": "5 seconds · 16:9 · with sound",
+   "prompt": "Turn my photo into a 5-second video in a theme I choose (the 90s, manga, space opera...). Ask me for the photo and the theme, show me the restyled still, then animate it.",
+   "image": {
+    "src": "video_theme_90s2_r2.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A young man in a denim jacket in front of a neon-lit 90s arcade at night.",
+    "large": "large/video_theme_90s2_r2.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "video_property_flythrough_r3",
+   "type": "video",
+   "name": "Property film",
+   "tag": "Real estate",
+   "line": "A flight to the villa, then room by room, with a floor plan that follows the visit.",
+   "meta": "23 seconds · 16:9 · music",
+   "prompt": "Make a 20-second immersive property film from my listing photos. Ask me for the best exterior photo, the address, the price and the five features to show, and the rooms to visit. Fly in from the road, then go room by room, with a small floor plan that follows the visit and the features listed on screen, and end on the price, with music. Show me the first frame before you animate.",
+   "image": {
+    "src": "video_property_flythrough_r3.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A white villa with an infinity pool above a bay at golden hour, the villa name over it, a small floor plan at the top left and a list of features at the bottom right.",
+    "large": "large/video_property_flythrough_r3.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "video_clip_firstloaf_r2",
+   "type": "video",
+   "name": "Social clip",
+   "tag": "Social",
+   "line": "An idea becomes a vertical story with a voice-over, music and captions.",
+   "meta": "15 seconds · 9:16 · voice-over and music",
+   "prompt": "Make a 15-second vertical clip for social media from my idea. Ask me for the idea and the mood, write a three-line script in English and show it to me, show me the first frame, then make the clip with the voice-over, music and captions.",
+   "image": {
+    "src": "video_clip_firstloaf_r2.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Flour-dusted hands kneading dough in warm window light, with the caption: Flour, water, and a little patience.",
+    "large": "large/video_clip_firstloaf_r2.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "video_logo_reveal2_r2",
+   "type": "video",
+   "name": "Logo reveal",
+   "tag": "Branding",
+   "line": "Your logo animated in five seconds, with its sound.",
+   "meta": "5 seconds · 16:9 · with sound",
+   "prompt": "Animate my logo as a 5-second reveal. Ask me for the logo image and my brand colours.",
+   "image": {
+    "src": "video_logo_reveal2_r2.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "An amber ring and dot above the word LUMO and a tagline, on a dark navy background.",
+    "large": "large/video_logo_reveal2_r2.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "video_old_photo_alive_r4",
+   "type": "video",
+   "name": "Old photo, alive",
+   "tag": "Storytelling",
+   "line": "A worn print is restored in sharp HD, then its people move and speak.",
+   "meta": "8 seconds · 16:9 · restored in HD, with a voice",
+   "prompt": "Bring my old photograph to life as a short film. Restore it in sharp high definition first and show me the restored picture next to the original; then animate it, with the people really moving (not just the face) and a voice line in my own language. Ask me for the photo, the place and the year and the story to tell; show me the lines before you animate.",
+   "image": {
+    "src": "video_old_photo_alive_r4.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "An old sepia family picnic by a lake, restored sharp: grandparents on a blanket, two children and their father standing, a dog in the grass.",
+    "large": "large/video_old_photo_alive_r4.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "video_workout_anatomy_r2",
+   "type": "video",
+   "name": "Workout with anatomy",
+   "tag": "Fitness",
+   "line": "Three exercises, and the muscles each one works lit up like an anatomy chart.",
+   "meta": "15 seconds · 9:16 · voice-over and music",
+   "prompt": "Make a 15-second workout video with three exercises that shows the muscles each one works, lit up like an anatomy chart. Ask me for the three exercises and the person (or use an invented athlete), show me the first frame of each, then add the exercise names, the muscle labels, a voice-over and music.",
+   "image": {
+    "src": "video_workout_anatomy_r2.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "An athlete mid pull-up with her muscles glowing red like an anatomy chart.",
+    "large": "large/video_workout_anatomy_r2.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "audio_business_en",
+   "type": "audio",
+   "name": "Quarterly update, read aloud",
+   "tag": "Business",
+   "line": "A board update turned into a clear voice you can send to the team.",
+   "meta": "0:18 · English · AI voice",
+   "prompt": "Turn this quarterly update into a 20-second audio brief for my team, in a clear, confident English voice: revenue up 18 percent led by subscriptions, churn down to 2.1 percent, onboarding cut from nine days to three, support volume doubled. Give me the audio file and the text.",
+   "image": {
+    "src": "audio_business_en.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A modern wave player on a blue gradient, playing a spoken business update",
+    "large": "large/audio_business_en.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "audio_audiobook_es",
+   "type": "audio",
+   "name": "Audiobook page, in Spanish",
+   "tag": "Audiobook",
+   "line": "A page of fiction read like a narrator would, at an unhurried pace.",
+   "meta": "0:20 · Spanish · AI voice",
+   "prompt": "Make an audiobook sample from this page of my novel, in Spanish: a warm female narrator, an unhurried pace, a short pause at every full stop. I will paste the text; give me the audio file.",
+   "image": {
+    "src": "audio_audiobook_es.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A modern wave player on a warm amber gradient, playing a page of fiction read in Spanish",
+    "large": "large/audio_audiobook_es.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "audio_techsummary_zh",
+   "type": "audio",
+   "name": "Technical doc summary, in Chinese",
+   "tag": "Documents",
+   "line": "A migration guide boiled down to three points and spoken in Mandarin.",
+   "meta": "0:23 · Chinese · AI voice",
+   "prompt": "Summarise this technical document in three points and read the summary aloud in Mandarin Chinese, in a clear, neutral voice. I will attach the document; give me the audio file and the text of the summary.",
+   "image": {
+    "src": "audio_techsummary_zh.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A modern wave player on a teal gradient, playing the summary of a technical document in Mandarin Chinese",
+    "large": "large/audio_techsummary_zh.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "audio_ocean_calm_en",
+   "type": "audio",
+   "name": "Guided breathing",
+   "tag": "Wellness",
+   "line": "A calm voice, the sea and a slow breath: twenty seconds to let go.",
+   "meta": "0:20 · English · AI voice and music",
+   "prompt": "Make a 20-second guided breathing for the end of a work day: a calm, warm female voice in English over soft ambient music with the feel of the sea. Short sentences with room to breathe between them, captions on screen.",
+   "image": {
+    "src": "audio_ocean_calm_en.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A scrolling waveform on a deep teal background while a calm voice guides a breathing exercise, with its captions",
+    "large": "large/audio_ocean_calm_en.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "audio_bedtime_fr",
+   "type": "audio",
+   "name": "Bedtime story",
+   "tag": "Stories",
+   "line": "A short tale read softly in French, one watercolour for each page.",
+   "meta": "0:21 · French · AI voice and music",
+   "prompt": "Make a 20-second bedtime story in French for a child who is afraid of the dark: a gentle female voice, a music box, three watercolour pictures of a little fox, captions. A happy ending, no scary image.",
+   "image": {
+    "src": "audio_bedtime_fr.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A watercolour crescent moon smiling over a lake, with a small fox sitting on the shore and a French caption",
+    "large": "large/audio_bedtime_fr.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "audio_podcast_doc",
+   "type": "audio",
+   "kind": "prompt",
+   "name": "Two-host podcast from a document",
+   "tag": "Podcast",
+   "line": "Two hosts talk through your document: a hook, three key points with an example each, a short recap. About 3 minutes, in a natural voice.",
+   "meta": "Prompt",
+   "prompt": "Turn the document I attach into a 3-minute two-host podcast episode. Host A is curious and asks the questions, host B explains. Structure: a 15-second hook, three key points each with one concrete example, then a 20-second recap and one question for the listener. Natural spoken English, short sentences, light humour, no jargon. Warm studio voices, a different voice for each host, a soft intro and outro. Before generating, show me the script and the voices you picked; then give me the MP3 and the transcript."
+  },
+  {
+   "id": "model3d_chair",
+   "type": "model3d",
+   "name": "Armchair configurator",
+   "tag": "Shop",
+   "line": "Pick the fabric, the frame and the size: the price follows.",
+   "meta": "Interactive page + .glb",
+   "prompt": "Make an interactive 3D armchair configurator for my online shop: the customer turns it around, picks the fabric, the frame wood and the size, and the price follows. Ask me for my real options and prices first, or use sample ones labelled as sample.",
+   "image": {
+    "src": "model3d_chair.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A 3D armchair with a fabric, frame and size picker and a live price",
+    "large": "large/model3d_chair.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "model3d_grinder",
+   "type": "model3d",
+   "name": "Hand grinder, exploded",
+   "tag": "Product",
+   "line": "Twelve CAD solids, a bill of materials and a cost by batch.",
+   "meta": "Interactive page + .glb",
+   "prompt": "Make an interactive 3D exploded view of a hand coffee grinder with a bill of materials: real CAD solids, the mass of each part from its volume, and the cost by batch from assumptions shown on the page. Ask me for my own product and dimensions first, or use sample ones labelled as sample.",
+   "image": {
+    "src": "model3d_grinder.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "An exploded 3D coffee grinder next to its bill of materials with mass and cost",
+    "large": "large/model3d_grinder.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "model3d_engine",
+   "type": "model3d",
+   "name": "Four-stroke engine",
+   "tag": "Mechanics",
+   "line": "A cutaway with a computed cycle: valves, pressure and power.",
+   "meta": "Interactive page + .glb",
+   "prompt": "Make a 3D cutaway of a four-stroke engine with a cycle that is computed, not animated by hand: the valves, the pressure curve and the power follow the throttle and the spark. Tell me what you checked and what is an assumption.",
+   "image": {
+    "src": "model3d_engine.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A cutaway 3D engine beside its computed pressure curve and figures",
+    "large": "large/model3d_engine.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "model3d_stool",
+   "type": "model3d",
+   "name": "Wooden stool",
+   "tag": "Furniture",
+   "line": "Four solids, checked to fit, with the mass of each part.",
+   "meta": "Interactive page + .glb",
+   "prompt": "Make a 3D product page for a three-legged wooden stool: turn it around, explode it, click a part for its material and mass, and export the .glb. Ask me for my real dimensions and wood first, or use sample ones labelled as sample.",
+   "image": {
+    "src": "model3d_stool.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A three-legged wooden stool in 3D with its list of parts and masses",
+    "large": "large/model3d_stool.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "app_ecommerce",
+   "type": "app",
+   "name": "E-commerce shop",
+   "tag": "Commerce",
+   "line": "Answer customers faster and never miss a low-stock day.",
+   "meta": "64 sample rows",
+   "prompt": "Build an app from the E-commerce shop template.",
+   "image": {
+    "src": "app_ecommerce.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "E-commerce shop template preview",
+    "large": "large/app_ecommerce.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   },
+   "kind": "template",
+   "shelf": "A",
+   "tables": [
+    "Contacts",
+    "Products",
+    "Orders",
+    "Notes"
+   ],
+   "links": [
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     0,
+     3
+    ]
+   ],
+   "inside": [
+    {
+     "t": "4 tables, linked",
+     "d": "Contacts, Products, Orders and Notes. Orders point at a contact and a product."
+    },
+    {
+     "t": "Sample rows",
+     "d": "64 rows, so you see it working before you add your own."
+    },
+    {
+     "t": "The kit",
+     "d": "A dashboard, an agent team, skills and automations. The automations start switched off."
+    }
+   ],
+   "kit": "ecommerce"
+  },
+  {
+   "id": "app_realestate",
+   "type": "app",
+   "name": "Real estate agency",
+   "tag": "Property",
+   "line": "Listings written in minutes and every viewing followed up.",
+   "meta": "73 sample rows",
+   "prompt": "Build an app from the Real estate agency template.",
+   "image": {
+    "src": "app_realestate.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Real estate agency template preview",
+    "large": "large/app_realestate.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   },
+   "kind": "template",
+   "shelf": "A",
+   "tables": [
+    "Contacts",
+    "Properties",
+    "Lettings",
+    "Sales",
+    "Notes"
+   ],
+   "links": [
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     0,
+     4
+    ]
+   ],
+   "layout": [
+    [
+     0,
+     1
+    ],
+    [
+     2,
+     3,
+     4
+    ]
+   ],
+   "inside": [
+    {
+     "t": "5 tables, linked",
+     "d": "Contacts, Properties, Lettings, Sales and Notes. Lettings and Sales each point at a contact and a property."
+    },
+    {
+     "t": "Sample rows",
+     "d": "73 rows, so you see it working before you add your own."
+    },
+    {
+     "t": "The kit",
+     "d": "An Overview dashboard, the Agency desk team, 2 skills and 3 automations. The automations start switched off."
+    }
+   ],
+   "kit": "real-estate"
+  },
+  {
+   "id": "app_recruitment",
+   "type": "app",
+   "name": "Recruitment firm",
+   "tag": "People",
+   "line": "Candidate briefs in minutes and a pipeline that never goes quiet.",
+   "meta": "63 sample rows",
+   "prompt": "Build an app from the Recruitment firm template.",
+   "image": {
+    "src": "app_recruitment.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Recruitment firm template preview",
+    "large": "large/app_recruitment.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   },
+   "kind": "template",
+   "shelf": "A",
+   "tables": [
+    "Contacts",
+    "Jobs",
+    "Candidates",
+    "Missions",
+    "Notes"
+   ],
+   "links": [
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     0,
+     4
+    ]
+   ],
+   "inside": [
+    {
+     "t": "5 tables, linked",
+     "d": "Contacts, Jobs, Candidates, Client missions and Notes."
+    },
+    {
+     "t": "Sample rows",
+     "d": "63 rows, so you see it working before you add your own."
+    },
+    {
+     "t": "The kit",
+     "d": "A dashboard, an agent team, skills and automations. The automations start switched off."
+    }
+   ],
+   "kit": "recruitment"
+  },
+  {
+   "id": "app_restaurant",
+   "type": "app",
+   "name": "Restaurant bookings",
+   "tag": "Hospitality",
+   "line": "A week of tables and covers, guests remembered.",
+   "meta": "58 sample rows",
+   "prompt": "Build an app from the Restaurant bookings template.",
+   "image": {
+    "src": "app_restaurant.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Restaurant bookings template preview",
+    "large": "large/app_restaurant.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   },
+   "kind": "template",
+   "shelf": "A",
+   "tables": [
+    "Bookings",
+    "Tables",
+    "Guests",
+    "Menu"
+   ],
+   "links": [
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ]
+   ],
+   "inside": [
+    {
+     "t": "4 tables, linked",
+     "d": "Bookings, Tables, Guests and Menu. Each booking points at a table and a guest."
+    },
+    {
+     "t": "Sample rows",
+     "d": "58 rows, a full week of bookings."
+    },
+    {
+     "t": "Not built yet",
+     "d": "A new template idea: it does not ship today."
+    }
+   ]
+  },
+  {
+   "id": "app_fitness",
+   "type": "app",
+   "name": "Fitness studio",
+   "tag": "Wellness",
+   "line": "Classes, members and attendance in one place.",
+   "meta": "61 sample rows",
+   "prompt": "Build an app from the Fitness studio template.",
+   "image": {
+    "src": "app_fitness.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Fitness studio template preview",
+    "large": "large/app_fitness.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   },
+   "kind": "template",
+   "shelf": "A",
+   "tables": [
+    "Members",
+    "Classes",
+    "Bookings",
+    "Plans"
+   ],
+   "links": [
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     0,
+     3
+    ]
+   ],
+   "inside": [
+    {
+     "t": "4 tables, linked",
+     "d": "Members, Classes, Bookings and Plans. Each booking points at a member and a class."
+    },
+    {
+     "t": "Sample rows",
+     "d": "61 rows, a full week of classes."
+    },
+    {
+     "t": "Not built yet",
+     "d": "A new template idea: it does not ship today."
+    }
+   ]
+  },
+  {
+   "id": "app_contacts",
+   "type": "app",
+   "name": "Contacts",
+   "tag": "Starter",
+   "line": "The people and companies you deal with, and notes about each.",
+   "meta": "1 table",
+   "prompt": "Build an app that keeps my contacts and notes about each.",
+   "image": {
+    "src": "app_contacts.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Contacts template preview",
+    "large": "large/app_contacts.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   },
+   "kind": "start",
+   "shelf": "B",
+   "tables": [
+    "Contacts",
+    "Companies",
+    "Notes"
+   ],
+   "links": [
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ]
+   ],
+   "inside": [
+    {
+     "t": "One table",
+     "d": "A single table that Kaby sets up with you in a chat."
+    },
+    {
+     "t": "No trade attached",
+     "d": "Add tables and links as you go."
+    }
+   ]
+  },
+  {
+   "id": "app_tasks",
+   "type": "app",
+   "name": "Tasks",
+   "tag": "Starter",
+   "line": "What to do today, this week and later, with a priority on each.",
+   "meta": "1 table",
+   "prompt": "Build an app that tracks my tasks with a due date and a priority.",
+   "image": {
+    "src": "app_tasks.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Tasks template preview",
+    "large": "large/app_tasks.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   },
+   "kind": "start",
+   "shelf": "B",
+   "tables": [
+    "Tasks",
+    "Projects",
+    "Notes"
+   ],
+   "links": [
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ]
+   ],
+   "inside": [
+    {
+     "t": "One table",
+     "d": "A single table that Kaby sets up with you in a chat."
+    },
+    {
+     "t": "No trade attached",
+     "d": "Add tables and links as you go."
+    }
+   ]
+  },
+  {
+   "id": "app_collection",
+   "type": "app",
+   "name": "Collection",
+   "tag": "Starter",
+   "line": "Anything you collect, with a picture and your own fields.",
+   "meta": "1 table",
+   "prompt": "Build an app that catalogues my vinyl record collection with a cover picture, artist and genre.",
+   "image": {
+    "src": "app_collection.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Collection template preview",
+    "large": "large/app_collection.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   },
+   "kind": "start",
+   "shelf": "B",
+   "tables": [
+    "Items",
+    "Tags",
+    "Notes"
+   ],
+   "links": [
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ]
+   ],
+   "inside": [
+    {
+     "t": "One table",
+     "d": "A single table that Kaby sets up with you in a chat."
+    },
+    {
+     "t": "No trade attached",
+     "d": "Add tables and links as you go."
+    }
+   ]
+  },
+  {
+   "id": "app_salon",
+   "type": "app",
+   "name": "Salon bookings",
+   "tag": "Beauty",
+   "line": "Who is booked with whom, and who has not been back for a while.",
+   "meta": "52 sample rows",
+   "prompt": "Build an app for a hair salon: clients, services and appointments.",
+   "image": {
+    "src": "app_salon.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Salon bookings template preview",
+    "large": "large/app_salon.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   },
+   "kind": "template",
+   "shelf": "A",
+   "tables": [
+    "Clients",
+    "Services",
+    "Appointments",
+    "Notes"
+   ],
+   "links": [
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     0,
+     3
+    ]
+   ],
+   "inside": [
+    {
+     "t": "4 tables, linked",
+     "d": "Clients, Services, Appointments and Notes. Each appointment points at a client and a service."
+    },
+    {
+     "t": "Sample rows",
+     "d": "52 rows, a full week of appointments."
+    },
+    {
+     "t": "Not built yet",
+     "d": "A new template idea: it does not ship today."
+    }
+   ]
+  },
+  {
+   "id": "game_platformer",
+   "type": "game",
+   "name": "Pixel platformer",
+   "tag": "Arcade",
+   "line": "A fox jumps over spikes and collects stars.",
+   "meta": "Playable",
+   "prompt": "Make a pixel platformer where a fox collects stars and jumps over spikes.",
+   "image": {
+    "src": "game_platformer.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Pixel platformer template preview",
+    "large": "large/game_platformer.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "game_match3",
+   "type": "game",
+   "name": "Match-3 puzzle",
+   "tag": "Puzzle",
+   "line": "Swap gems to line up three, with 30 moves.",
+   "meta": "Playable",
+   "prompt": "Make a match-3 puzzle game with candy-coloured gems and a 30-move limit.",
+   "image": {
+    "src": "game_match3.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Match-3 puzzle template preview",
+    "large": "large/game_match3.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "game_word",
+   "type": "game",
+   "name": "Word guess",
+   "tag": "Words",
+   "line": "Five letters, six tries, colour clues.",
+   "meta": "Playable",
+   "prompt": "Make a word guessing game with five letters and six tries, like a daily puzzle.",
+   "image": {
+    "src": "game_word.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Word guess template preview",
+    "large": "large/game_word.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "game_memory",
+   "type": "game",
+   "name": "Memory cards",
+   "tag": "Casual",
+   "line": "Flip two cards to find the animal pairs.",
+   "meta": "Playable",
+   "prompt": "Make a memory card game with animal pairs and a move counter.",
+   "image": {
+    "src": "game_memory.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Memory cards template preview",
+    "large": "large/game_memory.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "game_runner",
+   "type": "game",
+   "name": "Endless runner",
+   "tag": "Arcade",
+   "line": "A robot runs and dodges, faster and faster.",
+   "meta": "Playable",
+   "prompt": "Make an endless runner where a robot dodges obstacles and the speed keeps rising.",
+   "image": {
+    "src": "game_runner.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Endless runner template preview",
+    "large": "large/game_runner.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "game_shooter",
+   "type": "game",
+   "name": "Space shooter",
+   "tag": "Arcade",
+   "line": "Waves of aliens, power-ups and a boss.",
+   "meta": "Playable",
+   "prompt": "Make a space shooter with waves of aliens and power-ups.",
+   "image": {
+    "src": "game_shooter.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Space shooter template preview",
+    "large": "large/game_shooter.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "game_trivia",
+   "type": "game",
+   "name": "Trivia show",
+   "tag": "Party",
+   "line": "Two players, a countdown and a scoreboard.",
+   "meta": "Playable",
+   "prompt": "Make a trivia game show for two players with a countdown and a scoreboard.",
+   "image": {
+    "src": "game_trivia.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Trivia show template preview",
+    "large": "large/game_trivia.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "game_checkers",
+   "type": "game",
+   "name": "Checkers",
+   "tag": "Board",
+   "line": "A two-player board game on a wooden board.",
+   "meta": "Playable",
+   "prompt": "Make a two-player checkers board game with a clean wooden board.",
+   "image": {
+    "src": "game_checkers.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Checkers template preview",
+    "large": "large/game_checkers.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "game_idle",
+   "type": "game",
+   "name": "Cookie baker",
+   "tag": "Casual",
+   "line": "Click to bake, buy upgrades, watch the numbers grow.",
+   "meta": "Playable",
+   "prompt": "Make an idle clicker where I bake cookies, buy upgrades and watch the numbers grow.",
+   "image": {
+    "src": "game_idle.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Cookie baker template preview",
+    "large": "large/game_idle.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "web_landing",
+   "type": "website",
+   "name": "Landing page",
+   "tag": "Marketing",
+   "line": "A hero, three features and a call to action.",
+   "meta": "1 page",
+   "prompt": "A landing page for my studio Flowdesk: a hero, three features and a call to action.",
+   "image": {
+    "src": "web_landing.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Landing page template preview",
+    "large": "large/web_landing.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "web_portfolio",
+   "type": "website",
+   "name": "Portfolio",
+   "tag": "Creative",
+   "line": "A black-and-white grid of your best work.",
+   "meta": "3 pages",
+   "prompt": "A portfolio site for a photographer: a big photo and a grid of work.",
+   "image": {
+    "src": "web_portfolio.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Portfolio template preview",
+    "large": "large/web_portfolio.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "web_restaurant",
+   "type": "website",
+   "name": "Restaurant",
+   "tag": "Hospitality",
+   "line": "A warm hero, a short menu and a booking button.",
+   "meta": "2 pages",
+   "prompt": "A website for my restaurant Casa Lume: a warm hero, a short menu and a booking button.",
+   "image": {
+    "src": "web_restaurant.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Restaurant template preview",
+    "large": "large/web_restaurant.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "web_blog",
+   "type": "website",
+   "name": "Blog",
+   "tag": "Media",
+   "line": "A featured story and a list of recent posts.",
+   "meta": "4 pages",
+   "prompt": "A blog called The Journal with a featured story and a list of recent posts.",
+   "image": {
+    "src": "web_blog.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Blog template preview",
+    "large": "large/web_blog.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "web_pricing",
+   "type": "website",
+   "name": "SaaS pricing",
+   "tag": "Marketing",
+   "line": "Three plans, a monthly and yearly switch.",
+   "meta": "1 page",
+   "prompt": "A SaaS pricing page with three plans (Starter, Team, Business) and a monthly and yearly switch.",
+   "image": {
+    "src": "web_pricing.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "SaaS pricing template preview",
+    "large": "large/web_pricing.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "web_shop",
+   "type": "website",
+   "name": "Online shop",
+   "tag": "Commerce",
+   "line": "A product grid with prices and a cart.",
+   "meta": "3 pages",
+   "prompt": "An online shop for sneakers with a product grid, prices and a cart.",
+   "image": {
+    "src": "web_shop.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Online shop template preview",
+    "large": "large/web_shop.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "web_event",
+   "type": "website",
+   "name": "Event page",
+   "tag": "Events",
+   "line": "A big date, the speakers and a ticket button.",
+   "meta": "1 page",
+   "prompt": "An event page for Summit 2026, June 12-13, with the speakers and a Register button.",
+   "image": {
+    "src": "web_event.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Event page template preview",
+    "large": "large/web_event.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "web_agency",
+   "type": "website",
+   "name": "Agency",
+   "tag": "Creative",
+   "line": "A huge headline on dark, with a strip of projects.",
+   "meta": "5 pages",
+   "prompt": "A site for a creative agency called Forma: a huge headline and a strip of projects.",
+   "image": {
+    "src": "web_agency.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Agency template preview",
+    "large": "large/web_agency.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "web_charity",
+   "type": "website",
+   "name": "Non-profit",
+   "tag": "Community",
+   "line": "A moving hero, a donate button and the impact in three numbers.",
+   "meta": "2 pages",
+   "prompt": "A website for a small charity with a donate button and three impact numbers.",
+   "image": {
+    "src": "web_charity.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Non-profit template preview",
+    "large": "large/web_charity.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "mini_split",
+   "type": "miniapp",
+   "name": "Cost splitter",
+   "tag": "Utility",
+   "line": "Who paid what, and who owes whom.",
+   "meta": "1 screen",
+   "prompt": "A mini-app that splits trip costs between friends.",
+   "image": {
+    "src": "mini_split.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Cost splitter template preview",
+    "large": "large/mini_split.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "mini_convert",
+   "type": "miniapp",
+   "name": "Unit converter",
+   "tag": "Utility",
+   "line": "Two fields that stay in sync, with a swap button.",
+   "meta": "1 screen",
+   "prompt": "A mini-app that converts miles to kilometres, with two fields and a swap button.",
+   "image": {
+    "src": "mini_convert.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Unit converter template preview",
+    "large": "large/mini_convert.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "mini_habits",
+   "type": "miniapp",
+   "name": "Habit tracker",
+   "tag": "Wellness",
+   "line": "A streak flame and a week of ticks.",
+   "meta": "1 screen",
+   "prompt": "A mini-app that tracks my daily habits with a streak.",
+   "image": {
+    "src": "mini_habits.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Habit tracker template preview",
+    "large": "large/mini_habits.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "mini_timer",
+   "type": "miniapp",
+   "name": "Focus timer",
+   "tag": "Productivity",
+   "line": "A big countdown ring with session dots.",
+   "meta": "1 screen",
+   "prompt": "A mini-app with a 25-minute focus timer and session dots.",
+   "image": {
+    "src": "mini_timer.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Focus timer template preview",
+    "large": "large/mini_timer.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "mini_packing",
+   "type": "miniapp",
+   "name": "Packing list",
+   "tag": "Travel",
+   "line": "A checklist you tick off, one bag at a time.",
+   "meta": "1 screen",
+   "prompt": "A mini-app that keeps a packing list with checkboxes for my trip.",
+   "image": {
+    "src": "mini_packing.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Packing list template preview",
+    "large": "large/mini_packing.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "mini_tip",
+   "type": "miniapp",
+   "name": "Tip calculator",
+   "tag": "Utility",
+   "line": "Bill, tip percentage and the split per person.",
+   "meta": "1 screen",
+   "prompt": "A mini-app that calculates the tip and splits the bill per person.",
+   "image": {
+    "src": "mini_tip.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Tip calculator template preview",
+    "large": "large/mini_tip.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "mini_quiz",
+   "type": "miniapp",
+   "name": "Quiz",
+   "tag": "Learning",
+   "line": "One question at a time, with instant feedback.",
+   "meta": "1 screen",
+   "prompt": "A mini-app that runs a 10-question geography quiz with instant feedback.",
+   "image": {
+    "src": "mini_quiz.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Quiz template preview",
+    "large": "large/mini_quiz.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "mini_clean",
+   "type": "miniapp",
+   "name": "Text cleaner",
+   "tag": "Utility",
+   "line": "Paste text, press a button, copy the clean result.",
+   "meta": "1 screen",
+   "prompt": "A mini-app that cleans pasted text: extra spaces, line breaks and bad quotes.",
+   "image": {
+    "src": "mini_clean.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Text cleaner template preview",
+    "large": "large/mini_clean.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "mini_poll",
+   "type": "miniapp",
+   "name": "Poll maker",
+   "tag": "Social",
+   "line": "Ask a question, share a link, watch the bars grow.",
+   "meta": "1 screen",
+   "prompt": "A mini-app that makes a quick poll with three options and shows live results.",
+   "image": {
+    "src": "mini_poll.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Poll maker template preview",
+    "large": "large/mini_poll.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "auto_sales_monday",
+   "type": "automation",
+   "kind": "prompt",
+   "name": "Weekly sales summary",
+   "tag": "Business",
+   "line": "Every Monday, summarise last week's sales in one page",
+   "meta": "Prompt",
+   "prompt": "Create an automation that summarises last week's sales every Monday at 8:00. First ask me where the numbers live (a file in my workspace or a connected app), who should get the summary and which figures matter. Steps: read last week's figures, compare them with the week before, write one page with the three biggest changes and a short explanation of each, save it as a file and notify me. Read-only: it never sends, changes or deletes anything. Show me the draft, wait for my yes, save it, then offer to run it once now."
+  },
+  {
+   "id": "auto_invoice_chase",
+   "type": "automation",
+   "kind": "prompt",
+   "name": "Overdue invoice drafts",
+   "tag": "Business",
+   "line": "Draft a reminder for every overdue invoice, once a week",
+   "meta": "Prompt",
+   "prompt": "Create an automation that drafts payment reminders every Monday at 9:00. First ask me where my invoices are listed (a file or a connected app), how many days late counts as overdue and the tone I want. Steps: find the overdue invoices, write one polite reminder per client with the amount and the due date, and save them as drafts in one file. It must never send anything: approval stays on 'ask me first'. Show me the draft, wait for my yes, save it, then offer to run it once now."
+  },
+  {
+   "id": "auto_study_sunday",
+   "type": "automation",
+   "kind": "prompt",
+   "name": "Weekly study plan",
+   "tag": "Education",
+   "line": "Every Sunday evening, plan my study week from my deadlines",
+   "meta": "Prompt",
+   "prompt": "Create an automation that plans my study week every Sunday at 18:00. First ask me where my deadlines and exams are listed (a file or my calendar), how many hours I can study each day and which evenings are free. Steps: read the deadlines for the next 14 days, rank what is most urgent, write a day-by-day plan that fits my hours, save it as a file and notify me. Read-only: it never changes my calendar. Show me the draft, wait for my yes, save it, then offer to run it once now."
+  },
+  {
+   "id": "auto_quiz_morning",
+   "type": "automation",
+   "kind": "prompt",
+   "name": "Morning quiz",
+   "tag": "Education",
+   "line": "Every weekday morning, quiz me on my notes",
+   "meta": "Prompt",
+   "prompt": "Create an automation that quizzes me every weekday at 7:30. First ask me which folder holds my notes and how many questions I want. Steps: pick the topics I was quizzed on least recently (keep a small log file), write 5 questions of mixed difficulty from my notes only, save the questions and the answers in separate files and notify me with the questions. Never state a fact that is not in my notes. Show me the draft, wait for my yes, save it, then offer to run it once now."
+  },
+  {
+   "id": "auto_papers_friday",
+   "type": "automation",
+   "kind": "prompt",
+   "name": "New papers digest",
+   "tag": "Research",
+   "line": "Every Friday, list new papers on my topic with a two-line summary",
+   "meta": "Prompt",
+   "prompt": "Create an automation that lists new papers on my topic every Friday at 16:00. First ask me for the topic, a few keywords, how far back to look and where to look (for example public preprint servers and journal pages). Steps: search the web, keep only items from the last 7 days, give each a title, link, date and a two-line summary of what its abstract says, mark any you could not open, save the list as a file and notify me. Read-only: it downloads and installs nothing. Show me the draft, wait for my yes, save it, then offer to run it once now."
+  },
+  {
+   "id": "auto_page_watch",
+   "type": "automation",
+   "kind": "prompt",
+   "name": "Page change watch",
+   "tag": "Research",
+   "line": "Check a web page every day and tell me when it changes",
+   "meta": "Prompt",
+   "prompt": "Create an automation that watches a web page and tells me when it changes. First ask me for the page address, what counts as a change that matters (a new date, a new row, a number) and when to check (by default every day at 9:00). Steps: read the page, compare it with the copy saved last time in a file and, if something that matters changed, write what changed in two lines with the old and new values and notify me. Otherwise stay silent. Read-only. Show me the draft, wait for my yes, save it, then offer to run it once now."
+  },
+  {
+   "id": "team_weekly_review",
+   "type": "team",
+   "kind": "prompt",
+   "name": "Weekly review team",
+   "tag": "Business",
+   "line": "A team that prepares my weekly business review",
+   "meta": "Prompt",
+   "prompt": "Create an Agent Team that prepares my weekly business review. First interview me: which numbers matter, where they live (a file or a connected app), who reads the review and what 'done' looks like. Propose the roles, each owning a distinct part (for example a data reader, an analyst, a writer and a checker who verifies every number against its source), with the model for each. Wait for my yes, create the team in my workspace, check that it loads, then tell me how to start a chat with it and suggest a first small job."
+  },
+  {
+   "id": "team_feedback",
+   "type": "team",
+   "kind": "prompt",
+   "name": "Customer feedback team",
+   "tag": "Business",
+   "line": "A team that turns customer feedback into a ranked fix list",
+   "meta": "Prompt",
+   "prompt": "Create an Agent Team that turns customer feedback into a ranked list of fixes. First interview me: where the feedback comes from (a file or an export), what a good result looks like and who decides. Propose the roles (for example a reader that tags each comment, an analyst that groups themes and counts them, a prioritiser that ranks by impact and effort, a checker that samples comments against the tags), each with its model. Wait for my yes, create it in my workspace, check that it loads, then tell me how to start a chat with it and suggest a first small job on invented comments labelled as sample."
+  },
+  {
+   "id": "team_tutor",
+   "type": "team",
+   "kind": "prompt",
+   "name": "Exam tutoring team",
+   "tag": "Education",
+   "line": "A team that tutors me for an exam: explain, quiz, verify",
+   "meta": "Prompt",
+   "prompt": "Create an Agent Team that tutors me for an exam. First interview me: the subject, the exam date, what I find hard and how I like to learn. Propose the roles (for example a tutor that explains one idea at a time, a quiz-maker that asks questions from my notes, a checker that verifies every explanation and answer before I see it), each with its model. Wait for my yes, create the team in my workspace, check that it loads, then tell me how to start a chat with it and suggest a first short session."
+  },
+  {
+   "id": "team_lessons",
+   "type": "team",
+   "kind": "prompt",
+   "name": "Lesson-prep team",
+   "tag": "Education",
+   "line": "A team that prepares my lessons for the week",
+   "meta": "Prompt",
+   "prompt": "Create an Agent Team that prepares my lessons for the week. First interview me: the subject, the level, the curriculum goals and the lessons I teach each day. Propose the roles (for example a planner that sequences the week, a writer that drafts activities and handouts, an assessor that makes the quizzes, a checker that confirms each lesson meets its stated goal), each with its model. Wait for my yes, create it in my workspace, check that it loads, then tell me how to start a chat with it and suggest a first small job."
+  },
+  {
+   "id": "team_research_check",
+   "type": "team",
+   "kind": "prompt",
+   "name": "Research and fact-check team",
+   "tag": "Research",
+   "line": "A team that answers a research question and checks its sources",
+   "meta": "Prompt",
+   "prompt": "Create an Agent Team that answers a research question and checks its sources. First interview me: the question, the depth I want, which sources count and what 'done' looks like. Propose the roles (for example a scout that finds sources, a reader that extracts the evidence, a fact-checker that confirms each claim against its source, a writer that drafts the answer with links), each with its model. Wait for my yes, create it in my workspace, check that it loads, then tell me how to start a chat with it and suggest a first small question."
+  },
+  {
+   "id": "team_peer_review",
+   "type": "team",
+   "kind": "prompt",
+   "name": "Peer-review team",
+   "tag": "Research",
+   "line": "A team of reviewers that critiques my draft paper before I submit",
+   "meta": "Prompt",
+   "prompt": "Create an Agent Team that reviews my draft paper the way a journal would. First interview me: my field, the target venue and which parts worry me. Propose the roles (for example a methods reviewer, a statistics reviewer, a writing reviewer and an editor who merges the three into one report ranked by severity), each with its model. Wait for my yes, create it in my workspace, check that it loads, then tell me how to start a chat with it. It reports, it never rewrites my text."
+  },
+  {
+   "id": "skill_minutes",
+   "type": "skill",
+   "kind": "prompt",
+   "name": "Meeting minutes skill",
+   "tag": "Business",
+   "line": "A skill that turns meeting notes into decisions and owners",
+   "meta": "Prompt",
+   "prompt": "Create a skill called meeting-minutes. First ask me what good minutes look like for my team (sections, length, language). The skill takes pasted notes or a transcript and returns the decisions, the action items (owner, due date) and the open questions as a table, and writes 'owner missing' instead of guessing a name. Write SKILL.md with a clear description and when to use it, test it on an invented meeting, show me the result, then save it in my skills folder."
+  },
+  {
+   "id": "skill_invoice_check",
+   "type": "skill",
+   "kind": "prompt",
+   "name": "Invoice check skill",
+   "tag": "Business",
+   "line": "A skill that checks an invoice against its purchase order",
+   "meta": "Prompt",
+   "prompt": "Create a skill called invoice-check. First ask me which fields matter (supplier, lines, quantities, unit prices, tax rate) and what gap is acceptable. The skill compares an invoice with its purchase order (CSV or pasted lines) using a small script and lists every difference: missing line, wrong price, wrong total, wrong tax. It never approves a payment. Write SKILL.md and the script, test them on two invented documents with one planted error, show me the output, then save it in my skills folder."
+  },
+  {
+   "id": "skill_rubric",
+   "type": "skill",
+   "kind": "prompt",
+   "name": "Rubric marking skill",
+   "tag": "Education",
+   "line": "A skill that marks short answers against my rubric",
+   "meta": "Prompt",
+   "prompt": "Create a skill called rubric-marking. First ask me for my rubric (criteria, points, what earns each level) and the question. The skill reads a student's answer and returns, for each criterion, the points and one sentence quoting the answer that justifies them, plus one comment for the student. It flags uncertain cases for me to decide and never gives a final grade alone. Write SKILL.md, test it on three invented answers (strong, average, weak), show me the output, then save it in my skills folder."
+  },
+  {
+   "id": "skill_vocab",
+   "type": "skill",
+   "kind": "prompt",
+   "name": "Vocabulary drill skill",
+   "tag": "Education",
+   "line": "A skill that drills a word list with spaced repetition",
+   "meta": "Prompt",
+   "prompt": "Create a skill called vocab-drill. First ask me which language I am learning, my level and where to keep my word list. The skill reads the list, picks the next 10 words with a small script that follows spaced-repetition boxes (a wrong answer comes back tomorrow, a right one in 2, 4, then 8 days), asks them one at a time and saves the results in a JSON file. Write SKILL.md and the script, test two sessions on an invented list of 15 words, show me the file, then save it in my skills folder."
+  },
+  {
+   "id": "skill_paper_card",
+   "type": "skill",
+   "kind": "prompt",
+   "name": "Paper card skill",
+   "tag": "Research",
+   "line": "A skill that turns a paper into a one-page summary card",
+   "meta": "Prompt",
+   "prompt": "Create a skill called paper-card. First ask me what I want on the card (for example question, method, sample, result, limits, relevance). The skill reads a paper (a PDF or pasted text) and fills the card, quoting a short passage and its page for each result, and writes 'not stated' rather than guessing a number. Write SKILL.md with a clear description and when to use it, test it on a short invented abstract, show me the card, then save it in my skills folder."
+  },
+  {
+   "id": "skill_citations",
+   "type": "skill",
+   "kind": "prompt",
+   "name": "Citation check skill",
+   "tag": "Research",
+   "line": "A skill that finds citations missing from a draft's references",
+   "meta": "Prompt",
+   "prompt": "Create a skill called citation-check. First ask me for my citation style (author-year or numbered). The skill takes a draft and its reference list, matches them with a small script, and lists citations with no reference, references never cited and inconsistent years or spellings. It reports; it never edits my text. Write SKILL.md and the script, test them on an invented draft with three planted errors, show me the report, then save it in my skills folder."
+  },
+  {
+   "id": "plugin_cafe",
+   "type": "plugin",
+   "kind": "prompt",
+   "name": "Café field pack",
+   "tag": "Business",
+   "line": "A plugin for a small café: stock, rota and customer messages",
+   "meta": "Prompt",
+   "prompt": "Create a plugin for a small café owner: a field of work for the setup wizard, with nothing to run. First ask me for two to five goals (for example keeping stock right, planning the weekly rota, answering customers) and the languages to add. For each goal propose, from what really exists, the skills, teams and connectors that fit, and let me cut. A goal with nothing real behind it gets a 'soon' line, never an invented skill. Show me the pack in plain words, wait for my yes, write the draft, then tell me where to install it."
+  },
+  {
+   "id": "plugin_freelance",
+   "type": "plugin",
+   "kind": "prompt",
+   "name": "Freelance field pack",
+   "tag": "Business",
+   "line": "A plugin for a freelance consultant: proposals, invoices, follow-ups",
+   "meta": "Prompt",
+   "prompt": "Create a plugin for a freelance consultant: a field of work for the setup wizard, with nothing to run. First ask me for two to five goals (for example writing proposals, chasing invoices, following up with leads) and the languages to add. For each goal propose, from what really exists, the skills, teams and connectors that fit, and let me cut. A goal with nothing real behind it gets a 'soon' line, never an invented skill. Show me the pack in plain words, wait for my yes, write the draft, then tell me where to install it."
+  },
+  {
+   "id": "plugin_teacher",
+   "type": "plugin",
+   "kind": "prompt",
+   "name": "Teacher field pack",
+   "tag": "Education",
+   "line": "A plugin for a secondary-school teacher: lessons, quizzes, feedback",
+   "meta": "Prompt",
+   "prompt": "Create a plugin for a secondary-school teacher: a field of work for the setup wizard, with nothing to run. First ask me for two to five goals (for example preparing lessons, making quizzes, giving feedback on work) and the languages to add. For each goal propose, from what really exists, the skills, teams and connectors that fit, and let me cut. A goal with nothing real behind it gets a 'soon' line, never an invented skill. Show me the pack in plain words, wait for my yes, write the draft, then tell me where to install it."
+  },
+  {
+   "id": "plugin_student",
+   "type": "plugin",
+   "kind": "prompt",
+   "name": "Student field pack",
+   "tag": "Education",
+   "line": "A plugin for a university student: revision, deadlines, notes",
+   "meta": "Prompt",
+   "prompt": "Create a plugin for a university student: a field of work for the setup wizard, with nothing to run. First ask me for two to five goals (for example revising for exams, tracking deadlines, turning lectures into notes) and the languages to add. For each goal propose, from what really exists, the skills, teams and connectors that fit, and let me cut. A goal with nothing real behind it gets a 'soon' line, never an invented skill. Show me the pack in plain words, wait for my yes, write the draft, then tell me where to install it."
+  },
+  {
+   "id": "plugin_lab",
+   "type": "plugin",
+   "kind": "prompt",
+   "name": "Lab group field pack",
+   "tag": "Research",
+   "line": "A plugin for a lab group: papers, data checks, write-ups",
+   "meta": "Prompt",
+   "prompt": "Create a plugin for a research lab group: a field of work for the setup wizard, with nothing to run. First ask me for two to five goals (for example keeping up with papers, checking data and statistics, writing up results) and the languages to add. For each goal propose, from what really exists, the skills, teams and connectors that fit, and let me cut. A goal with nothing real behind it gets a 'soon' line, never an invented skill. Show me the pack in plain words, wait for my yes, write the draft, then tell me where to install it."
+  },
+  {
+   "id": "plugin_market_research",
+   "type": "plugin",
+   "kind": "prompt",
+   "name": "Market research field pack",
+   "tag": "Research",
+   "line": "A plugin for a market-research analyst: sources, surveys, reports",
+   "meta": "Prompt",
+   "prompt": "Create a plugin for a market-research analyst: a field of work for the setup wizard, with nothing to run. First ask me for two to five goals (for example gathering sources, analysing survey data, writing the report) and the languages to add. For each goal propose, from what really exists, the skills, teams and connectors that fit, and let me cut. A goal with nothing real behind it gets a 'soon' line, never an invented skill. Show me the pack in plain words, wait for my yes, write the draft, then tell me where to install it."
+  }
+ ]
+}

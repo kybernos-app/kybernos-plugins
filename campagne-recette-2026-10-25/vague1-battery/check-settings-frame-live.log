@@ -1,0 +1,13 @@
+# check-settings-frame-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=81098
+
+  ✓ the menu lists the pages
+  ✓ a title is found on most pages
+  ✓ every title starts at x 272
+  ✓ a title after the 44 px icon starts at x 328 (the icon at 272)
+  ✓ every title sits at y 54, or up to 57 beside a taller help button
+  ✓ every page box starts at x 272
+  ✓ every page box is 720 px wide, the three wide pages are wider
+
+OK
+

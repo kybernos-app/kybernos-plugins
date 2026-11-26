@@ -1,0 +1,1374 @@
+{
+ "rows": {
+  "contact": [
+   {
+    "ref": "sophie-laurent",
+    "values": {
+     "name": "Sophie Laurent",
+     "kind": "person",
+     "type": "buyer",
+     "email": "sophie.laurent@example.com",
+     "tags": [
+      "pre-approved",
+      "first-time"
+     ],
+     "city": "Lakeview",
+     "budget": 420000,
+     "photo": [
+      {
+       "photo": "real-estate/portrait-01"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "chloe-bernard",
+    "values": {
+     "name": "Chloe Bernard",
+     "kind": "person",
+     "type": "buyer",
+     "email": "chloe.bernard@example.com",
+     "tags": [
+      "family",
+      "pre-approved"
+     ],
+     "city": "Lakeview",
+     "budget": 600000,
+     "photo": [
+      {
+       "photo": "real-estate/portrait-04"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "daniel-okoye",
+    "values": {
+     "name": "Daniel Okoye",
+     "kind": "person",
+     "type": "seller",
+     "email": "daniel.okoye@example.com",
+     "tags": [
+      "mandate",
+      "urgent"
+     ],
+     "city": "Lakeview",
+     "photo": [
+      {
+       "photo": "real-estate/portrait-07"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "victor-alvarez",
+    "values": {
+     "name": "Victor Alvarez",
+     "kind": "person",
+     "type": "seller",
+     "email": "victor.alvarez@example.com",
+     "tags": [
+      "mandate",
+      "investor"
+     ],
+     "city": "Old Mill",
+     "photo": [
+      {
+       "photo": "real-estate/portrait-08"
+      }
+     ],
+     "company": {
+      "ref": "alvarez-holdings"
+     }
+    }
+   },
+   {
+    "ref": "marta-kowalski",
+    "values": {
+     "name": "Marta Kowalski",
+     "kind": "person",
+     "type": "landlord",
+     "email": "marta.kowalski@example.com",
+     "tags": [
+      "mandate",
+      "landlord"
+     ],
+     "city": "Lakeview",
+     "photo": [
+      {
+       "photo": "real-estate/portrait-02"
+      }
+     ],
+     "company": {
+      "ref": "pine-street-property"
+     }
+    }
+   },
+   {
+    "ref": "hannah-cole",
+    "values": {
+     "name": "Hannah Cole",
+     "kind": "person",
+     "type": "tenant",
+     "email": "hannah.cole@example.com",
+     "tags": [
+      "new",
+      "urgent"
+     ],
+     "city": "Lakeview",
+     "photo": [
+      {
+       "photo": "real-estate/portrait-05"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "ibrahim-haddad",
+    "values": {
+     "name": "Ibrahim Haddad",
+     "kind": "person",
+     "type": "tenant",
+     "email": "ibrahim.haddad@example.com",
+     "tags": [
+      "family",
+      "new"
+     ],
+     "city": "Lakeview",
+     "photo": [
+      {
+       "photo": "real-estate/portrait-09"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "pierre-garnier",
+    "values": {
+     "name": "Pierre Garnier",
+     "kind": "person",
+     "type": "partner",
+     "email": "pierre.garnier@example.com",
+     "tags": [
+      "partner",
+      "vip"
+     ],
+     "city": "Lakeview",
+     "photo": [
+      {
+       "photo": "real-estate/portrait-11"
+      }
+     ],
+     "company": {
+      "ref": "garnier-notary-office"
+     }
+    }
+   },
+   {
+    "ref": "alvarez-holdings",
+    "values": {
+     "name": "Alvarez Holdings",
+     "kind": "company",
+     "type": "owner-company",
+     "email": "hello@alvarezholdings.example.com",
+     "tags": [
+      "investor",
+      "mandate"
+     ],
+     "city": "Old Mill",
+     "sector": "Owner"
+    }
+   },
+   {
+    "ref": "pine-street-property",
+    "values": {
+     "name": "Pine Street Property",
+     "kind": "company",
+     "type": "owner-company",
+     "email": "hello@pinestreetproperty.example.com",
+     "tags": [
+      "landlord",
+      "investor"
+     ],
+     "city": "Lakeview",
+     "sector": "Landlord"
+    }
+   },
+   {
+    "ref": "garnier-notary-office",
+    "values": {
+     "name": "Garnier Notary Office",
+     "kind": "company",
+     "type": "partner-firm",
+     "email": "hello@garniernotaryoffice.example.com",
+     "tags": [
+      "partner",
+      "new"
+     ],
+     "city": "Lakeview",
+     "sector": "Notary"
+    }
+   },
+   {
+    "ref": "brightside-mortgage",
+    "values": {
+     "name": "Brightside Mortgage",
+     "kind": "company",
+     "type": "partner-firm",
+     "email": "hello@brightsidemortgage.example.com",
+     "tags": [
+      "partner",
+      "pre-approved"
+     ],
+     "city": "Lakeview",
+     "sector": "Broker"
+    }
+   },
+   {
+    "ref": "nora-ek",
+    "values": {
+     "name": "Nora Ek",
+     "kind": "person",
+     "type": "buyer",
+     "email": "nora.ek@example.com",
+     "tags": [
+      "pre-approved",
+      "first-time"
+     ],
+     "city": "Lakeview",
+     "budget": 350000,
+     "photo": [
+      {
+       "photo": "real-estate/portrait-06"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "peter-lund",
+    "values": {
+     "name": "Peter Lund",
+     "kind": "person",
+     "type": "buyer",
+     "email": "peter.lund@example.com",
+     "tags": [
+      "investor",
+      "cash-buyer"
+     ],
+     "city": "Hillside",
+     "budget": 320000,
+     "photo": [
+      {
+       "photo": "real-estate/portrait-08"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "marie-dufour",
+    "values": {
+     "name": "Marie Dufour",
+     "kind": "person",
+     "type": "buyer",
+     "email": "marie.dufour@example.com",
+     "tags": [
+      "family",
+      "relocating"
+     ],
+     "city": "Lyon",
+     "budget": 520000,
+     "photo": [
+      {
+       "photo": "real-estate/portrait-01"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "anton-roy",
+    "values": {
+     "name": "Anton Roy",
+     "kind": "person",
+     "type": "buyer",
+     "email": "anton.roy@example.com",
+     "tags": [
+      "pre-approved",
+      "cash-buyer"
+     ],
+     "city": "Lakeview",
+     "budget": 560000,
+     "photo": [
+      {
+       "photo": "real-estate/portrait-10"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "greta-lindqvist",
+    "values": {
+     "name": "Greta Lindqvist",
+     "kind": "person",
+     "type": "buyer",
+     "email": "greta.lindqvist@example.com",
+     "tags": [
+      "relocating",
+      "cash-buyer"
+     ],
+     "city": "Stockholm",
+     "budget": 780000,
+     "photo": [
+      {
+       "photo": "real-estate/portrait-03"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "tom-reyes",
+    "values": {
+     "name": "Tom Reyes",
+     "kind": "person",
+     "type": "buyer",
+     "email": "tom.reyes@example.com",
+     "tags": [
+      "investor",
+      "vip"
+     ],
+     "city": "Lakeside",
+     "budget": 1200000,
+     "photo": [
+      {
+       "photo": "real-estate/portrait-12"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "samir-hamidi",
+    "values": {
+     "name": "Samir Hamidi",
+     "kind": "person",
+     "type": "buyer",
+     "email": "samir.hamidi@example.com",
+     "tags": [
+      "family",
+      "first-time"
+     ],
+     "city": "Lakeview",
+     "budget": 470000,
+     "photo": [
+      {
+       "photo": "real-estate/portrait-09"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "julia-weber",
+    "values": {
+     "name": "Julia Weber",
+     "kind": "person",
+     "type": "buyer",
+     "email": "julia.weber@example.com",
+     "tags": [
+      "pre-approved",
+      "urgent"
+     ],
+     "city": "Riverside",
+     "budget": 540000,
+     "photo": [
+      {
+       "photo": "real-estate/portrait-04"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "omar-said",
+    "values": {
+     "name": "Omar Said",
+     "kind": "person",
+     "type": "tenant",
+     "email": "omar.said@example.com",
+     "tags": [
+      "new",
+      "first-time"
+     ],
+     "city": "Lakeview",
+     "photo": [
+      {
+       "photo": "real-estate/portrait-10"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "eva-brandt",
+    "values": {
+     "name": "Eva Brandt",
+     "kind": "person",
+     "type": "tenant",
+     "email": "eva.brandt@example.com",
+     "tags": [
+      "family",
+      "landlord"
+     ],
+     "city": "Station",
+     "photo": [
+      {
+       "photo": "real-estate/portrait-02"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "lucas-fontaine",
+    "values": {
+     "name": "Lucas Fontaine",
+     "kind": "person",
+     "type": "tenant",
+     "email": "lucas.fontaine@example.com",
+     "tags": [
+      "relocating",
+      "urgent"
+     ],
+     "city": "Paris",
+     "photo": [
+      {
+       "photo": "real-estate/portrait-12"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "zoe-martin",
+    "values": {
+     "name": "Zoe Martin",
+     "kind": "person",
+     "type": "tenant",
+     "email": "zoe.martin@example.com",
+     "tags": [
+      "new",
+      "first-time"
+     ],
+     "city": "Old Town",
+     "photo": [
+      {
+       "photo": "real-estate/portrait-03"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "amelia-park",
+    "values": {
+     "name": "Amelia Park",
+     "kind": "person",
+     "type": "seller",
+     "email": "amelia.park@example.com",
+     "tags": [
+      "mandate",
+      "urgent"
+     ],
+     "city": "Hillside",
+     "photo": [
+      {
+       "photo": "real-estate/portrait-05"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "yusuf-demir",
+    "values": {
+     "name": "Yusuf Demir",
+     "kind": "person",
+     "type": "landlord",
+     "email": "yusuf.demir@example.com",
+     "tags": [
+      "investor",
+      "mandate"
+     ],
+     "city": "Station",
+     "photo": [
+      {
+       "photo": "real-estate/portrait-11"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "clara-nguyen",
+    "values": {
+     "name": "Clara Nguyen",
+     "kind": "person",
+     "type": "partner",
+     "email": "clara.nguyen@example.com",
+     "tags": [
+      "partner",
+      "relocating"
+     ],
+     "city": "Lakeview",
+     "photo": [
+      {
+       "photo": "real-estate/portrait-06"
+      }
+     ],
+     "company": {
+      "ref": "brightside-mortgage"
+     }
+    }
+   }
+  ],
+  "property": [
+   {
+    "ref": "willow-lane",
+    "values": {
+     "title": "3-room apartment, Willow Lane",
+     "status": "for-sale",
+     "address": "12 Willow Lane",
+     "surface": 68,
+     "rooms": 3,
+     "energy": "c",
+     "price": 385000,
+     "mandate_until": "2027-01-30",
+     "owner": "Daniel Okoye",
+     "kind": "apartment",
+     "district": "old-town",
+     "outdoor": "balcony",
+     "lat": 48.8567,
+     "lng": 2.3603,
+     "photo": [
+      {
+       "photo": "real-estate/willow-lane"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "elm-court",
+    "values": {
+     "title": "Family house with garden, Elm Court",
+     "status": "under-offer",
+     "address": "4 Elm Court",
+     "surface": 142,
+     "rooms": 6,
+     "energy": "b",
+     "price": 612000,
+     "offer": 598000,
+     "mandate_until": "2026-12-15",
+     "kind": "house",
+     "district": "hillside",
+     "outdoor": "garden",
+     "lat": 48.8802,
+     "lng": 2.3935,
+     "photo": [
+      {
+       "photo": "real-estate/elm-court"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "quay-street",
+    "values": {
+     "title": "Studio near the station, Quay Street",
+     "status": "to-let",
+     "address": "9 Quay Street",
+     "surface": 24,
+     "rooms": 1,
+     "energy": "d",
+     "price": 780,
+     "owner": "Marta Kowalski",
+     "kind": "studio",
+     "district": "station",
+     "lat": 48.8798,
+     "lng": 2.3548,
+     "photo": [
+      {
+       "photo": "real-estate/garden-flat"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "old-mill",
+    "values": {
+     "title": "Loft, Old Mill",
+     "status": "for-sale",
+     "address": "2 Old Mill Yard",
+     "surface": 95,
+     "rooms": 3,
+     "energy": "c",
+     "price": 498000,
+     "mandate_until": "2027-02-28",
+     "owner": "Victor Alvarez",
+     "kind": "loft",
+     "district": "riverside",
+     "lat": 48.829,
+     "lng": 2.3817,
+     "photo": [
+      {
+       "photo": "real-estate/old-mill"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "lakeview-ave",
+    "values": {
+     "title": "2-room apartment, Lakeview Avenue",
+     "status": "to-let",
+     "address": "31 Lakeview Ave",
+     "surface": 46,
+     "rooms": 2,
+     "energy": "b",
+     "price": 1150,
+     "owner": "Marta Kowalski",
+     "kind": "apartment",
+     "district": "lakeside",
+     "outdoor": "balcony",
+     "lat": 48.8255,
+     "lng": 2.3408,
+     "photo": [
+      {
+       "photo": "real-estate/willow-lane"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "maple-row",
+    "values": {
+     "title": "Townhouse, Maple Row",
+     "status": "sold",
+     "address": "7 Maple Row",
+     "surface": 118,
+     "rooms": 5,
+     "energy": "c",
+     "price": 545000,
+     "kind": "townhouse",
+     "district": "old-town",
+     "outdoor": "garden",
+     "lat": 48.8516,
+     "lng": 2.3573,
+     "photo": [
+      {
+       "photo": "real-estate/canal-house"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "church-square",
+    "values": {
+     "title": "Attic flat, Church Square",
+     "status": "mandate-draft",
+     "address": "3 Church Square",
+     "surface": 52,
+     "rooms": 2,
+     "energy": "e",
+     "price": 295000,
+     "kind": "apartment",
+     "district": "old-town",
+     "lat": 48.8509,
+     "lng": 2.3337,
+     "photo": [
+      {
+       "photo": "real-estate/oak-duplex"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "market-street",
+    "values": {
+     "title": "Commercial unit, Market Street",
+     "status": "to-let",
+     "address": "18 Market Street",
+     "surface": 80,
+     "rooms": 2,
+     "energy": "d",
+     "price": 2400,
+     "owner": "Pine Street Property",
+     "kind": "commercial",
+     "district": "market",
+     "lat": 48.8646,
+     "lng": 2.3467,
+     "photo": [
+      {
+       "photo": "real-estate/market-street"
+      }
+     ]
+    }
+   },
+   {
+    "ref": "lake-villa",
+    "values": {
+     "title": "Contemporary villa with pool, Lakeside Drive",
+     "status": "for-sale",
+     "address": "1 Lakeside Drive",
+     "surface": 260,
+     "rooms": 8,
+     "energy": "a",
+     "price": 1450000,
+     "kind": "villa",
+     "district": "lakeside",
+     "lat": 48.8584,
+     "lng": 2.2653,
+     "photo": [
+      {
+       "photo": "real-estate/lake-villa"
+      }
+     ],
+     "outdoor": "pool",
+     "owner": "Victor Alvarez",
+     "mandate_until": "2027-03-31"
+    }
+   },
+   {
+    "ref": "lavender-farm",
+    "values": {
+     "title": "Stone farmhouse with lavender garden",
+     "status": "for-sale",
+     "address": "14 Lavender Lane",
+     "surface": 210,
+     "rooms": 7,
+     "energy": "d",
+     "price": 740000,
+     "kind": "farmhouse",
+     "district": "countryside",
+     "lat": 48.8657,
+     "lng": 2.4078,
+     "photo": [
+      {
+       "photo": "real-estate/lavender-farm"
+      }
+     ],
+     "outdoor": "garden",
+     "owner": "Alvarez Holdings",
+     "mandate_until": "2027-01-15"
+    }
+   },
+   {
+    "ref": "garden-flat",
+    "values": {
+     "title": "Garden flat with terrace doors",
+     "status": "under-offer",
+     "address": "22 Hill Road",
+     "surface": 74,
+     "rooms": 3,
+     "energy": "c",
+     "price": 340000,
+     "kind": "apartment",
+     "district": "hillside",
+     "lat": 48.8278,
+     "lng": 2.3504,
+     "photo": [
+      {
+       "photo": "real-estate/garden-flat"
+      }
+     ],
+     "outdoor": "garden",
+     "owner": "Daniel Okoye",
+     "mandate_until": "2026-12-20",
+     "offer": 335000
+    }
+   },
+   {
+    "ref": "harbour-penthouse",
+    "values": {
+     "title": "Penthouse with harbour view",
+     "status": "for-sale",
+     "address": "5 Harbour Wharf",
+     "surface": 138,
+     "rooms": 5,
+     "energy": "b",
+     "price": 1120000,
+     "kind": "penthouse",
+     "district": "lakeside",
+     "lat": 48.8504,
+     "lng": 2.3687,
+     "photo": [
+      {
+       "photo": "real-estate/harbour-penthouse"
+      }
+     ],
+     "outdoor": "terrace",
+     "mandate_until": "2027-02-10"
+    }
+   },
+   {
+    "ref": "cedar-bungalow",
+    "values": {
+     "title": "Wooden-porch bungalow, Cedar Close",
+     "status": "for-sale",
+     "address": "3 Cedar Close",
+     "surface": 96,
+     "rooms": 4,
+     "energy": "c",
+     "price": 455000,
+     "kind": "bungalow",
+     "district": "hillside",
+     "lat": 48.8884,
+     "lng": 2.3351,
+     "photo": [
+      {
+       "photo": "real-estate/cedar-bungalow"
+      }
+     ],
+     "outdoor": "garden",
+     "owner": "Marta Kowalski",
+     "mandate_until": "2027-01-05"
+    }
+   },
+   {
+    "ref": "oak-duplex",
+    "values": {
+     "title": "Duplex with mezzanine, Oak Street",
+     "status": "to-let",
+     "address": "40 Oak Street",
+     "surface": 112,
+     "rooms": 4,
+     "energy": "b",
+     "price": 1680,
+     "kind": "apartment",
+     "district": "station",
+     "lat": 48.8442,
+     "lng": 2.3772,
+     "photo": [
+      {
+       "photo": "real-estate/oak-duplex"
+      }
+     ],
+     "outdoor": "balcony",
+     "owner": "Pine Street Property"
+    }
+   },
+   {
+    "ref": "canal-house",
+    "values": {
+     "title": "Canal-side townhouse",
+     "status": "to-let",
+     "address": "8 Canal Walk",
+     "surface": 130,
+     "rooms": 5,
+     "energy": "c",
+     "price": 2150,
+     "kind": "townhouse",
+     "district": "riverside",
+     "lat": 48.876,
+     "lng": 2.364,
+     "photo": [
+      {
+       "photo": "real-estate/canal-house"
+      }
+     ],
+     "owner": "Pine Street Property"
+    }
+   },
+   {
+    "ref": "lakeside-cottage",
+    "values": {
+     "title": "Whitewashed cottage with jetty",
+     "status": "for-sale",
+     "address": "2 Jetty Lane",
+     "surface": 78,
+     "rooms": 3,
+     "energy": "e",
+     "price": 520000,
+     "kind": "cottage",
+     "district": "lakeside",
+     "lat": 48.8262,
+     "lng": 2.3328,
+     "photo": [
+      {
+       "photo": "real-estate/lakeside-cottage"
+      }
+     ],
+     "outdoor": "jetty",
+     "owner": "Marta Kowalski",
+     "mandate_until": "2027-04-02"
+    }
+   }
+  ],
+  "note": [
+   {
+    "values": {
+     "body": "Wants a balcony and a quiet street. Works from home on Fridays.",
+     "contact": {
+      "ref": "sophie-laurent"
+     }
+    }
+   },
+   {
+    "values": {
+     "body": "Offer sent at €598,000, financing letter attached.",
+     "contact": {
+      "ref": "chloe-bernard"
+     }
+    }
+   },
+   {
+    "values": {
+     "body": "Valuation visit booked for Friday.",
+     "contact": {
+      "ref": "daniel-okoye"
+     }
+    }
+   },
+   {
+    "values": {
+     "body": "Considering a 3% reduction after two quiet weeks.",
+     "contact": {
+      "ref": "victor-alvarez"
+     }
+    }
+   },
+   {
+    "values": {
+     "body": "Reported a heating fault. The landlord has been told.",
+     "contact": {
+      "ref": "ibrahim-haddad"
+     }
+    }
+   },
+   {
+    "values": {
+     "body": "Loves the garden flat, wants to bring her father for a second visit on Saturday morning.",
+     "contact": {
+      "ref": "nora-ek"
+     }
+    }
+   },
+   {
+    "values": {
+     "body": "Looking for a harbour view, not afraid of renovation. Prefers texts to calls.",
+     "contact": {
+      "ref": "tom-reyes"
+     }
+    }
+   },
+   {
+    "values": {
+     "body": "Moving from Stockholm in March; asked for schools within 15 minutes of the farm.",
+     "contact": {
+      "ref": "greta-lindqvist"
+     }
+    }
+   },
+   {
+    "values": {
+     "body": "Second viewing done. Asks whether the attic can be converted: architect contact sent.",
+     "contact": {
+      "ref": "peter-lund"
+     }
+    }
+   },
+   {
+    "values": {
+     "body": "Needs a lease start on 1 January at the latest; employer pays the deposit.",
+     "contact": {
+      "ref": "lucas-fontaine"
+     }
+    }
+   },
+   {
+    "values": {
+     "body": "Divorce settlement: wants a quick, discreet sale. Mandate to sign Tuesday.",
+     "contact": {
+      "ref": "amelia-park"
+     }
+    }
+   }
+  ],
+  "lettings": [
+   {
+    "values": {
+     "title": "Quay Street · Hannah Cole",
+     "stage": "application",
+     "summary": "Documents received",
+     "source": "phone",
+     "priority": "normal",
+     "due": "2026-11-15",
+     "tags": [
+      "new"
+     ],
+     "value": 780,
+     "contact": {
+      "ref": "hannah-cole"
+     },
+     "property": {
+      "ref": "quay-street"
+     }
+    }
+   },
+   {
+    "values": {
+     "title": "Market Street · Bluebird Cafe",
+     "stage": "application",
+     "summary": "Business plan sent",
+     "source": "walk-in",
+     "priority": "low",
+     "due": "2026-11-17",
+     "tags": [
+      "business",
+      "new"
+     ],
+     "value": 2400,
+     "contact": {
+      "ref": "amelia-park"
+     },
+     "property": {
+      "ref": "market-street"
+     }
+    }
+   },
+   {
+    "values": {
+     "title": "Lakeview Ave · Omar Said",
+     "stage": "viewing",
+     "summary": "Viewing Saturday",
+     "source": "referral",
+     "priority": "high",
+     "due": "2026-11-19",
+     "tags": [
+      "new"
+     ],
+     "value": 1150,
+     "contact": {
+      "ref": "omar-said"
+     },
+     "property": {
+      "ref": "lakeview-ave"
+     }
+    }
+   },
+   {
+    "values": {
+     "title": "Quay Street · Eva Brandt",
+     "stage": "lease",
+     "summary": "Lease out for signature",
+     "source": "portal",
+     "priority": "normal",
+     "due": "2026-11-21",
+     "tags": [
+      "family"
+     ],
+     "value": 760,
+     "contact": {
+      "ref": "eva-brandt"
+     },
+     "property": {
+      "ref": "quay-street"
+     }
+    }
+   },
+   {
+    "values": {
+     "title": "Lakeview Ave · Ibrahim Haddad",
+     "stage": "moved-in",
+     "summary": "Inventory done",
+     "source": "website",
+     "priority": "normal",
+     "due": "2026-11-23",
+     "tags": [
+      "move-in"
+     ],
+     "value": 1100,
+     "contact": {
+      "ref": "ibrahim-haddad"
+     },
+     "property": {
+      "ref": "lakeview-ave"
+     }
+    }
+   },
+   {
+    "values": {
+     "title": "Oak duplex · Lucas Fontaine",
+     "stage": "viewing",
+     "summary": "Viewing Friday",
+     "source": "website",
+     "priority": "high",
+     "due": "2026-11-06",
+     "tags": [
+      "relocating"
+     ],
+     "value": 1680,
+     "contact": {
+      "ref": "lucas-fontaine"
+     },
+     "property": {
+      "ref": "oak-duplex"
+     }
+    }
+   },
+   {
+    "values": {
+     "title": "Canal house · Zoe Martin",
+     "stage": "application",
+     "summary": "Guarantor documents",
+     "source": "portal",
+     "priority": "normal",
+     "due": "2026-11-14",
+     "tags": [
+      "first-time"
+     ],
+     "value": 2150,
+     "contact": {
+      "ref": "zoe-martin"
+     },
+     "property": {
+      "ref": "canal-house"
+     }
+    }
+   },
+   {
+    "values": {
+     "title": "Oak duplex · Amelia Park",
+     "stage": "lease",
+     "summary": "Lease out for signature",
+     "source": "phone",
+     "priority": "low",
+     "due": "2026-11-18",
+     "tags": [
+      "landlord"
+     ],
+     "value": 1650,
+     "contact": {
+      "ref": "amelia-park"
+     },
+     "property": {
+      "ref": "oak-duplex"
+     }
+    }
+   }
+  ],
+  "sales": [
+   {
+    "values": {
+     "title": "Old Mill · Marie and Paul Dufour",
+     "stage": "enquiry",
+     "summary": "Web enquiry",
+     "source": "website",
+     "priority": "high",
+     "due": "2026-11-03",
+     "tags": [
+      "loft",
+      "investor"
+     ],
+     "value": 498000,
+     "contact": {
+      "ref": "marie-dufour"
+     },
+     "property": {
+      "ref": "old-mill"
+     }
+    }
+   },
+   {
+    "values": {
+     "title": "Willow Lane · Sophie Laurent",
+     "stage": "viewing",
+     "summary": "Viewing Monday",
+     "source": "phone",
+     "priority": "normal",
+     "due": "2026-11-05",
+     "tags": [
+      "first-time"
+     ],
+     "value": 385000,
+     "contact": {
+      "ref": "sophie-laurent"
+     },
+     "property": {
+      "ref": "willow-lane"
+     }
+    }
+   },
+   {
+    "values": {
+     "title": "Church Square · Peter Lund",
+     "stage": "viewing",
+     "summary": "Second viewing",
+     "source": "walk-in",
+     "priority": "normal",
+     "due": "2026-11-07",
+     "tags": [
+      "investor"
+     ],
+     "value": 295000,
+     "contact": {
+      "ref": "peter-lund"
+     },
+     "property": {
+      "ref": "church-square"
+     }
+    }
+   },
+   {
+    "values": {
+     "title": "Elm Court · Chloe Bernard",
+     "stage": "offer",
+     "summary": "Offer €598,000",
+     "source": "referral",
+     "priority": "low",
+     "due": "2026-11-09",
+     "tags": [
+      "family",
+      "offer"
+     ],
+     "value": 598000,
+     "contact": {
+      "ref": "chloe-bernard"
+     },
+     "property": {
+      "ref": "elm-court"
+     }
+    }
+   },
+   {
+    "values": {
+     "title": "Garden flat · Nora Ek",
+     "stage": "agreement",
+     "summary": "Draft with the notary",
+     "source": "portal",
+     "priority": "high",
+     "due": "2026-11-11",
+     "tags": [
+      "first-time"
+     ],
+     "value": 340000,
+     "contact": {
+      "ref": "nora-ek"
+     },
+     "property": {
+      "ref": "garden-flat"
+     }
+    }
+   },
+   {
+    "values": {
+     "title": "Maple Row · Anton Roy",
+     "stage": "closed",
+     "summary": "Keys handed over",
+     "source": "website",
+     "priority": "normal",
+     "due": "2026-11-13",
+     "tags": [
+      "sold"
+     ],
+     "value": 545000,
+     "contact": {
+      "ref": "anton-roy"
+     },
+     "property": {
+      "ref": "maple-row"
+     }
+    }
+   },
+   {
+    "values": {
+     "title": "Lakeside cottage · Julia Weber",
+     "stage": "enquiry",
+     "summary": "Phone enquiry",
+     "source": "phone",
+     "priority": "high",
+     "due": "2026-11-04",
+     "tags": [
+      "urgent"
+     ],
+     "value": 520000,
+     "contact": {
+      "ref": "julia-weber"
+     },
+     "property": {
+      "ref": "lakeside-cottage"
+     }
+    }
+   },
+   {
+    "values": {
+     "title": "Lavender farm · Greta Lindqvist",
+     "stage": "enquiry",
+     "summary": "Asked for the school map",
+     "source": "referral",
+     "priority": "normal",
+     "due": "2026-11-09",
+     "tags": [
+      "relocating"
+     ],
+     "value": 740000,
+     "contact": {
+      "ref": "greta-lindqvist"
+     },
+     "property": {
+      "ref": "lavender-farm"
+     }
+    }
+   },
+   {
+    "values": {
+     "title": "Harbour penthouse · Tom Reyes",
+     "stage": "viewing",
+     "summary": "Viewing Thursday 17:00",
+     "source": "portal",
+     "priority": "high",
+     "due": "2026-11-05",
+     "tags": [
+      "vip"
+     ],
+     "value": 1120000,
+     "contact": {
+      "ref": "tom-reyes"
+     },
+     "property": {
+      "ref": "harbour-penthouse"
+     }
+    }
+   },
+   {
+    "values": {
+     "title": "Cedar bungalow · The Hamidi family",
+     "stage": "viewing",
+     "summary": "Second viewing",
+     "source": "walk-in",
+     "priority": "normal",
+     "due": "2026-11-12",
+     "tags": [
+      "family"
+     ],
+     "value": 455000,
+     "contact": {
+      "ref": "samir-hamidi"
+     },
+     "property": {
+      "ref": "cedar-bungalow"
+     }
+    }
+   },
+   {
+    "values": {
+     "title": "Lake villa · Yusuf Demir",
+     "stage": "offer",
+     "summary": "Offer €1,390,000, cash",
+     "source": "referral",
+     "priority": "high",
+     "due": "2026-11-03",
+     "tags": [
+      "cash"
+     ],
+     "value": 1390000,
+     "contact": {
+      "ref": "yusuf-demir"
+     },
+     "property": {
+      "ref": "lake-villa"
+     }
+    }
+   }
+  ]
+ }
+}

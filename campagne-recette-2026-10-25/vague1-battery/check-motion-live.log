@@ -1,0 +1,10 @@
+# check-motion-live.mjs
+# host=127.0.0.1:3098 status=inconclusive code=3 ms=67464
+
+
+── 1. the host, a scene file, the tab ──
+  ✓ the host answers on /kybernos-motion/state
+  ✓ a scene is saved through the real route, inside the allowed folder
+  ✓ the file on disk is a motion doc with its first revision
+○ inconclusive: no chat session is mounted in this instance (the first message made none: this instance has no model to answer it), so there is no right sidebar for the Motion tab. Nothing below was measured.
+

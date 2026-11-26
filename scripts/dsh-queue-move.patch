@@ -1,0 +1,368 @@
+diff --git a/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js b/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js
+--- a/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js
++++ b/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js
+@@ -147,6 +147,36 @@
+ 		if (location === void 0) return false;
+ 		this.splice(location.target, location.index, 1, []);
+ 		return true;
++	}
++	/**
++	* Reorder one pending message inside its own list.
++	* The message is re-inserted as the same object, and the removal is committed
++	* with `discardRemoved` off: nothing is canceled and no `agent/inbox/discarded`
++	* is emitted, so anything that hangs off that event (goal rounds, subagent
++	* wake-ups, file uploads) sees a pure reordering.
++	* @param messageId - identity of the pending message to move.
++	* @param beforeId - identity it must precede, or null for the end of its list.
++	* @returns "moved", "same", "cross-lane", or undefined when an identity is unknown.
++	*/
++	move(messageId, beforeId) {
++		const source = this.locate(messageId);
++		if (source === void 0) return void 0;
++		if (beforeId === messageId) return "same";
++		const list = this.current()[source.target];
++		const moving = list[source.index];
++		if (beforeId === null || beforeId === undefined) {
++			if (source.index === list.length - 1) return "same";
++		} else {
++			const anchor = this.locate(beforeId);
++			if (anchor === void 0) return void 0;
++			if (anchor.target !== source.target) return "cross-lane";
++			if (anchor.index === source.index + 1) return "same";
++		}
++		this.mutate(source.target, source.index, 1, [], false);
++		const after = this.current()[source.target];
++		const at = beforeId === null || beforeId === undefined ? after.length : this.locate(beforeId).index;
++		this.splice(source.target, at, 0, [moving]);
++		return "moved";
+ 	}
+ 	/**
+ 	* Apply standard splice semantics and durably record the normalized result.
+diff --git a/node_modules/@deepseek-ai/dsh-api-session-controller/lib/index.js b/node_modules/@deepseek-ai/dsh-api-session-controller/lib/index.js
+--- a/node_modules/@deepseek-ai/dsh-api-session-controller/lib/index.js
++++ b/node_modules/@deepseek-ai/dsh-api-session-controller/lib/index.js
+@@ -825,6 +825,7 @@
+ 			if (request.action.content.some((block) => block.type !== "text")) throw new RemoteError("session/attachment-invalid", "queue edits accept text content only", { reason: "QUEUE_EDIT_NON_TEXT" });
+ 			if (!hasPromptContent(request.action.content)) throw new RemoteError("gateway/bad-request", "queue edit content must include non-whitespace text", {});
+ 		}
++		if (request.action.kind === "move" && request.action.beforeId !== null && (typeof request.action.beforeId !== "string" || request.action.beforeId.length === 0)) throw new RemoteError("gateway/bad-request", "queue move expects the identity of the message to precede, or null", {});
+ 		let agent = this.ctx.agents.get(request.sessionId);
+ 		if (agent === void 0) {
+ 			const found = await this.agents.resolveAgent(request.sessionId);
+@@ -849,6 +850,14 @@
+ 		};
+ 		if (located === void 0) throw new RemoteError("session/queue-item-not-found", "queued item is no longer pending", { itemId: request.itemId });
+ 		const { target, message } = located;
++		// Un déplacement ne change pas de file : la file d'attente du tour et celle
++		// de l'étape vivent des vies différentes (une est consommée au tour suivant,
++		// l'autre au prochain pas). On refuse explicitement plutôt que de deviner.
++		const anchor = request.action.kind === "move" && request.action.beforeId !== null ? agent.inbox.locate(request.action.beforeId) : void 0;
++		if (request.action.kind === "move" && request.action.beforeId !== null) {
++			if (anchor === void 0) throw new RemoteError("session/queue-item-not-found", "queued item is no longer pending", { itemId: request.action.beforeId });
++			if (anchor.target !== target) throw new RemoteError("session/queue-move-across-lanes", "a queued item cannot change lane", { itemId: request.itemId });
++		}
+ 		if (request.action.kind === "steer" && (target !== "next-turn" || agent.status !== "running")) throw new RemoteError("session/steer-unavailable", "current turn no longer accepts steering", { itemId: request.itemId });
+ 		switch (request.action.kind) {
+ 			case "edit":
+@@ -867,6 +876,12 @@
+ 				agent.inbox.remove(request.itemId);
+ 				agent.steer(message);
+ 				break;
++			case "move": {
++				const outcome = agent.inbox.move(request.itemId, request.action.beforeId);
++				if (outcome === void 0) throw new RemoteError("session/queue-item-not-found", "queued item is no longer pending", { itemId: request.itemId });
++				if (outcome === "cross-lane") throw new RemoteError("session/queue-move-across-lanes", "a queued item cannot change lane", { itemId: request.itemId });
++				break;
++			}
+ 			/* v8 ignore next 2 -- closed-union exhaustiveness guard */
+ 			default: assertNever(request.action, "queue action");
+ 		}
+diff --git a/node_modules/@deepseek-ai/dsh-api-session-controller/lib/typert.host.js b/node_modules/@deepseek-ai/dsh-api-session-controller/lib/typert.host.js
+--- a/node_modules/@deepseek-ai/dsh-api-session-controller/lib/typert.host.js
++++ b/node_modules/@deepseek-ai/dsh-api-session-controller/lib/typert.host.js
+@@ -695,6 +695,9 @@
+   'kind': z.literal("remove").readonly(),
+ }), z.object({
+   'kind': z.literal("steer").readonly(),
++}), z.object({
++  'kind': z.literal("move").readonly(),
++  'beforeId': z.union([z.string(), z.null()]).readonly(),
+ })]).readonly(),
+ }))
+ let _deepseek_ai_dsh_api_session_controller_session_updateQueue_result$schema$value
+diff --git a/node_modules/@deepseek-ai/dsh-api-session-controller/lib/typert.remote-client.js b/node_modules/@deepseek-ai/dsh-api-session-controller/lib/typert.remote-client.js
+--- a/node_modules/@deepseek-ai/dsh-api-session-controller/lib/typert.remote-client.js
++++ b/node_modules/@deepseek-ai/dsh-api-session-controller/lib/typert.remote-client.js
+@@ -695,6 +695,9 @@
+   'kind': z.literal("remove").readonly(),
+ }), z.object({
+   'kind': z.literal("steer").readonly(),
++}), z.object({
++  'kind': z.literal("move").readonly(),
++  'beforeId': z.union([z.string(), z.null()]).readonly(),
+ })]).readonly(),
+ }))
+ let _deepseek_ai_dsh_api_session_controller_session_updateQueue_result$schema$value
+diff --git a/node_modules/@deepseek-ai/dsh-api-remotes/lib/client.js b/node_modules/@deepseek-ai/dsh-api-remotes/lib/client.js
+--- a/node_modules/@deepseek-ai/dsh-api-remotes/lib/client.js
++++ b/node_modules/@deepseek-ai/dsh-api-remotes/lib/client.js
+@@ -9217,7 +9217,8 @@
+ 					])).readonly()
+ 				}),
+ 				object({ "kind": literal("remove").readonly() }),
+-				object({ "kind": literal("steer").readonly() })
++				object({ "kind": literal("steer").readonly() }),
++				object({ "kind": literal("move").readonly(), "beforeId": union([string(), literal(null)]).readonly() })
+ 			]).readonly()
+ 		});
+ 		let _deepseek_ai_dsh_api_session_controller_session_updateQueue_result$schema$value;
+diff --git a/node_modules/@deepseek-ai/dsh-client-ui-conversation/lib/client.js b/node_modules/@deepseek-ai/dsh-client-ui-conversation/lib/client.js
+--- a/node_modules/@deepseek-ai/dsh-client-ui-conversation/lib/client.js
++++ b/node_modules/@deepseek-ai/dsh-client-ui-conversation/lib/client.js
+@@ -14027,6 +14027,8 @@
+ 			"queue.steer.unavailable": "仅运行中可插话发送",
+ 			"error.sessionInUse": "当前会话已被占用，可能是其他正在运行的 DSH 导致的（如其他 dsh web、桌面端），请退出其他正在运行的 DSH 后重试。",
+ 			"queue.editFailed": "编辑失败：这条消息可能已经开始发送。",
++			"queue.moveFailed": "重新排序失败：这条消息可能已经改变。",
++			"queue.reorder": "拖动重新排序这条排队消息",
+ 			"queue.removeFailed": "删除失败：这条消息可能已经开始发送。",
+ 			"queue.steerFailed": "插话发送失败，请重试。",
+ 			"terminal.signal": "信号 {signal}",
+@@ -14185,6 +14187,8 @@
+ 			"queue.steer.unavailable": "Steering is available only while the agent is running",
+ 			"error.sessionInUse": "This session is already in use, possibly by another running DSH instance (such as dsh web or the desktop app). Quit other running DSH instances and try again.",
+ 			"queue.editFailed": "Edit failed: this message may have already started sending.",
++			"queue.moveFailed": "Reorder failed: this message may have already moved.",
++			"queue.reorder": "Drag to reorder this queued message",
+ 			"queue.removeFailed": "Removal failed: this message may have already started sending.",
+ 			"queue.steerFailed": "Steering failed. Try again.",
+ 			"terminal.signal": "signal {signal}",
+@@ -14202,7 +14206,7 @@
+ 		};
+ 		//#endregion
+ 		//#region \0dsh-css:/home/runner/work/deepseek-harness/deepseek-harness/packages/client/ui-conversation/src/client/queue/QueueDock.module.css.mjs
+-		const css$6 = "._7yHdaG_dock{box-sizing:border-box;width:calc(100% - var(--dsh-composer-side-clearance) - var(--dsh-composer-side-clearance) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset));max-width:calc(var(--dsh-composer-card-max-width) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset));margin:0 auto calc(0px - var(--dsh-composer-stack-gap) - 3px);padding:0 var(--dsh-composer-dock-inset);flex:none}._7yHdaG_panel{background:var(--dsw-specific-tip);--dsh-scrollbar-thumb:var(--dsw-alias-scrollbar-bg-l2);--dsh-scrollbar-thumb-hover:var(--dsw-alias-scrollbar-hover-l2);border-radius:12px 12px 0 0;width:100%;padding:2px 0;position:relative;overflow:hidden}._7yHdaG_panel:after{border:.5px solid var(--dsw-alias-border-l1);border-radius:inherit;content:\"\";pointer-events:none;border-bottom:none;position:absolute;inset:0}._7yHdaG_header{box-sizing:border-box;width:100%;height:36px;color:var(--dsw-alias-label-primary);text-align:left;cursor:pointer;background:0 0;border:none;border-radius:8px;align-items:center;gap:10px;padding:4px 12px;display:flex}._7yHdaG_header:focus-visible{outline:2px solid var(--dsw-alias-label-tertiary);outline-offset:-2px}._7yHdaG_header:disabled{cursor:default}._7yHdaG_lead{color:var(--dsw-alias-label-tertiary);flex:none;place-items:center;display:grid}._7yHdaG_count{min-width:0;font-family:Inter, var(--dsw-font-family);flex:auto;font-size:13px;font-weight:500;line-height:24px}._7yHdaG_chevron{width:14px;height:14px;color:var(--dsw-alias-label-tertiary);flex:none;place-items:center;display:grid}._7yHdaG_list{max-height:180px;margin:0;padding:0;list-style:none;overflow-y:auto}._7yHdaG_row{box-sizing:border-box;border-radius:8px;align-items:center;gap:10px;width:100%;height:36px;padding:4px 5px 4px 12px;display:flex}._7yHdaG_row+._7yHdaG_row{box-shadow:inset 0 1px 0 var(--dsw-alias-border-l1)}._7yHdaG_attachments{flex:none;gap:4px;min-width:0;max-width:55%;display:flex;overflow:hidden}._7yHdaG_pendingRow ._7yHdaG_attachments{flex-shrink:1}._7yHdaG_file{border:.5px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);box-sizing:border-box;border-radius:6px;flex:0 180px;align-items:center;gap:4px;min-width:74px;height:24px;padding:0 6px;display:inline-flex;overflow:hidden}._7yHdaG_fileIcon{flex:none;width:16px;height:16px;display:inline-flex}._7yHdaG_fileName{min-width:0;color:var(--dsw-alias-label-primary-dimmed);font:var(--dsw-font-xs-13);text-overflow:ellipsis;white-space:nowrap;overflow:hidden}._7yHdaG_fileSize{color:var(--dsw-alias-label-tertiary);white-space:nowrap;flex:none;font-size:10px}._7yHdaG_thumb{border:.5px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);object-fit:cover;border-radius:4px;width:24px;height:24px}._7yHdaG_preview,._7yHdaG_editor{min-width:0;font:var(--dsw-font-xs-13);font-family:Inter, var(--dsw-font-family);flex:auto}._7yHdaG_preview{color:var(--dsw-alias-label-primary-dimmed);text-overflow:ellipsis;white-space:nowrap;word-break:break-word;overflow:hidden}._7yHdaG_editor{box-sizing:border-box;border:.5px solid var(--dsw-alias-border-l4);background:var(--dsw-alias-bg-base);height:28px;color:var(--dsw-alias-label-primary);border-radius:6px;outline:none;padding:0 8px}._7yHdaG_editor:focus{border-color:var(--dsw-alias-state-business-primary)}._7yHdaG_actions{flex:none;align-items:center;gap:10px;display:flex}._7yHdaG_status{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xs-13);white-space:nowrap;flex:none}._7yHdaG_action{corner-shape:round;width:28px;height:28px;color:var(--dsw-alias-label-tertiary);cursor:pointer;background:0 0;border:none;border-radius:999px;flex:none;place-items:center;padding:0;display:grid}._7yHdaG_action:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}._7yHdaG_action:focus-visible{outline:2px solid var(--dsw-alias-label-tertiary);outline-offset:-2px}._7yHdaG_action:disabled{cursor:default;opacity:.45}";
++		const css$6 = "._7yHdaG_dock{box-sizing:border-box;width:calc(100% - var(--dsh-composer-side-clearance) - var(--dsh-composer-side-clearance) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset));max-width:calc(var(--dsh-composer-card-max-width) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset));margin:0 auto calc(0px - var(--dsh-composer-stack-gap) - 3px);padding:0 var(--dsh-composer-dock-inset);flex:none}._7yHdaG_panel{background:var(--dsw-specific-tip);--dsh-scrollbar-thumb:var(--dsw-alias-scrollbar-bg-l2);--dsh-scrollbar-thumb-hover:var(--dsw-alias-scrollbar-hover-l2);border-radius:12px 12px 0 0;width:100%;padding:2px 0;position:relative;overflow:hidden}._7yHdaG_panel:after{border:.5px solid var(--dsw-alias-border-l1);border-radius:inherit;content:\"\";pointer-events:none;border-bottom:none;position:absolute;inset:0}._7yHdaG_header{box-sizing:border-box;width:100%;height:36px;color:var(--dsw-alias-label-primary);text-align:left;cursor:pointer;background:0 0;border:none;border-radius:8px;align-items:center;gap:10px;padding:4px 12px;display:flex}._7yHdaG_header:focus-visible{outline:2px solid var(--dsw-alias-label-tertiary);outline-offset:-2px}._7yHdaG_header:disabled{cursor:default}._7yHdaG_lead{color:var(--dsw-alias-label-tertiary);flex:none;place-items:center;display:grid}._7yHdaG_count{min-width:0;font-family:Inter, var(--dsw-font-family);flex:auto;font-size:13px;font-weight:500;line-height:24px}._7yHdaG_chevron{width:14px;height:14px;color:var(--dsw-alias-label-tertiary);flex:none;place-items:center;display:grid}._7yHdaG_list{max-height:180px;margin:0;padding:0;list-style:none;overflow-y:auto}._7yHdaG_row{box-sizing:border-box;border-radius:8px;align-items:center;gap:10px;width:100%;height:36px;padding:4px 5px 4px 12px;display:flex}._7yHdaG_row+._7yHdaG_row{box-shadow:inset 0 1px 0 var(--dsw-alias-border-l1)}._7yHdaG_attachments{flex:none;gap:4px;min-width:0;max-width:55%;display:flex;overflow:hidden}._7yHdaG_pendingRow ._7yHdaG_attachments{flex-shrink:1}._7yHdaG_file{border:.5px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);box-sizing:border-box;border-radius:6px;flex:0 180px;align-items:center;gap:4px;min-width:74px;height:24px;padding:0 6px;display:inline-flex;overflow:hidden}._7yHdaG_fileIcon{flex:none;width:16px;height:16px;display:inline-flex}._7yHdaG_fileName{min-width:0;color:var(--dsw-alias-label-primary-dimmed);font:var(--dsw-font-xs-13);text-overflow:ellipsis;white-space:nowrap;overflow:hidden}._7yHdaG_fileSize{color:var(--dsw-alias-label-tertiary);white-space:nowrap;flex:none;font-size:10px}._7yHdaG_thumb{border:.5px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);object-fit:cover;border-radius:4px;width:24px;height:24px}._7yHdaG_preview,._7yHdaG_editor{min-width:0;font:var(--dsw-font-xs-13);font-family:Inter, var(--dsw-font-family);flex:auto}._7yHdaG_preview{color:var(--dsw-alias-label-primary-dimmed);text-overflow:ellipsis;white-space:nowrap;word-break:break-word;overflow:hidden}._7yHdaG_editor{box-sizing:border-box;border:.5px solid var(--dsw-alias-border-l4);background:var(--dsw-alias-bg-base);height:28px;color:var(--dsw-alias-label-primary);border-radius:6px;outline:none;padding:0 8px}._7yHdaG_editor:focus{border-color:var(--dsw-alias-state-business-primary)}._7yHdaG_actions{flex:none;align-items:center;gap:10px;display:flex}._7yHdaG_status{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xs-13);white-space:nowrap;flex:none}._7yHdaG_action{corner-shape:round;width:28px;height:28px;color:var(--dsw-alias-label-tertiary);cursor:pointer;background:0 0;border:none;border-radius:999px;flex:none;place-items:center;padding:0;display:grid}._7yHdaG_action:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}._7yHdaG_action:focus-visible{outline:2px solid var(--dsw-alias-label-tertiary);outline-offset:-2px}._7yHdaG_action:disabled{cursor:default;opacity:.45}._7yHdaG_grip{box-sizing:border-box;flex:none;width:12px;height:20px;color:var(--dsw-alias-label-tertiary);cursor:grab;background:0 0;border:none;border-radius:4px;place-items:center;padding:0;display:grid;opacity:.5;transition:opacity .12s}._7yHdaG_row:hover ._7yHdaG_grip,._7yHdaG_grip:focus-visible{opacity:1}._7yHdaG_grip:focus-visible{outline:2px solid var(--dsw-alias-label-tertiary);outline-offset:-2px}._7yHdaG_grip:active{cursor:grabbing}._7yHdaG_rowDragging{opacity:.4}._7yHdaG_row._7yHdaG_dropBefore{box-shadow:inset 0 2px 0 var(--dsw-alias-brand-primary)}._7yHdaG_row._7yHdaG_dropEnd{box-shadow:inset 0 1px 0 var(--dsw-alias-border-l1),inset 0 -2px 0 var(--dsw-alias-brand-primary)}._7yHdaG_list._7yHdaG_dropRefused{cursor:not-allowed}";
+ 		const tagId$6 = "@deepseek-ai/dsh-client-ui-conversation/QueueDock.module.css";
+ 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$6) + "]") === null) {
+ 			const tag = document.createElement("style");
+@@ -14218,7 +14222,12 @@
+ 			"chevron": "_7yHdaG_chevron",
+ 			"count": "_7yHdaG_count",
+ 			"dock": "_7yHdaG_dock",
++			"dropBefore": "_7yHdaG_dropBefore",
++			"dropEnd": "_7yHdaG_dropEnd",
++			"dropRefused": "_7yHdaG_dropRefused",
+ 			"editor": "_7yHdaG_editor",
++			"grip": "_7yHdaG_grip",
++			"rowDragging": "_7yHdaG_rowDragging",
+ 			"file": "_7yHdaG_file",
+ 			"fileIcon": "_7yHdaG_fileIcon",
+ 			"fileName": "_7yHdaG_fileName",
+@@ -14237,6 +14246,48 @@
+ 		//#region lib/types/client/queue/QueueDock.js
+ 		const EMPTY_QUEUE = [];
+ 		const QUEUE_PREVIEW_CHARS = 200;
++		/**
++		* La poignée de préhension : aucune icône de ce genre n'existe dans
++		* dsh-client-ui-primitives (six points, deux colonnes de trois). Elle est
++		* donc dessinée ici, en SVG, comme dans la maquette validée.
++		*/
++		function QueueGripIcon() {
++			return (0, react_jsx_runtime.jsx)("svg", {
++				width: 12,
++				height: 12,
++				viewBox: "0 0 12 12",
++				fill: "none",
++				"aria-hidden": true,
++				children: [
++					2.5,
++					6,
++					9.5
++				].flatMap((y) => [4, 8].map((x) => (0, react_jsx_runtime.jsx)("circle", {
++					cx: x,
++					cy: y,
++					r: 1.1,
++					fill: "currentColor"
++				}, `${x}-${y}`)))
++			});
++		}
++		/**
++		* Le réordonnancement exige une action d'hôte (`move`). Tant que l'hôte
++		* installé ne la connaît pas, la poignée n'est pas rendue du tout : la file
++		* reste exactement celle d'aujourd'hui, plutôt que de promettre un geste
++		* qui ne ferait rien. La sonde est mise en cache pour la page et vise un
++		* identifiant impossible : elle ne touche jamais la vraie file.
++		*/
++		let queueMoveProbe = null;
++		function queueMoveSupported(updateQueue) {
++			if (queueMoveProbe === null) queueMoveProbe = Promise.resolve().then(() => updateQueue("__probe__", {
++				kind: "move",
++				beforeId: "__probe__"
++			})).then(() => true, (error) => {
++				const brut = error?.code ?? error?.data?.code ?? error?.message ?? "";
++				return String(brut).includes("queue-item-not-found");
++			});
++			return queueMoveProbe;
++		}
+ 		function previewOf(content) {
+ 			const flat = content.filter((block) => block.type !== "image" && block.type !== "file").map((block) => block.type === "text" ? block.text : `[${block.type}]`).join(" ").replace(/\s+/g, " ").trim();
+ 			const chars = Array.from(flat);
+@@ -14349,6 +14400,25 @@
+ 				queueMutable,
+ 				rowCount
+ 			]);
++			// Le geste de réordonnancement : `drag` porte la ligne suivie et la
++			// couture visée, `listRef` sert à traduire une ordonnée en dépôt.
++			const [moveReady, setMoveReady] = (0, react.useState)(false);
++			const [drag, setDrag] = (0, react.useState)(null);
++			const listRef = (0, react.useRef)(null);
++			(0, react.useEffect)(() => {
++				if (rowCount < 2 || !queueMutable) return;
++				let vivant = true;
++				queueMoveSupported(updateQueue).then((supported) => {
++					if (vivant) setMoveReady(supported);
++				});
++				return () => {
++					vivant = false;
++				};
++			}, [
++				queueMutable,
++				rowCount,
++				updateQueue
++			]);
+ 			if (rowCount === 0) return null;
+ 			const interactionActive = queueMutable && (editing !== null || busy !== null);
+ 			const expanded = !collapsed || interactionActive;
+@@ -14363,8 +14433,88 @@
+ 					return false;
+ 				} finally {
+ 					setBusy((current) => current === itemId ? null : current);
++				}
++			};
++			// La couture de dépôt : au-dessus du milieu d'une ligne, on dépose avant
++			// elle ; sous le milieu de la dernière, en fin de file ; au-dessus d'un
++			// message pas encore admis, on refuse et on ne promet rien. Le milieu
++			// sépare les lignes : aucune bande morte ne perd le geste au passage.
++			const cibleDeDepot = (y) => {
++				const liste = listRef.current;
++				if (liste === null) return null;
++				const epingle = liste.querySelector("[data-pending-row]");
++				if (epingle !== null && y > epingle.getBoundingClientRect().top) return { refuse: true };
++				const lignes = Array.from(liste.querySelectorAll("[data-queue-id]"));
++				if (lignes.length === 0) return null;
++				for (const ligne of lignes) {
++					const r = ligne.getBoundingClientRect();
++					if (y < r.top + r.height / 2) return {
++						ligne,
++						atEnd: false
++					};
+ 				}
++				return {
++					ligne: lignes[lignes.length - 1],
++					atEnd: true
++				};
++			};
++			const peindreDepot = (id, y) => {
++				const cible = cibleDeDepot(y);
++				if (cible === null) setDrag({ id, overId: null, atEnd: false });
++				else if (cible.refuse === true) setDrag({ id, refuse: true });
++				else setDrag({
++					id,
++					overId: cible.ligne.dataset.queueId,
++					atEnd: cible.atEnd
++				});
++			};
++			const deposer = async (id, y) => {
++				const cible = cibleDeDepot(y);
++				setDrag(null);
++				if (cible === null || cible.refuse === true) return;
++				const beforeId = cible.atEnd === true ? null : cible.ligne.dataset.queueId;
++				if (beforeId === id) return;
++				await applyAction(id, {
++					kind: "move",
++					beforeId
++				}, t("queue.moveFailed"));
++			};
++			const deplacerAuClavier = (id, delta) => {
++				const ordre = queue.map((row) => row.id);
++				const i = ordre.indexOf(id);
++				const j = i + delta;
++				if (i < 0 || j < 0 || j >= ordre.length) return;
++				ordre.splice(i, 1);
++				ordre.splice(j, 0, id);
++				applyAction(id, {
++					kind: "move",
++					beforeId: ordre[j + 1] === undefined ? null : ordre[j + 1]
++				}, t("queue.moveFailed"));
+ 			};
++			const poignee = (row) => moveReady && queue.length > 1 ? (0, react_jsx_runtime.jsx)("button", {
++				type: "button",
++				className: QueueDock_module_css_default.grip,
++				"aria-label": t("queue.reorder"),
++				title: t("queue.reorder"),
++				onPointerDown: (event) => {
++					try {
++						event.currentTarget.setPointerCapture(event.pointerId);
++					} catch {}
++					event.preventDefault();
++					setDrag({
++						id: row.id,
++						overId: null,
++						atEnd: false
++					});
++				},
++				onKeyDown: (event) => {
++					if (!event.altKey) return;
++					if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
++					event.preventDefault();
++					deplacerAuClavier(row.id, event.key === "ArrowUp" ? -1 : 1);
++				},
++				children: (0, react_jsx_runtime.jsx)(QueueGripIcon, {})
++			}) : null;
+ 			const saveEdit = async () => {
+ 				if (editing === null || editing.text.trim() === "") return;
+ 				if (await applyAction(editing.id, {
+@@ -14412,19 +14562,32 @@
+ 						]
+ 					}), (0, react_jsx_runtime.jsxs)("ul", {
+ 						id: listId,
+-						className: QueueDock_module_css_default.list,
++						ref: listRef,
++						className: QueueDock_module_css_default.list + (drag !== null && drag.refuse === true ? " " + QueueDock_module_css_default.dropRefused : ""),
++						// Le suivi est posé sur la liste : la capture de pointeur ramène
++						// les événements à la poignée, qui est justement son enfant.
++						onPointerMove: (event) => {
++							if (drag !== null && drag.refuse !== true) peindreDepot(drag.id, event.clientY);
++						},
++						onPointerUp: (event) => {
++							if (drag !== null) deposer(drag.id, event.clientY);
++						},
++						onPointerCancel: () => setDrag(null),
+ 						hidden: !listVisible,
+ 						children: [listVisible && queue.map((row) => {
+ 							const attachments = queueAttachments(row.content);
+ 							const text = textOf(row.content);
++							const classeLigne = QueueDock_module_css_default.row + (drag !== null && drag.id === row.id ? " " + QueueDock_module_css_default.rowDragging : "") + (drag !== null && drag.refuse !== true && drag.overId === row.id ? " " + (drag.atEnd === true ? QueueDock_module_css_default.dropEnd : QueueDock_module_css_default.dropBefore) : "");
+ 							return (0, react_jsx_runtime.jsxs)("li", {
+-								className: QueueDock_module_css_default.row,
++								className: classeLigne,
++								"data-queue-id": row.id,
+ 								children: [
+ 									rowCount === 1 && (0, react_jsx_runtime.jsx)("span", {
+ 										className: QueueDock_module_css_default.lead,
+ 										"aria-hidden": true,
+ 										children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconQueueOutline14, {})
+ 									}),
++									poignee(row),
+ 									editing?.id === row.id ? (0, react_jsx_runtime.jsx)("input", {
+ 										autoFocus: true,
+ 										className: QueueDock_module_css_default.editor,
+@@ -14550,6 +14713,7 @@
+ 						}), listVisible && pendingQueue.map((submission) => {
+ 							return (0, react_jsx_runtime.jsxs)("li", {
+ 								className: `${QueueDock_module_css_default.row} ${QueueDock_module_css_default.pendingRow}`,
++								"data-pending-row": "",
+ 								"data-submission-echo": "",
+ 								children: [
+ 									rowCount === 1 && (0, react_jsx_runtime.jsx)("span", {

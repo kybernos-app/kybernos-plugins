@@ -1,0 +1,86 @@
+{
+  "name": "recruitment-photos",
+  "style": "bright modern workplace editorial photography, natural daylight, shallow depth of field, warm neutral palette with touches of colour, people only seen from behind or at a distance, no recognisable faces, no brand, no logo, no readable text on screens, no text, no watermark",
+  "ask": {
+    "width": 1280,
+    "height": 960,
+    "steps": 28
+  },
+  "keep": {
+    "width": 1280,
+    "quality": 82,
+    "maxKb": 220
+  },
+  "cells": [
+    {
+      "name": "senior-data-engineer",
+      "prompt": "two engineers seen from behind at a long desk with large monitors showing colourful abstract charts, bright open-plan office",
+      "seed": 100
+    },
+    {
+      "name": "product-designer",
+      "prompt": "a designer's desk with a tablet, colour swatches and printed interface sketches, a hand holding a pencil, bright studio",
+      "seed": 101
+    },
+    {
+      "name": "account-executive",
+      "prompt": "a sales meeting in a glass meeting room, three people around a table with laptops and a notebook, seen from a distance",
+      "seed": 102
+    },
+    {
+      "name": "devops-engineer",
+      "prompt": "a quiet engineering corner with a laptop showing dark terminal windows, a keyboard and a large second monitor, soft evening light",
+      "seed": 103
+    },
+    {
+      "name": "finance-analyst",
+      "prompt": "a tidy desk with a laptop showing a spreadsheet with bar charts, a calculator, a notebook and a cup of coffee, next to a window",
+      "seed": 104
+    },
+    {
+      "name": "head-of-people",
+      "prompt": "a bright meeting room with a round wooden table, six empty chairs, a whiteboard and a large plant, calm and welcoming",
+      "seed": 105
+    },
+    {
+      "name": "customer-success-manager",
+      "prompt": "a person wearing a headset working on a laptop in a bright coworking space, seen from behind at a distance",
+      "seed": 106
+    },
+    {
+      "name": "data-analyst",
+      "prompt": "a young analyst seen from behind pointing at a monitor with a colourful bar chart in a modern office",
+      "seed": 107
+    },
+    {
+      "name": "ux-researcher",
+      "prompt": "three colleagues seen from behind standing in front of a wall of colourful sticky notes",
+      "seed": 108
+    },
+    {
+      "name": "frontend-engineer",
+      "prompt": "a developer seen from behind coding on a laptop at a coworking table with plants",
+      "seed": 109
+    },
+    {
+      "name": "operations-coordinator",
+      "prompt": "a bright logistics office with a tablet and a clipboard on a desk and shelves of cardboard boxes in the background",
+      "seed": 110
+    },
+    {
+      "name": "hr-business-partner",
+      "prompt": "two people having a relaxed conversation on a sofa in a bright lounge area, seen from the side at a distance",
+      "seed": 111
+    },
+    {
+      "name": "sales-development-rep",
+      "prompt": "a row of desks with headsets and laptops in a bright open office, empty chairs, morning light",
+      "seed": 112
+    },
+    {
+      "name": "platform-engineer",
+      "prompt": "a clean data-centre corridor with rows of server racks lit with soft blue light, nobody in the picture",
+      "seed": 113
+    }
+  ]
+}

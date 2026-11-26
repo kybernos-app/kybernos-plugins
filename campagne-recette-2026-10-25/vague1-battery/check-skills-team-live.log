@@ -1,0 +1,67 @@
+# check-skills-team-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=41360
+
+Team tab — real GUI, this checkout's client, faked Team routes
+  ✓ the served bundle contains the running DSH's kybernos-skills client (so the swap is exact)
+  ✓ the Skills panel opens
+  ✓ the Team segment is there with its approved count
+  ✓ the Yours and Discover segments are still there
+  ✓ the user's own skills are loaded (the Yours segment counts them)
+  ✓ Team opens on the approved list
+  ✓ four approved skills, in the server's order
+  ✓ release-notes can be installed
+  ✓ brand-voice is Installed (same version as the team's)
+  ✓ sql-review offers Update and says which version is newer
+  ✓ onboarding-checklist says you have your own, and offers no Install
+  ✓ a member sees "Approved" and "My proposals", not the admin views
+  ✓ the caption names the workspace and the role
+  ✓ Install fetches the skill's files, then asks the disk half to install them
+  ✓ the install carries the name, the server's version, the files, the team id and no replace
+  ✓ the install goes to the first writable folder the host announces
+  ✓ a notice says it was installed
+  ✓ Update replaces in the folder where the team skill already is
+  ✓ opening a skill shows its files and the install panel
+  ✓ the detail lists the four files, SKILL.md first, and previews SKILL.md
+  ✓ the detail offers the writable folders, not a placeholder
+  ✓ a small file is shown in bytes, not as 0 KB
+  ✓ it states what is checked before anything is written
+  ✓ picking another file shows its content
+  ✓ the back link returns to the list
+  ✓ Propose opens the sheet
+  ✓ the sheet offers the user's own skills of the writable folders
+  ✓ submitting is not possible before a skill is chosen
+  ✓ choosing a skill reads it through the disk half and lists what will be sent
+  ✓ Propose sends name, description, files and the note — nothing else
+  ✓ the sheet closes, a notice says an admin will review, and the tab lands on My proposals
+  ✓ My proposals shows pending ones with Withdraw, and a refusal with its reason
+  ✓ Withdraw deletes only your own pending proposal
+  ✓ an admin sees a dot on Team when proposals wait
+  ✓ an admin sees Approved, To review and Retired, and the "Add a skill" button
+  ✓ the review queue shows both proposals with their files
+  ✓ the queue warns that skills are instructions and that approvals cannot be edited
+  ✓ an update says it is an update and shows what changed
+  ✓ a skill that comes with a script says so
+  ✓ Reject… asks why before it does anything
+  ✓ rejecting sends the decision and the note
+  ✓ approving sends only the id and the decision (the files cannot be edited)
+  ✓ the queue is then empty and says so
+  ✓ an admin can retire an approved skill from its page, after a confirmation
+  ✓ the confirmation says what retiring does
+  ✓ retiring calls the server once with the skill id
+  ✓ Yours still lists the user's skills as cards, with the Add menu and no Team toolbar
+  ✓ Discover renders (the ranking, or the "unavailable" panel) and no longer offers to reconnect a Vercel token
+  ✓ locked "offre_requise" explains itself and offers a way back
+  ✓ the plan lock offers the plans page (the active server's console), in a new tab, without handing the opener over
+  ✓ locked "non connecte" explains itself and offers a way back
+  ✓ "non connecte" does not send anyone to the plans page
+  ✓ locked "aucun_espace" explains itself and offers a way back
+  ✓ "aucun_espace" does not send anyone to the plans page
+  ✓ locked "not_on_this_server" explains itself and offers a way back
+  ✓ "not_on_this_server" does not send anyone to the plans page
+  ✓ locked "reconnect_required" explains itself and offers a way back
+  ✓ "reconnect_required" does not send anyone to the plans page
+  ✓ the lock shows on the Team segment
+  ✓ no script error was thrown by the page during the run
+
+60 checks passed
+

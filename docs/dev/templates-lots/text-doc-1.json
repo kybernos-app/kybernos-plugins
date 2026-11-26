@@ -1,0 +1,73 @@
+{
+  "name": "text-doc-1",
+  "type": "doc",
+  "note": "Six document prompts built on the docx skill (Word file out): two for business, two for education, two for research. Each asks for the person's inputs first, uses labelled invented data otherwise, and never invents a source.",
+  "cells": [
+    {
+      "id": "doc_proposal",
+      "card": "prompt",
+      "entry": {
+        "name": "Client proposal",
+        "tag": "Business",
+        "line": "Write a client proposal with scope, timeline and three price options",
+        "meta": "Prompt"
+      },
+      "request": "Write a client proposal as a .docx file. First ask me about the client, the problem to solve, the deliverables, the timeline and my rates; if I have none, use an invented client and label the figures as sample. Structure: a cover, a one-paragraph summary, the scope with what is not included, a timeline table, three price options (essential, standard, premium) in a table, terms and next steps. About 4 pages. Check that the totals add up and that names and dates match throughout, then give me the .docx."
+    },
+    {
+      "id": "doc_onboarding",
+      "card": "prompt",
+      "entry": {
+        "name": "Onboarding guide",
+        "tag": "Business",
+        "line": "Prepare a 30-day onboarding guide for a new hire",
+        "meta": "Prompt"
+      },
+      "request": "Write a 30-day onboarding guide as a .docx file. First ask me for the role, the team, the tools they will use and the people they will meet; if I have none, use an invented role and company and label them as sample. Structure: a welcome page, week-by-week goals, a first-day checklist, a who-to-ask table, a glossary and a 30-day check-in with three questions for the manager. Plain, friendly language, about 5 pages, headings and page numbers, then give me the .docx."
+    },
+    {
+      "id": "doc_lesson",
+      "card": "prompt",
+      "entry": {
+        "name": "Lesson plan",
+        "tag": "Education",
+        "line": "Write a 45-minute lesson plan with an activity and a quick quiz",
+        "meta": "Prompt"
+      },
+      "request": "Write a lesson plan as a .docx file. First ask me for the subject, the age or level, the learning objective and the time available; if I have none, use a sample topic and label it as sample. Structure: objectives written as what students will be able to do, materials, a timed sequence (hook, teaching, guided practice, independent task), differentiation for struggling and advanced students, a 5-question exit ticket with answers, and homework. Check that the timings add up to the lesson length. About 2 pages, then give me the .docx."
+    },
+    {
+      "id": "doc_studyguide",
+      "card": "prompt",
+      "entry": {
+        "name": "Study guide",
+        "tag": "Education",
+        "line": "Turn my course notes into a study guide with practice questions",
+        "meta": "Prompt"
+      },
+      "request": "Turn my notes into a study guide as a .docx file. First ask me to attach or paste the notes and tell me the exam format. Use only what the notes say, and flag anything missing or unclear instead of filling it in. Structure: a one-page summary, a table of key terms with definitions, the main ideas as short sections, 10 practice questions of mixed difficulty, then an answer key on the last page. Check every answer against the notes, then give me the .docx."
+    },
+    {
+      "id": "doc_researchproposal",
+      "card": "prompt",
+      "entry": {
+        "name": "Research proposal",
+        "tag": "Research",
+        "line": "Draft a research proposal with question, method and timeline",
+        "meta": "Prompt"
+      },
+      "request": "Draft a research proposal as a .docx file. First ask me for my field, the question I want to answer, the data or participants I could use and my deadline; if I have none, use a sample question and label it as sample. Structure: title, a 150-word abstract, background, research question and hypotheses, method, ethics and risks, a timeline table by month and expected results. Cite nothing you cannot name: mark every reference still to find as [to add]. About 4 pages, then give me the .docx."
+    },
+    {
+      "id": "doc_litreview",
+      "card": "prompt",
+      "entry": {
+        "name": "Literature review",
+        "tag": "Research",
+        "line": "Write a literature review using only the sources I give you",
+        "meta": "Prompt"
+      },
+      "request": "Write a literature review section as a .docx file. First ask me for the topic, the sources (attach them or paste their abstracts) and the citation style. Use only those sources and never invent a reference. Group them by theme rather than one by one, compare their methods and findings, point out agreements and contradictions, and end with the gap my work addresses. Add the reference list in my style and a table of sources by theme. Check every claim against its source, then give me the .docx and a list of anything you could not verify."
+    }
+  ]
+}

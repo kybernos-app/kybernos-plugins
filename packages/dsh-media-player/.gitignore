@@ -1,0 +1,3 @@
+# Le harnais de test (~1 Mo) est régénéré par scripts/build-harness.mjs
+# avant de lancer python3 test/verify.py — pas besoin de le versionner.
+test/harness.bundle.js

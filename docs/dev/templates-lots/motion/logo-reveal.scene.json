@@ -1,0 +1,212 @@
+{
+ "format": {
+  "width": 1280,
+  "height": 720,
+  "fps": 30,
+  "duration": 5
+ },
+ "background": "#101a2c",
+ "params": {
+  "brand": "LUMO",
+  "tagline": "Light for small teams",
+  "accent": "#ffb347"
+ },
+ "controls": [
+  {
+   "id": "brand",
+   "label": "Brand",
+   "type": "text"
+  },
+  {
+   "id": "tagline",
+   "label": "Tagline",
+   "type": "text"
+  },
+  {
+   "id": "accent",
+   "label": "Accent",
+   "type": "color"
+  }
+ ],
+ "layers": [
+  {
+   "type": "circle",
+   "name": "Wave",
+   "x": 640,
+   "y": 300,
+   "r": {
+    "k": [
+     [
+      0.2,
+      0
+     ],
+     [
+      1.4,
+      760,
+      "out"
+     ]
+    ]
+   },
+   "stroke": "$accent",
+   "lw": 8,
+   "alpha": {
+    "k": [
+     [
+      0.2,
+      0.9
+     ],
+     [
+      1.0,
+      0.7,
+      "lin"
+     ],
+     [
+      1.5,
+      0,
+      "out"
+     ]
+    ]
+   }
+  },
+  {
+   "type": "circle",
+   "name": "Mark ring",
+   "x": 640,
+   "y": 300,
+   "r": {
+    "k": [
+     [
+      0.9,
+      0
+     ],
+     [
+      1.7,
+      78,
+      "back"
+     ]
+    ]
+   },
+   "stroke": "$accent",
+   "lw": 12
+  },
+  {
+   "type": "circle",
+   "name": "Mark dot",
+   "x": 640,
+   "y": 300,
+   "r": {
+    "k": [
+     [
+      1.3,
+      0
+     ],
+     [
+      2.0,
+      30,
+      "elastic"
+     ]
+    ]
+   },
+   "fill": "$accent"
+  },
+  {
+   "type": "text",
+   "name": "Brand",
+   "text": "{brand}",
+   "x": 640,
+   "y": {
+    "k": [
+     [
+      1.7,
+      470
+     ],
+     [
+      2.5,
+      450,
+      "out"
+     ]
+    ]
+   },
+   "size": 96,
+   "weight": 700,
+   "tracking": {
+    "k": [
+     [
+      1.7,
+      28
+     ],
+     [
+      3.0,
+      12,
+      "out"
+     ]
+    ]
+   },
+   "alpha": {
+    "k": [
+     [
+      1.7,
+      0
+     ],
+     [
+      2.3,
+      1,
+      "out"
+     ]
+    ]
+   }
+  },
+  {
+   "type": "text",
+   "name": "Tagline",
+   "text": "{tagline}",
+   "x": 640,
+   "y": 545,
+   "size": 38,
+   "weight": 400,
+   "fill": "#c9d3e6",
+   "reveal": {
+    "k": [
+     [
+      2.7,
+      0
+     ],
+     [
+      3.9,
+      1,
+      "lin"
+     ]
+    ]
+   }
+  },
+  {
+   "type": "particles",
+   "name": "Sparks",
+   "x": 640,
+   "y": 300,
+   "mode": "burst",
+   "shape": "spark",
+   "count": 60,
+   "t0": 1.5,
+   "life": 1.5,
+   "speed": 380,
+   "gravity": 220,
+   "colors": [
+    "#ffb347",
+    "#ffd9a0",
+    "#ffffff"
+   ],
+   "seed": 7
+  }
+ ],
+ "audio": [
+  {
+   "synth": "whoosh",
+   "at": 0.2
+  },
+  {
+   "synth": "ding",
+   "at": 1.6
+  }
+ ]
+}

@@ -1,0 +1,103 @@
+{
+  "name": "dashboard-1",
+  "type": "dashboard",
+  "note": "The dashboard examples of the shelf. A STILL lot: every picture is a real screenshot of the Dashboards page of the plugin drawing the dashboard (`KB_NODE_MODULES=<a node_modules with react, react-dom, esbuild, playwright-core> node scripts/dashboards-stills.mjs real-estate-overview:auto ecommerce-overview:auto recruitment-overview:auto usage-tokens:auto usage-overview:auto automations-health:auto automation-flow:auto agent-teams:auto --out <from>/stills`), nothing is generated, so no `made` and no Remix. The three business ones read the sample rows of the shipped templates through a real Tables service; the five others read the plugin’s fixtures (invented sessions, models and automations), never this machine’s numbers. The request of each one starts the skill `dashboard-builder`. They replace the nine placeholders of the type (cash flow, support desk...), which named sources the product does not have.",
+  "cells": [
+    {
+      "id": "dashboard_agency",
+      "still": "real-estate-overview.jpg",
+      "request": "Make a dashboard for my real-estate agency from my own table in Tables (the Real estate template makes one, with sample rows). Ask me which table holds my listings and which one my sales, then show me the plan before you write it: active listings, open sales value, viewings to run, mandates ending soon, properties by status, the sales pipeline by stage, leads by source and the next follow-ups. If I have no data yet, use the sample rows and say they are a sample.",
+      "entry": {
+        "name": "Agency overview",
+        "tag": "Real estate",
+        "line": "Listings, the sales pipeline, viewings and mandates, from your own table.",
+        "meta": "9 widgets · your Tables data",
+        "alt": "A real-estate dashboard: four figure cards, a donut of properties by status, the sales pipeline by stage, leads by source and the next viewings and mandates."
+      }
+    },
+    {
+      "id": "dashboard_shop",
+      "still": "ecommerce-overview.jpg",
+      "request": "Make a dashboard for my online shop from my own tables in Tables (the E-commerce template makes them, with sample rows). Ask me which tables hold my orders, my products and my customers, then show me the plan before you write it: revenue from paid orders, orders to ship, low stock, repeat customers, orders by status, products by category, the next orders to ship, the stock to reorder, top products and orders by source. If I have no data yet, use the sample rows and say they are a sample.",
+      "entry": {
+        "name": "Shop overview",
+        "tag": "E-commerce",
+        "line": "Paid revenue, orders to ship, low stock and customers at a glance.",
+        "meta": "10 widgets · your Tables data",
+        "alt": "An online-shop dashboard: revenue, orders to ship, low stock and customers as cards, orders by status, products by category, the next orders to ship and the stock to reorder."
+      }
+    },
+    {
+      "id": "dashboard_hiring",
+      "still": "recruitment-overview.jpg",
+      "request": "Make a dashboard for my recruitment desk from my own tables in Tables (the Recruitment template makes them, with sample rows). Ask me which tables hold my jobs, my candidates and my client missions, then show me the plan before you write it: open jobs, candidates in play, candidates placed, the oldest open job, candidates by stage, missions by stage, where candidates come from, the next interviews and the jobs open the longest. If I have no data yet, use the sample rows and say they are a sample.",
+      "entry": {
+        "name": "Hiring desk overview",
+        "tag": "Recruitment",
+        "line": "Open jobs, candidates in play, placements and client missions.",
+        "meta": "9 widgets · your Tables data",
+        "alt": "A recruitment dashboard: open jobs, candidates in play and placed, the oldest open job, candidates and missions by stage, where candidates come from and the next interviews."
+      }
+    },
+    {
+      "id": "dashboard_usage",
+      "still": "usage-tokens.jpg",
+      "request": "Make a dashboard of my own AI usage: tokens per day stacked by model, the share of each provider, the tokens served from cache, tokens by model and my busiest sessions. Ask me how far back to look (14 days by default). Only tokens are stored, no money, so show tokens and say so. Show me the plan before you write it.",
+      "entry": {
+        "name": "AI usage and tokens",
+        "tag": "Usage",
+        "line": "Tokens per day, per model and per provider, and your busiest sessions.",
+        "meta": "8 widgets · your own usage",
+        "alt": "A usage dashboard: tokens over 14 days, models used, cache read and sessions as cards, a stacked chart of tokens per day by model, a donut by provider, tokens by model and the busiest sessions."
+      }
+    },
+    {
+      "id": "dashboard_heatmap",
+      "still": "usage-overview.jpg",
+      "request": "Make a dashboard that tells me how I use my agents over the last 120 days: sessions, total tokens, active days, the models I use, the tokens served from cache, my favourite model, and a calendar heatmap of the tokens per day. Add one playful comparison of the total with a short novel. Show me the plan before you write it.",
+      "entry": {
+        "name": "Usage heatmap",
+        "tag": "Usage",
+        "line": "Four months of tokens as a heatmap, with sessions, active days and a favourite model.",
+        "meta": "8 widgets · your own usage",
+        "alt": "A usage overview: sessions, total tokens, active days, models used, tokens served from cache and the favourite model as cards, a calendar heatmap of 120 days of tokens, and a comparison with a short novel."
+      }
+    },
+    {
+      "id": "dashboard_automations",
+      "still": "automations-health.jpg",
+      "request": "Make a dashboard of my automations: runs over the last 14 days with the failed ones in red, which automations run the most, what is planned this week as a calendar, the latest runs with a filter for the failed ones, and a list of the ones that failed last, never ran or are paused. Show me the plan before you write it.",
+      "entry": {
+        "name": "Automations health",
+        "tag": "Automations",
+        "line": "Runs and failures per day, this week’s calendar and the latest runs.",
+        "meta": "9 widgets · your automations",
+        "alt": "An automations dashboard: runs in 14 days, automations, failing now and never run as cards, runs per day with the failed ones in red, a donut of runs by automation, the week as a calendar and the latest runs."
+      }
+    },
+    {
+      "id": "dashboard_pipeline",
+      "still": "automation-flow.jpg",
+      "request": "Make a flow dashboard of my automations: a diagram from the schedule to the run, then succeeded or failed, then the files it made, with a live number on every step read from my automations; add a diagram of which automations fail, a chart of the hours they run, and cards for the active ones, the runs of the last 14 days and the ones planned this week. Show me the plan before you write it.",
+      "entry": {
+        "name": "Automation pipeline",
+        "tag": "Automations",
+        "line": "How a scheduled run travels to its files, with a live number on every step.",
+        "meta": "8 widgets · your automations",
+        "alt": "A flow dashboard: a diagram from the schedule to the run, its success or failure and the files made, a live number on every step, a diagram of which automations fail and a chart of the hours they run."
+      }
+    },
+    {
+      "id": "dashboard_teams",
+      "still": "agent-teams.jpg",
+      "request": "Make a dashboard of my Agent Teams: how many teams and roles I have, the lessons each team has recorded, the skills each one declares, the skills installed, and a list of my teams with what each does. Show me the plan before you write it.",
+      "entry": {
+        "name": "Agent Teams",
+        "tag": "Teams",
+        "line": "My teams, the lessons they recorded and the skills they declare.",
+        "meta": "7 widgets · your Agent Teams",
+        "alt": "An Agent Teams dashboard: teams defined, lessons recorded, skills installed and roles as cards, lessons per team and declared skills per team as bar charts, and the list of teams with what each does."
+      }
+    }
+  ]
+}

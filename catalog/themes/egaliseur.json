@@ -1,0 +1,23 @@
+{
+  "id": "egaliseur",
+  "v": 1,
+  "name": "Égaliseur",
+  "author": "Kybernos",
+  "description": {
+    "fr": "Gris très sombre et rose vif, icônes en lamelles.",
+    "en": "Very dark grey and bright rose, slatted icons."
+  },
+  "settings": {
+    "mode": "dark",
+    "acc": "#f43f5e",
+    "ov": {
+      "dark:base": "#101012",
+      "dark:l1": "#18181b",
+      "dark:l2": "#212126",
+      "dark:side": "#131315",
+      "dark:input": "#212126"
+    },
+    "radius": "standard",
+    "iconSet": "barres"
+  }
+}

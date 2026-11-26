@@ -1,0 +1,38 @@
+{
+  "contract": 1,
+  "id": "kybernos/no-process",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Phone runtime",
+    "fr": "Moteur du téléphone"
+  },
+  "description": {
+    "en": "For the Kybernos phone app only: runs shell commands, search and tools inside the app, where a phone cannot launch programs. Leave it off on a computer.",
+    "fr": "Pour l’app Kybernos du téléphone seulement : exécute les commandes, la recherche et les outils dans l’app, là où un téléphone ne peut pas lancer de programmes. Laisse-le éteint sur un ordinateur."
+  },
+  "icon": "phonecpu",
+  "family": "base",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-no-process",
+  "entry": {
+    "host": "index.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "fs.write:dsh-home",
+    "net:localhost",
+    "exec"
+  ],
+  "help": "help.json",
+  "suite": {
+    "default": "off"
+  }
+}

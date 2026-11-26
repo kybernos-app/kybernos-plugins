@@ -1,0 +1,6 @@
+# kybernos-terminal bundle patch — inserts the plugin into the profile layer stack.
+# The profile must also list the package in `dsh.profile.bundles`
+# (~/.dsh/profiles/web/package.json).
+- insert:
+    - id: kybernos-terminal
+      name: '@local/kybernos-terminal'

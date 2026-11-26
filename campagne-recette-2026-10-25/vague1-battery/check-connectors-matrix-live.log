@@ -1,0 +1,46 @@
+# check-connectors-matrix-live.mjs
+# host=127.0.0.1:3098 status=timeout code=null ms=150007
+
+  partieldeepwiki          the test lists tools, DSH does not load them (loaded=true phase= tools=0)
+  partielcontext7          the test lists tools, DSH does not load them (loaded=true phase= tools=0)
+  partielcloudflare-docs   the test lists tools, DSH does not load them (loaded=true phase= tools=0)
+  partielms-learn          the test lists tools, DSH does not load them (loaded=true phase= tools=0)
+  ko     gitmcp            fail · timeout · DSH: loaded=true phase= tools=0
+  ko     mcpsrv-fetch      fail · offline · DSH: loaded=true phase= tools=0
+  ko     mcpsrv-thinking   fail · offline · DSH: loaded=true phase= tools=0
+  ko     semgrep           fail · 401 · DSH: loaded=true phase= tools=0 · hint: oauth
+  partielastro-docs        the test lists tools, DSH does not load them (loaded=true phase= tools=0)
+  partielsvelte            the test lists tools, DSH does not load them (loaded=true phase= tools=0)
+  partielexa               the test lists tools, DSH does not load them (loaded=true phase= tools=0)
+  partielgrep-app          the test lists tools, DSH does not load them (loaded=true phase= tools=0)
+  partielhuggingface       the test lists tools, DSH does not load them (loaded=true phase= tools=0)
+  ko     deepwiki-sse      fail · 405 · DSH: loaded=true phase= tools=0 · hint: sse
+  partielpetstore3         Swagger Petstore - OpenAPI 3.0 · 19 operations (8 reads) · base https://petstore3.swagger.io/api/v3 
+  ok     catfact           Cat Fact API · 4 operations (3 reads) · base https://catfact.ninja · 3/3 tools registered · reachabl
+  ko     httpbin           read: swagger2_unsupported
+  ko     github            read: spec_too_large
+  ko     open-meteo        read: spec_http 404
+
+| kind | name | verdict | cause |
+|---|---|---|---|
+| MCP | deepwiki | partiel | the test lists tools, DSH does not load them (loaded=true phase= tools=0) |
+| MCP | context7 | partiel | the test lists tools, DSH does not load them (loaded=true phase= tools=0) |
+| MCP | cloudflare-docs | partiel | the test lists tools, DSH does not load them (loaded=true phase= tools=0) |
+| MCP | ms-learn | partiel | the test lists tools, DSH does not load them (loaded=true phase= tools=0) |
+| MCP | gitmcp | ko | fail · timeout · DSH: loaded=true phase= tools=0 |
+| MCP | mcpsrv-fetch | ko | fail · offline · DSH: loaded=true phase= tools=0 |
+| MCP | mcpsrv-thinking | ko | fail · offline · DSH: loaded=true phase= tools=0 |
+| MCP | semgrep | ko | fail · 401 · DSH: loaded=true phase= tools=0 · hint: oauth |
+| MCP | astro-docs | partiel | the test lists tools, DSH does not load them (loaded=true phase= tools=0) |
+| MCP | svelte | partiel | the test lists tools, DSH does not load them (loaded=true phase= tools=0) |
+| MCP | exa | partiel | the test lists tools, DSH does not load them (loaded=true phase= tools=0) |
+| MCP | grep-app | partiel | the test lists tools, DSH does not load them (loaded=true phase= tools=0) |
+| MCP | huggingface | partiel | the test lists tools, DSH does not load them (loaded=true phase= tools=0) |
+| MCP | coingecko | skip | name already present in the sandbox |
+| MCP | deepwiki-sse | ko | fail · 405 · DSH: loaded=true phase= tools=0 · hint: sse |
+| API | petstore3 | partiel | Swagger Petstore - OpenAPI 3.0 · 19 operations (8 reads) · base https://petstore3.swagger.io/api/v3 · tools registered · not reachable · HTT |
+| API | catfact | ok | Cat Fact API · 4 operations (3 reads) · base https://catfact.ninja · 3/3 tools registered · reachable · HTTP 200 |
+| API | httpbin | ko | read: swagger2_unsupported |
+| API | github | ko | read: spec_too_large |
+| API | open-meteo | ko | read: spec_http 404 |
+

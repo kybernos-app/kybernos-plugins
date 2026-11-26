@@ -1,0 +1,14 @@
+# check-automations-list-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=30608
+
+
+── seeding eight automations ──
+  ✗ the Automations page opens on the List
+
+── V-18: one grid, one card, one border ──
+  ✗ the header has its five columns (name, trigger, last session, success, sessions) — null
+  ✗ every row's cells start where their header does (it was 100 px off) — {"head":null,"rows":[]}
+  ✗ the check stopped: "undefined" is not valid JSON
+
+4 FAILED, 0 passed
+

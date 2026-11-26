@@ -1,0 +1,18 @@
+# check-free-llms-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=15341
+
+  ✓ Settings open
+  ✓ the Free LLMs entry is in the Settings menu
+  ✓ the page mounts and lists the 13 models
+  ✓ on open it asks the host for the tier (the cached form)
+  ✓ it says in a sentence that the free tier is unavailable
+  ✓ ...no model is drawn with a green dot
+  ✓ the retention notice can still be ticked
+  ✓ Connect to DSH stays off, with the reason as its tooltip
+  ✓ « Re-check » is there, small, and in the first screen of the page
+  ✓ the page says when the free tier was last checked
+  ✓ the re-check asks for a fresh answer (no cached form)
+  ✓ its result is a sentence, not « Gate refused: free_tier_locked »
+
+ALL PASS, 12 passed
+

@@ -1,0 +1,23 @@
+{
+  "id": "ocean-nuit",
+  "v": 1,
+  "name": "Océan nuit",
+  "author": "Kybernos",
+  "description": {
+    "fr": "Bleu marine profond et accent ciel.",
+    "en": "Deep navy with a sky-blue accent."
+  },
+  "settings": {
+    "mode": "dark",
+    "acc": "#0ea5e9",
+    "ov": {
+      "dark:base": "#0a1622",
+      "dark:l1": "#0f1e2e",
+      "dark:l2": "#152a3f",
+      "dark:side": "#0c1a28",
+      "dark:input": "#152a3f"
+    },
+    "fontText": "inter",
+    "radius": "standard"
+  }
+}

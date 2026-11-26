@@ -1,0 +1,23 @@
+{
+  "minBodyChars": 500,
+  "shortBodyChars": 800,
+  "maxSkillMdBytes": 24576,
+  "maxFolderBytes": 5242880,
+  "maxFolderFiles": 200,
+  "maxFrontmatterScan": 40,
+  "githubGapMs": 300,
+  "relayBase": "https://skills.kybernos.app/v1",
+  "relayGapMs": 2500,
+  "judge": {
+    "baseUrl": "https://ai-gateway.vercel.sh/v1",
+    "keyEnv": "AI_GATEWAY_API_KEY",
+    "model": "nvidia/nemotron-3.5-lightning-free",
+    "fallbackModel": "anthropic/claude-haiku-5-5",
+    "temperature": 0,
+    "maxOutputTokens": 12000,
+    "timeoutMs": 90000,
+    "retryDelayMs": 4000,
+    "maxCallsPerRun": 40,
+    "maxSkillChars": 24000
+  }
+}

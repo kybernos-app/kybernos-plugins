@@ -1,0 +1,61 @@
+# check-automations-board-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=112892
+
+ the failed run: its reason, Retry and See journal
+  ✓ ...the same click again closes it
+  ✓ the webhook-only automation is listed above, without a time
+  ✓ a legend explains the signs
+  ✓ the planned runs of a dense schedule are not claimed complete beyond what the host listed (no note for a week)
+  ✓ Month: a grid of whole weeks, with a dot per automation and state
+  ✓ ...past days carry the neutral dot of a run whose outcome is not known, future days the hollow one
+  ✓ ...today is marked and a failed run has its dot
+  ✓ Next moves a month
+  ✓ a day of the month opens its week
+
+── a phone ──
+  ✓ Columns: nothing is wider than the screen (375 px)
+  ✓ ...the four columns are stacked
+  ✓ Week: nothing is wider than the screen
+  ✓ ...the seven days are stacked
+  ✓ Month: nothing is wider than the screen
+  ✓ ...the month stays a grid: seven days on a row
+
+── the host stops answering: a banner, and a retry ──
+  ✓ the banner says the scheduler is not answering, and when the page last heard from it
+  ✓ ...what was loaded stays on screen
+  ✓ Retry takes it away
+
+── loading ──
+  ✓ a loading skeleton in the shape of the board, announced once
+  ✓ ...then the board
+
+── French ──
+  ✓ Columns in French
+  ✗ ...the views, the actions, the footnote
+  ✓ the calendar in French (days, title)
+
+── « Run now »: a real session, and what the board may say about it ──
+  ✓ back on English
+  ✓ Run now is clicked on the Competitive watch card
+  ✗ the host started a REAL session and recorded it on the run — {"at":"2026-10-24T23:37:45.508Z","sessionId":null,"status":"queued"}
+  · states of the new run, as the board showed them: 
+  ✗ the board only said what the engine said: running, ended, failed, in that order — []
+  ✗ a turn that failed (no credential) is not filed under Done: it is Failed, in the attention column
+  ✗ the engine's own sidebar says the same: that session is "Completed" — []
+  ✗ ...with the engine's reason, Retry and See journal like a run that could not start
+
+── an automation that can never fire is said ──
+  ✓ a note under Upcoming: it will not start, and why
+
+── nothing at all ──
+  ✓ with no automation the page explains what one is and that the automation-creator interview makes it, in every view
+
+  (without --stub-model: a run that is running and one that waits for an approval are not exercised live)
+
+── errors ──
+  ✓ no exception in the page
+  ✗ no console error (the requests this check refused on purpose aside) — ["[session-controller] control stream failed: RemoteError: typert gateway: session/control: active Service \"sessionController\" is unavailable\n    at RemoteStreamMuxClient.open (http://127.0.0.1:3098/plugins/??@deepseek-ai/dsh-api-gateway/clie","[session-controller] control stream failed: RemoteError: typert gateway: session/control: active Service \"sessionController\" is unavailable\n    at RemoteStreamMuxClient.open (http://127.0.0.1:3098/plugins/??@deepseek-ai/dsh-api-gateway/clie","[session-controller] control stream failed: RemoteError: typert gateway: session/control: active Service \"sessionController\" is unavailable\n    at RemoteStreamMuxClient.open (http://127.0.0.1:3098/plugins/??@deepseek-ai/dsh-api-gateway/clie","[session-controller] control stream failed: RemoteError: typert gateway: session/control: active Service \"sessionController\" is unavailable\n    at RemoteStreamMuxClient.open (http://127.0.0.1:3098/plugins/??@deepseek-ai/dsh-api-gateway/clie","[session-controller] control stream failed: RemoteError: typert gateway: session/control: active Service \"sessionController\" is unavailable\n    at RemoteStreamMuxClient.open (http://127.0.0.1:3098/plugins/??@deepseek-ai/dsh-api-gateway/clie","[session-controller] control stream failed: RemoteError: typert gateway: session/control: active Service \"sessionController\" is unavailable\n    at RemoteStreamMuxClient.open (http://127.0.0.1:3098/plugins/??@deepseek-ai/dsh-api-gateway/clie"]
+  · refused on purpose, seen as console errors: 0
+
+11 FAILED, 67 passed
+

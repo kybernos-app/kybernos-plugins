@@ -1,0 +1,1 @@
+livekit-agents[groq,silero,liveavatar]==1.8.3

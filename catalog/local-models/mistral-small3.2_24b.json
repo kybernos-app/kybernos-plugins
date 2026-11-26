@@ -1,0 +1,22 @@
+{
+  "id": "mistral-small3.2:24b",
+  "famille": "m",
+  "initiale": "Mi",
+  "tailleGo": 15,
+  "ramMin": 32,
+  "score": "Ollama library · 15 GB · 128K ctx",
+  "input": [
+    "text",
+    "image"
+  ],
+  "badges": [
+    "Vision",
+    "Tools"
+  ],
+  "desc": {
+    "fr": "Mistral Small 3.2 : vision et outils, contexte 128K. Pour 32 Go.",
+    "en": "Mistral Small 3.2: vision and tools, 128K context. For 32 GB."
+  },
+  "ajoute": "2026-10-15",
+  "ordre": 82
+}

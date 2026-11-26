@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kybernos — la carte</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2308151b'/%3E%3Cpath d='M11 8.4v15.2M13.7 15.55L21.2 8.4M13.7 16.45L21.2 23.6' stroke='%234fe3c1' stroke-width='2.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0e13; --panel:#111822; --panel-2:#0e141c; --line:#22303f;
+  --ink:#e8eef7; --ink-2:#9fb0c6; --ink-3:#6c7f95;
+  --teal:#4fe3c1; --violet:#a78bfa; --amber:#fbbf24; --blue:#67b8ff; --rose:#fb7185; --slate:#8fa3ba;
+  --shadow:0 18px 50px rgba(0,0,0,.45);
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+body[data-theme="light"]{
+  --bg:#f3f6fa; --panel:#ffffff; --panel-2:#f7f9fc; --line:#d8e1ec;
+  --ink:#0d1723; --ink-2:#4c5f76; --ink-3:#7b8da4;
+  --teal:#0e9f86; --violet:#6d4bd8; --amber:#b06a00; --blue:#1f6fd0; --rose:#c2384c; --slate:#5b6f86;
+  --shadow:0 18px 44px rgba(16,32,52,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(1100px 600px at 12% -10%, color-mix(in srgb, var(--teal) 9%, transparent), transparent 60%),
+    radial-gradient(900px 500px at 88% -15%, color-mix(in srgb, var(--violet) 10%, transparent), transparent 60%),
+    var(--bg);
+  color:var(--ink); font:13px/1.45 var(--sans); overflow:hidden;
+}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:8px}
+
+header{
+  position:fixed;inset:0 0 auto 0;height:58px;z-index:40;display:flex;align-items:center;gap:14px;padding:0 18px;
+  background:color-mix(in srgb, var(--bg) 82%, transparent);border-bottom:1px solid var(--line);backdrop-filter:blur(14px);
+}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand .mark{width:27px;height:27px;flex:none}
+.brand .mark svg{width:100%;height:100%;display:block;filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))}
+.brand h1{font-size:14px;font-weight:650;letter-spacing:-.01em;white-space:nowrap}
+.brand p{font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header .spacer{flex:1}
+.hbtn{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px;border-radius:9px;
+  border:1px solid var(--line);color:var(--ink-2);font-size:11.5px;background:var(--panel-2)}
+.hbtn:hover{color:var(--ink);border-color:color-mix(in srgb,var(--ink-2) 40%, transparent)}
+.hbtn[aria-pressed="true"]{color:var(--ink);border-color:color-mix(in srgb,var(--teal) 55%, transparent);
+  background:color-mix(in srgb,var(--teal) 12%, var(--panel-2))}
+.hbtn svg{width:14px;height:14px}
+#railBtn{display:none}
+
+#app{display:flex;height:100vh;height:100dvh;overflow:hidden}
+
+#rail{width:286px;flex:none;margin-top:58px;height:calc(100% - 58px);border-right:1px solid var(--line);
+  background:color-mix(in srgb,var(--panel) 55%, transparent);display:flex;flex-direction:column;overflow:hidden}
+#rail .rh{padding:14px 16px 8px;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3)}
+#rail .list{overflow:auto;padding:0 10px 8px;display:flex;flex-direction:column;gap:3px;scrollbar-width:thin}
+.pill{display:flex;gap:9px;align-items:flex-start;text-align:left;width:100%;padding:8px 9px;
+  border-radius:11px;border:1px solid transparent;color:var(--ink-2);line-height:1.3}
+.pill:hover{background:var(--panel-2);color:var(--ink)}
+.pill[aria-current="true"]{background:color-mix(in srgb,var(--teal) 11%, var(--panel));
+  border-color:color-mix(in srgb,var(--teal) 42%, transparent);color:var(--ink)}
+.pill .num{width:18px;flex:none;font:10.5px/1.5 var(--mono);color:var(--ink-3);padding-top:1px}
+.pill[aria-current="true"] .num{color:var(--teal)}
+.pill .tt{font-size:11.8px;font-weight:560;display:block}
+.pill .pitch{display:block;font-size:10.4px;color:var(--ink-3);margin-top:2px;font-weight:400}
+.pill .wit{display:inline-block;margin-top:4px;font-size:9px;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--amber);border:1px solid color-mix(in srgb,var(--amber) 40%, transparent);padding:0 6px;border-radius:99px}
+#rail .steps[hidden]{display:none}
+#rail .steps{display:flex;flex-direction:column;gap:1px;margin:1px 6px 5px 27px;padding-left:9px;
+  border-left:1px solid color-mix(in srgb,var(--teal) 40%, transparent)}
+#rail .step{text-align:left;font-size:10.4px;line-height:1.3;color:var(--ink-3);padding:3px 5px;border-radius:6px}
+#rail .step b{font-weight:600;color:var(--ink-2)}
+#rail .step:hover{background:var(--panel-2);color:var(--ink-2)}
+#rail .step[aria-current="true"]{background:color-mix(in srgb,var(--teal) 13%, transparent);color:var(--ink)}
+#rail .step[aria-current="true"] b{color:var(--ink)}
+#rail .legend{padding:9px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:5px}
+#rail .legend b{font-size:9.6px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+.lg{display:flex;align-items:center;gap:8px;font-size:10.8px;color:var(--ink-2)}
+.lg i{width:22px;height:0;border-top:2px solid;flex:none;border-radius:2px}
+#rail .foot{padding:8px 16px 12px;font-size:10.3px;color:var(--ink-3);line-height:1.5}
+#rail .foot code{font:9.8px var(--mono);color:var(--ink-2)}
+
+#stage{position:relative;flex:1;margin-top:58px;height:calc(100% - 58px);
+  display:flex;flex-direction:column;overflow:hidden;min-width:0}
+#scroll{flex:1;overflow:hidden;padding:10px 8px 0;display:flex;justify-content:center;align-items:center}
+#canvas{position:relative;width:1120px;flex:none;transform-origin:top center;padding-bottom:8px}
+
+.zone{position:absolute;border:1px solid var(--line);border-radius:18px;
+  background:linear-gradient(180deg, color-mix(in srgb,var(--panel) 94%, transparent), color-mix(in srgb,var(--panel-2) 94%, transparent));
+  box-shadow:0 1px 0 color-mix(in srgb,var(--ink) 4%, transparent) inset;
+  display:flex;flex-direction:column;overflow:hidden}
+.zone::before{content:"";position:absolute;inset:0;border-radius:18px;pointer-events:none;
+  background:radial-gradient(420px 180px at 50% -40%, color-mix(in srgb, var(--zt) 15%, transparent), transparent 70%)}
+.zone[data-tone="teal"]{--zt:var(--teal)} .zone[data-tone="violet"]{--zt:var(--violet)}
+.zone[data-tone="amber"]{--zt:var(--amber)} .zone[data-tone="blue"]{--zt:var(--blue)}
+.zone[data-tone="rose"]{--zt:var(--rose)}
+.zone>.zh{position:relative;padding:12px 14px 4px;flex:none}
+.zone .zh h2{font-size:11.6px;font-weight:650;letter-spacing:-.005em;display:flex;align-items:center;gap:8px}
+.zone .zh h2::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--zt);flex:none;
+  box-shadow:0 0 10px color-mix(in srgb,var(--zt) 70%, transparent)}
+.zone .zh p{font-size:10.2px;color:var(--ink-3);margin-left:15px}
+.zone>.zb{position:relative;padding:5px 10px 0;display:flex;flex-direction:column;gap:7px;flex:1;overflow:hidden}
+.zone.row>.zb{flex-direction:row;gap:9px;align-items:stretch}
+.zone.row>.zb .node{flex:1;min-width:0}
+.zone>.zn{position:relative;flex:none;margin:7px 14px 10px;font-size:9.7px;line-height:1.4;color:var(--ink-3);
+  border-top:1px dashed color-mix(in srgb,var(--line) 80%, transparent);padding-top:6px}
+
+.node{position:relative;width:100%;text-align:left;border-radius:12px;border:1px solid var(--line);
+  background:color-mix(in srgb,var(--panel) 88%, var(--bg));padding:7px 9px 7px 34px;
+  transition:opacity .25s, transform .25s, border-color .2s, box-shadow .25s, filter .25s; --nt:var(--slate)}
+
+/* la couleur est réservée aux flux : une carte reste neutre, la zone porte son teint */
+.node:hover{border-color:color-mix(in srgb,var(--nt) 55%, var(--line));transform:translateY(-1px);z-index:2}
+.node .nt{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;letter-spacing:-.005em;line-height:1.25}
+.node .ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--ink-3);display:inline-flex;transition:color .2s}
+.node .ico svg{width:100%;height:100%;display:block}
+.node:hover .ico{color:var(--ink-2)}
+.node[data-live] .ico{color:var(--ink)}
+.node .nt .tag{margin-left:auto;flex:none;font-size:8.3px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);
+  border:1px solid var(--line);border-radius:99px;padding:0 5px;line-height:1.55;font-weight:500}
+.node .ns{display:block;font-size:10.3px;color:var(--ink-2);margin-top:1px;line-height:1.3}
+.node .nb{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.node .badge{font-size:8.6px;letter-spacing:.02em;border-radius:99px;padding:0 5px;line-height:1.6;
+  color:var(--amber);border:1px solid color-mix(in srgb,var(--amber) 45%, transparent);
+  background:color-mix(in srgb,var(--amber) 10%, transparent)}
+.node[data-hero="1"]{padding:9px 10px 9px 38px}
+.node[data-hero="1"] .nt{font-size:13.2px}
+.node[data-hero="1"] .ns{font-size:10.8px}
+.node[data-dim]{opacity:.33;filter:saturate(.35)}
+.node[data-on]{border-color:color-mix(in srgb,var(--nt) 50%, var(--line))}
+.node[data-live]{background:color-mix(in srgb,var(--nt) 13%, var(--panel));
+  box-shadow:0 0 0 1.5px color-mix(in srgb,var(--nt) 62%, transparent), 0 0 26px -10px color-mix(in srgb,var(--nt) 85%, transparent)}
+
+#wires{position:absolute;inset:0;width:1120px;height:782px;pointer-events:none;overflow:visible;z-index:9}
+#wires path{fill:none;stroke-linecap:round;transition:opacity .25s, stroke-width .2s}
+#wires path[data-kind="local"]{stroke:var(--teal)} #wires path[data-kind="server"]{stroke:var(--violet)}
+#wires path[data-kind="e2e"]{stroke:var(--blue)} #wires path[data-kind="ext"]{stroke:var(--amber)}
+#wires path[data-kind="hook"]{stroke:var(--rose)}
+#wires path.base{opacity:.42;stroke-width:1.1;stroke-dasharray:2 5}
+#app[data-scen="1"] #wires path.base{opacity:.09}
+#wires path.bus{stroke:var(--ink-3);opacity:.28;stroke-width:1;stroke-dasharray:1 7}
+
+#wires path.halo{stroke:var(--bg);stroke-width:8;opacity:.62}
+#wires path.hot{opacity:1;stroke-width:2.4;stroke-dasharray:8 7;animation:march .95s linear infinite}
+#wires path.hot.is-live{stroke-width:3;filter:drop-shadow(0 0 8px currentColor)}
+@keyframes march{to{stroke-dashoffset:-26}}
+#dot{fill:var(--teal);filter:drop-shadow(0 0 8px var(--teal));opacity:0;transition:opacity .2s}
+
+#stepbar{flex:none;margin:6px auto 10px;width:min(880px, calc(100% - 36px));
+  background:color-mix(in srgb,var(--panel) 94%, transparent);border:1px solid var(--line);border-radius:15px;
+  box-shadow:var(--shadow);padding:8px 13px;z-index:20}
+#stepbar .top{display:flex;align-items:center;gap:9px;font-size:10.4px;color:var(--ink-3)}
+#stepbar .top .who{color:var(--ink-2)}
+#stepbar .top .n{font-family:var(--mono);font-size:10.4px;color:var(--ink-2)}
+#stepbar .bar{display:flex;gap:4px;margin:6px 0 7px}
+#stepbar .bar i{height:3px;flex:1;border-radius:2px;background:var(--line)}
+#stepbar .bar i.done{background:color-mix(in srgb,var(--teal) 70%, var(--line))}
+#stepbar .bar i.cur{background:var(--teal)}
+#stepbar .txt{font-size:12px;line-height:1.4;min-height:29px}
+#stepbar .txt b{font-weight:600}
+#stepbar .txt span{display:block;font-size:10.9px;color:var(--ink-2);margin-top:2px}
+#stepbar .ctl{display:flex;align-items:center;gap:6px;margin-top:6px}
+#stepbar .ctl .sp{flex:1}
+.sb{height:26px;padding:0 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);
+  color:var(--ink-2);font-size:10.8px;display:inline-flex;align-items:center;gap:6px}
+.sb:hover{color:var(--ink);border-color:color-mix(in srgb,var(--ink-2) 45%, transparent)}
+.sb[disabled]{opacity:.32;cursor:default}
+.sb.primary{background:color-mix(in srgb,var(--teal) 16%, var(--panel-2));border-color:color-mix(in srgb,var(--teal) 45%, transparent);color:var(--ink)}
+
+#sheet{position:fixed;top:58px;right:0;bottom:0;width:392px;z-index:60;background:var(--panel);
+  border-left:1px solid var(--line);box-shadow:var(--shadow);transform:translateX(102%);
+  transition:transform .28s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column}
+#sheet[data-open]{transform:none}
+#sheet .sh{display:flex;align-items:flex-start;gap:10px;padding:15px 16px 11px;border-bottom:1px solid var(--line)}
+#sheet .sh .tt{flex:1;font-size:14.6px;font-weight:650;letter-spacing:-.01em}
+#sheet .sh .st{font-size:10.8px;color:var(--ink-2);margin-top:2px}
+#sheet .x{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);display:grid;place-items:center;color:var(--ink-2)}
+#sheet .sb2{padding:13px 16px 18px;overflow:auto;display:flex;flex-direction:column;gap:13px}
+#sheet .row{display:flex;gap:6px;flex-wrap:wrap}
+#sheet .tag{font-size:9.2px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);
+  border:1px solid var(--line);border-radius:99px;padding:1px 7px}
+#sheet .badge{font-size:9.2px;border-radius:99px;padding:1px 7px;color:var(--amber);
+  border:1px solid color-mix(in srgb,var(--amber) 45%, transparent);background:color-mix(in srgb,var(--amber) 9%, transparent)}
+#sheet h3{font-size:9.6px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);font-weight:550;margin-bottom:3px}
+#sheet p{font-size:11.8px;color:var(--ink-2);line-height:1.5}
+#sheet ul{list-style:none;display:flex;flex-direction:column;gap:4px}
+#sheet li{font-size:11.8px;color:var(--ink-2);line-height:1.45;padding-left:12px;position:relative}
+#sheet li::before{content:"";position:absolute;left:2px;top:7px;width:4px;height:4px;border-radius:50%;
+  background:color-mix(in srgb,var(--ink-3) 70%, transparent)}
+#sheet .src{font:10.2px/1.5 var(--mono);color:var(--ink-3);word-break:break-word}
+#sheet .links{display:flex;flex-wrap:wrap;gap:6px}
+#sheet .links button{font-size:10.2px;border:1px solid var(--line);border-radius:99px;padding:2px 8px;color:var(--ink-2)}
+#sheet .links button:hover{color:var(--teal);border-color:color-mix(in srgb,var(--teal) 45%, transparent)}
+#backdrop{position:fixed;inset:58px 0 0;z-index:55;background:rgba(4,8,12,.35);opacity:0;pointer-events:none;transition:opacity .25s}
+#backdrop[data-open]{opacity:1;pointer-events:auto}
+
+@media (max-width:1280px){ #rail{width:262px} #stepbar{width:min(760px, calc(100% - 24px))} }
+@media (max-width:1240px){ #railBtn{display:inline-flex} }
+@media (max-width:760px){
+  header{gap:8px;padding:0 10px}
+  .brand p{display:none}
+  header .hbtn .lbl{display:none}
+  header .hbtn{width:32px;padding:0;justify-content:center}
+  #stepbar{width:calc(100vw - 16px);padding:7px 10px}
+  #stepbar .ctl{flex-wrap:wrap}
+  #stepbar .ctl .sp{display:none}
+  .sb{padding:0 8px}
+  #prev,#next{font-size:0}
+  #prev::after{content:"←";font-size:14px}
+  #next::after{content:"→";font-size:14px}
+  #clear{display:none}
+  #rail .foot{display:none}
+}
+@media (max-width:1240px){
+  #rail{position:fixed;left:0;top:58px;bottom:0;z-index:35;width:276px;transform:translateX(-102%);
+    transition:transform .25s;box-shadow:var(--shadow);background:var(--panel)}
+  #rail[data-open]{transform:none}
+}
+@media (max-width:980px){
+  body{overflow:auto}
+  #app{display:block;height:auto;overflow:visible}
+  #stage{margin-top:58px;height:auto;overflow:visible}
+  #scroll{overflow:visible;padding:10px 0 0}
+  #canvas{width:100%;min-height:0;padding:0 10px 150px}
+  #wires{display:none}
+  .zone{position:static;width:auto;margin:0 0 10px;overflow:visible}
+  .zone.row>.zb{flex-wrap:wrap}
+  .zone.row>.zb .node{flex:1 1 46%}
+  #stepbar{position:sticky;bottom:8px;width:calc(100vw - 24px);margin:10px auto 12px;left:0;transform:none}
+  #sheet{width:100%;top:58px}
+  #backdrop{inset:58px 0 0}
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation:none!important;transition:none!important}
+  #wires path.hot{stroke-dasharray:none}
+  #dot{display:none}
+}
+</style>
+</head>
+<body data-theme="dark" data-truth="on">
+<header>
+  <div class="brand">
+    <div class="mark" aria-hidden="true"><svg class="logo" viewBox="0 0 32 32" role="img" aria-label="Kybernos">
+  <defs><linearGradient id="kbg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#4fe3c1"/><stop offset=".55" stop-color="#67b8ff"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs>
+  <rect x="1" y="1" width="30" height="30" rx="9.5" fill="url(#kbg)"/>
+  <path d="M11 8.4v15.2" stroke="#08151b" stroke-width="2.35" stroke-linecap="round"/>
+  <path d="M13.7 15.55L21.2 8.4M13.7 16.45L21.2 23.6" stroke="#08151b" stroke-width="2.35" stroke-linecap="round"/>
+  <circle cx="21.2" cy="16" r="1.75" fill="#08151b"/>
+</svg></div>
+    <div>
+      <h1>Kybernos — la carte</h1>
+      <p>Ce qui tourne chez toi, ce qui tourne sans toi, et ce qui sort.</p>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <button class="hbtn" id="railBtn" aria-label="Ouvrir les parcours"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span class="lbl">Parcours</span></button>
+
+  <button class="hbtn" id="themeBtn" aria-label="Basculer clair / sombre">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+    <span class="lbl" id="themeLbl">Sombre</span>
+  </button>
+</header>
+
+<div id="app">
+  <aside id="rail" aria-label="Parcours et légende">
+    <div class="rh" id="railH">8 parcours</div>
+    <div class="list" id="scen"></div>
+    <div class="legend">
+      <b>Ce que la ligne veut dire</b>
+      <div class="lg"><i style="border-color:var(--teal)"></i>reste sur ta machine</div>
+      <div class="lg"><i style="border-color:var(--violet)"></i>parle à ton serveur (token)</div>
+      <div class="lg"><i style="border-color:var(--blue)"></i>chiffré de bout en bout</div>
+      <div class="lg"><i style="border-color:var(--amber)"></i>sort vers un fournisseur</div>
+      <div class="lg"><i style="border-color:var(--rose)"></i>webhook entrant</div>
+    </div>
+    <div class="foot" id="railFoot"></div>
+  </aside>
+
+  <main id="stage">
+    <div id="scroll">
+      <div id="canvas">
+        <svg id="wires" viewBox="0 0 1120 782" aria-hidden="true">
+          <defs>
+            <marker id="arw-local" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="var(--teal)"/></marker>
+            <marker id="arw-server" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="var(--violet)"/></marker>
+            <marker id="arw-e2e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="var(--blue)"/></marker>
+            <marker id="arw-ext" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="var(--amber)"/></marker>
+            <marker id="arw-hook" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="var(--rose)"/></marker>
+          </defs>
+          <g id="baseWires"></g><g id="busWires"></g><g id="haloWires"></g><g id="hotWires"></g><circle id="dot" r="4.5"></circle>
+        </svg>
+      </div>
+    </div>
+    <div id="stepbar" role="status" aria-live="polite">
+      <div class="top"><span class="n" id="sbN">1 / 3</span><span class="who" id="sbWho"></span></div>
+      <div class="bar" id="sbBar"></div>
+      <div class="txt" id="sbTxt"></div>
+      <div class="ctl">
+        <button class="sb" id="prev">← Précédent</button>
+        <button class="sb primary" id="next">Suivant →</button>
+        <button class="sb" id="play">▶ Lecture</button>
+        <span class="sp"></span>
+        <button class="sb" id="clear">Vue d'ensemble</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="backdrop"></div>
+<aside id="sheet" aria-hidden="true" aria-label="Détail de la brique">
+  <div class="sh">
+    <div style="flex:1"><div class="tt" id="shT"></div><div class="st" id="shS"></div></div>
+    <button class="x" id="shX" aria-label="Fermer">✕</button>
+  </div>
+  <div class="sb2" id="shB"></div>
+</aside>
+
+<script>
+"use strict";
+/* Données : chaque « limite » est tirée d'un document du dépôt (champ source). */
+const ZONES = [
+  { id:"toi", tone:"teal", x:14, y:14, w:250, h:620, title:"Chez toi", sub:"le poste de travail",
+    note:"Rien ne sort d'ici sans une action : un modèle choisi, un canal relié, un serveur appairé." },
+  { id:"serv", tone:"violet", x:274, y:14, w:430, h:620, title:"Ton serveur Kybernos", sub:"le tien, ou celui d'une entreprise",
+    note:"Un seul serveur actif. Un fichier de connexion par serveur : changer de serveur ne déconnecte personne." },
+  { id:"cloud", tone:"amber", x:714, y:14, w:392, h:620, title:"Les machines qui tournent sans toi", sub:"ordinateur cloud · sandboxes",
+    note:"Elles ont leur DSH, leur volume, leur politique réseau — et jamais tes secrets." },
+  { id:"world", tone:"blue", x:14, y:646, w:1092, h:122, row:true, title:"Le reste du monde", sub:"fournisseurs et canaux — chaque flèche qui arrive ici est une sortie réseau",
+    note:"" }
+];
+
+const NODES = [
+  /* Chez toi */
+  { id:"phone", zone:"toi", tone:"blue", tag:"télécommande", badge:"relais non déployé",
+    t:"Téléphone", s:"PWA Kybernos, appairée par QR",
+    role:"Le téléphone n'exécute pas une copie : il ouvre la page du DSH de ton Mac, à travers un relais chiffré de bout en bout.",
+    cross:["QR : un identifiant de canal (26 caractères), un code à usage unique et la clé d'identité — le code ne quitte jamais le navigateur.","Le trafic DSH, chiffré ; le relais transporte, il ne lit pas."],
+    limits:["Mac éteint = « hors ligne », aucune file d'attente.","3 téléphones au maximum (réglage du serveur) ; un seul appairage par origine.","Le relais est construit côté serveur mais pas déployé."],
+    where:"Menu du compte › Téléphone et canaux", source:"docs/dev/mobile-remote.md" },
+  { id:"desk", zone:"toi", tone:"teal", tag:"local", badge:"",
+    t:"Navigateur desktop", s:"la GUI DSH sur 127.0.0.1:3080",
+    role:"La surface de travail : composer, panneaux, pages. L'authentification est un cookie signé de 30 jours.",
+    cross:["Appels aux routes hôte, en même origine."],
+    limits:["Sans token ni cookie : 401 (et c'est voulu).","DSH refuse d'écouter sur le réseau : un hébergement passe par une porte."],
+    where:"dsh web", source:"README.md · docs/dev/live-testing.md" },
+  { id:"local", zone:"toi", tone:"teal", hero:true, tag:"local", badge:"",
+    t:"Kybernos local — DSH + la suite", s:"le cerveau qui tourne chez toi",
+    role:"Sessions, outils, fichiers, skills, mémoire, workers, automations : tout le travail réel se passe ici, et la mémoire comme les leçons restent sur le disque.",
+    cross:["Prompts vers le modèle choisi (serveur ou clé perso).","Écritures sur le disque : ~/.dsh."],
+    limits:["Tes fichiers, ta mémoire et tes leçons restent sur ta machine ; le serveur ne les voit pas.","Le mode de permission décide de ce que l'agent peut toucher (workspace-write par défaut sur Kaby)."],
+    where:"~/.dsh · profil web", source:"README.md · AGENTS.md" },
+  { id:"kaby", zone:"toi", tone:"violet", tag:"produit", badge:"",
+    t:"Kaby (chat local)", s:"une vraie conversation DSH, avec ta mémoire",
+    role:"Un chat DSH ordinaire + l'identité Kaby injectée dans le prompt + la mémoire du compte. Le sélecteur d'ordinateur règle où répondent ses canaux (Telegram) ; le chat local, lui, tourne toujours sur cette machine.",
+    cross:["Chaque tour fini est aussi écrit sur ton fil Kaby côté serveur.","Les derniers mots dits sur Telegram reviennent dans le prompt : un assistant, deux corps."],
+    limits:["Le chat est créé en workspace-write : il demande avant d'agir.","Un chat DSH ne peut pas encore être envoyé à l'ordinateur cloud : l'option du composer est grisée.","Aucun gabarit de nouveau chat au-dessus de son composer."],
+    where:"Menu Kaby · bandeau canaux/ordinateur", source:"packages/kybernos-kyber/README.md" },
+  { id:"auto", zone:"toi", tone:"teal", tag:"local", badge:"",
+    t:"Automations locales", s:"cron, une fois, webhook",
+    role:"Le scheduler tick toutes les 30 s et lit tasks.json (0600). Une automation stable peut devenir une skill.",
+    cross:["Le prompt + les outils de la session.","Si le mode est « ask » : une carte d'approbation avant d'agir."],
+    limits:["Pas de coût par run sur le board (le plugin Usage possède les tokens).","Un run en retard de plus de 3 minutes signale un scheduler arrêté."],
+    where:"Page Automations · skill automation-creator", source:"packages/kybernos-plugin/README.md § automations" },
+  { id:"workers", zone:"toi", tone:"slate", tag:"local", badge:"",
+    t:"Workers", s:"sous-agents : Claude Code, Codex, Gemini…",
+    role:"Des agents de code externes pilotés comme des sous-agents : état vérifié, installation et exposition depuis une page dédiée.",
+    cross:["Le brief part au worker, sa réponse revient dans la session."],
+    limits:["Chaque worker garde ses propres permissions.","Rien ne s'installe sans un clic."],
+    where:"Settings › Agents › Workers", source:"packages/kybernos-workers/README.md" },
+  { id:"voice", zone:"toi", tone:"rose", tag:"local", badge:"jamais joué en direct",
+    t:"Worker vocal", s:"le Python qui écoute un appel",
+    role:"Lancé par l'hôte, il rejoint la room LiveKit et transforme ce qu'il entend en un vrai tour de la session.",
+    cross:["Audio entrant → texte → tour réel → texte → voix."],
+    limits:["Aucun appel complet avec un vrai modèle et un micro n'a encore été joué : tout le reste est testé.","La vidéo reste éteinte tant qu'aucune clé LiveAvatar n'est posée."],
+    where:"Settings › Calls (santé, fournisseurs)", source:"packages/kybernos-call/README.md § Known limits" },
+
+  /* Ton serveur */
+  { id:"server", zone:"serv", tone:"violet", hero:true, tag:"ton serveur", badge:"",
+    t:"Serveur Kybernos", s:"compte, modèles, quota, Kaby, canaux",
+    role:"Le seul serveur actif à la fois : Kybernos Cloud intégré, ou le serveur d'une entreprise. Il tient le compte, le catalogue de modèles, le quota, le fil Kaby et la porte des canaux.",
+    cross:["Token d'appareil, requêtes de compte, catalogue, quota, dispatch des canaux.","L'en-tête de l'espace actif décide quel espace paie un appel."],
+    limits:["Le contenu de tes sessions locales ne monte pas par défaut.","Un refus de quota s'affiche « Request quota exhausted » côté moteur, mais la carte et la notice disent la vraie raison."],
+    where:"Settings › Servers · ~/.dsh/kybernos/servers.json", source:"docs/dev/servers.md" },
+  { id:"custom", zone:"serv", tone:"violet", tag:"ton serveur", badge:"",
+    t:"Serveur custom (entreprise)", s:"une adresse, ton compte, pas de licence",
+    role:"Même contrat, même code : on colle l'adresse, le serveur publie /.well-known/kybernos-server.json, DSH vérifie que le profil lui convient.",
+    cross:["Profil : api, web, console, service LLM, endpoint des apps connectées.","Appairage par code d'appareil contre l'api de ce serveur."],
+    limits:["Un champ présent mais invalide refuse tout le profil : jamais de repli sur un autre serveur.","Le jeton d'un serveur ne part jamais vers un autre.","Peut ne pas offrir de LLM : cas normal."],
+    where:"Settings › Servers › Ajouter", source:"docs/dev/servers.md § discovery" },
+  { id:"acct", zone:"serv", tone:"violet", tag:"compte", badge:"",
+    t:"Compte, plan, quota", s:"l'espace qui paie",
+    role:"La facturation se règle par espace : personnel ou équipe. La route du modèle porte l'en-tête de l'espace actif, et le catalogue se lit avec le même en-tête.",
+    cross:["Plan, fenêtres de quota en pourcentage, état de paiement, date de reset."],
+    limits:["Aucun montant d'argent ni nombre de tokens dans la carte Cloud.","Une équipe sans plan le dit « No plan », pas « quota épuisé »."],
+    where:"Carte Cloud sous le composer · console", source:"docs/dev/servers.md § billing" },
+  { id:"chan", zone:"serv", tone:"violet", tag:"canal", badge:"défaut : off",
+    t:"Porte canaux (Telegram)", s:"bot du serveur, tours hébergés",
+    role:"Un message Telegram devient un tour hébergé pour la personne ; les approbations arrivent en trois boutons.",
+    cross:["Message, pièces jointes, identité du canal.","Approbations en trois boutons sur un tour hébergé — pas sur un tour exécuté par l'ordinateur."],
+    limits:["Le tour exécuté sur l'ordinateur tourne en accès complet, sans demande : la machine est la frontière, et les approbations de canal ne sont pas construites.","Le tour sur l'ordinateur est derrière un switch propriétaire, à 0 par défaut.","Le bot est celui du serveur : pas de tunnel ni de port ouvert."],
+    where:"Telegram (QR ou lien) · Settings › Phone and channels", source:"packages/messaging/README.md · étude WhatsApp § 2" },
+  { id:"relay", zone:"serv", tone:"blue", tag:"télécommande", badge:"pas déployé",
+    t:"Relais télécommande", s:"/v1/remote/* · WebSocket chiffré",
+    role:"Il garde une connexion pour chaque ordinateur et transporte le trafic du téléphone : il ne détient que le condensat de l'identifiant de canal.",
+    cross:["Tickets à usage unique (une heure), rôle hôte, trames chiffrées."],
+    limits:["Construit côté serveur, pas encore déployé ; l'hôte du téléphone reste à décider.","Le téléphone n'a pas de compte : il ne peut ni ouvrir un ordinateur cloud ni lire le plan."],
+    where:"Sans objet côté personne (production)", source:"docs/dev/mobile-remote.md" },
+  { id:"driver", zone:"serv", tone:"amber", tag:"orchestration", badge:"",
+    t:"Driver des ordinateurs", s:"créer, réveiller, endormir, compter",
+    role:"Le registre et le cycle de vie des ordinateurs cloud, le compteur d'heures, le jeton restreint de la machine et le réveil à l'heure planifiée.",
+    cross:["Ordres de cycle de vie, ticket d'accès à usage unique.","Le jeton de la machine est limité à une courte liste de routes."],
+    limits:["Le plan Free ne donne pas la main : manual_control = false, pas de bouton de réveil."],
+    where:"Côté serveur (invisible)", source:"docs/dev/computers.md · cloud-computer-run-on.md" },
+  { id:"hooks", zone:"serv", tone:"rose", tag:"webhook", badge:"",
+    t:"Webhooks", s:"POST /v1/hooks/{id}?secret=…",
+    role:"Un événement extérieur réveille l'ordinateur si besoin et le transmet à /kybernos/hooks, qui lance une automation existante avec l'événement ajouté au prompt.",
+    cross:["Le secret du hook, l'événement — jamais des instructions à exécuter."],
+    limits:["60 appels par heure par défaut.","Aucune route n'écrit tasks.json à distance : l'automation doit déjà exister sur la machine."],
+    where:"Automations de l'ordinateur (URL du hook)", source:"docs/dev/cloud-computer-run-on.md" },
+  { id:"mcp", zone:"serv", tone:"slate", tag:"apps connectées", badge:"",
+    t:"Apps connectées (MCP)", s:"le serveur sert le catalogue Composio",
+    role:"Le mode « connexions Kybernos » passe par l'endpoint MCP du serveur, sur la même origine que l'api (le token d'appareil y va).",
+    cross:["Appels d'outils de l'app connectée, catalogue d'apps."],
+    limits:["Absent = non offert (serveur ancien, ou sans Composio).","Adresse hors origine refusée."],
+    where:"Page Connectors", source:"docs/dev/servers.md" },
+
+  /* Machines sans toi */
+  { id:"cloud", zone:"cloud", tone:"amber", hero:true, tag:"ordinateur cloud", badge:"",
+    t:"Ordinateur cloud (Fly)", s:"ton DSH qui continue quand le Mac dort",
+    role:"Une machine à toi : l'image DSH + la suite + la porte, un volume persistant (profil, sessions, skills, automations), réveillée à la demande ou à l'heure planifiée.",
+    cross:["Un jeton restreint (routes limitées), le modèle via la route du serveur, ton profil restauré."],
+    limits:["Rien de secret n'entre : ni mot de passe, ni clé de connecteur, ni clé de modèle.","Changer d'image = un rebuild (clone au build, rien ne se télécharge ensuite)."],
+    where:"Kaby › ordinateur · Cloud Computer", source:"docs/dev/computers.md" },
+  { id:"cloudAuto", zone:"cloud", tone:"amber", tag:"automations", badge:"",
+    t:"Automations sur l'ordinateur", s:"le tasks.json de son volume",
+    role:"Elles existent parce qu'on les a créées dans la page de la machine. La plateforme réveille la machine à next_wake_at ; un webhook peut aussi la réveiller.",
+    cross:["Le prompt, les outils, le journal du run."],
+    limits:["Aucune route n'écrit tasks.json à distance.","Un chat DSH ne peut pas encore être envoyé à cet ordinateur : le composer le montre désactivé."],
+    where:"Page de l'ordinateur › Automations", source:"docs/dev/cloud-computer-run-on.md" },
+  { id:"access", zone:"cloud", tone:"blue", tag:"accès", badge:"",
+    t:"Accès (ticket + porte)", s:"ticket à usage unique (mot de passe en dev)",
+    role:"Un ticket à usage unique ouvre la porte ; la page DSH de la machine s'ouvre derrière, comme un site hébergé. Le mot de passe n'existe que pour une machine de développement — décision du 19/10 : pas de login séparé pour un ordinateur cloud.",
+    cross:["Ticket à usage unique, cookie de session DSH remis par la porte."],
+    limits:["Ce n'est pas une session locale : le chat vit sur la machine.","Qui peut ouvrir : son propriétaire ; owners et admins si l'accès l'autorise."],
+    where:"Bouton d'ouverture de l'ordinateur", source:"packages/kybernos-gate/README.md · computers.md" },
+  { id:"volume", zone:"cloud", tone:"slate", tag:"données", badge:"",
+    t:"Volume persistant", s:"/data/dsh · /data/work",
+    role:"Sessions, mémoire, skills, automations et fichiers survivent au redémarrage, à un cold start et au réveil.",
+    cross:["Écritures des tours, tâches, fichiers du workspace."],
+    limits:["La plateforme doit garder le volume sur un stockage persistant, sinon tout repart à zéro."],
+    where:"Côté plateforme", source:"docs/dev/computers.md" },
+  { id:"egress", zone:"cloud", tone:"rose", tag:"réseau", badge:"",
+    t:"Politique de sortie (egress)", s:"closed · list · public",
+    role:"Les règles sont tenues par la machine elle-même (nftables), pour tous ses processus : « closed » ne laisse sortir que l'adresse de la plateforme.",
+    cross:["Uniquement la politique appliquée ; elle échoue fermée."],
+    limits:["Fly ne contrôle pas la sortie par processus : la règle vaut pour la machine entière.","KYBERNOS_EGRESS_GUARD=off existe pour un poste de développement, et le journal le dit."],
+    where:"Variables de la machine", source:"docs/dev/computers.md" },
+  { id:"chatcloud", zone:"cloud", tone:"slate", tag:"non construit", badge:"désactivé",
+    t:"Chat → ordinateur cloud", s:"l'option du composer, grisée",
+    role:"Le composer liste « Cloud Computer » et l'explique : un chat DSH n'a pas d'adresse côté serveur, donc il ne peut pas encore être envoyé à la machine.",
+    cross:["Rien : c'est le manque qui est montré, avec sa raison."],
+    limits:["Ce qui manque : computer_id dans la route de dispatch, une route hôte de tour, puis le composer.","La décision de facturation et d'approbation reste au propriétaire."],
+    where:"Composer › environnement", source:"docs/dev/cloud-computer-run-on.md" },
+  { id:"e2b", zone:"cloud", tone:"teal", tag:"sandbox", badge:"BYOK",
+    t:"E2B — ordinateurs éphémères", s:"une microVM jetable pour l'agent",
+    role:"Pour exécuter du code sans toucher la machine : l'agent crée, écrit, exécute et jette une sandbox (4 au plus, 15 minutes par défaut).",
+    cross:["La clé E2B est un secret de facturation : elle vit dans le magasin de credentials, jamais renvoyée par une route."],
+    limits:["Facturé sur TON compte E2B, pas par Kybernos.","La clé est requise : sans elle, la sandbox ne démarre pas."],
+    where:"Settings › Cloud computers", source:"packages/kybernos-computers/README.md" },
+
+  /* Le reste du monde */
+  { id:"llm", zone:"world", tone:"violet", tag:"modèles", badge:"",
+    t:"Modèles", s:"la route du serveur, ou tes clés",
+    role:"Deux voies : la route « kybernos » du serveur (la consommation est comptée par espace) ou une clé personnelle, appelée directement.",
+    cross:["Prompt, outils, images ; réponse en flux."],
+    limits:["Un refus de quota arrive au moteur comme « quota épuisé » : la vraie raison est dans la notice et la carte.","Changer de serveur nettoie d'abord la route de l'ancien."],
+    where:"Settings › Models & routing", source:"docs/dev/servers.md" },
+  { id:"telegram", zone:"world", tone:"blue", tag:"canal", badge:"",
+    t:"Telegram (Bot API)", s:"deux portes, pas une",
+    role:"(a) Le bot du serveur : un tour hébergé pour Kaby. (b) Le daemon local messaging : ton DSH local répond, en sortie seulement (long polling), sans tunnel ni port ouvert.",
+    cross:["Messages, pièces jointes, réponses et progression."],
+    limits:["La porte locale répond avec un DSH headless : ce n'est pas Kaby.","La porte serveur dépend du bot du serveur et de ses routes d'appairage."],
+    where:"Kaby › canaux · packages/messaging", source:"packages/messaging/README.md" },
+  { id:"whatsapp", zone:"world", tone:"amber", tag:"canal", badge:"beta, dev seulement",
+    t:"WhatsApp", s:"un numéro Kybernos partagé, en beta",
+    role:"Un seul numéro Kybernos, relié par Baileys dans le serveur (décision du 19/10) : c'est un pont de beta, pas encore l'API Cloud officielle.",
+    cross:["Un webhook sans état sur le serveur déjà hébergé ; les tours de Kaby y arrivent comme sur Telegram."],
+    limits:["Relié sur le serveur de dev (20/10), annoncé `available:false` : pas ouvert aux personnes.","Baileys sur le compte de chaque personne reste écarté (CGU, credentials, bannissement de son numéro).","L'API Cloud officielle de Meta est la cible, et elle est bloquée par la politique « assistants généralistes »."],
+    where:"Côté serveur (pont beta)", source:"docs/etudes/2026-10-19-kaby-phase-1-decisions-et-plan.md §1 · whatsapp-door-study §1" },
+  { id:"livekit", zone:"world", tone:"rose", tag:"voix", badge:"",
+    t:"LiveKit", s:"le transport de la voix et de l'image",
+    role:"Une room par appel ; le worker y entre, la session répond, la voix revient par le TTS du fournisseur choisi.",
+    cross:["Audio (et vidéo si une clé de visage est posée)."],
+    limits:["Les modèles audio déjà présents dans tes Modèles ne sont pas encore branchés sur les appels."],
+    where:"Settings › Calls › Providers", source:"packages/kybernos-call/README.md" }
+];
+
+const EDGES = [
+  { a:"desk",  b:"local",  kind:"local"  },
+  { a:"phone", b:"relay",  kind:"e2e"    },
+  { a:"relay", b:"local",  kind:"e2e"    },
+  { a:"local", b:"server", kind:"server" },
+  { a:"local", b:"custom", kind:"server" },
+  { a:"driver",b:"cloud",  kind:"server" },
+  { a:"hooks", b:"cloud",  kind:"hook"   }
+];
+
+const SCENARIOS = [
+  { id:"all", title:"Vue d'ensemble", pitch:"Tout allumé, rien de sélectionné", wit:"", steps:[] },
+  { id:"s1", title:"Une automation se déclenche", pitch:"Sur ce Mac, à l'heure dite", wit:"",
+    steps:[
+      { a:"auto", b:"auto", kind:"local", t:"Le scheduler tick",
+        d:"Toutes les 30 secondes, le scheduler relit tasks.json et regarde si un cron, une date ou un webhook correspond. Le fichier est verrouillé pendant l'écriture." },
+      { a:"auto", b:"local", kind:"local", t:"Une session DSH démarre",
+        d:"L'automation ouvre une session avec son prompt et ses outils. En mode « ask » (le défaut), la session passe en workspace-write : elle demandera avant d'agir." },
+      { a:"local", b:"llm", kind:"server", t:"Le modèle est appelé",
+        d:"Le prompt part par la route du serveur (comptée par espace) ou par ta clé personnelle. La réponse revient dans la session, outil après outil." },
+      { a:"local", b:"auto", kind:"local", t:"Le run est daté",
+        d:"Le résultat est écrit dans l'historique de tasks.json (20 derniers runs). Le board lit le journal de la session pour l'état réel : il ne prétend jamais « réussi » quand il ne peut pas le lire." }
+    ] },
+  { id:"s2", title:"Automation sur l'ordinateur cloud", pitch:"Quand ton Mac est fermé", wit:"",
+    steps:[
+      { a:"driver", b:"cloud", kind:"server", t:"La plateforme réveille la machine",
+        d:"next_wake_at est atteint : le driver sort la machine du sommeil (0,5 à 0,7 s mesurées après le premier démarrage)." },
+      { a:"cloudAuto", b:"cloud", kind:"local", t:"Son propre tasks.json tire",
+        d:"La machine a son DSH et son volume : l'automation se déclenche là-bas exactement comme chez toi. C'est pour cela qu'aucune route n'a besoin d'écrire tasks.json à distance." },
+      { a:"cloud", b:"llm", kind:"server", t:"Elle appelle le modèle",
+        d:"Via la route du serveur, avec le jeton restreint de la machine : rien de secret n'est stocké dedans." },
+      { a:"hooks", b:"cloud", kind:"hook", t:"Ou un webhook la réveille",
+        d:"POST /v1/hooks/{id}?secret=… : la plateforme réveille la machine et transmet l'événement à /kybernos/hooks, qui lance une automation existante avec l'événement ajouté au prompt." },
+      { a:"cloud", b:"server", kind:"server", t:"Le run reste chez elle",
+        d:"Le journal vit sur son volume ; le serveur garde l'état de la machine. Ce qui n'existe pas : envoyer un chat DSH à cette machine aujourd'hui." }
+    ] },
+  { id:"s3", title:"Kaby depuis Telegram", pitch:"Un message, un tour hébergé", wit:"défaut : off",
+    steps:[
+      { a:"telegram", b:"chan", kind:"ext", t:"Le message arrive au bot",
+        d:"Bot du serveur, pas de tunnel : l'appel vient de Telegram vers la porte des canaux." },
+      { a:"chan", b:"driver", kind:"server", t:"hosted.dispatch",
+        d:"Le message devient un tour pour la personne (thread Kaby), avec l'identité du canal et les approbations en trois boutons." },
+      { a:"driver", b:"cloud", kind:"server", t:"Le tour part sur SON ordinateur",
+        d:"Le service sait exécuter le tour sur l'ordinateur cloud de la personne — mais seulement si le switch propriétaire channel_computer_turns_enabled est ouvert (0 par défaut)." },
+      { a:"cloud", b:"llm", kind:"server", t:"La machine répond",
+        d:"Son DSH exécute le tour avec ses outils et ses permissions ; la réponse repart par la porte des canaux." },
+      { a:"chan", b:"telegram", kind:"ext", t:"La réponse revient dans le chat",
+        d:"Le dernier mot dit là-bas est aussi rappelé dans le prompt du Kaby local : un assistant, une mémoire, deux corps." }
+    ] },
+  { id:"s4", title:"La télécommande (téléphone)", pitch:"Ton Mac dans ta poche, chiffré", wit:"relais non déployé",
+    steps:[
+      { a:"phone", b:"relay", kind:"e2e", t:"Le QR ouvre un canal",
+        d:"Le QR porte l'identifiant de canal, un code à usage unique et la clé d'identité. Tout ce qui suit le # reste dans le navigateur du téléphone." },
+      { a:"relay", b:"local", kind:"e2e", t:"Le relais transporte",
+        d:"Une connexion par ordinateur ; le serveur ne garde qu'un condensat de l'identifiant de canal, et le trafic est chiffré de bout en bout." },
+      { a:"local", b:"phone", kind:"e2e", t:"Le téléphone rend TON DSH",
+        d:"Pas une copie, pas un cloud : la page réelle de ton Mac. Mac éteint = « hors ligne », et la page réessaie seule — aucune file d'attente." }
+    ] },
+  { id:"s5", title:"Ouvrir l'ordinateur cloud", pitch:"Un ticket, une porte, une page", wit:"",
+    steps:[
+      { a:"desk", b:"server", kind:"server", t:"Un ticket est demandé",
+        d:"POST …/computers/{id}/ticket : ticket à usage unique, pour qui a le droit d'ouvrir (son propriétaire ; owners et admins si l'accès l'autorise)." },
+      { a:"server", b:"access", kind:"server", t:"La porte s'ouvre",
+        d:"La machine tourne derrière la porte Kybernos : un ticket à usage unique, une session signée, un reverse proxy HTTP/SSE/WebSocket. Le mot de passe ne sert qu'à une machine de développement." },
+      { a:"access", b:"cloud", kind:"server", t:"Tu es dans SON DSH",
+        d:"La page, ses assets et /api répondent comme une session locale — mais le chat, les fichiers et les automations sont ceux de la machine." },
+      { a:"driver", b:"cloud", kind:"server", t:"Elle peut dormir et se réveiller",
+        d:"Sommeil 3,0–3,7 s, réveil 0,5–0,7 s (mesuré). Sur le plan Free, le serveur dit manual_control = false : pas de bouton." }
+    ] },
+  { id:"s6", title:"Un appel vocal", pitch:"Tu parles, la session répond", wit:"",
+    steps:[
+      { a:"desk", b:"local", kind:"local", t:"Le bouton d'appel d'une session",
+        d:"L'appel appartient à la session, pas à une équipe : téléphone ou caméra dans l'en-tête du chat." },
+      { a:"local", b:"livekit", kind:"ext", t:"Une room LiveKit",
+        d:"Le transport porte la voix ; le worker Python de l'hôte y entre." },
+      { a:"livekit", b:"voice", kind:"ext", t:"Le worker écoute",
+        d:"ASR, puis ce qu'il entend devient un vrai tour de la session." },
+      { a:"voice", b:"local", kind:"local", t:"Le tour réel répond",
+        d:"Même modèle, mêmes outils, mêmes permissions que le chat : la réponse est la réponse de la session." },
+      { a:"local", b:"livekit", kind:"ext", t:"La voix revient",
+        d:"TTS du fournisseur choisi ; la vidéo reste éteinte sans clé de visage." }
+    ] },
+  { id:"s7", title:"Ajouter un serveur custom", pitch:"Une adresse, pas un installateur", wit:"",
+    steps:[
+      { a:"desk", b:"custom", kind:"server", t:"Tu colles l'adresse",
+        d:"La page lit /.well-known/kybernos-server.json : il répond, il publie un profil, il convient à ce DSH. Trois étapes, 8 secondes au plus." },
+      { a:"custom", b:"local", kind:"server", t:"Le profil est accepté (ou refusé)",
+        d:"Le registre servers.json est écrit, puis vérifié ; si le profil ne convient pas, le fichier est remis exactement comme avant. Un champ invalide refuse tout." },
+      { a:"local", b:"server", kind:"server", t:"La bascule nettoie l'ancien",
+        d:"La route du modèle de l'ancien serveur est retirée d'abord, puis le catalogue du nouveau est importé s'il est connecté. Idempotent." },
+      { a:"local", b:"llm", kind:"server", t:"Le nouveau catalogue sert",
+        d:"Chaque serveur garde son fichier de connexion : personne n'est déconnecté, et un jeton ne traverse jamais la frontière." }
+    ] },
+  { id:"s8", title:"Ce que le serveur voit de toi", pitch:"Compte, plan, quota — et le reste", wit:"",
+    steps:[
+      { a:"local", b:"server", kind:"server", t:"L'appairage",
+        d:"Un code d'appareil, un token : c'est tout. Pas de licence, pas de clé par défaut." },
+      { a:"server", b:"llm", kind:"server", t:"L'espace actif paie",
+        d:"La route du modèle porte l'en-tête de l'espace : un membre d'équipe consomme la réserve de l'équipe, pas la sienne." },
+      { a:"server", b:"local", kind:"server", t:"Le quota remonte",
+        d:"GET /kybernos-cloud/quota : ce qui a arrêté le dernier appel et combien il reste, en pourcentage. La carte se relit à l'apparition, au focus, toutes les 2 minutes et après un refus." },
+      { a:"local", b:"server", kind:"server", t:"Le reste ne monte pas",
+        d:"Ni fichiers, ni mémoire, ni leçons, ni sessions : ils sont sur ton disque. Seuls les tours que tu envoies (Telegram, Kaby) et les lectures de compte traversent." }
+    ] }
+];
+
+/* ── rendu ─────────────────────────────────────────────── */
+const $ = (s) => document.querySelector(s);
+const canvas = $("#canvas"), baseWires = $("#baseWires"), busWires = $("#busWires"), haloWires = $("#haloWires"), hotWires = $("#hotWires"), dot = $("#dot");
+const nodeEls = new Map();
+let rects = new Map();
+let current = { scen:"all", step:0 };
+let playTimer = null, rafDot = null, dotPath = null, dotStart = 0;
+
+const ICONS = {phone:"<rect x=\"7\" y=\"2.6\" width=\"10\" height=\"18.8\" rx=\"2.7\"/><path d=\"M10.4 18.4h3.2\"/>",browser:"<rect x=\"3\" y=\"4.4\" width=\"18\" height=\"15.2\" rx=\"2.7\"/><path d=\"M3 9.2h18\"/><circle cx=\"6.2\" cy=\"6.8\" r=\".85\" fill=\"currentColor\" stroke=\"none\"/>",terminal:"<rect x=\"3\" y=\"4.4\" width=\"18\" height=\"15.2\" rx=\"2.7\"/><path d=\"M7 9.8l3 2.6-3 2.6M12.6 15.2h4.4\"/>",kaby:"<path d=\"M20.4 11.3a8.4 8.4 0 10-3.4 6.6l3.4 1.4-1.1-3.3a8.4 8.4 0 001.1-4.7z\"/><path d=\"M12 8.6l.85 2.05 2.05.85-2.05.85L12 14.4l-.85-2.05L9.1 11.5l2.05-.85z\" fill=\"currentColor\" stroke=\"none\"/>",clock:"<circle cx=\"12\" cy=\"12\" r=\"8.4\"/><path d=\"M12 7.4V12l3 2.1\"/>",workers:"<circle cx=\"6.2\" cy=\"17.2\" r=\"2.4\"/><circle cx=\"17.8\" cy=\"17.2\" r=\"2.4\"/><circle cx=\"12\" cy=\"6.4\" r=\"2.4\"/><path d=\"M7.5 15l2.7-6.4M16.5 15l-2.7-6.4M8.6 17.2h6.8\"/>",mic:"<rect x=\"9.2\" y=\"3\" width=\"5.6\" height=\"10\" rx=\"2.8\"/><path d=\"M5.6 11.4a6.4 6.4 0 0012.8 0M12 17.9v3.1\"/>",cloud:"<path d=\"M7.4 18.4a4.2 4.2 0 01-.4-8.4 6 6 0 0111.5 1.1 3.9 3.9 0 01-.4 7.3z\"/><path d=\"M9.4 14.3h5.2\"/>",bolt:"<path d=\"M13.4 2.8L5.6 13.6h4.9l-1 7.6 7.9-11h-5z\"/>",key:"<circle cx=\"8.2\" cy=\"12\" r=\"3.3\"/><path d=\"M11.5 12H21M18.2 12v3M15.2 12v2.2\"/>",volume:"<ellipse cx=\"12\" cy=\"6.4\" rx=\"7\" ry=\"2.9\"/><path d=\"M5 6.4v11.2c0 1.6 3.1 2.9 7 2.9s7-1.3 7-2.9V6.4\"/><path d=\"M5 12c0 1.6 3.1 2.9 7 2.9s7-1.3 7-2.9\"/>",shield:"<path d=\"M12 3l7.6 3.2v5.4c0 4.4-3.1 7.7-7.6 8.6-4.5-.9-7.6-4.2-7.6-8.6V6.2z\"/><path d=\"M8.6 12h5.8M12.2 9.4l2.6 2.6-2.6 2.6\"/>",webhook:"<path d=\"M4.2 7.2v9.6M19.8 7.2v9.6\"/><path d=\"M4.2 12h4.6\"/><path d=\"M12.4 12h7.4m-3-3l3 3-3 3\"/>",mcp:"<circle cx=\"6\" cy=\"12\" r=\"2.2\"/><circle cx=\"18\" cy=\"6.2\" r=\"2.2\"/><circle cx=\"18\" cy=\"17.8\" r=\"2.2\"/><path d=\"M8 11l8-3.8M8 13l8 3.8\"/>",server:"<rect x=\"4\" y=\"4\" width=\"16\" height=\"6.4\" rx=\"2\"/><rect x=\"4\" y=\"13.6\" width=\"16\" height=\"6.4\" rx=\"2\"/><path d=\"M7.6 7.2h.02M7.6 16.8h.02\"/>",serverplus:"<rect x=\"3.4\" y=\"6\" width=\"13.6\" height=\"5.6\" rx=\"1.9\"/><rect x=\"3.4\" y=\"14.4\" width=\"13.6\" height=\"5.6\" rx=\"1.9\"/><path d=\"M6.6 8.8h.02M6.6 17.2h.02\"/><path d=\"M19.6 3.6v4.6M17.3 5.9h4.6\"/>",account:"<rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"2.7\"/><circle cx=\"8.8\" cy=\"11.4\" r=\"2\"/><path d=\"M5.8 16.2c.7-1.5 1.7-2.2 3-2.2s2.3.7 3 2.2M14.2 10.4h4M14.2 13.4h4\"/>",spark:"<path d=\"M12 3.2l1.85 5.15L18.9 10l-5.05 1.65L12 16.8l-1.85-5.15L5.1 10l5.05-1.65z\"/><circle cx=\"18.4\" cy=\"17.6\" r=\"1.5\"/>",telegram:"<path d=\"M21 4.6L3.4 11.3l5.2 2 1.9 4.9 3.1-3.6 4.6 1.9z\"/><path d=\"M8.6 13.3l12.4-8.7-7.4 11\"/>",whatsapp:"<path d=\"M20.4 11.4a8.4 8.4 0 10-3.3 6.5l3.4 1.5-1.2-3.4a8.4 8.4 0 001.1-4.6z\"/><circle cx=\"8.9\" cy=\"11.4\" r=\".95\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"12.2\" cy=\"11.4\" r=\".95\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"15.5\" cy=\"11.4\" r=\".95\" fill=\"currentColor\" stroke=\"none\"/>",wave:"<path d=\"M3.8 12h2.2M8.2 8.2v7.6M12 5.4v13.2M15.8 8.8v6.4M19.8 11.2v1.6\"/>",cube:"<path d=\"M12 3.2l8 4.5v8.6L12 20.8l-8-4.5V7.7z\"/><path d=\"M4 7.7l8 4.5 8-4.5M12 12.2v8.6\"/>",plug:"<path d=\"M9 3.4v5M15 3.4v5\"/><rect x=\"6\" y=\"8.4\" width=\"12\" height=\"4.8\" rx=\"2\"/><path d=\"M12 13.2v7.4\"/>",book:"<path d=\"M4 5.6c3-1.4 5.3-1.4 8 0 2.7-1.4 5-1.4 8 0v12.8c-3-1.4-5.3-1.4-8 0-2.7-1.4-5-1.4-8 0z\"/><path d=\"M12 5.6v12.8\"/>",relay:"<path d=\"M4 8.4h13.2l-3.2-3.2M20 15.6H6.8l3.2 3.2\"/>",driver:"<circle cx=\"12\" cy=\"12\" r=\"8.4\"/><path d=\"M12 12l4.1-3.4\"/><circle cx=\"12\" cy=\"12\" r=\"1.4\" fill=\"currentColor\" stroke=\"none\"/>",chatcloud:"<path d=\"M20.2 10.2a7.2 7.2 0 10-2.8 5.6l2.9 1.2-1-2.9a7.2 7.2 0 00.9-3.9z\"/><path d=\"M8.2 10.2h6.4M12.2 7.6l2.6 2.6-2.6 2.6\"/>"};
+const ICO = {phone:"phone",desk:"browser",local:"terminal",kaby:"kaby",auto:"clock",workers:"workers",voice:"mic",server:"server",custom:"serverplus",acct:"account",chan:"telegram",relay:"relay",driver:"driver",hooks:"webhook",mcp:"mcp",cloud:"cloud",cloudAuto:"bolt",access:"key",volume:"volume",egress:"shield",chatcloud:"chatcloud",e2b:"cube",llm:"spark",telegram:"telegram",whatsapp:"whatsapp",livekit:"wave"};
+const icon = (name) => `<span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg></span>`;
+const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html !== undefined) n.innerHTML = html; return n; };
+
+function build(){
+  for (const z of ZONES){
+    const zone = el("section","zone" + (z.row ? " row" : ""));
+    zone.dataset.tone = z.tone;
+    zone.dataset.zone = z.id;
+    zone.style.cssText = `left:${z.x}px;top:${z.y}px;width:${z.w}px;height:${z.h}px`;
+    z.el = zone;
+    zone.appendChild(el("div","zh", `<h2>${z.title}</h2><p>${z.sub}</p>`));
+    const body = el("div","zb");
+    for (const n of NODES.filter(n => n.zone === z.id)){
+      const b = el("button","node");
+      b.type = "button"; b.dataset.id = n.id; b.dataset.tone = n.tone;
+      if (n.hero) b.dataset.hero = "1";
+      b.setAttribute("aria-label", n.t + " — " + n.s);
+      b.innerHTML = `${icon(ICO[n.id] || 'server')}<span class="nt"><span>${n.t}</span><span class="tag">${n.tag}</span></span><span class="ns">${n.s}</span>
+        ${n.badge ? `<span class="nb"><span class="badge">${n.badge}</span></span>` : ""}`;
+      b.addEventListener("click", () => openNode(n.id));
+      body.appendChild(b); nodeEls.set(n.id, b);
+    }
+    zone.appendChild(body);
+    if (z.note) zone.appendChild(el("div","zn", z.note));
+    canvas.appendChild(zone);
+  }
+  for (const e of EDGES){
+    const p = document.createElementNS("http://www.w3.org/2000/svg","path");
+    p.dataset.kind = e.kind; p.classList.add("base"); p.dataset.a = e.a; p.dataset.b = e.b;
+    baseWires.appendChild(p);
+  }
+  SCENARIOS.forEach((s, i) => {
+    const b = el("button","pill", `<span class="num">${i === 0 ? "◉" : String(i).padStart(2,"0")}</span>
+      <span style="flex:1;min-width:0"><span class="tt">${s.title}</span><span class="pitch">${s.pitch}</span>
+      ${s.wit ? `<span class="wit">${s.wit}</span>` : ""}</span>`);
+    b.type = "button"; b.dataset.id = s.id;
+    b.addEventListener("click", () => { stop(); select(s.id, true); });
+    $("#scen").appendChild(b);
+    const box = el("div","steps"); box.hidden = true; box.dataset.for = s.id;
+    $("#scen").appendChild(box);
+  });
+  $("#railFoot").innerHTML = `${NODES.length} briques · ${SCENARIOS.length - 1} parcours · 1 vérité par brique.<br>
+    Sources : docs du dépôt <code>kybernos-plugins</code> (20/10/2026). Chaque fiche cite la sienne.`;
+  $("#railH").textContent = `${SCENARIOS.length - 1} parcours`;
+  layout();
+}
+
+/* routage orthogonal : gouttière entre deux colonnes voisines, bus horizontal sinon */
+let CANVAS_H = 782, BUS_Y = 640;
+const COLS = { toi:0, serv:1, cloud:2, world:3 };
+function zoneOf(id){ const n = NODES.find(x => x.id === id); return n ? n.zone : "toi"; }
+function poly(pts, r){
+  let d = `M ${pts[0][0]} ${pts[0][1]}`;
+  for (let i = 1; i < pts.length; i++){
+    const p0 = pts[i-1], p1 = pts[i], p2 = pts[i+1];
+    if (!p2){ d += ` L ${p1[0]} ${p1[1]}`; continue; }
+    const v1 = [p1[0]-p0[0], p1[1]-p0[1]], v2 = [p2[0]-p1[0], p2[1]-p1[1]];
+    const n1 = Math.hypot(v1[0],v1[1]) || 1, n2 = Math.hypot(v2[0],v2[1]) || 1;
+    const k = Math.min(r, n1/2, n2/2);
+    const a = [p1[0]-v1[0]/n1*k, p1[1]-v1[1]/n1*k];
+    const b = [p1[0]+v2[0]/n2*k, p1[1]+v2[1]/n2*k];
+    d += ` L ${a[0]} ${a[1]} Q ${p1[0]} ${p1[1]} ${b[0]} ${b[1]}`;
+  }
+  return d;
+}
+const gutterRight = (c) => { const z = ZONES.find(z => COLS[z.id] === c); return z ? z.x + z.w + 7 : 0; };
+function pathD(a, b){
+  const A = rects.get(a), B = rects.get(b);
+  if (!A || !B) return "";
+  const cy = r => r.y + r.h/2, cx = r => r.x + r.w/2;
+  if (a === b){ const x = A.x + A.w, y = cy(A); return `M ${x} ${y-6} C ${x+22} ${y-22}, ${x+25} ${y+22}, ${x+2} ${y+12}`; }
+  const za = zoneOf(a), zb = zoneOf(b);
+  const lowA = za === "world", lowB = zb === "world";
+  if (lowA !== lowB){
+    const strip = lowA ? A : B, col = lowA ? B : A, cz = lowA ? zb : za;
+    const gx = gutterRight(COLS[cz]);
+    if (lowA) return poly([[cx(strip), strip.y], [cx(strip), BUS_Y], [gx, BUS_Y], [gx, cy(col)], [col.x + col.w, cy(col)]], 9);
+    return poly([[col.x + col.w, cy(col)], [gx, cy(col)], [gx, BUS_Y], [cx(strip), BUS_Y], [cx(strip), strip.y]], 9);
+  }
+  if (za === "world" && zb === "world"){ return poly([[A.x + A.w, cy(A)], [B.x, cy(B)]].length ? [[A.x + A.w, cy(A)], [(A.x+A.w+B.x)/2, cy(A)], [(A.x+A.w+B.x)/2, cy(B)], [B.x, cy(B)]] : [], 9); }
+  const ca = COLS[za], cb = COLS[zb];
+  if (ca === cb){
+    const gap = B.y > A.y ? B.y - (A.y + A.h) : A.y - (B.y + B.h);
+    if (gap < 26){ const x = cx(A), y1 = (B.y > A.y ? A.y + A.h : A.y), y2 = (B.y > A.y ? B.y : B.y + B.h); return `M ${x} ${y1} L ${x} ${y2}`; }
+    const gx = gutterRight(ca);
+    return poly([[A.x + A.w, cy(A)], [gx, cy(A)], [gx, cy(B)], [B.x + B.w, cy(B)]], 9);
+  }
+  if (Math.abs(ca - cb) === 1){
+    const right = ca < cb;
+    const gx = right ? (A.x + A.w + B.x) / 2 : (B.x + B.w + A.x) / 2;
+    const p1 = [right ? A.x + A.w : A.x, cy(A)], p2 = [right ? B.x : B.x + B.w, cy(B)];
+    return poly([[p1[0], p1[1]], [gx, p1[1]], [gx, p2[1]], [p2[0], p2[1]]], 9);
+  }
+  // colonnes non voisines : on passe par le bus
+  const ga = gutterRight(ca), gb = gutterRight(cb);
+  return poly([[A.x + A.w, cy(A)], [ga, cy(A)], [ga, BUS_Y], [gb, BUS_Y], [gb, cy(B)], [B.x + B.w, cy(B)]], 9);
+}
+
+/* deux passes : on laisse le texte décider de la hauteur des panneaux, puis on met à l'échelle */
+function autoSize(){
+  const cols = ZONES.filter(z => !z.row);
+  for (const z of cols){ z.el.style.height = "auto"; }
+  let maxH = 0;
+  for (const z of cols) maxH = Math.max(maxH, z.el.getBoundingClientRect().height);
+  maxH = Math.ceil(maxH);
+  for (const z of cols) z.el.style.height = maxH + "px";
+  const strip = ZONES.find(z => z.row);
+  strip.el.style.height = "auto";
+  const sh = Math.ceil(strip.el.getBoundingClientRect().height);
+  const sy = 14 + maxH + 12;
+  strip.el.style.top = sy + "px"; strip.el.style.height = sh + "px";
+  CANVAS_H = sy + sh + 14;
+  BUS_Y = sy - 6;
+  canvas.style.height = CANVAS_H + "px";
+  $("#wires").setAttribute("viewBox", `0 0 1120 ${CANVAS_H}`);
+  $("#wires").style.height = CANVAS_H + "px";
+}
+
+function layout(){
+  canvas.style.transform = "";
+  if (window.innerWidth <= 980){
+    for (const z of ZONES){ z.el.style.top = z.el.style.left = z.el.style.width = z.el.style.height = ""; }
+    canvas.style.height = ""; $("#wires").style.height = "";
+    return;
+  }
+  autoSize();
+  const scroll = $("#scroll");
+  let s = 1;
+  if (window.innerWidth > 900){
+    s = Math.min(1.12, (scroll.clientWidth - 12) / 1120, (scroll.clientHeight - 8) / CANVAS_H);
+    s = Math.max(.86, s);
+  }
+  canvas.style.transform = s === 1 ? "" : `scale(${s})`;
+  const cr = canvas.getBoundingClientRect();
+  rects = new Map();
+  for (const [id, n] of nodeEls){
+    const r = n.getBoundingClientRect();
+    rects.set(id, { x: (r.left - cr.left) / s, y: (r.top - cr.top) / s, w: r.width / s, h: r.height / s });
+  }
+  [...baseWires.children].forEach(p => p.setAttribute("d", pathD(p.dataset.a, p.dataset.b)));
+  if (current.scen !== "all") drawHot();
+}
+
+/* ── parcours ──────────────────────────────────────────── */
+function sc(){ return SCENARIOS.find(s => s.id === current.scen); }
+function select(id, resetStep){
+  current.scen = id;
+  const n = Math.max(0, (SCENARIOS.find(s => s.id === id)?.steps.length || 1) - 1);
+  current.step = resetStep ? 0 : Math.min(current.step, n);
+  document.querySelectorAll(".pill").forEach(p => p.setAttribute("aria-current", p.dataset.id === id ? "true" : "false"));
+  $("#app").dataset.scen = id === "all" ? "0" : "1";
+  if (window.innerWidth <= 1240) $("#rail").removeAttribute("data-open");
+  if (id === "all"){ paintAll(); renderStep(); return; }
+  drawHot(); renderStep();
+}
+
+function drawHot(){
+  hotWires.innerHTML = ""; haloWires.innerHTML = ""; busWires.innerHTML = ""; dotPath = null;
+  const s = sc(); if (s.id === "all") return;
+  const bus = document.createElementNS("http://www.w3.org/2000/svg","path");
+  bus.setAttribute("class","bus"); bus.setAttribute("d", `M 6 ${BUS_Y} H 1114`);
+  busWires.appendChild(bus);
+  s.steps.forEach((step, i) => {
+    const d = pathD(step.a, step.b);
+    const halo = document.createElementNS("http://www.w3.org/2000/svg","path");
+    halo.setAttribute("d", d); halo.setAttribute("class","halo"); haloWires.appendChild(halo);
+    const p = document.createElementNS("http://www.w3.org/2000/svg","path");
+    p.dataset.kind = step.kind; p.classList.add("hot"); p.setAttribute("d", d);
+    p.setAttribute("marker-end", "url(#arw-" + step.kind + ")");
+    if (i === current.step){ p.classList.add("is-live"); dotPath = p; }
+    else { p.style.opacity = "0.42"; p.style.animation = "none"; p.style.strokeDasharray = "3 6"; }
+    hotWires.appendChild(p);
+    p.dataset.step = i;
+  });
+  startDot();
+}
+
+function paintNodes(){
+  const s = sc();
+  const used = new Set();
+  s.steps.forEach(st => { used.add(st.a); used.add(st.b); });
+  const st = s.steps[current.step] || {};
+  for (const [id, n] of nodeEls){
+    delete n.dataset.dim; delete n.dataset.on; delete n.dataset.live;
+    if (s.id === "all") continue;
+    if (!used.has(id)) n.dataset.dim = "1"; else n.dataset.on = "1";
+    if (id === st.a || id === st.b) n.dataset.live = "1";
+  }
+}
+function paintAll(){
+  hotWires.innerHTML = ""; haloWires.innerHTML = ""; dot.style.opacity = "0";
+  for (const n of nodeEls.values()){ delete n.dataset.dim; delete n.dataset.on; delete n.dataset.live; }
+  document.querySelectorAll(".pill").forEach(p => p.setAttribute("aria-current", p.dataset.id === "all" ? "true" : "false"));
+}
+
+function renderStep(){
+  const s = sc(), bar = $("#sbBar"), txt = $("#sbTxt");
+  document.querySelectorAll("#scen .steps").forEach(box => {
+    box.hidden = box.dataset.for !== s.id || s.id === "all";
+    if (box.hidden) return;
+    box.innerHTML = s.steps.map((st, i) =>
+      `<button class="step" data-i="${i}" aria-current="${i === current.step}"><b>${i+1}.</b> ${st.t}</button>`).join("");
+    box.querySelectorAll(".step").forEach(btn => btn.addEventListener("click", () => {
+      stop(); current.step = +btn.dataset.i; drawHot(); renderStep();
+    }));
+  });
+  if (s.id === "all"){
+    $("#sbN").textContent = "vue d'ensemble";
+    $("#sbWho").textContent = `${NODES.length} briques · ${SCENARIOS.length - 1} parcours`;
+    bar.innerHTML = "<i class='cur' style='flex:1'></i>";
+    txt.innerHTML = "<b>Choisis un parcours à gauche — ou clique une brique.</b><span>Chaque parcours allume son chemin ; les autres briques restent visibles, en retrait. Les lignes pointillées sont les liens qui existent tout le temps. La pastille orange dit « ce n'est pas construit comme ça », pas « ça marche ».</span>";
+    $("#prev").disabled = $("#next").disabled = $("#play").disabled = true;
+    requestAnimationFrame(layout);
+    return;
+  }
+  const st = s.steps[current.step];
+  $("#sbN").textContent = `${current.step+1} / ${s.steps.length}`;
+  $("#sbWho").textContent = s.title;
+  bar.innerHTML = s.steps.map((_, i) => `<i class="${i < current.step ? "done" : i === current.step ? "cur" : ""}"></i>`).join("");
+  txt.innerHTML = `<b>${st.t}</b><span>${st.d}</span>`;
+  $("#prev").disabled = current.step === 0;
+  $("#next").disabled = current.step === s.steps.length - 1;
+  $("#play").disabled = false;
+  paintNodes();
+  requestAnimationFrame(layout);
+}
+
+function next(){ const s = sc(); if (s.id === "all") return; if (current.step < s.steps.length - 1){ current.step++; drawHot(); renderStep(); } else stop(); }
+function prev(){ if (current.step > 0){ current.step--; drawHot(); renderStep(); } }
+function stop(){ if (playTimer){ clearInterval(playTimer); playTimer = null; } $("#play").textContent = "▶ Lecture"; }
+function play(){
+  if (playTimer){ stop(); return; }
+  if (sc().id === "all") return;
+  current.step = 0; drawHot(); renderStep();
+  $("#play").textContent = "❚❚ Pause";
+  playTimer = setInterval(() => {
+    if (current.step >= sc().steps.length - 1){ stop(); return; }
+    next();
+  }, 3600);
+}
+
+function startDot(){
+  if (rafDot) cancelAnimationFrame(rafDot);
+  if (!dotPath || matchMedia("(prefers-reduced-motion: reduce)").matches){ dot.style.opacity = "0"; return; }
+  dot.style.opacity = "1"; dotStart = performance.now();
+  const len = dotPath.getTotalLength();
+  const tick = (t) => {
+    if (!dotPath){ dot.style.opacity = "0"; return; }
+    const k = ((t - dotStart) % 2600) / 2600;
+    if (dotPath.dataset.kind) dot.style.fill = `var(--${({local:"teal",server:"violet",e2e:"blue",ext:"amber",hook:"rose"})[dotPath.dataset.kind] || "teal"})`;
+    const p = dotPath.getPointAtLength(k * len);
+    dot.setAttribute("cx", p.x); dot.setAttribute("cy", p.y);
+    rafDot = requestAnimationFrame(tick);
+  };
+  rafDot = requestAnimationFrame(tick);
+}
+
+/* ── fiche ─────────────────────────────────────────────── */
+function openNode(id){
+  const n = NODES.find(x => x.id === id); if (!n) return;
+  $("#shT").textContent = n.t; $("#shS").textContent = n.s;
+  const scs = SCENARIOS.filter(s => s.steps.some(st => st.a === id || st.b === id));
+  $("#shB").innerHTML = `
+    <div class="row"><span class="tag">${n.tag}</span>${n.badge ? `<span class="badge">${n.badge}</span>` : ""}</div>
+    <div><h3>Rôle</h3><p>${n.role}</p></div>
+    <div><h3>Ce qui la traverse</h3><ul>${n.cross.map(x => `<li>${x}</li>`).join("")}</ul></div>
+    <div><h3>Ce qu'elle ne fait pas / limites</h3><ul>${n.limits.map(x => `<li>${x}</li>`).join("")}</ul></div>
+    <div><h3>Où ça se règle</h3><p>${n.where}</p></div>
+    <div><h3>Source</h3><div class="src">${n.source}</div></div>
+    ${scs.length ? `<div><h3>Dans les parcours</h3><div class="links">${scs.map(s => `<button data-jump="${s.id}">${s.title}</button>`).join("")}</div></div>` : ""}`;
+  $("#sheet").setAttribute("data-open",""); $("#sheet").setAttribute("aria-hidden","false");
+  $("#backdrop").setAttribute("data-open","");
+  $("#shB").querySelectorAll("[data-jump]").forEach(b => b.addEventListener("click", () => { closeSheet(); select(b.dataset.jump, true); }));
+}
+function closeSheet(){
+  $("#sheet").removeAttribute("data-open"); $("#sheet").setAttribute("aria-hidden","true");
+  $("#backdrop").removeAttribute("data-open");
+}
+
+/* ── contrôles ─────────────────────────────────────────── */
+$("#next").addEventListener("click", next);
+$("#prev").addEventListener("click", prev);
+$("#play").addEventListener("click", play);
+$("#clear").addEventListener("click", () => { stop(); select("all", true); });
+$("#shX").addEventListener("click", closeSheet);
+$("#backdrop").addEventListener("click", closeSheet);
+$("#themeBtn").addEventListener("click", () => {
+  const light = document.body.dataset.theme === "light";
+  document.body.dataset.theme = light ? "dark" : "light";
+  $("#themeLbl").textContent = light ? "Sombre" : "Clair";
+  requestAnimationFrame(() => layout());
+});
+
+$("#railBtn").addEventListener("click", () => $("#rail").toggleAttribute("data-open"));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape"){ closeSheet(); return; }
+  if (e.key === "ArrowRight") next();
+  if (e.key === "ArrowLeft") prev();
+  if (e.key === " "){ e.preventDefault(); play(); }
+  const n = Number(e.key);
+  if (n >= 1 && n <= 8){ stop(); select(SCENARIOS[n].id, true); }
+});
+let rz;
+window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(layout, 140); });
+
+build();
+select("s1", true);
+</script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+# check-join-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=62980
+
+  ✓ the sandbox restarts, pointed at the fake Kybernos and connected (a throw-away state file)
+  ✓ two spaces: the menu lists them and has « Create a team » then « Join with an invitation link », in that order
+  ✓ nothing has been sent to the Kybernos server about an invitation yet
+  ✓ the row opens the dialog, the menu closes behind it and the box has the focus
+  ✓ the dialog open and empty asks nothing of the host
+  ✓ « Check » is not pressable while nothing is pasted
+  ✓ a pasted text that is no link and no code is said so, and nothing is sent
+  ✓ a link that is not an invitation's is said so, and nothing is sent
+  ✓ typing clears the note
+  ✓ Enter checks it: ONE call, to the fake Kybernos (the active server) and no other, a POST whose body is the token alone and whose address carries none
+  ✓ the preview asks without the device token (it is a public question)
+  ✓ the card says who invited, the team and the role, and the address it was sent to
+  ✓ the signed-in address is the invited one: no warning; the token is drawn nowhere
+  ✓ nothing is accepted before the second click
+  ✓ the dialog's text reads on its surface (contrast at least 4.5, dark)
+  ✗ the dialog closes and the card says « Switching… » with the team just joined  — {"text":null,"name":"Studio B","dialog":false}
+  ✓ the acceptance went to the fake Kybernos once, with the device token as proof and the invitation token in the body only
+  ✓ then the list of teams and the new team's plan were read again, before the switch
+  ✗ the model route was rewritten for the new team (the catalogue was read in its name), so the next message is billed to it  — []
+  ✓ the host's state: Studio B is in the list and is the active team
+  ✓ the card is back to normal with the new team
+  ✓ the invitation's token was in no address sent to the server
+  ✓ three spaces now: still the list in the menu, and the join row is there
+  ✓ a team without a plan: the person is told it has none and where they still are
+  ✓ they stay in Studio B, the new team is in the list, and no switch was made (no catalogue read in its name)
+  ✓ a member has no plan to choose: the notice offers no action
+  ✓ four spaces: the menu holds no list, the row is in the « Switch team » panel
+  ✓ the dialog opened from the panel
+  ✓ used / withdrawn / expired / someone else's: ONE sentence naming them all, and the dialog is still on the paste step
+  ✓ 429: « too many tries »
+  ✓ an unexpected failure says so and offers the server's own page, on the ACTIVE server's web address, with the token
+  ✓ an invitation sent to another address says which one, and the button stays (the server decides)
+  ✓ accepting it with the wrong account: the same single sentence, the state untouched
+  ✓ reopened for the full team
+  ✓ a full team: the sentence says no seat is free and that the link stays valid; the dialog stays on the preview
+  ✓ asked again it answers the same: the link was not used up, nobody joined
+  ✓ accept: no Origin 403, a foreign Origin 403 (even with the cookie), the right Origin without the signed session 401, and the server heard nothing
+  ✓ preview: no Origin 403, a foreign Origin 403
+  ✓ accept with the real pair reaches the server and answers the uniform refusal
+  ✓ the dialog again, for a server that hangs up
+  ✓ a server that does not answer: « could not be reached », at the paste step
+  ✓ the page is drawn in dark
+  ✓ the dialog opens in dark
+  ✓ dark: the note, the intro and the button read on the dialog (contrast at least 4.5)
+  ✓ the page is drawn in light
+  ✓ the dialog opens in light
+  ✓ light: the note, the intro and the button read on the dialog (contrast at least 4.5)
+  ✓ 390 px: the dialog opens
+  ✓ 390 px: the paste step fits the window
+  ✓ 390 px: the preview step fits the window
+  ✓ French: the row says « Rejoindre avec un lien d'invitation »
+  ✓ French: the dialog says its intro and its button in French
+  ✓ none of the invitations' tokens is in the sandbox's log
+
+51 checks passed, 2 FAILED
+

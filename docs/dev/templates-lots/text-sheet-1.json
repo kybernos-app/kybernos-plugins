@@ -1,0 +1,73 @@
+{
+  "name": "text-sheet-1",
+  "type": "sheet",
+  "note": "Six spreadsheet prompts built on the xlsx skill (openpyxl, live formulas, recalculation check): two for business, two for education, two for research. Each asks for the person's own figures first and falls back to labelled sample data.",
+  "cells": [
+    {
+      "id": "sheet_irr",
+      "card": "prompt",
+      "entry": {
+        "name": "Investment return calculator",
+        "tag": "Business",
+        "line": "Calculate IRR and payback for a project's cash flows",
+        "meta": "Prompt"
+      },
+      "request": "Build an investment return spreadsheet. First ask me for the upfront cost, the expected cash flow of each year (up to 10) and my discount rate; if I have none, use sample figures and label them as sample. Make one inputs tab and one results tab with live formulas for IRR, NPV, simple and discounted payback, and a chart of cumulative cash flow. Add a scenario cell that scales every cash flow by -20%, 0% or +20%. Cross-check the key results with an independent calculation, tell me what you could not verify, and say in two lines whether the project clears my rate."
+    },
+    {
+      "id": "sheet_runway",
+      "card": "prompt",
+      "entry": {
+        "name": "Cash runway forecast",
+        "tag": "Business",
+        "line": "Forecast 12 months of cash with best and worst cases",
+        "meta": "Prompt"
+      },
+      "request": "Build a 12-month cash forecast. First ask me for the opening balance, monthly revenue, fixed and variable costs and any one-off payments; if I have none, use sample figures and label them as sample. Put the inputs in one tab, with a dropdown that switches between base, best and worst case, and the monthly balance in another, with live formulas. Add a chart of the balance, highlight in red any month below zero, and show how many months of runway remain. Cross-check the key results with an independent calculation, tell me what you could not verify, and summarise the three cases in three lines."
+    },
+    {
+      "id": "sheet_gradebook",
+      "card": "prompt",
+      "entry": {
+        "name": "Weighted gradebook",
+        "tag": "Education",
+        "line": "Track class grades with weighted categories and letter marks",
+        "meta": "Prompt"
+      },
+      "request": "Build a gradebook for one class. First ask me for the categories and their weights (for example homework, quizzes, exam), the number of assignments and the grade scale; if I have none, use five students with invented names and label them as sample. One row per student, one column per assignment, live formulas for each category average, the weighted final grade and the letter mark from a lookup table. Colour grades below the pass mark, add the class average and a distribution chart. Check that the weights add up to 100%, cross-check the final grades with an independent calculation and tell me what you could not verify."
+    },
+    {
+      "id": "sheet_study_week",
+      "card": "prompt",
+      "entry": {
+        "name": "Study-week planner",
+        "tag": "Education",
+        "line": "Split my weekly study hours across courses by exam date and difficulty",
+        "meta": "Prompt"
+      },
+      "request": "Build a study planner spreadsheet. First ask me for my courses, each exam date, how hard I find each one (1 to 5) and how many hours I can study per week; if I have none, use five courses and label them as sample. With formulas, work out how many hours each course gets per week, weighted by difficulty and by how close its exam is, and lay them out on a Monday to Sunday grid. Check that the grid never exceeds my weekly hours, add a countdown in days to each exam and a chart of hours per course, and cross-check the totals independently."
+    },
+    {
+      "id": "sheet_survey",
+      "card": "prompt",
+      "entry": {
+        "name": "Survey results analysis",
+        "tag": "Research",
+        "line": "Summarise survey answers with statistics and charts",
+        "meta": "Prompt"
+      },
+      "request": "Analyse survey results in a spreadsheet. First ask me to attach or paste the responses (CSV or table) and tell me which questions are scales and which are choices; if I have none, create 40 invented responses and label them as sample. Keep the raw data on one tab, untouched. On another tab use formulas for response counts, mean, median and standard deviation per scale question, the share of each choice, and a comparison between two groups I name. Add one chart per question, list the data issues you found (blanks, outliers) and write three plain-language findings. Cross-check the statistics with an independent calculation."
+    },
+    {
+      "id": "sheet_litmatrix",
+      "card": "prompt",
+      "entry": {
+        "name": "Literature matrix",
+        "tag": "Research",
+        "line": "Compare the papers I read in one literature matrix",
+        "meta": "Prompt"
+      },
+      "request": "Build a literature review matrix. First ask me for my research question and the papers to include (titles, DOIs or text I paste); never invent a paper or a figure, and write 'not stated' where a paper does not say. One row per paper: year, method, sample, main finding, limitation and a relevance score from 1 to 5. Add filters, a count per method with formulas, a chart of papers per year and a gap tab listing what none of the papers covers. Check that every row is filled and tell me anything you could not verify."
+    }
+  ]
+}

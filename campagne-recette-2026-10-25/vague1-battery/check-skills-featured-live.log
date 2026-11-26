@@ -1,0 +1,19 @@
+# check-skills-featured-live.mjs
+# host=127.0.0.1:3098 status=timeout code=null ms=150086
+
+(the running host serves the picks route: nothing is faked)
+The Featured tab — this checkout's client in the real GUI
+  ✓ the client was found in the served bundle and swapped
+  ✓ Featured is the first segment and the selected one
+  ✓ the 24 picks are drawn as cards
+  ✓ the shared header is there (title, bar, primary action)
+  ✓ every cover the picks answer lists is served by the real cover route and drawn (24)
+  ✓ no « /name » link on a card
+  ✓ the install count is an icon and a figure, without the word « installs »
+  ✓ the creator is on the card (owner name or its initial)
+  ✓ at rest the actions are hidden (but their place is kept)
+  ✗ on hover the actions show  — "0"
+  ✓ a card that is not installed offers Install
+  ✓ Install opens the confirmation before anything is written
+Every card and every row, by a real click
+

@@ -1,0 +1,22 @@
+{
+  "name": "@local/kybernos-kaby-customisation",
+  "version": "0.1.0",
+  "description": "Kaby, yours: its name, portrait and voice, and the face it shows on video calls. Settings › Kaby.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}

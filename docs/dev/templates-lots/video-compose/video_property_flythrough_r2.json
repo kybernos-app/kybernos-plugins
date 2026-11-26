@@ -1,0 +1,101 @@
+{
+  "size": [
+    1280,
+    720
+  ],
+  "fade": 0.3,
+  "shots": [
+    {
+      "file": "prop-1.mp4",
+      "trim": [
+        0,
+        5.26
+      ]
+    },
+    {
+      "file": "prop-2.mp4",
+      "trim": [
+        0,
+        5.26
+      ]
+    },
+    {
+      "file": "prop-3.mp4",
+      "trim": [
+        0,
+        5.26
+      ]
+    },
+    {
+      "file": "prop-4.mp4",
+      "trim": [
+        0,
+        5.26
+      ]
+    }
+  ],
+  "grade": "eq=contrast=1.04:saturation=1.06",
+  "texts": [
+    {
+      "at": 0.8,
+      "to": 4.8,
+      "text": "VILLA MIRADOR",
+      "style": "title",
+      "y": 0.42,
+      "anim": "pop",
+      "size": 0.09
+    },
+    {
+      "at": 1.5,
+      "to": 4.8,
+      "text": "CALA VERDE",
+      "style": "sub",
+      "y": 0.52,
+      "anim": "rise"
+    },
+    {
+      "at": 5.6,
+      "to": 9.6,
+      "text": "5 BEDROOMS  ·  4 BATHROOMS",
+      "style": "lower",
+      "y": 0.84,
+      "anim": "rise"
+    },
+    {
+      "at": 10.6,
+      "to": 14.6,
+      "text": "420 m²  ·  INFINITY POOL  ·  SEA VIEW",
+      "style": "lower",
+      "y": 0.84,
+      "anim": "rise"
+    },
+    {
+      "at": 15.7,
+      "to": 19.9,
+      "text": "€ 2,450,000",
+      "style": "title",
+      "y": 0.44,
+      "anim": "pop",
+      "size": 0.09
+    },
+    {
+      "at": 16.4,
+      "to": 19.9,
+      "text": "PRIVATE VIEWINGS BY APPOINTMENT",
+      "style": "sub",
+      "y": 0.55,
+      "anim": "rise",
+      "size": 0.032
+    }
+  ],
+  "music": {
+    "file": "music-prop.mp3",
+    "start": 0,
+    "gain": 0.6,
+    "fadeIn": 0.6,
+    "fadeOut": 2.2
+  },
+  "ambient": 0.3,
+  "id": "video_property_flythrough",
+  "crf": 25
+}

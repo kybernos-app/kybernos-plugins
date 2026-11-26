@@ -1,0 +1,22 @@
+# check-remote-control-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=28093
+
+  ✓ Settings open
+  ✓ the Phone and channels entry is in the Settings menu
+  ✓ the page shows « Add a phone » for a signed-in account
+  ✓ network: the page keeps its content (« Add a phone » is still there)
+  ✓ network: and says it cannot reach DSH
+  ✓ network: it recovers by itself on the next good poll
+  ✓ html: the page keeps its content (« Add a phone » is still there)
+  ✓ html: and says it cannot reach DSH
+  ✓ html: it recovers by itself on the next good poll
+  ✓ empty: the page keeps its content (« Add a phone » is still there)
+  ✓ empty: and says it cannot reach DSH
+  ✓ empty: it recovers by itself on the next good poll
+  ✓ notok: the page keeps its content (« Add a phone » is still there)
+  ✓ notok: and says it cannot reach DSH
+  ✓ notok: it recovers by itself on the next good poll
+  ✓ no « Cannot read properties of undefined » was thrown
+
+ALL PASS, 16 passed
+

@@ -1,0 +1,877 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kybernos: the open-source AI workspace</title>
+<meta name="description" content="Kybernos is the open-source AI workspace for delegating real work to agent teams. A second agent reviews the result, you set the limits and approve what matters.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-3 -1 38.5 38'%3E%3Cg fill='%23f2372a'%3E%3Crect x='0' y='0' width='13' height='36'/%3E%3Cpolygon points='21,0 31,0 13,28.3 13,12.6'/%3E%3Cpolygon points='13,22 22,36 32.5,36 20.3,16.8 13,16.8'/%3E%3C/g%3E%3Cg fill='%23ffffff'%3E%3Ccircle cx='6.5' cy='7.5' r='3.3'/%3E%3Ccircle cx='6.5' cy='18' r='3.3'/%3E%3Ccircle cx='6.5' cy='28.5' r='3.3'/%3E%3C/g%3E%3C/svg%3E">
+<script>
+(function(){
+  var d=document.documentElement;
+  d.classList.add('js');
+  var t=null;
+  try{t=localStorage.getItem('kb-theme');}catch(e){}
+  if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}
+  d.setAttribute('data-theme',t);
+  if(/[?&]motion=off/.test(location.search)){d.classList.add('static');}
+})();
+</script>
+<style>
+/* Tokens: landing neutrals with the production Cockpit accent. */
+:root{
+  --bg:#F6F4EE; --bg2:#FFFFFF; --ink:#17171A; --ink2:#4F4D46; --ink3:#68655C;
+  --line:#DDD8CB; --accent:#2662c4; --accent-ink:#ffffff; --accent-text:#1e4f9f;
+  --accent-hover:#1e4f9f; --green:#2F6B54; --wash1:#F0E7DA; --wash2:#E6EDE6;
+  --track:rgba(23,23,26,.10); --shadow:0 1px 2px rgba(23,23,26,.05),0 16px 40px -16px rgba(23,23,26,.18);
+  --r-pill:999px; --r-xl:28px; --r-lg:20px; --r-md:12px; --r-sm:8px;
+  --font:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --wrap:1296px; --gutter:clamp(20px,4vw,48px);
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --bg:#17181A; --bg2:#1F2124; --ink:#F4F2EC; --ink2:#A5A29A; --ink3:#928F87;
+  --line:#2E3134; --accent:#7aaaff; --accent-ink:#0a0b0d; --accent-text:#7aaaff;
+  --accent-hover:#a3c4ff; --green:#6FB394; --wash1:#24211D; --wash2:#1D2422;
+  --track:rgba(244,242,236,.12); --shadow:0 1px 2px rgba(0,0,0,.3),0 16px 40px -16px rgba(0,0,0,.55);
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:1.0625rem;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+img,svg{max-width:100%}
+a{color:inherit}
+h1,h2,h3,h4,p,ul,ol,dl,dd,figure,blockquote{margin:0}
+ul,ol{padding:0;list-style:none}
+button{font:inherit;color:inherit;cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.55}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--accent-text);outline-offset:3px;border-radius:var(--r-sm)}
+.skip{position:absolute;left:12px;top:-60px;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:var(--r-pill);z-index:100;text-decoration:none;font-weight:500}
+.skip:focus{top:12px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.wrap{max-width:var(--wrap);margin-inline:auto;padding-inline:var(--gutter)}
+section[id]{scroll-margin-top:76px}
+#product{scroll-margin-top:84px}
+.sec{padding-block:clamp(56px,7vw,96px)}
+.ico{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+
+/* Type */
+h1{font-weight:500;font-size:clamp(2rem,3.4vw,3.1rem);line-height:1.08;letter-spacing:-.034em}
+h2{font-weight:500;font-size:clamp(1.75rem,3vw,2.5rem);line-height:1.12;letter-spacing:-.03em;text-wrap:balance}
+h3{font-weight:600;font-size:1.0625rem;line-height:1.3;letter-spacing:-.012em}
+.lede{color:var(--ink2);font-size:clamp(1.0625rem,1.4vw,1.1875rem);line-height:1.55;max-width:54ch}
+.muted{color:var(--ink3)}
+.num{font-variant-numeric:tabular-nums}
+.link{color:var(--accent-text);font-weight:500;text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
+.link:hover{text-decoration-thickness:2px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;text-decoration:none;font-weight:500;font-size:1rem;line-height:1;padding:14px 24px;border-radius:var(--r-pill);border:1px solid transparent;transition:background-color .18s,border-color .18s,color .18s}
+.btn-primary{background:var(--accent);color:var(--accent-ink)}
+.btn-primary:hover:not(:disabled){background:var(--accent-hover)}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--ink3)}
+.btn-ghost:hover:not(:disabled){background:var(--bg2);border-color:var(--ink)}
+.btn-sm{padding:9px 16px;font-size:.875rem}
+.textbtn{background:none;border:0;padding:4px 2px;color:var(--accent-text);font-weight:500;font-size:.8125rem;text-decoration:underline;text-underline-offset:3px}
+.tag{display:inline-flex;align-items:center;font-size:.75rem;font-weight:600;line-height:1.3;padding:3px 10px;border-radius:var(--r-pill);background:var(--wash1);color:var(--ink2);white-space:nowrap}
+.tag.ok{background:var(--wash2);color:var(--green)}
+.tag.go{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent-text)}
+
+/* Header */
+.site-header{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;gap:16px;height:64px}
+.brand{display:inline-flex;align-items:flex-end;font-size:22px;font-weight:700;letter-spacing:.01em;line-height:1;text-decoration:none;color:var(--ink);direction:ltr;flex:none}
+.brand .k{height:.9306em;width:.8403em;margin-bottom:.135em;margin-right:.075em;display:block}
+.navlinks{display:flex;align-items:center;gap:0;margin-left:8px}
+.navlinks a{font-size:.9rem;font-weight:500;color:var(--ink2);text-decoration:none;padding:8px 10px;border-radius:var(--r-pill);white-space:nowrap;transition:color .15s,background-color .15s}
+.navlinks a:hover{color:var(--ink);background:var(--wash1)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.nav-right .signin{font-size:.9rem;font-weight:500;color:var(--ink2);text-decoration:none;padding:8px 10px;white-space:nowrap}
+.nav-right .signin:hover{color:var(--ink)}
+.themebtn,.menubtn{border:1px solid var(--line);background:transparent;border-radius:var(--r-pill);padding:7px 13px;font-size:.8125rem;font-weight:500;color:var(--ink2);line-height:1.2;white-space:nowrap}
+.themebtn:hover,.menubtn:hover{border-color:var(--ink3);color:var(--ink)}
+.menubtn{display:none}
+.mnav{display:none;border-top:1px solid var(--line);background:var(--bg);padding:8px var(--gutter) 24px}
+.mnav a.ml{display:block;padding:14px 4px;font-size:1.125rem;font-weight:500;text-decoration:none;border-bottom:1px solid var(--line)}
+.mnav .mcta{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap}
+@media (max-width:1023px){.navlinks{display:none}.menubtn{display:inline-block}.nav-right .signin{display:none}.site-header.open .mnav{display:block}}
+@media (max-width:559px){.nav-right .btn{display:none}.nav{gap:12px}}
+@media (min-width:1024px){.mnav{display:none!important}}
+
+/* Hero */
+.hero{padding-block:clamp(28px,4vw,52px) clamp(48px,6vw,80px)}
+.hero-top{display:grid;grid-template-columns:1fr;gap:24px 48px;align-items:end}
+.hero h1 .l{display:block}
+.hero .lede{margin-top:16px}
+.hero-cta{display:flex;flex-wrap:wrap;gap:12px}
+.proof{display:flex;flex-wrap:wrap;gap:6px 24px;margin-top:22px;font-size:.9375rem;font-weight:500;color:var(--ink2)}
+.proof li{display:flex;align-items:center;gap:9px}
+.proof li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+@media (min-width:1200px){.hero-top{grid-template-columns:1fr auto}}
+@media (max-width:959px){.hero h1 .l{display:inline}}
+
+/* Product preview: the application */
+.appcap{display:flex;justify-content:space-between;align-items:center;gap:8px 16px;flex-wrap:wrap;margin:28px 0 10px;font-size:.8125rem;color:var(--ink3)}
+.appcap b{color:var(--ink2);font-weight:600}
+.app{display:grid;grid-template-columns:168px minmax(0,1fr) 336px;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden;font-size:.875rem;line-height:1.45}
+.side{border-right:1px solid var(--line);background:var(--bg);padding:14px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.ws{display:flex;align-items:center;gap:8px;padding:4px 8px 14px;font-weight:600;font-size:.875rem}
+.ws .k{height:15px;width:13.5px;flex:none}
+.ni{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);color:var(--ink2);font-weight:500}
+.ni.on{background:var(--bg2);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.side .lbl{font-size:.6875rem;color:var(--ink3);padding:16px 10px 4px}
+.side .rec{padding:5px 10px;color:var(--ink2);font-size:.8125rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side .sp{flex:1;min-height:12px}
+.side .mdl{margin:0 4px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-sm);font-size:.75rem;color:var(--ink2);background:var(--bg2)}
+.side .mdl b{display:block;color:var(--ink);font-weight:600}
+.main{display:flex;flex-direction:column;min-width:0}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;padding:11px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.crumb{color:var(--ink3);min-width:0}
+.crumb b{color:var(--ink);font-weight:600}
+.badge{display:inline-flex;align-items:center;gap:7px;font-size:.75rem;font-weight:600;padding:4px 11px;border-radius:var(--r-pill);background:var(--wash1);color:var(--ink);white-space:nowrap}
+.badge::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ink3)}
+.badge[data-s="working"]::before{background:var(--accent);animation:pulse 1.2s ease-in-out infinite}
+.badge[data-s="waiting"]::before{background:var(--accent)}
+.badge[data-s="done"]{background:var(--wash2);color:var(--green)}
+.badge[data-s="done"]::before{background:var(--green)}
+@keyframes pulse{50%{opacity:.35}}
+.convo{padding:18px;display:grid;gap:14px;align-content:start;flex:1}
+.mu{justify-self:end;max-width:88%;background:var(--wash1);border-radius:var(--r-md) var(--r-md) 4px var(--r-md);padding:10px 14px;font-size:.9375rem}
+.mk{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:start}
+.av{width:28px;height:28px;border-radius:50%;background:var(--bg);border:1px solid var(--line);display:grid;place-items:center}
+.av svg{width:12px;height:13px}
+.mk p{font-size:.9375rem;margin-bottom:10px}
+.tm{border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;background:var(--bg2)}
+.tm-h{display:flex;justify-content:space-between;gap:8px;padding:9px 14px;background:var(--bg);font-size:.75rem;color:var(--ink3);font-weight:500}
+.tm-h b{color:var(--ink);font-weight:600}
+.tr{display:grid;grid-template-columns:14px 64px minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
+.tr .nm{font-weight:600}
+.tr .tk{color:var(--ink2);min-width:0}
+.tr .st{font-size:.8125rem;color:var(--ink3);white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right}
+.dt{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--ink3);background:var(--bg2)}
+.tr[data-state="working"] .dt{border-color:var(--accent);background:var(--accent);animation:pulse 1.2s ease-in-out infinite}
+.tr[data-state="done"] .dt{border-color:var(--green);background:var(--green)}
+.tr[data-state="done"] .st{color:var(--green)}
+.tr[data-state="waiting"] .dt{border-color:var(--accent);background:var(--bg2);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 22%,transparent)}
+.tr[data-state="waiting"] .st{color:var(--accent-text);font-weight:600}
+.tr[data-state="pending"] .nm,.tr[data-state="pending"] .tk{color:var(--ink3)}
+.composer{margin:0 18px 16px;border:1px solid var(--line);border-radius:var(--r-md);padding:11px 14px;display:flex;justify-content:space-between;gap:10px;color:var(--ink3);background:var(--bg)}
+.composer span:last-child{font-size:.75rem;border:1px solid var(--line);border-radius:var(--r-pill);padding:1px 9px;white-space:nowrap;color:var(--ink2);background:var(--bg2)}
+.insp{border-left:1px solid var(--line);display:flex;flex-direction:column;min-width:0;background:var(--bg2)}
+.insp-h{padding:11px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.insp-h b{font-weight:600}
+.insp-b{padding:16px;display:grid;gap:14px;align-content:start;flex:1}
+.paper{border:1px solid var(--line);border-radius:var(--r-md);padding:16px 18px;background:var(--bg);transition:opacity .3s}
+.paper[data-ready="0"]{opacity:.35}
+.paper h4{font-size:.9375rem;font-weight:600;letter-spacing:-.01em;margin:0 0 2px}
+.paper .sub{font-size:.75rem;color:var(--ink3);margin-bottom:10px}
+.paper dl{display:grid;gap:6px}
+.paper dl div{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding-top:6px}
+.paper dt{color:var(--ink2)}
+.paper dd{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.paper .est{font-size:.75rem;color:var(--ink3);margin-top:10px}
+.paper .trend{margin-top:10px;font-size:.8125rem;color:var(--ink2);border-left:2px solid var(--accent);padding-left:10px}
+.crit-h{display:flex;justify-content:space-between;gap:8px;font-weight:600;margin-bottom:8px}
+.crit{display:grid;gap:6px}
+.crit li{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start;font-size:.8125rem}
+.crit li i{font-style:normal;font-size:.6875rem;font-weight:700;border-radius:var(--r-pill);padding:1px 8px;background:var(--wash2);color:var(--green);white-space:nowrap}
+.crit li i.no{background:var(--wash1);color:var(--ink3)}
+.cost{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:baseline}
+.cost .lab{font-size:.75rem;color:var(--ink3)}
+.cost .val{font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.bar{grid-column:1/-1;height:5px;border-radius:var(--r-pill);background:var(--track);overflow:hidden;margin-top:4px}
+.bar>i{display:block;height:100%;background:var(--green);border-radius:inherit;transition:width .5s ease}
+.gate{border:1px solid var(--line);border-radius:var(--r-md);padding:14px;background:var(--wash1);display:grid;gap:10px}
+.gate p{font-weight:600;font-size:.875rem}
+.gate .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.gate .okmsg{color:var(--green);font-weight:600}
+.appnote{padding:9px 16px;border-top:1px solid var(--line);font-size:.75rem;color:var(--ink3);min-height:36px;display:flex;align-items:center;gap:10px}
+@media (max-width:1199px){.app{grid-template-columns:150px minmax(0,1fr) 308px}.tr{grid-template-columns:14px 56px minmax(0,1fr) auto}}
+@media (max-width:959px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{flex-direction:row;align-items:center;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:8px 10px;gap:4px}
+  .side .ws,.side .lbl,.side .rec,.side .sp,.side .mdl{display:none}
+  .ni{white-space:nowrap;flex:none}
+  .insp{border-left:0;border-top:1px solid var(--line)}
+}
+@media (max-width:559px){
+  .convo{padding:14px}
+  .composer{margin:0 14px 14px}
+  .tr{grid-template-columns:14px minmax(0,1fr) auto}
+  .tr .tk{grid-column:2/-1;grid-row:2;font-size:.8125rem}
+  .mu{max-width:96%}
+}
+
+/* Kaby learns */
+.lhead{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px clamp(24px,5vw,72px);align-items:end;margin-bottom:clamp(28px,4vw,44px)}
+.lhead .lede{margin-top:14px}
+.control{border-left:3px solid var(--accent);padding:6px 0 6px 20px;font-size:clamp(1.125rem,1.7vw,1.375rem);line-height:1.4;font-weight:500;letter-spacing:-.015em}
+.control span{display:block;color:var(--ink2);font-weight:400;font-size:inherit}
+.win{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
+.win-h{display:flex;align-items:center;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;padding:13px 18px;border-bottom:1px solid var(--line);background:var(--bg)}
+.win-h b{font-weight:600;font-size:.9375rem}
+.win-h small{font-size:.8125rem;color:var(--ink3)}
+.lbody{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
+.sglist{border-right:1px solid var(--line);display:grid;align-content:start}
+.sg{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:start;text-align:left;width:100%;background:transparent;border:0;border-bottom:1px solid var(--line);border-left:3px solid transparent;padding:14px 16px;border-radius:0}
+.sg:last-child{border-bottom:0}
+.sg:hover{background:var(--bg)}
+.sg[aria-pressed="true"]{background:var(--wash1);border-left-color:var(--accent)}
+.sg .ty{font-size:.75rem;font-weight:600;color:var(--accent-text)}
+.sg .ti{grid-column:1;font-weight:600;font-size:.9375rem}
+.sg .ev{grid-column:1;font-size:.8125rem;color:var(--ink3);line-height:1.4}
+.sg .tag{grid-column:2;grid-row:1/3;justify-self:end}
+.sgdet{padding:clamp(18px,2.6vw,28px);min-height:340px}
+.sgdet>div{display:grid;gap:14px;align-content:start}
+.sgdet .ty{font-size:.75rem;font-weight:600;color:var(--accent-text)}
+.sgdet h3{font-size:1.25rem;letter-spacing:-.02em}
+.sgdet .why{color:var(--ink2);font-size:.9375rem}
+.pv{border:1px solid var(--line);border-radius:var(--r-md);background:var(--bg);padding:6px 16px}
+.pv dl div{display:grid;grid-template-columns:96px 1fr;gap:12px;padding:9px 0;border-top:1px solid var(--line);font-size:.875rem}
+.pv dl div:first-child{border-top:0}
+.pv dt{color:var(--ink3)}
+.pv dd{font-weight:500}
+.pv ul{padding:8px 0;display:grid;gap:6px;font-size:.875rem}
+.pv li{padding-left:16px;position:relative}
+.pv li::before{content:"";position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:50%;background:var(--ink3)}
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 0}
+.ba>div{border:1px solid var(--line);border-radius:var(--r-sm);padding:10px;background:var(--bg2);display:grid;gap:5px}
+.ba small{font-size:.6875rem;font-weight:600;color:var(--ink3)}
+.ba i{display:block;height:20px;border-radius:5px;background:var(--track);font-style:normal;font-size:.6875rem;line-height:20px;padding-inline:8px;color:var(--ink2);white-space:nowrap;overflow:hidden}
+.ba i.hl{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent-text);font-weight:600}
+.acts{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.acts .done{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-weight:600;font-size:.9375rem}
+.acts .done.ok{color:var(--green)}
+@media (max-width:859px){.lhead{grid-template-columns:1fr}.lbody{grid-template-columns:1fr}.sglist{border-right:0;border-bottom:1px solid var(--line)}.sgdet{min-height:0}}
+@media (max-width:479px){.pv dl div{grid-template-columns:1fr;gap:2px}.ba{grid-template-columns:1fr}}
+
+/* Use cases */
+.uhead{display:flex;justify-content:space-between;align-items:end;gap:16px 32px;flex-wrap:wrap;margin-bottom:clamp(24px,3.5vw,40px)}
+.uhead p{color:var(--ink3);font-size:.9375rem}
+.ucs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.uc{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--bg2);padding:22px;display:grid;gap:14px;align-content:start}
+.uc h3{font-size:1.1875rem;letter-spacing:-.02em}
+.uc p{color:var(--ink2);font-size:.9375rem}
+.mini{border:1px solid var(--line);border-radius:var(--r-md);background:var(--bg);overflow:hidden}
+.mini li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--line);font-size:.8125rem;font-weight:500}
+.mini li:first-child{border-top:0}
+.uc-more{margin-top:24px}
+@media (max-width:859px){.ucs{grid-template-columns:1fr}}
+
+/* Team */
+.team{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(28px,5vw,72px);align-items:center}
+.team .lede{margin-top:14px}
+.flow{display:grid;gap:0;margin-top:28px;max-width:340px}
+.flow li{display:flex;align-items:center;gap:12px;border:1px solid var(--line);background:var(--bg2);border-radius:var(--r-md);padding:12px 16px;font-weight:600;font-size:.9375rem}
+.flow li .n{width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:.75rem;flex:none}
+.flow .ar{display:grid;place-items:center;height:22px;color:var(--ink3)}
+.flow .ar svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.truth{margin-top:22px;font-size:.9375rem;color:var(--ink2);border-left:2px solid var(--line);padding-left:14px}
+.tabs{display:flex;gap:6px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap;align-items:center}
+.tab{border:1px solid transparent;background:transparent;border-radius:var(--r-pill);padding:6px 14px;font-size:.875rem;font-weight:500;color:var(--ink2)}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.tabs .who{margin-left:auto;font-size:.8125rem;color:var(--ink3)}
+.trow{display:grid;grid-template-columns:minmax(0,1fr) 44px auto;gap:12px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+.trow .tn b{display:block;font-size:.9375rem;font-weight:600}
+.trow .tn span{font-size:.8125rem;color:var(--ink3)}
+.trow .tv{font-size:.8125rem;color:var(--ink3);font-variant-numeric:tabular-nums}
+.trow .ta{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.twin-f{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 18px;font-size:.8125rem;color:var(--ink3)}
+@media (max-width:859px){.team{grid-template-columns:1fr}}
+@media (max-width:479px){.trow{grid-template-columns:minmax(0,1fr) auto}.trow .tv{display:none}.tabs .who{display:none}}
+
+/* Beta proof and closing */
+.proofq{max-width:900px}
+.proofq p{font-size:clamp(1.5rem,2.8vw,2.375rem);line-height:1.22;letter-spacing:-.025em;font-weight:500;text-wrap:balance}
+.proofq figcaption{margin-top:18px;color:var(--ink3);font-size:.9375rem;display:grid;gap:2px}
+.proofq figcaption b{color:var(--ink2);font-weight:600}
+.band{background:var(--wash1);border:1px solid var(--line);border-radius:var(--r-xl);padding:clamp(28px,5vw,64px);display:grid;grid-template-columns:1.1fr 1fr;gap:20px clamp(24px,5vw,72px);align-items:center}
+.band h2{font-size:clamp(1.875rem,3.6vw,2.875rem)}
+.band .hero-cta{justify-content:flex-start}
+.band .meta{margin-top:14px;font-size:.875rem;color:var(--ink3)}
+@media (max-width:859px){.band{grid-template-columns:1fr}}
+
+/* Footer */
+.footer{border-top:1px solid var(--line);padding-block:36px 44px;margin-top:clamp(56px,7vw,96px)}
+.foot-grid{display:flex;justify-content:space-between;align-items:center;gap:20px 32px;flex-wrap:wrap}
+.foot-links{display:flex;flex-wrap:wrap;gap:4px 22px;font-size:.9375rem}
+.foot-links a{text-decoration:none;color:var(--ink2);padding:4px 0}
+.foot-links a:hover{color:var(--ink);text-decoration:underline;text-underline-offset:4px}
+.legal{margin-top:24px;font-size:.8125rem;color:var(--ink3)}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+.static *,.static *::before,.static *::after{animation:none!important;transition:none!important}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-chat" viewBox="0 0 16 16"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z"/></symbol>
+  <symbol id="i-team" viewBox="0 0 16 16"><circle cx="8" cy="4" r="1.8"/><circle cx="3.6" cy="11.5" r="1.8"/><circle cx="12.4" cy="11.5" r="1.8"/><path d="M7 5.6 4.6 9.9M9 5.6l2.4 4.3M5.4 11.5h5.2"/></symbol>
+  <symbol id="i-auto" viewBox="0 0 16 16"><path d="M9 1.8 3.8 9h3.6L7 14.2 12.2 7H8.6z"/></symbol>
+  <symbol id="i-skill" viewBox="0 0 16 16"><path d="M3.5 2.5h7l2 2v9h-9z"/><path d="M5.5 7h5M5.5 9.5h5"/></symbol>
+  <symbol id="i-create" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h2.5"/></symbol>
+  <symbol id="i-plug" viewBox="0 0 16 16"><path d="M5.5 2v3.5M10.5 2v3.5M4 5.5h8v2.5a4 4 0 0 1-8 0zM8 12v2.5"/></symbol>
+  <symbol id="i-k" viewBox="0 0 32.5 36"><g fill="#f2372a" stroke="none"><rect x="0" y="0" width="13" height="36"/><polygon points="21,0 31,0 13,28.3 13,12.6"/><polygon points="13,22 22,36 32.5,36 20.3,16.8 13,16.8"/></g><g fill="#ffffff" stroke="none"><circle cx="6.5" cy="7.5" r="2.8"/><circle cx="6.5" cy="18" r="2.8"/><circle cx="6.5" cy="28.5" r="2.8"/></g></symbol>
+</svg>
+
+<header class="site-header" id="siteHeader">
+  <div class="wrap">
+    <div class="nav">
+      <a class="brand" href="#top" aria-label="Kybernos, back to top">
+        <svg class="k" viewBox="0 0 32.5 36" aria-hidden="true" focusable="false"><g fill="#f2372a"><rect x="0" y="0" width="13" height="36"/><polygon points="21,0 31,0 13,28.3 13,12.6"/><polygon points="13,22 22,36 32.5,36 20.3,16.8 13,16.8"/></g><g fill="#ffffff"><circle cx="6.5" cy="7.5" r="2.8"/><circle cx="6.5" cy="18" r="2.8"/><circle cx="6.5" cy="28.5" r="2.8"/></g></svg><span aria-hidden="true">ybernos</span>
+      </a>
+      <nav class="navlinks" aria-label="Main">
+        <a href="#product">Product</a>
+        <a href="#learns">Kaby learns</a>
+        <a href="#use-cases">Use cases</a>
+        <a href="#teams">Team</a>
+        <a href="https://kybernos.app/pricing">Pricing</a>
+      </nav>
+      <div class="nav-right">
+        <a class="signin" href="https://kybernos.app/signin">Sign in</a>
+        <button type="button" class="themebtn" id="themeBtn" aria-label="Switch to dark theme">Dark</button>
+        <a class="btn btn-primary btn-sm" href="https://kybernos.app/download">Install free</a>
+        <button type="button" class="menubtn" id="menuBtn" aria-expanded="false" aria-controls="mnav">Menu</button>
+      </div>
+    </div>
+  </div>
+  <div class="mnav" id="mnav">
+    <nav aria-label="Mobile">
+      <a class="ml" href="#product">Product</a>
+      <a class="ml" href="#learns">Kaby learns</a>
+      <a class="ml" href="#use-cases">Use cases</a>
+      <a class="ml" href="#teams">Team</a>
+      <a class="ml" href="https://kybernos.app/pricing">Pricing</a>
+    </nav>
+    <div class="mcta">
+      <a class="btn btn-primary" href="https://kybernos.app/download">Install free</a>
+      <a class="btn btn-ghost" href="https://kybernos.app/signin">Sign in</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<!-- 1. Hero with the application preview -->
+<section class="hero" id="top" aria-labelledby="hero-title">
+  <div class="wrap">
+    <div class="hero-top">
+      <div>
+        <h1 id="hero-title"><span class="l">From brief to reviewed work.</span> <span class="l">You stay in control.</span></h1>
+        <p class="lede">Open-source workspace to delegate work to agent teams, with a second agent reviewing it and you setting the models, tools and limits.</p>
+      </div>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="https://kybernos.app/download">Install free</a>
+        <button type="button" class="btn btn-ghost" id="runDemo">Run the demo</button>
+      </div>
+    </div>
+    <ul class="proof" aria-label="Highlights">
+      <li>Any model, local or hosted</li>
+      <li>Open source</li>
+      <li>500+ compatible tools</li>
+    </ul>
+
+    <div class="appcap"><span><b>Interactive product preview</b> · simulated data</span><span>Select Run the demo, Approve or Ask for changes</span></div>
+    <div class="app" id="product" role="group" aria-label="Kybernos application preview, simulated data" data-phase="waiting">
+      <div class="side">
+        <div class="ws"><svg class="k" viewBox="0 0 32.5 36" aria-hidden="true" focusable="false"><use href="#i-k"/></svg>Your workspace</div>
+        <div class="ni on" aria-current="page"><svg class="ico" aria-hidden="true"><use href="#i-chat"/></svg>Chat</div>
+        <div class="ni"><svg class="ico" aria-hidden="true"><use href="#i-team"/></svg>Agent Teams</div>
+        <div class="ni"><svg class="ico" aria-hidden="true"><use href="#i-auto"/></svg>Automations</div>
+        <div class="ni"><svg class="ico" aria-hidden="true"><use href="#i-skill"/></svg>Skills</div>
+        <div class="ni"><svg class="ico" aria-hidden="true"><use href="#i-create"/></svg>Creations</div>
+        <div class="ni"><svg class="ico" aria-hidden="true"><use href="#i-plug"/></svg>Connectors</div>
+        <div class="lbl">Recent</div>
+        <div class="rec">Weekly support recap</div>
+        <div class="rec">Reply to refund request</div>
+        <div class="sp"></div>
+        <div class="mdl"><b>Models</b>Any, local or hosted</div>
+      </div>
+
+      <div class="main">
+        <div class="topbar">
+          <span class="crumb">Chat / <b>Weekly support recap</b></span>
+          <span class="badge" id="appBadge" data-s="waiting">Needs your approval</span>
+        </div>
+        <div class="convo">
+          <div class="mu">Recap last week's support tickets as a one-page summary for Monday. Ask me before sending.</div>
+          <div class="mk">
+            <span class="av" aria-hidden="true"><svg viewBox="0 0 32.5 36" focusable="false"><use href="#i-k"/></svg></span>
+            <div>
+              <p>I planned a small team. A second agent checks the draft against your criteria.</p>
+              <div class="tm">
+                <div class="tm-h"><b>Agent team</b><span>Sending needs your approval</span></div>
+                <ol id="agentRows">
+                  <li class="tr" data-state="done"><span class="dt" aria-hidden="true"></span><span class="nm">Reader</span><span class="tk">Groups 214 tickets by topic</span><span class="st">Done · €0.10</span></li>
+                  <li class="tr" data-state="done"><span class="dt" aria-hidden="true"></span><span class="nm">Writer</span><span class="tk">Drafts the one-page recap</span><span class="st">Done · €0.15</span></li>
+                  <li class="tr" data-state="done"><span class="dt" aria-hidden="true"></span><span class="nm">Checker</span><span class="tk">Reviews it against 4 criteria</span><span class="st">Done · €0.06</span></li>
+                  <li class="tr" data-state="waiting"><span class="dt" aria-hidden="true"></span><span class="nm">You</span><span class="tk">Approve before it is sent</span><span class="st">Waiting for you</span></li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="composer" aria-hidden="true"><span>Ask for changes or start a new task</span><span>Any model</span></div>
+      </div>
+
+      <aside class="insp" aria-label="Review panel">
+        <div class="insp-h"><b>Review</b><span class="tag" id="draftTag">Draft 1</span></div>
+        <div class="insp-b">
+          <div class="paper" id="paper" data-ready="1">
+            <h4>Support recap, last week</h4>
+            <p class="sub">One page · from 214 tickets</p>
+            <dl>
+              <div><dt>Billing questions</dt><dd>62</dd></div>
+              <div><dt>Login help</dt><dd>48</dd></div>
+              <div><dt>Export errors</dt><dd>31</dd></div>
+            </dl>
+            <p class="est">Resolution time is marked as an estimate.</p>
+            <p class="trend" id="paperTrend" hidden>Added: volume compared with the week before.</p>
+          </div>
+          <div>
+            <div class="crit-h"><span>Checker</span><span id="critCount">4 of 4 criteria</span></div>
+            <ul class="crit" id="critList">
+              <li><i>Met</i>Covers all 214 tickets</li>
+              <li><i>Met</i>Top three topics with counts</li>
+              <li><i>Met</i>Fits one page</li>
+              <li><i>Met</i>Estimates are marked</li>
+            </ul>
+          </div>
+          <div class="cost">
+            <span class="lab">Cost this run</span><span class="val" id="costVal">€0.31</span>
+            <span class="lab">Daily cap</span><span class="val">€5.00</span>
+            <div class="bar" aria-hidden="true"><i id="capBar" style="width:6.2%"></i></div>
+          </div>
+          <div class="gate" id="gate">
+            <p id="gateMsg">Send this recap to your support team?</p>
+            <div class="row" id="gateActs">
+              <button type="button" class="btn btn-primary btn-sm" id="approveBtn">Approve (simulated)</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="changesBtn">Ask for changes</button>
+            </div>
+            <div class="row" id="gateDone" hidden>
+              <span class="okmsg">Approved (simulated). Nothing was sent.</span>
+              <button type="button" class="textbtn" id="replayBtn">Replay</button>
+            </div>
+          </div>
+        </div>
+        <div class="appnote" id="appNote" role="status">Simulated data. Nothing is sent from this page.</div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- 2. Kaby learns -->
+<section class="sec" id="learns" aria-labelledby="learns-title">
+  <div class="wrap">
+    <div class="lhead">
+      <div>
+        <h2 id="learns-title">Kaby learns from your work every day.</h2>
+        <p class="lede">It notices repeated work and suggests what could help next.</p>
+      </div>
+      <p class="control">You stay in control. <span>Nothing becomes active without your approval.</span></p>
+    </div>
+
+    <div class="win" id="kaby" role="group" aria-label="Kaby suggestions, illustrative and simulated">
+      <div class="win-h"><b>Kaby suggestions</b><small>Illustrative suggestions based on repeated work · simulated data</small></div>
+      <div class="lbody">
+        <ul class="sglist" aria-label="Suggestions">
+          <li><button type="button" class="sg" id="sgb1" aria-pressed="true" aria-controls="sgp1" data-i="1">
+            <span class="ty">Create automation</span><span class="ti">Monday support recap</span><span class="ev">Requested 4 Mondays in a row</span><span class="tag go" data-tag>Suggested</span></button></li>
+          <li><button type="button" class="sg" id="sgb2" aria-pressed="false" aria-controls="sgp2" data-i="2">
+            <span class="ty">New skill</span><span class="ti">Refund-policy replies</span><span class="ev">You edited 6 drafts the same way</span><span class="tag go" data-tag>Suggested</span></button></li>
+          <li><button type="button" class="sg" id="sgb3" aria-pressed="false" aria-controls="sgp3" data-i="3">
+            <span class="ty">Fetch skill</span><span class="ti">HubSpot lead research</span><span class="ev">Found in the skill catalog</span><span class="tag go" data-tag>Suggested</span></button></li>
+          <li><button type="button" class="sg" id="sgb4" aria-pressed="false" aria-controls="sgp4" data-i="4">
+            <span class="ty">Enhance UI</span><span class="ti">A clearer review panel</span><span class="ev">You open the criteria first, every run</span><span class="tag go" data-tag>Suggested</span></button></li>
+        </ul>
+
+        <div class="sgdet" id="sgDetail" aria-live="polite">
+          <div id="sgp1" data-i="1">
+            <p class="ty">Create automation</p>
+            <h3>Monday support recap</h3>
+            <p class="why">Same brief, same team, every Monday morning.</p>
+            <div class="pv"><dl>
+              <div><dt>When</dt><dd>Mondays at 8:00</dd></div>
+              <div><dt>Team</dt><dd>Reader, Writer, Checker</dd></div>
+              <div><dt>Asks first</dt><dd>Before sending</dd></div>
+              <div><dt>Starts</dt><dd>Paused until you switch it on</dd></div>
+            </dl></div>
+            <div class="acts" data-acts><button type="button" class="btn btn-primary btn-sm" data-add data-msg="Added as a paused automation (simulated)">Add automation</button><button type="button" class="btn btn-ghost btn-sm" data-later>Not now</button></div>
+            <div class="acts" data-state hidden><span class="done"><span data-statetxt></span><button type="button" class="textbtn" data-undo>Undo</button></span></div>
+          </div>
+          <div id="sgp2" data-i="2" hidden>
+            <p class="ty">New skill</p>
+            <h3>Refund-policy replies</h3>
+            <p class="why">A draft skill built from how you already answer.</p>
+            <div class="pv"><ul>
+              <li>Acknowledge the issue first</li>
+              <li>State the refund window plainly</li>
+              <li>Offer one clear next step</li>
+            </ul></div>
+            <div class="acts" data-acts><button type="button" class="btn btn-primary btn-sm" data-add data-msg="Skill added to Yours (simulated)">Add skill</button><button type="button" class="btn btn-ghost btn-sm" data-later>Not now</button></div>
+            <div class="acts" data-state hidden><span class="done"><span data-statetxt></span><button type="button" class="textbtn" data-undo>Undo</button></span></div>
+          </div>
+          <div id="sgp3" data-i="3" hidden>
+            <p class="ty">Fetch skill</p>
+            <h3>HubSpot lead research</h3>
+            <p class="why">Kaby found a skill for work you do by hand. You choose whether to install it.</p>
+            <div class="pv"><dl>
+              <div><dt>Found in</dt><dd>The skill catalog</dd></div>
+              <div><dt>Matches</dt><dd>Your weekly lead review</dd></div>
+              <div><dt>Needs</dt><dd>HubSpot connected</dd></div>
+            </dl></div>
+            <div class="acts" data-acts><button type="button" class="btn btn-primary btn-sm" data-add data-msg="Skill installed (simulated)">Install skill</button><button type="button" class="btn btn-ghost btn-sm" data-later>Not now</button></div>
+            <div class="acts" data-state hidden><span class="done"><span data-statetxt></span><button type="button" class="textbtn" data-undo>Undo</button></span></div>
+          </div>
+          <div id="sgp4" data-i="4" hidden>
+            <p class="ty">Enhance UI</p>
+            <h3>A clearer review panel</h3>
+            <p class="why">Put the criteria and the approval first. You review the change before it applies.</p>
+            <div class="pv"><div class="ba">
+              <div><small>Today</small><i>Preview</i><i>Criteria</i><i>Approve</i></div>
+              <div><small>Suggested</small><i class="hl">Criteria</i><i class="hl">Approve</i><i>Preview</i></div>
+            </div></div>
+            <div class="acts" data-acts><button type="button" class="btn btn-primary btn-sm" data-add data-msg="Layout applied (simulated)">Review and apply</button><button type="button" class="btn btn-ghost btn-sm" data-later>Not now</button></div>
+            <div class="acts" data-state hidden><span class="done"><span data-statetxt></span><button type="button" class="textbtn" data-undo>Undo</button></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. Use cases -->
+<section class="sec" id="use-cases" aria-labelledby="uc-title" style="padding-top:0">
+  <div class="wrap">
+    <div class="uhead">
+      <h2 id="uc-title">Real work, ready to review.</h2>
+      <p>Illustrative examples, simulated status.</p>
+    </div>
+    <div class="ucs">
+      <article class="uc">
+        <h3>Support</h3>
+        <p>Weekly recaps and reply drafts, waiting for your decision.</p>
+        <ul class="mini" aria-label="Support example">
+          <li>Weekly recap <span class="tag go">Ready to approve</span></li>
+          <li>Refund reply <span class="tag">Drafted</span></li>
+        </ul>
+      </article>
+      <article class="uc">
+        <h3>Operations</h3>
+        <p>Reports and follow-ups prepared before the week starts.</p>
+        <ul class="mini" aria-label="Operations example">
+          <li>Weekly report <span class="tag ok">Scheduled</span></li>
+          <li>Invoice follow-ups <span class="tag go">Ready to approve</span></li>
+        </ul>
+      </article>
+      <article class="uc">
+        <h3>Sales &amp; marketing</h3>
+        <p>Lead research and campaign drafts, checked before they go out.</p>
+        <ul class="mini" aria-label="Sales and marketing example">
+          <li>Lead research <span class="tag ok">Reviewed</span></li>
+          <li>Newsletter draft <span class="tag go">Ready to approve</span></li>
+        </ul>
+      </article>
+    </div>
+    <p class="uc-more"><a class="link" href="https://kybernos.app/use-cases">Explore all 9 fields</a></p>
+  </div>
+</section>
+
+<!-- 4. Team -->
+<section class="sec" id="teams" aria-labelledby="team-title" style="padding-top:0">
+  <div class="wrap team">
+    <div>
+      <h2 id="team-title">Share what works with your team.</h2>
+      <p class="lede">Turn one person's best skill or automation into a team standard.</p>
+      <ol class="flow" aria-label="How sharing works">
+        <li><span class="n" aria-hidden="true">1</span>Member proposes</li>
+        <li class="ar" aria-hidden="true" style="border:0;background:none;padding:0"><svg viewBox="0 0 16 16"><path d="M8 2v11M3.5 8.5 8 13l4.500-4.500"/></svg></li>
+        <li><span class="n" aria-hidden="true">2</span>Admin approves</li>
+        <li class="ar" aria-hidden="true" style="border:0;background:none;padding:0"><svg viewBox="0 0 16 16"><path d="M8 2v11M3.5 8.5 8 13l4.500-4.500"/></svg></li>
+        <li><span class="n" aria-hidden="true">3</span>Team installs</li>
+      </ol>
+      <p class="truth">Installed automations start as paused copies. Personal skills stay private.</p>
+    </div>
+
+    <div class="win" id="teamWin" role="group" aria-label="Team page preview, simulated data">
+      <div class="win-h"><b>Your team</b><small>Simulated data</small></div>
+      <div class="tabs" role="tablist" aria-label="Team library">
+        <button type="button" class="tab" role="tab" id="tt1" aria-selected="true" aria-controls="tp1" tabindex="0">Skills</button>
+        <button type="button" class="tab" role="tab" id="tt2" aria-selected="false" aria-controls="tp2" tabindex="-1">Automations</button>
+        <span class="who">Approved by an admin</span>
+      </div>
+      <div role="tabpanel" id="tp1" aria-labelledby="tt1">
+        <ul>
+          <li class="trow"><div class="tn"><b>Refund-policy replies</b><span>Added by Support lead</span></div><span class="tv">v2</span><div class="ta"><span class="tag ok">Approved</span><button type="button" class="btn btn-primary btn-sm inst" data-done="Installed" aria-label="Install Refund-policy replies">Install</button></div></li>
+          <li class="trow"><div class="tn"><b>Weekly KPI summary</b><span>Proposed by Ops manager</span></div><span class="tv">v1</span><div class="ta"><span class="tag go">Waiting for review</span></div></li>
+        </ul>
+      </div>
+      <div role="tabpanel" id="tp2" aria-labelledby="tt2" hidden>
+        <ul>
+          <li class="trow"><div class="tn"><b>Monday support recap</b><span>Added by Ops manager · Mondays 8:00</span></div><span class="tv">v3</span><div class="ta"><span class="tag ok">Approved</span><button type="button" class="btn btn-primary btn-sm inst" data-done="Installed · Paused copy" aria-label="Install Monday support recap">Install</button></div></li>
+          <li class="trow"><div class="tn"><b>Invoice follow-ups</b><span>Proposed by Support lead</span></div><span class="tv">v1</span><div class="ta"><span class="tag go">Waiting for review</span></div></li>
+        </ul>
+      </div>
+      <div class="twin-f"><span id="teamNote" role="status">Select Install to try it.</span><button type="button" class="textbtn" id="teamReset">Reset</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. Beta proof and closing CTA -->
+<section class="sec" id="beta" aria-labelledby="beta-label" style="padding-top:0">
+  <div class="wrap">
+    <h2 class="sr" id="beta-label">From the private beta</h2>
+    <figure class="proofq">
+      <blockquote><p>“Monday morning used to be four hours of catching up. Now it's one summary and two decisions.”</p></blockquote>
+      <figcaption><b>Operations lead · 22-person agency</b><span>Private beta · quote shared with permission</span></figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="sec" id="start" aria-labelledby="start-title" style="padding-top:0;padding-bottom:0">
+  <div class="wrap">
+    <div class="band">
+      <h2 id="start-title">Ready to delegate your first task?</h2>
+      <div>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="https://kybernos.app/download">Install free</a>
+          <a class="btn btn-ghost" href="https://kybernos.app/enterprise">Explore enterprise</a>
+        </div>
+        <p class="meta">Free and open source. You approve what gets sent.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="foot-grid">
+      <a class="brand" href="#top" aria-label="Kybernos, back to top">
+        <svg class="k" viewBox="0 0 32.5 36" aria-hidden="true" focusable="false"><g fill="#f2372a"><rect x="0" y="0" width="13" height="36"/><polygon points="21,0 31,0 13,28.3 13,12.6"/><polygon points="13,22 22,36 32.5,36 20.3,16.8 13,16.8"/></g><g fill="#ffffff"><circle cx="6.5" cy="7.5" r="2.8"/><circle cx="6.5" cy="18" r="2.8"/><circle cx="6.5" cy="28.5" r="2.8"/></g></svg><span aria-hidden="true">ybernos</span>
+      </a>
+      <nav class="foot-links" aria-label="Footer">
+        <a href="#product">Product</a>
+        <a href="#learns">Kaby learns</a>
+        <a href="#teams">Team</a>
+        <a href="https://kybernos.app/pricing">Pricing</a>
+        <a href="https://kybernos.app/legal/terms">Terms</a>
+        <a href="https://kybernos.app/legal/privacy">Privacy</a>
+      </nav>
+    </div>
+    <p class="legal">© 2026 DIGI TECHNOLOGIES. Product previews use simulated data.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+  var $=function(s,r){return (r||document).querySelector(s)};
+  var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+  var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var still=reduce||document.documentElement.classList.contains('static');
+  var sleep=function(ms){return new Promise(function(r){setTimeout(r,still?0:ms)})};
+  var eur=function(n){return '€'+n.toFixed(2)};
+
+  /* Theme */
+  var root=document.documentElement, tb=$('#themeBtn');
+  function paintTheme(){
+    var dark=root.getAttribute('data-theme')==='dark';
+    tb.textContent=dark?'Light':'Dark';
+    tb.setAttribute('aria-label',dark?'Switch to light theme':'Switch to dark theme');
+  }
+  tb.addEventListener('click',function(){
+    var next=root.getAttribute('data-theme')==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('kb-theme',next);}catch(e){}
+    paintTheme();
+  });
+  paintTheme();
+
+  /* Mobile menu */
+  var hdr=$('#siteHeader'), mb=$('#menuBtn');
+  function setMenu(open){
+    hdr.classList.toggle('open',open);
+    mb.setAttribute('aria-expanded',String(open));
+    mb.textContent=open?'Close':'Menu';
+  }
+  mb.addEventListener('click',function(){setMenu(!hdr.classList.contains('open'))});
+  $$('#mnav a').forEach(function(a){a.addEventListener('click',function(){setMenu(false)})});
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'&&hdr.classList.contains('open')){setMenu(false);mb.focus();}
+  });
+  window.addEventListener('resize',function(){if(window.innerWidth>=1024)setMenu(false)});
+
+  /* Hero application: simulated weekly recap */
+  var app=$('#product'), badge=$('#appBadge'), rows=$$('#agentRows .tr');
+  var paper=$('#paper'), crit=$$('#critList li'), critCount=$('#critCount');
+  var costVal=$('#costVal'), capBar=$('#capBar'), trend=$('#paperTrend'), draftTag=$('#draftTag');
+  var gateMsg=$('#gateMsg'), gateActs=$('#gateActs'), gateDone=$('#gateDone');
+  var approveBtn=$('#approveBtn'), changesBtn=$('#changesBtn'), replayBtn=$('#replayBtn'), note=$('#appNote');
+  var taskTxt=rows.map(function(r){return $('.tk',r).textContent});
+  var first=[0.10,0.15,0.06], revised=[0.10,0.19,0.08];
+  var shown=first.slice(), token=0;
+  gateMsg.setAttribute('tabindex','-1');
+
+  function setRow(i,s,label){rows[i].setAttribute('data-state',s);$('.st',rows[i]).textContent=label;}
+  function setBadge(s,t){badge.setAttribute('data-s',s);badge.textContent=t;}
+  function setCost(){
+    var t=shown[0]+shown[1]+shown[2];
+    costVal.textContent=eur(t);
+    capBar.style.width=(t/5*100).toFixed(1)+'%';
+  }
+  function setCrit(met){
+    crit.forEach(function(li){
+      var i=$('i',li);
+      i.textContent=met?'Met':'Pending';
+      i.className=met?'':'no';
+    });
+    critCount.textContent=met?'4 of 4 criteria':'Not reviewed yet';
+  }
+  function setGate(mode){
+    gateActs.hidden=(mode==='approved');
+    gateDone.hidden=(mode!=='approved');
+    approveBtn.disabled=changesBtn.disabled=(mode==='busy');
+    gateMsg.textContent=mode==='busy'?'Available when the Checker finishes.':mode==='approved'?'Decision recorded.':'Send this recap to your support team?';
+  }
+  function lastRowWaiting(){setRow(3,'waiting','Waiting for you');}
+
+  async function play(revise){
+    var tk=++token;
+    var start=revise?1:0;
+    setGate('busy');
+    setBadge('working','Running');
+    if(revise){
+      $('.tk',rows[1]).textContent='Adds the week-over-week trend';
+      $('.tk',rows[2]).textContent='Re-checks all 4 criteria';
+      draftTag.textContent='Draft 2';
+    }else{
+      shown=[0,0,0];
+      rows.forEach(function(r,i){$('.tk',r).textContent=taskTxt[i];});
+      trend.hidden=true;
+      draftTag.textContent='Draft 1';
+    }
+    for(var i=start;i<3;i++)setRow(i,'pending','Queued');
+    setRow(3,'pending','Queued');
+    paper.setAttribute('data-ready','0');
+    setCrit(false);
+    setCost();
+    note.textContent='Running (simulated)';
+    var target=revise?revised:first;
+    for(var j=start;j<3;j++){
+      setRow(j,'working',revise&&j===1?'Revising':'Working');
+      await sleep(850);
+      if(tk!==token)return;
+      shown[j]=target[j];
+      setCost();
+      setRow(j,'done','Done · '+eur(target[j]));
+      if(j===1){paper.setAttribute('data-ready','1');if(revise)trend.hidden=false;}
+    }
+    setCrit(true);
+    lastRowWaiting();
+    setBadge('waiting','Needs your approval');
+    setGate('wait');
+    changesBtn.hidden=revise;
+    note.textContent=revise?'Draft 2 is ready (simulated). Nothing is sent.':'Review ready (simulated). Nothing is sent.';
+  }
+  function approve(){
+    token++;
+    setRow(3,'done','Approved');
+    setBadge('done','Approved (simulated)');
+    setGate('approved');
+    note.textContent='Approved in the simulation. Nothing was sent.';
+    replayBtn.focus();
+  }
+  approveBtn.addEventListener('click',approve);
+  changesBtn.addEventListener('click',function(){play(true);gateMsg.focus();});
+  replayBtn.addEventListener('click',function(){play(false);gateMsg.focus();});
+  $('#runDemo').addEventListener('click',function(){
+    var r=app.getBoundingClientRect();
+    if(r.top>window.innerHeight*0.6||r.top<0){app.scrollIntoView({behavior:still?'auto':'smooth',block:'start'});}
+    changesBtn.hidden=false;
+    play(false);
+  });
+
+  /* Kaby suggestions */
+  var sgb=$$('#kaby .sg'), panels=$$('#sgDetail>div');
+  function pick(i){
+    sgb.forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-i')===i));});
+    panels.forEach(function(p){p.hidden=(p.getAttribute('data-i')!==i);});
+  }
+  sgb.forEach(function(b){b.addEventListener('click',function(){pick(b.getAttribute('data-i'));});});
+  function sgSet(panel,st){
+    var i=panel.getAttribute('data-i'), tag=$('[data-tag]',sgb[i-1]);
+    var acts=$('[data-acts]',panel), box=$('[data-state]',panel), done=$('.done',box);
+    var add=$('[data-add]',panel);
+    if(st==='none'){
+      acts.hidden=false;box.hidden=true;
+      tag.textContent='Suggested';tag.className='tag go';
+      add.focus();
+      return;
+    }
+    acts.hidden=true;box.hidden=false;
+    done.classList.toggle('ok',st==='added');
+    $('[data-statetxt]',box).textContent=st==='added'?add.getAttribute('data-msg'):'Not now (simulated)';
+    tag.textContent=st==='added'?'Added (simulated)':'Not now';
+    tag.className=st==='added'?'tag ok':'tag';
+    $('[data-undo]',box).focus();
+  }
+  panels.forEach(function(p){
+    $('[data-add]',p).addEventListener('click',function(){sgSet(p,'added');});
+    $('[data-later]',p).addEventListener('click',function(){sgSet(p,'later');});
+    $('[data-undo]',p).addEventListener('click',function(){sgSet(p,'none');});
+  });
+
+  /* Team page */
+  var tabs=$$('#teamWin [role="tab"]'), tnote=$('#teamNote');
+  var tnoteDefault=tnote.textContent;
+  function selTab(t,focus){
+    tabs.forEach(function(x){
+      var on=(x===t);
+      x.setAttribute('aria-selected',String(on));
+      x.setAttribute('tabindex',on?'0':'-1');
+      document.getElementById(x.getAttribute('aria-controls')).hidden=!on;
+    });
+    if(focus)t.focus();
+  }
+  tabs.forEach(function(t,i){
+    t.addEventListener('click',function(){selTab(t,false);});
+    t.addEventListener('keydown',function(e){
+      var n=null;
+      if(e.key==='ArrowRight')n=tabs[(i+1)%tabs.length];
+      else if(e.key==='ArrowLeft')n=tabs[(i+tabs.length-1)%tabs.length];
+      else if(e.key==='Home')n=tabs[0];
+      else if(e.key==='End')n=tabs[tabs.length-1];
+      if(n){e.preventDefault();selTab(n,true);}
+    });
+  });
+  $$('#teamWin .inst').forEach(function(b){
+    b.addEventListener('click',function(){
+      var s=document.createElement('span');
+      s.className='tag go inst-done';
+      s.setAttribute('tabindex','-1');
+      s.textContent=b.getAttribute('data-done');
+      b.hidden=true;
+      b.parentNode.appendChild(s);
+      tnote.textContent=/Paused/.test(s.textContent)?'Installed as a paused copy that belongs to you (simulated).':'Installed for you (simulated). Personal skills stay private.';
+      s.focus();
+    });
+  });
+  $('#teamReset').addEventListener('click',function(){
+    $$('#teamWin .inst-done').forEach(function(s){s.parentNode.removeChild(s);});
+    $$('#teamWin .inst').forEach(function(b){b.hidden=false;});
+    tnote.textContent=tnoteDefault;
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,18 @@
+# check-slides-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=46028
+
+  ✗ the Slides panel is open
+  ✗ the demo deck is there (5 slides)
+
+── A4-03 · thumbnails ──
+  ✗ the thumbnail of the « statement » slide shows its title, like the stage — ""
+
+── A4-04 · one editor at a time ──
+  ✗ slide 1 is shown
+  ✗ a double-click on the title opens the editor (no tool needs choosing)
+  ✗ one editor is open — 0
+  ✗ ...a second double-click on the same field leaves exactly one editor — 0
+  ✗ the check stopped: "undefined" is not valid JSON
+
+8 FAILED, 0 passed
+

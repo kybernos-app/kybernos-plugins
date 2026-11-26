@@ -1,0 +1,60 @@
+# check-theme-live.mjs
+# host=127.0.0.1:3098 status=timeout code=null ms=155516
+
+ theme font tag, no layer yet
+  ✓ fresh browser: nothing stored but the defaults
+  · native: brand #f9fafb · base #151517 · label #f9fafb · font size 15px
+  ✓ no [kybernos-theme] console error or exception during this section
+
+── The Theme page renders ──
+  ✓ Settings › Theme opens on the real GUI (title « Theme »)
+  ✓ there is no Simple / Advanced switch any more (no button of that name, no segment in the header)
+  ✓ the tabs are stacked vertically on the left, « Essentiel » the one open (and the only one pressed)
+  ✓ the header sends to the window below, and says every setting stays in the advanced editor
+  ✓ Mode cards: Light, Dark, System, the native mode (dark) checked, no selector and no button to another page
+  ✓ 18 shipped theme dots (and the add button next to « My themes »), each with a coloured disc, a name and « name — mode · accent » as label
+  ✓ every theme of the catalogue is there, under its name
+  ✓ « DSH default » is the pressed one (and the only one)
+  ✓ accent: a row of dots (12), a colour picker and a hex field
+  ✓ wallpaper: 4 categories and a grid of tiles (no sliders while no wallpaper is set)
+  ✓ font selector: a closed button showing the DSH default, and the text-size slider 12…17 showing DSH’s real size (15, adopted at boot)
+  ✓ footer pill says the look is native (no theme applied)
+  ✓ no [kybernos-theme] console error or exception during this section
+
+── Ready-made themes: stored, applied to the tokens, wallpaper, mode untouched ──
+  ✓ Deep blue: skin stored, tokens, wallpaper, pill, native mode kept
+  ✓ Aurora: skin stored, tokens, wallpaper, pill, native mode kept
+  ✓ Nebula: skin stored, tokens, wallpaper, pill, native mode kept
+  ✓ Amber: skin stored, tokens, wallpaper, pill, native mode kept
+  ✓ OLED midnight: skin stored, tokens, wallpaper, pill, native mode kept
+  ✓ Ember (mode-less pack): skin stored, tokens, pill, native mode kept
+  ✓ Stone & Cloud (mode-less pack): skin stored, tokens, pill, native mode kept
+  ✓ Indigo pulse (mode-less pack): skin stored, tokens, pill, native mode kept
+  ✓ Midnight pulse (mode-less pack): skin stored, tokens, pill, native mode kept
+  ✓ Olive grove (mode-less pack): skin stored, tokens, pill, native mode kept
+  ✓ Floral dawn (mode-less pack): skin stored, tokens, pill, native mode kept
+  ✓ Twilight dream (mode-less pack): skin stored, tokens, pill, native mode kept
+  ✓ Plum mist (mode-less pack): skin stored, tokens, pill, native mode kept
+  ✓ no [kybernos-theme] console error or exception during this section
+
+── « DSH default » restores the native look ──
+  ✓ from « Deep blue » (1 tokens differed from native): all 17 tokens are back to the values measured at the start
+  ✓ … the wallpaper <div> is gone, no theme font tag, pill says native
+  ✓ … stored state is the default one (skin dsh, no accent, no wallpaper, ov empty)
+  ✓ from « Ember » (7 tokens differed from native): all 17 tokens are back to the values measured at the start
+  ✓ … the wallpaper <div> is gone, no theme font tag, pill says native
+  ✓ … stored state is the default one (skin dsh, no accent, no wallpaper, ov empty)
+  ✓ no [kybernos-theme] console error or exception during this section
+
+── Persistence: after a reload everything is applied at boot, BEFORE Settings is opened ──
+  ✓ theme « Nebula » re-applied at boot (tokens + wallpaper) with the Settings closed — 76 ms after the shell was ready
+  ✓ … and the stored state still names it
+  ✓ opening Settings › Theme afterwards shows it pressed
+  ✓ accent « #EC4899 », wallpaper « Nebula background » and font Georgia are stored
+  ✓ after a reload, with Settings closed: accent in the tokens, wallpaper <div> present, Georgia in --dsw-font-family
+  ✓ the Settings page then reflects it (accent dot, wallpaper tile and font button)
+  ✗ a browser without stored state boots back to the native tokens — ["--dsw-alias-brand-primary"]
+  ✓ no [kybernos-theme] console error or exception during this section
+
+── Accent: dots, hex field, invalid input, reset ──
+

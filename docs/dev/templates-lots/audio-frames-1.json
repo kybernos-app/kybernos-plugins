@@ -1,0 +1,31 @@
+{
+  "name": "audio-frames-1",
+  "style": "No text, no lettering, no watermark",
+  "ask": {
+    "width": 1280,
+    "height": 800,
+    "steps": 4
+  },
+  "keep": {
+    "width": 1280,
+    "quality": 88,
+    "maxKb": 1500
+  },
+  "cells": [
+    {
+      "name": "audio-bedtime-1",
+      "seed": 8104,
+      "prompt": "A small orange fox sitting at the edge of a calm lake at dusk, a soft pink and blue sky, tall reeds, a gentle children's book watercolor illustration"
+    },
+    {
+      "name": "audio-bedtime-2",
+      "seed": 8105,
+      "prompt": "A big friendly crescent moon with a gentle smiling face glowing above a quiet lake, its reflection on the water, a small orange fox watching from the shore, a children's book watercolor illustration"
+    },
+    {
+      "name": "audio-bedtime-3",
+      "seed": 8106,
+      "prompt": "A small orange fox walking along a lantern-lit path through tall grass toward a cosy little house with warm glowing windows, night, a children's book watercolor illustration"
+    }
+  ]
+}

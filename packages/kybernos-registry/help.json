@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Lit les plugins Kybernos installés avec le gestionnaire de DSH, vérifie que ce sont des données simples et alimente la page Plugins de la Suite. Un plugin refusé est écarté.",
+    "en": "Reads the Kybernos plugins installed with DSH’s plugin manager, checks that they are plain data and feeds the Plugins page of the Suite. A plugin that fails the check is left out."
+  },
+  "steps": [
+    {
+      "fr": "Ouvre « Kybernos Suite », l’onglet « Plugins », puis « Ajouter un plugin » : GitHub ou npm, un fichier ou un dossier, ou l’IA.",
+      "en": "Open “Kybernos Suite”, the “Plugins” tab, then “Add a plugin”: GitHub or npm, a file or a folder, or AI."
+    },
+    {
+      "fr": "DSH installe ; Kybernos lit le plugin et te demande ton accord (« Lire et accepter ») avant que des instructions n’atteignent tes agents.",
+      "en": "DSH installs it; Kybernos reads the plugin and asks for your OK (“Read and accept”) before any instruction reaches your agents."
+    },
+    {
+      "fr": "L’interrupteur de la carte est celui de DSH ; « Retirer le plugin » passe aussi par DSH.",
+      "en": "The switch on a card is DSH’s own; “Remove plugin” goes through DSH too."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Kybernos Suite › onglet Plugins (c’est la page de la Suite qui l’affiche)",
+    "en": "Settings › Kybernos Suite › Plugins tab (the Suite page shows it)",
+    "page": false
+  },
+  "good": {
+    "fr": "Seules des données simples se chargent ainsi : un plugin ne peut pas exécuter de code sur ton ordinateur.",
+    "en": "Only plain data loads this way: a plugin cannot run code on your computer."
+  }
+}

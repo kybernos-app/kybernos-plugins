@@ -1,0 +1,9 @@
+  ✓ Settings open
+  ✓ Settings › Skills opens
+  ✓ the Index source window opens
+  · the address is fixed by KYBERNOS_SKILLS_INDEX_URL in this instance: the window has no field and no Save, so only Cancel and the close cross are walked
+  ✓ Tab stays inside the window and reaches Cancel and the close cross
+  ✓ Shift+Tab walks the other way and stays inside
+  ✓ Escape closes the window and leaves Settings open
+
+6 passed, 0 failed

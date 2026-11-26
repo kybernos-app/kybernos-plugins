@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Ramasse les restes des harnais de test : Chrome headless `kb-live-*` orphelins et bac à
+       sable DSH abandonné (voir scripts/restes-de-tests.mjs). Pose le 02/11/2026 après qu'un
+       Chrome de test a tourné 10 h 40 et un bac à sable 4 h sans personne.
+       Copie canonique : installer avec
+         cp scripts/sandbox/com.kybernos.restes-de-tests.plist ~/Library/LaunchAgents/ &&
+         launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.kybernos.restes-de-tests.plist
+       Retirer : launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.kybernos.restes-de-tests.plist -->
+  <key>Label</key>
+  <string>com.kybernos.restes-de-tests</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/node</string>
+    <string>/Users/miled/kybernos-plugins/scripts/restes-de-tests.mjs</string>
+    <string>--exec</string>
+    <string>--quiet</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/miled/kybernos-plugins</string>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StartInterval</key>
+  <integer>300</integer>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>HOME</key>
+    <string>/Users/miled</string>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/miled/.dsh/logs/restes-de-tests.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/miled/.dsh/logs/restes-de-tests.log</string>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+</dict>
+</plist>

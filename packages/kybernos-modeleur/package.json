@@ -1,0 +1,36 @@
+{
+  "name": "@local/kybernos-modeleur",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "2D and 3D models driven by the chat: the `modeliser` host tool and a “3D modeller” panel in the right sidebar (scale drawings, orbitable 3D solids, laid live object by object, then replayed).",
+  "license": "Apache-2.0",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "check": "node --check index.js && node --check client.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar-right"
+      ]
+    }
+  }
+}

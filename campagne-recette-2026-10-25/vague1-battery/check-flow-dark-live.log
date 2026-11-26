@@ -1,0 +1,32 @@
+# check-flow-dark-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=75966
+
+ok   style auto: the canvas is drawn in both schemes
+ok   style nr: the canvas is drawn in both schemes
+ok   style nr in the dark app: a dark canvas, a dark card, an ink that reads on it
+ok   style nr in the light app is unchanged: a light canvas
+ok   style bp: the canvas is drawn in both schemes
+ok   style bp in the dark app: a dark canvas, a dark card, an ink that reads on it
+ok   style pp: the canvas is drawn in both schemes
+ok   style pp in the dark app: a dark canvas, a dark card, an ink that reads on it
+ok   style pp in the light app is unchanged: a light canvas
+ok   style sf: the canvas is drawn in both schemes
+ok   style sf in the dark app: a dark canvas, a dark card, an ink that reads on it
+ok   style sf in the light app is unchanged: a light canvas
+ok   style lg: the canvas is drawn in both schemes
+ok   style lg in the dark app: a dark canvas, a dark card, an ink that reads on it
+ok   style lg in the light app is unchanged: a light canvas
+ok   style at: the canvas is drawn in both schemes
+ok   style at in the dark app: a dark canvas, a dark card, an ink that reads on it
+ok   style at in the light app is unchanged: a light canvas
+ok   style jy: the canvas is drawn in both schemes
+ok   style jy in the dark app: a dark canvas, a dark card, an ink that reads on it
+ok   style jy in the light app is unchanged: a light canvas
+ok   style mx: the canvas is drawn in both schemes
+ok   style mx in the dark app: a dark canvas, a dark card, an ink that reads on it
+ok   style mx in the light app is unchanged: a light canvas
+FAIL style auto in the real dark theme (the app's own toggle): a dark canvas and card, ink that reads | [false,{"theme":"dark","cv":0.016867632337590244,"card":0.02534093673860733,"ink":0.9547598590513481}]
+ok   style jy in the real dark theme (the app's own toggle): a dark canvas and card, ink that reads
+
+1 check(s) FAILED
+

@@ -1,0 +1,88 @@
+{
+  "id": "recruiting-desk",
+  "name": {
+    "en": "Recruiting desk",
+    "fr": "Bureau recrutement"
+  },
+  "desc": {
+    "en": "Reads the CVs and the role sheets, drafts the briefs and the follow-ups, and stops before anything is sent to a candidate or a client.",
+    "fr": "Lit les CV et les fiches de poste, rédige les fiches et les relances, et s’arrête avant tout envoi à un candidat ou à un client."
+  },
+  "mission": {
+    "en": "Take the reading and the writing off the recruiter, never a decision on a candidate.",
+    "fr": "Retirer la lecture et l’écriture au recruteur, jamais une décision sur un candidat."
+  },
+  "topology": "pipeline",
+  "tags": [
+    "recruitment",
+    "drafts"
+  ],
+  "roles": [
+    {
+      "id": "reader",
+      "kind": "scout",
+      "prompt": {
+        "en": "Read the CVs and the role sheet the recruiter provides. Quote each fact with its line.",
+        "fr": "Lis les CV et la fiche de poste fournis par le recruteur. Cite chaque fait avec sa ligne."
+      }
+    },
+    {
+      "id": "writer",
+      "kind": "doer",
+      "prompt": {
+        "en": "Draft the brief or the follow-up from the facts only, in the firm's tone.",
+        "fr": "Rédige la fiche ou la relance à partir des seuls faits, dans le ton du cabinet."
+      }
+    },
+    {
+      "id": "checker",
+      "kind": "checker",
+      "prompt": {
+        "en": "Check each draft against the CV: a skill that is not in it, a date that does not add up.",
+        "fr": "Vérifie chaque brouillon par rapport au CV : une compétence qui n’y figure pas, une date qui ne colle pas."
+      }
+    }
+  ],
+  "stages": [
+    {
+      "id": "read",
+      "roles": [
+        "reader"
+      ],
+      "mode": "once",
+      "cap": 3,
+      "gate": false,
+      "inputs": []
+    },
+    {
+      "id": "draft",
+      "roles": [
+        "writer"
+      ],
+      "mode": "once",
+      "cap": 2,
+      "gate": false,
+      "inputs": [
+        "read"
+      ]
+    },
+    {
+      "id": "review",
+      "roles": [
+        "checker"
+      ],
+      "mode": "once",
+      "cap": 1,
+      "gate": true,
+      "inputs": [
+        "draft"
+      ]
+    }
+  ],
+  "skills": [
+    "candidate-brief",
+    "interview-plan"
+  ],
+  "icon": "trend",
+  "category": "hr"
+}

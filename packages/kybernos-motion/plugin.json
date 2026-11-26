@@ -1,0 +1,47 @@
+{
+  "contract": 1,
+  "id": "kybernos/motion",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Motion",
+    "fr": "Motion"
+  },
+  "description": {
+    "en": "Animations (titles, charts, 3D, characters, sound) made by the chat and exported as video.",
+    "fr": "Des animations (titres, graphiques, 3D, personnages, son) créées par le chat et exportées en vidéo."
+  },
+  "icon": "motion",
+  "family": "create",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-motion",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:sidebar.right.pane.tab",
+    "host.routes:/kybernos-motion:write",
+    "fs.read:workspace",
+    "fs.write:dsh-home",
+    "fs.write:workspace",
+    "agent.tools"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-motion"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "on"
+  }
+}

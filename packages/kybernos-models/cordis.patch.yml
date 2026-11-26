@@ -1,0 +1,6 @@
+# Insertion du plugin « kybernos-models » dans l'arbre Cordis du profil.
+# L'ajout et le retrait sont pris en compte au chargement de page suivant, sans
+# redemarrage du serveur (mesure le 2026-09-20 : route hote 200 -> 404).
+- insert:
+    - id: kybernos-models
+      name: '@local/kybernos-models'

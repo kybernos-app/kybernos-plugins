@@ -1,0 +1,54 @@
+{
+  "contract": 1,
+  "id": "kybernos/hub",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Suite",
+    "fr": "Suite"
+  },
+  "description": {
+    "en": "This panel, the boot guard and safe mode.",
+    "fr": "Ce panneau, la garde de démarrage et le mode sans échec."
+  },
+  "icon": "suite",
+  "family": "base",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-hub",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:settings.section",
+    "ui.slot:shell.overlay",
+    "ui.dom",
+    "host.routes:/kybernos-hub:write",
+    "fs.write:dsh-home",
+    "fs.write:home",
+    "net:*.githubusercontent.com",
+    "net:github.com",
+    "net:registry.npmjs.org",
+    "exec:node",
+    "exec:tar",
+    "engine.patch"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-hub"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "core": true,
+    "default": "on"
+  }
+}

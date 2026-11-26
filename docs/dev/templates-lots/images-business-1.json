@@ -1,0 +1,127 @@
+{
+  "name": "images-business-1",
+  "type": "image",
+  "model": "black-forest-labs/FLUX-2-klein-9b",
+  "modelLabel": "FLUX.2 klein 9B",
+  "style": "No text, no lettering, no watermark",
+  "ask": {
+    "width": 1280,
+    "height": 800,
+    "steps": 4
+  },
+  "keep": {
+    "width": 1280,
+    "quality": 90,
+    "maxKb": 1500
+  },
+  "cells": [
+    {
+      "name": "image-ad-skincare",
+      "seed": 3101,
+      "prompt": "Advertising photo for a skincare brand: an amber glass serum bottle with a dropper standing on a wet dark slate stone, a few green leaves behind it, soft morning side light, shallow depth of field, calm empty space on the left for a headline, premium cosmetics campaign look",
+      "entry": {
+        "name": "Skincare ad",
+        "tag": "Ads",
+        "line": "A premium product shot with room left for the headline.",
+        "alt": "An amber serum bottle on a wet dark stone with green leaves behind it",
+        "meta": "Landscape · 16:10"
+      }
+    },
+    {
+      "name": "image-social-latte",
+      "seed": 3102,
+      "prompt": "Social media post for a neighbourhood coffee shop launching a seasonal drink: a pumpkin-spice latte with latte art in a ceramic cup beside a cinnamon pastry on a warm wooden table, overhead flat lay, cosy autumn tones, natural window light, a few cinnamon sticks scattered around",
+      "entry": {
+        "name": "Coffee shop post",
+        "tag": "Social",
+        "line": "A warm flat lay for a seasonal drink launch.",
+        "alt": "A latte with latte art and a cinnamon pastry on a wooden table, seen from above",
+        "meta": "Landscape · 16:10"
+      }
+    },
+    {
+      "name": "image-logo-fox",
+      "seed": 3103,
+      "prompt": "Logo mark for a sustainable delivery start-up: a simple geometric fox head built from three flat shapes in burnt orange and deep teal, centred on a plain off-white background, clean vector style, generous margins",
+      "entry": {
+        "name": "Start-up logo mark",
+        "tag": "Branding",
+        "line": "A flat, two-colour mark that still reads at small sizes.",
+        "alt": "A geometric fox head in orange and teal on an off-white background",
+        "meta": "Landscape · 16:10"
+      }
+    },
+    {
+      "name": "image-banner-jazz",
+      "seed": 3104,
+      "prompt": "Wide banner for a summer jazz festival: art-deco illustration of a saxophone player in silhouette under a huge golden sun, layered geometric rays in navy, gold and cream, calm empty band across the top for the festival name",
+      "entry": {
+        "name": "Festival banner",
+        "tag": "Events",
+        "line": "A bold art-deco banner with space for the title.",
+        "alt": "A saxophone player in silhouette under a golden sun with navy and gold rays",
+        "meta": "Landscape · 16:10"
+      }
+    },
+    {
+      "name": "image-listing-livingroom",
+      "seed": 3105,
+      "prompt": "Real-estate listing photo of a bright Scandinavian living room in a renovated city apartment: light oak floor, a linen sofa, a round coffee table, a large window with sheer curtains, a houseplant, wide-angle lens at eye level, soft daylight, tidy and inviting",
+      "entry": {
+        "name": "Listing photo",
+        "tag": "Real estate",
+        "line": "A bright, tidy room shot the way agents photograph it.",
+        "alt": "A bright living room with a linen sofa, a round table and a large window",
+        "meta": "Landscape · 16:10"
+      }
+    },
+    {
+      "name": "image-shop-sneaker",
+      "seed": 3106,
+      "prompt": "E-commerce product photo of a single white leather sneaker with a pale green sole, three-quarter view, on a seamless light grey studio background, soft box lighting, subtle floor reflection, crisp detail on the stitching",
+      "entry": {
+        "name": "Product photo",
+        "tag": "E-commerce",
+        "line": "A clean studio shot on a seamless background.",
+        "alt": "A white leather sneaker with a pale green sole on a light grey background",
+        "meta": "Landscape · 16:10"
+      }
+    },
+    {
+      "name": "image-menu-pasta",
+      "seed": 3107,
+      "prompt": "Menu photo for an Italian restaurant: a plate of fresh tagliatelle with basil and cherry tomatoes on a stone-grey ceramic plate, dark wooden table, 45-degree angle, steam rising, warm side light, shallow depth of field",
+      "entry": {
+        "name": "Menu dish",
+        "tag": "Food",
+        "line": "A warm close-up that makes a dish worth ordering.",
+        "alt": "A plate of tagliatelle with basil and cherry tomatoes on a dark wooden table",
+        "meta": "Landscape · 16:10"
+      }
+    },
+    {
+      "name": "image-course-watercycle",
+      "seed": 3108,
+      "prompt": "Educational illustration for a primary-school science course about the water cycle: a friendly flat-style landscape with mountains, a river, the sea, a sun, clouds and rain, soft arrows showing evaporation, condensation and rainfall, bright clear colours, simple shapes",
+      "entry": {
+        "name": "Course illustration",
+        "tag": "Learning",
+        "line": "A clear flat diagram a class can talk through.",
+        "alt": "A flat landscape with mountains, a river, the sea, clouds and arrows showing the water cycle",
+        "meta": "Landscape · 16:10"
+      }
+    },
+    {
+      "name": "image-flashcard-market",
+      "seed": 3109,
+      "prompt": "Flashcard illustration for a Spanish vocabulary course, topic at the market: a cheerful flat illustration of a market stall with oranges, tomatoes, bread and a basket, each object clearly separate on a plain pale background, easy to point at and name, bright friendly colours",
+      "entry": {
+        "name": "Vocabulary flashcard",
+        "tag": "Learning",
+        "line": "Clearly separate objects to point at and name.",
+        "alt": "A market stall with oranges, tomatoes, bread and a basket on a pale background",
+        "meta": "Landscape · 16:10"
+      }
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "suite": "sort",
+  "doc": "Three modes. check: the « path:code » problems of a list of sorts. prepare: the sorts that can apply. order (the default): the records, named by the last two characters of their id, over all eight records of the task fixture. Empty values go last whichever way the field is ordered; ties fall back to the id.",
+  "cases": [
+    { "name": "order: a date, oldest first, empty last", "sorts": [{ "k": "due", "dir": "asc" }], "expect": ["08", "04", "06", "02", "01", "03", "07", "05"] },
+    { "name": "order: a date, newest first, empty still last", "sorts": [{ "k": "due", "dir": "desc" }], "expect": ["07", "03", "01", "02", "06", "04", "08", "05"] },
+    { "name": "order: a choice follows its options, not the alphabet", "sorts": [{ "k": "status", "dir": "asc" }], "expect": ["02", "03", "06", "08", "01", "05", "04", "07"] },
+    { "name": "order: a choice, reversed (ties keep the id order)", "sorts": [{ "k": "status", "dir": "desc" }], "expect": ["04", "07", "01", "05", "02", "03", "06", "08"] },
+    { "name": "order: two sorts", "sorts": [{ "k": "status", "dir": "asc" }, { "k": "due", "dir": "desc" }], "expect": ["03", "02", "06", "08", "01", "05", "07", "04"] },
+    { "name": "order: a person by the name, not the id", "sorts": [{ "k": "assignee", "dir": "asc" }], "expect": ["02", "04", "08", "01", "03", "06", "07", "05"] },
+    { "name": "order: a text, folded (accents and case do not matter)", "sorts": [{ "k": "title", "dir": "asc" }], "expect": ["06", "05", "07", "02", "08", "03", "04", "01"] },
+    { "name": "order: a number, largest first, empty last", "sorts": [{ "k": "estimate", "dir": "desc" }], "expect": ["07", "04", "01", "03", "02", "06", "05", "08"] },
+    { "name": "order: money, smallest first, empty last", "sorts": [{ "k": "budget", "dir": "asc" }], "expect": ["02", "05", "01", "04", "07", "03", "06", "08"] },
+    { "name": "order: a checkbox, checked first, then by title", "sorts": [{ "k": "urgent", "dir": "desc" }, { "k": "title", "dir": "asc" }], "expect": ["02", "01", "06", "05", "07", "08", "03", "04"] },
+    { "name": "order: a multichoice by its first option in the options' order", "sorts": [{ "k": "tags", "dir": "asc" }], "expect": ["02", "05", "01", "04", "07", "03", "06", "08"] },
+    { "name": "order: a relation by the name of the record it points to", "sorts": [{ "k": "project", "dir": "asc" }], "expect": ["02", "04", "01", "03", "05", "06", "07", "08"] },
+    { "name": "order: no sort keeps the id order", "sorts": [], "expect": ["01", "02", "03", "04", "05", "06", "07", "08"] },
+    { "name": "order: without a label function a relation sorts by id", "ctx": { "label": null }, "sorts": [{ "k": "project", "dir": "desc" }], "expect": ["02", "04", "01", "03", "05", "06", "07", "08"] },
+
+    { "name": "check: a sound list", "mode": "check", "sorts": [{ "k": "status", "dir": "asc" }, { "k": "due", "dir": "desc" }, { "k": "title", "dir": "asc" }], "expect": [] },
+    { "name": "check: sorts is a list", "mode": "check", "sorts": { "k": "due" }, "expect": [":shape"] },
+    { "name": "check: three sorts at most", "mode": "check", "sorts": [{ "k": "status", "dir": "asc" }, { "k": "due", "dir": "asc" }, { "k": "title", "dir": "asc" }, { "k": "estimate", "dir": "asc" }], "expect": [":too-many"] },
+    { "name": "check: an unknown field", "mode": "check", "sorts": [{ "k": "nope", "dir": "asc" }], "expect": ["0:unknown-field"] },
+    { "name": "check: a list of files cannot be sorted", "mode": "check", "sorts": [{ "k": "files", "dir": "asc" }], "expect": ["0:not-sortable"] },
+    { "name": "check: a field is sorted once", "mode": "check", "sorts": [{ "k": "due", "dir": "asc" }, { "k": "due", "dir": "desc" }], "expect": ["1:duplicate"] },
+    { "name": "check: a direction is asc or desc", "mode": "check", "sorts": [{ "k": "due", "dir": "down" }], "expect": ["0:dir"] },
+    { "name": "check: a stray key", "mode": "check", "sorts": [{ "k": "due", "dir": "asc", "nulls": "first" }], "expect": ["0:shape"] },
+
+    { "name": "prepare: drops what cannot sort, keeps the first of a repeat, defaults the direction", "mode": "prepare", "sorts": [{ "k": "files" }, { "k": "due", "dir": "down" }, { "k": "due", "dir": "desc" }, { "k": "nope" }, { "k": "status" }], "expect": [{ "k": "due", "dir": "asc" }, { "k": "status", "dir": "asc" }] },
+    { "name": "prepare: keeps three", "mode": "prepare", "sorts": [{ "k": "status", "dir": "asc" }, { "k": "due", "dir": "asc" }, { "k": "title", "dir": "asc" }, { "k": "estimate", "dir": "asc" }], "expect": [{ "k": "status", "dir": "asc" }, { "k": "due", "dir": "asc" }, { "k": "title", "dir": "asc" }] },
+    { "name": "prepare: not a list", "mode": "prepare", "sorts": "due", "expect": [] }
+  ]
+}

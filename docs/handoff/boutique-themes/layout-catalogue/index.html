@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier Café — torréfaction artisanale</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   layout-catalogue — « Atelier Café » (coffee/food). Dense catalogue layout.
+   Token vocabulary shared with layout-editorial (the theme kit contract):
+   every colour, radius, spacing and size below flows through --tk-* values.
+   Sections are delimited blocks (sec-*) — the composable units of the kit.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  color-scheme: light;
+
+  /* colour — light (warm café) */
+  --tk-paper: #f7f2e9;
+  --tk-paper-2: #efe6d3;
+  --tk-surface: #fffdf7;
+  --tk-ink: #241a12;
+  --tk-ink-soft: #4e3d2e;
+  --tk-muted: #7a6550;
+  --tk-line: #e0d2ba;
+  --tk-accent: #b4551f;
+  --tk-accent-ink: #fff8ef;
+  --tk-accent-soft: #f4e2cf;
+  --tk-sale: #a32c1c;
+  --tk-new: #4a6b2f;
+  --tk-inverse-bg: #241a12;
+  --tk-inverse-ink: #f7f2e9;
+  --tk-inverse-muted: #c4ae94;
+  --tk-inverse-line: #4c3a29;
+
+  /* image areas (pure CSS gradients) */
+  --tk-img-1: linear-gradient(160deg, #e8d3b4 0%, #c99a63 55%, #9a6a3a 100%);
+  --tk-img-2: linear-gradient(155deg, #dce2cf 0%, #a9b78d 60%, #77875c 100%);
+  --tk-img-3: radial-gradient(120% 90% at 35% 15%, #f3e2c5 0%, #dcb98a 55%, #b98d5c 100%);
+  --tk-img-4: linear-gradient(150deg, #e9cdb2 0%, #c98f66 55%, #a25f3c 100%);
+  --tk-img-5: linear-gradient(165deg, #e4d9c2 0%, #bfae8c 60%, #8f7c58 100%);
+  --tk-img-6: linear-gradient(145deg, #efd6c0 0%, #d59f7c 55%, #ab6f4e 100%);
+  --tk-shape-1: rgba(255, 249, 238, 0.7);
+  --tk-shape-2: rgba(36, 26, 18, 0.18);
+
+  /* type */
+  --tk-font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --tk-font-body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --tk-fs-xs: 0.75rem;
+  --tk-fs-sm: 0.875rem;
+  --tk-fs-base: 1rem;
+  --tk-fs-md: 1.125rem;
+  --tk-fs-lg: clamp(1.2rem, 1.1rem + 0.5vw, 1.5rem);
+  --tk-fs-xl: clamp(1.5rem, 1.2rem + 1vw, 2.1rem);
+  --tk-fs-2xl: clamp(1.85rem, 1.3rem + 2vw, 3.1rem);
+  --tk-fs-3xl: clamp(2.2rem, 1.5rem + 3vw, 4.2rem);
+  --tk-fs-display: clamp(2.6rem, 1.5rem + 6vw, 5.6rem);
+
+  /* space */
+  --tk-space-1: 0.25rem;
+  --tk-space-2: 0.5rem;
+  --tk-space-3: 0.75rem;
+  --tk-space-4: 1rem;
+  --tk-space-5: 1.5rem;
+  --tk-space-6: 2rem;
+  --tk-space-7: 3rem;
+  --tk-space-8: 4.5rem;
+  --tk-space-9: 6.5rem;
+  --tk-container: 76rem;
+  --tk-gutter: clamp(1rem, 4vw, 2.5rem);
+  --tk-section-y: clamp(3rem, 7vw, 5.5rem);
+
+  /* shape */
+  --tk-radius-sm: 0.5rem;
+  --tk-radius-md: 0.85rem;
+  --tk-radius-lg: 1.4rem;
+  --tk-radius-pill: 999px;
+  --tk-shadow-sm: 0 1px 2px rgba(36, 26, 18, 0.08);
+  --tk-shadow-md: 0 14px 34px -18px rgba(36, 26, 18, 0.35);
+  --tk-show-sun: none;
+  --tk-show-moon: block;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --tk-paper: #1a130d;
+  --tk-paper-2: #241a12;
+  --tk-surface: #2a1f16;
+  --tk-ink: #f4ead9;
+  --tk-ink-soft: #ddcdb6;
+  --tk-muted: #b09c83;
+  --tk-line: #4c3a29;
+  --tk-accent: #e08a4e;
+  --tk-accent-ink: #241509;
+  --tk-accent-soft: #472c17;
+  --tk-sale: #ff8f7a;
+  --tk-new: #a9c783;
+  --tk-inverse-bg: #f4ead9;
+  --tk-inverse-ink: #241a12;
+  --tk-inverse-muted: #6b543c;
+  --tk-inverse-line: #d8c3a4;
+  --tk-img-1: linear-gradient(160deg, #6d4c2c 0%, #8a6238 55%, #b4895a 100%);
+  --tk-img-2: linear-gradient(155deg, #4a5238 0%, #6b7551 60%, #93a06f 100%);
+  --tk-img-3: radial-gradient(120% 90% at 35% 15%, #7c5a34 0%, #a37b4c 55%, #c69a67 100%);
+  --tk-img-4: linear-gradient(150deg, #71452a 0%, #96613c 55%, #bd8458 100%);
+  --tk-img-5: linear-gradient(165deg, #5c4c31 0%, #7e6b47 60%, #a48d62 100%);
+  --tk-img-6: linear-gradient(145deg, #7c4f34 0%, #a06c46 55%, #c8926a 100%);
+  --tk-shape-1: rgba(255, 244, 226, 0.14);
+  --tk-shape-2: rgba(0, 0, 0, 0.3);
+  --tk-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --tk-shadow-md: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
+  --tk-show-sun: block;
+  --tk-show-moon: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --tk-paper: #1a130d;
+    --tk-paper-2: #241a12;
+    --tk-surface: #2a1f16;
+    --tk-ink: #f4ead9;
+    --tk-ink-soft: #ddcdb6;
+    --tk-muted: #b09c83;
+    --tk-line: #4c3a29;
+    --tk-accent: #e08a4e;
+    --tk-accent-ink: #241509;
+    --tk-accent-soft: #472c17;
+    --tk-sale: #ff8f7a;
+    --tk-new: #a9c783;
+    --tk-inverse-bg: #f4ead9;
+    --tk-inverse-ink: #241a12;
+    --tk-inverse-muted: #6b543c;
+    --tk-inverse-line: #d8c3a4;
+    --tk-shape-1: rgba(255, 244, 226, 0.14);
+    --tk-shape-2: rgba(0, 0, 0, 0.3);
+    --tk-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --tk-shadow-md: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
+    --tk-show-sun: block;
+    --tk-show-moon: none;
+  }
+}
+
+/* ── base ─────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--tk-paper);
+  color: var(--tk-ink);
+  font-family: var(--tk-font-body);
+  font-size: var(--tk-fs-base);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+img, svg { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; cursor: pointer; }
+.wrap { max-width: var(--tk-container); margin: 0 auto; padding-inline: var(--tk-gutter); }
+[hidden] { display: none !important; }
+
+/* ── sec-announcement ─────────────────────────────────────────────────────── */
+.sec-announcement {
+  background: var(--tk-inverse-bg);
+  color: var(--tk-inverse-ink);
+  font-size: var(--tk-fs-sm);
+  text-align: center;
+  padding: var(--tk-space-3) var(--tk-gutter);
+}
+.sec-announcement strong { letter-spacing: 0.01em; }
+
+/* ── sec-header ───────────────────────────────────────────────────────────── */
+.sec-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--tk-paper) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--tk-line);
+}
+.sec-header .wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--tk-space-5);
+  min-height: 4.25rem;
+}
+.brand { display: flex; align-items: baseline; gap: 0.55rem; font-family: var(--tk-font-display); font-size: var(--tk-fs-lg); font-weight: 700; }
+.brand .mark {
+  width: 2.1rem; height: 2.1rem; border-radius: var(--tk-radius-sm);
+  background: var(--tk-accent); color: var(--tk-accent-ink);
+  display: grid; place-items: center; font-size: var(--tk-fs-sm); font-weight: 700;
+  align-self: center;
+}
+.brand .sub { color: var(--tk-accent); font-style: italic; font-weight: 400; }
+.nav { display: flex; gap: var(--tk-space-5); margin-left: auto; font-size: var(--tk-fs-sm); font-weight: 600; }
+.nav a { padding: 0.35rem 0; border-bottom: 2px solid transparent; }
+.nav a:hover, .nav a[aria-current="page"] { border-color: var(--tk-accent); }
+.tools { display: flex; align-items: center; gap: var(--tk-space-2); }
+.icon-btn {
+  width: 2.4rem; height: 2.4rem; border-radius: var(--tk-radius-pill);
+  border: 1px solid var(--tk-line); background: var(--tk-surface); color: var(--tk-ink);
+  display: grid; place-items: center; position: relative;
+}
+.icon-btn:hover { border-color: var(--tk-accent); color: var(--tk-accent); }
+.cart-count {
+  position: absolute; top: -0.35rem; right: -0.35rem;
+  min-width: 1.15rem; height: 1.15rem; padding: 0 0.25rem;
+  border-radius: var(--tk-radius-pill);
+  background: var(--tk-accent); color: var(--tk-accent-ink);
+  font-size: 0.68rem; font-weight: 700; display: grid; place-items: center;
+}
+.tk-sun { display: var(--tk-show-sun); }
+.tk-moon { display: var(--tk-show-moon); }
+
+/* ── sec-hero (compact) ───────────────────────────────────────────────────── */
+.sec-hero { padding: var(--tk-section-y) 0 var(--tk-space-7); }
+.sec-hero .wrap { display: grid; gap: var(--tk-space-5); }
+.kicker {
+  font-size: var(--tk-fs-xs); font-weight: 700; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--tk-accent);
+}
+.sec-hero h1 {
+  margin: 0.4rem 0 0;
+  font-family: var(--tk-font-display);
+  font-size: var(--tk-fs-3xl);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  max-width: 22ch;
+}
+.sec-hero h1 em { font-style: italic; color: var(--tk-accent); }
+.sec-hero .lede { margin: 0; max-width: 52ch; color: var(--tk-ink-soft); font-size: var(--tk-fs-md); }
+.hero-actions { display: flex; flex-wrap: wrap; gap: var(--tk-space-3); align-items: center; }
+.btn {
+  display: inline-flex; align-items: center; gap: 0.55rem;
+  padding: 0.85rem 1.5rem; border-radius: var(--tk-radius-pill);
+  font-weight: 700; font-size: var(--tk-fs-sm); border: 1px solid transparent;
+}
+.btn-primary { background: var(--tk-accent); color: var(--tk-accent-ink); }
+.btn-primary:hover { filter: brightness(1.06); }
+.btn-ghost { border-color: var(--tk-line); color: var(--tk-ink); background: transparent; }
+.btn-ghost:hover { border-color: var(--tk-accent); color: var(--tk-accent); }
+
+/* ── sec-chips ────────────────────────────────────────────────────────────── */
+.sec-chips { padding-bottom: var(--tk-space-6); }
+.chips { display: flex; flex-wrap: wrap; gap: var(--tk-space-2); }
+.chip {
+  padding: 0.55rem 1.05rem; border-radius: var(--tk-radius-pill);
+  border: 1px solid var(--tk-line); background: var(--tk-surface);
+  font-size: var(--tk-fs-sm); font-weight: 600; color: var(--tk-ink-soft);
+}
+.chip:hover { border-color: var(--tk-accent); color: var(--tk-accent); }
+.chip[aria-pressed="true"] { background: var(--tk-ink); border-color: var(--tk-ink); color: var(--tk-paper); }
+
+/* ── sec-products (dense 3-col) ───────────────────────────────────────────── */
+.sec-products { padding-bottom: var(--tk-section-y); }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--tk-space-5);
+}
+.card {
+  background: var(--tk-surface);
+  border: 1px solid var(--tk-line);
+  border-radius: var(--tk-radius-md);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.card:hover { transform: translateY(-3px); box-shadow: var(--tk-shadow-md); }
+.card .visual {
+  aspect-ratio: 4 / 3;
+  background: var(--img, var(--tk-img-1));
+  position: relative;
+  display: grid; place-items: center;
+}
+.card .visual .blob {
+  width: 52%; aspect-ratio: 1; border-radius: 38% 62% 55% 45% / 45% 42% 58% 55%;
+  background: var(--tk-shape-1);
+  box-shadow: 0 18px 30px -18px var(--tk-shape-2);
+}
+.card .visual .stripes {
+  width: 100%; height: 100%;
+  background: repeating-linear-gradient(135deg, transparent 0 14px, var(--tk-shape-1) 14px 28px);
+  opacity: 0.65;
+}
+.badge {
+  position: absolute; top: var(--tk-space-3); left: var(--tk-space-3);
+  padding: 0.3rem 0.75rem; border-radius: var(--tk-radius-pill);
+  font-size: var(--tk-fs-xs); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+}
+.badge-sale { background: var(--tk-sale); color: var(--tk-accent-ink); }
+.badge-new { background: var(--tk-new); color: var(--tk-accent-ink); }
+.card .body { padding: var(--tk-space-4); display: grid; gap: 0.35rem; flex: 1; align-content: start; }
+.card .meta { font-size: var(--tk-fs-xs); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--tk-muted); }
+.card h3 {
+  margin: 0;
+  font-family: var(--tk-font-display);
+  font-size: var(--tk-fs-md);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.card .note { margin: 0; font-size: var(--tk-fs-sm); color: var(--tk-muted); }
+.card .foot {
+  margin-top: auto; padding: var(--tk-space-4);
+  padding-top: 0;
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--tk-space-3);
+}
+.price { font-family: var(--tk-font-display); font-size: var(--tk-fs-lg); font-weight: 700; }
+.price .strike { margin-left: 0.5rem; font-size: var(--tk-fs-sm); font-weight: 400; color: var(--tk-muted); text-decoration: line-through; }
+.price.long { font-size: var(--tk-fs-sm); font-weight: 600; color: var(--tk-accent); font-style: italic; line-height: 1.35; }
+.add {
+  width: 2.55rem; height: 2.55rem; flex: none;
+  border-radius: var(--tk-radius-pill);
+  border: 1px solid var(--tk-line); background: var(--tk-paper-2); color: var(--tk-ink);
+  display: grid; place-items: center;
+}
+.add:hover { background: var(--tk-accent); border-color: var(--tk-accent); color: var(--tk-accent-ink); }
+
+/* ── sec-best (band) ──────────────────────────────────────────────────────── */
+.sec-best {
+  background: var(--tk-inverse-bg);
+  color: var(--tk-inverse-ink);
+  padding: var(--tk-section-y) 0;
+}
+.sec-best .wrap { display: grid; grid-template-columns: 1.15fr 1fr; gap: var(--tk-space-7); align-items: center; }
+.sec-best .visual {
+  aspect-ratio: 5 / 4; border-radius: var(--tk-radius-lg);
+  background: var(--tk-img-3);
+  display: grid; place-items: center;
+}
+.sec-best .visual .blob {
+  width: 54%; aspect-ratio: 1; border-radius: 42% 58% 48% 52% / 52% 44% 56% 48%;
+  background: var(--tk-shape-1);
+  box-shadow: 0 24px 50px -22px var(--tk-shape-2);
+}
+.sec-best h2 {
+  margin: 0.5rem 0 var(--tk-space-4);
+  font-family: var(--tk-font-display);
+  font-size: var(--tk-fs-2xl);
+  line-height: 1.12;
+}
+.sec-best p { margin: 0 0 var(--tk-space-5); color: var(--tk-inverse-muted); max-width: 46ch; }
+.sec-best .price { color: var(--tk-inverse-ink); }
+
+/* ── sec-faq ──────────────────────────────────────────────────────────────── */
+.sec-faq { padding: var(--tk-section-y) 0; }
+.sec-faq h2 { margin: 0 0 var(--tk-space-6); font-family: var(--tk-font-display); font-size: var(--tk-fs-2xl); }
+.faq { display: grid; gap: var(--tk-space-3); max-width: 52rem; }
+.faq details {
+  border: 1px solid var(--tk-line);
+  border-radius: var(--tk-radius-md);
+  background: var(--tk-surface);
+  padding: var(--tk-space-4) var(--tk-space-5);
+}
+.faq summary {
+  cursor: pointer; font-weight: 700; list-style: none;
+  display: flex; justify-content: space-between; gap: var(--tk-space-4); align-items: baseline;
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; color: var(--tk-accent); font-size: var(--tk-fs-md); font-weight: 700; }
+.faq details[open] summary::after { content: "–"; }
+.faq p { margin: var(--tk-space-3) 0 0; color: var(--tk-ink-soft); }
+
+/* ── sec-footer ───────────────────────────────────────────────────────────── */
+.sec-footer {
+  background: var(--tk-inverse-bg);
+  color: var(--tk-inverse-ink);
+  padding: var(--tk-section-y) 0 var(--tk-space-6);
+}
+.sec-footer .wrap { display: grid; gap: var(--tk-space-7); }
+.news { display: grid; gap: var(--tk-space-4); max-width: 34rem; }
+.news h2 { margin: 0; font-family: var(--tk-font-display); font-size: var(--tk-fs-xl); }
+.news p { margin: 0; color: var(--tk-inverse-muted); }
+.news form { display: flex; gap: var(--tk-space-2); flex-wrap: wrap; }
+.news input {
+  flex: 1 1 14rem; min-width: 0;
+  padding: 0.85rem 1.1rem; border-radius: var(--tk-radius-pill);
+  border: 1px solid var(--tk-inverse-line); background: transparent; color: var(--tk-inverse-ink);
+  font: inherit;
+}
+.news input::placeholder { color: var(--tk-inverse-muted); }
+.news button {
+  padding: 0.85rem 1.5rem; border-radius: var(--tk-radius-pill);
+  border: 1px solid var(--tk-accent); background: var(--tk-accent); color: var(--tk-accent-ink); font-weight: 700;
+}
+.foot-cols {
+  display: grid; grid-template-columns: 1.3fr repeat(3, 1fr);
+  gap: var(--tk-space-6);
+  padding-top: var(--tk-space-6);
+  border-top: 1px solid var(--tk-inverse-line);
+  font-size: var(--tk-fs-sm);
+}
+.foot-cols h3 { margin: 0 0 var(--tk-space-3); font-size: var(--tk-fs-xs); letter-spacing: 0.14em; text-transform: uppercase; color: var(--tk-inverse-muted); }
+.foot-cols ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.55rem; }
+.foot-cols a:hover { color: var(--tk-accent); }
+.legal { color: var(--tk-inverse-muted); font-size: var(--tk-fs-xs); }
+
+/* ── responsive (disqualifying gate: 480 / 768 / 1280, no h-overflow) ─────── */
+@media (max-width: 900px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sec-best .wrap { grid-template-columns: 1fr; }
+  .foot-cols { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 620px) {
+  .nav { display: none; }
+  .sec-hero h1 { font-size: clamp(2rem, 9vw, 2.8rem); }
+  .grid { grid-template-columns: 1fr; }
+  .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: var(--tk-space-2); }
+  .chip { flex: none; }
+  .foot-cols { grid-template-columns: 1fr; }
+  .sec-announcement { font-size: var(--tk-fs-xs); }
+}
+</style>
+<script>
+  try { var s = localStorage.getItem('tk-theme'); if (s) document.documentElement.setAttribute('data-theme', s); } catch (e) {}
+</script>
+</head>
+<body>
+
+<!-- ── sec-announcement ─────────────────────────────────────────────────── -->
+<section class="sec-announcement">
+  <strong>Livraison offerte dès 45 €</strong> · Torréfié à la commande, expédié sous 48 h · Retours sous 30 jours
+</section>
+
+<!-- ── sec-header ───────────────────────────────────────────────────────── -->
+<header class="sec-header">
+  <div class="wrap">
+    <a class="brand" href="#"><span class="mark">AC</span><span>Atelier</span><span class="sub">Café</span></a>
+    <nav class="nav" aria-label="Principale">
+      <a href="#" aria-current="page">Boutique</a>
+      <a href="#">Torréfaction</a>
+      <a href="#">Abonnements</a>
+      <a href="#">Ateliers</a>
+    </nav>
+    <div class="tools">
+      <button class="icon-btn" id="theme" title="Changer de thème" aria-label="Changer de thème">
+        <svg class="tk-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19"/></svg>
+        <svg class="tk-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+      </button>
+      <button class="icon-btn" title="Panier" aria-label="Panier">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 12H7L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
+        <span class="cart-count">3</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ── sec-hero ─────────────────────────────────────────────────────────── -->
+<section class="sec-hero">
+  <div class="wrap">
+    <span class="kicker">Torréfaction artisanale · Lyon</span>
+    <h1>Le café, <em>honnête</em> et vivant.</h1>
+    <p class="lede">Des grains torréfiés chaque semaine en petits lots, sourcés en direct auprès de producteurs que nous connaissons par leur prénom. Notes de dégustation, dates de torréfaction, zéro jargon.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#catalogue">Voir les cafés <span aria-hidden="true">→</span></a>
+      <a class="btn btn-ghost" href="#">Notre abonnement découverte</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── sec-chips ────────────────────────────────────────────────────────── -->
+<section class="sec-chips">
+  <div class="wrap">
+    <div class="chips" role="group" aria-label="Filtres">
+      <button class="chip" aria-pressed="true">Tout</button>
+      <button class="chip" aria-pressed="false">Espresso</button>
+      <button class="chip" aria-pressed="false">Filtre</button>
+      <button class="chip" aria-pressed="false">Décaféiné</button>
+      <button class="chip" aria-pressed="false">Éditions limitées</button>
+      <button class="chip" aria-pressed="false">Accessoires</button>
+    </div>
+  </div>
+</section>
+
+<!-- ── sec-products ─────────────────────────────────────────────────────── -->
+<section class="sec-products" id="catalogue">
+  <div class="wrap">
+    <div class="grid">
+
+      <article class="card">
+        <div class="visual" style="--img: var(--tk-img-1)"><div class="blob"></div><span class="badge badge-sale">Promo</span></div>
+        <div class="body">
+          <span class="meta">Espresso · Brésil</span>
+          <h3>Fazenda do Sol</h3>
+          <p class="note">Chocolat noir, noisette grillée, finale sirupeuse.</p>
+        </div>
+        <div class="foot">
+          <span class="price">9,90 €<span class="strike">12,50 €</span></span>
+          <button class="add" title="Ajouter au panier" aria-label="Ajouter Fazenda do Sol au panier">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="visual" style="--img: var(--tk-img-2)"><div class="blob"></div><span class="badge badge-new">Nouveau</span></div>
+        <div class="body">
+          <span class="meta">Filtre · Éthiopie</span>
+          <h3>Yirgacheffe G1</h3>
+          <p class="note">Jasmin, bergamote, abricot blanc.</p>
+        </div>
+        <div class="foot">
+          <span class="price">13,50 €</span>
+          <button class="add" title="Ajouter au panier" aria-label="Ajouter Yirgacheffe G1 au panier">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+      </article>
+
+      <!-- hostile row: a 92-character name must not break the card -->
+      <article class="card">
+        <div class="visual" style="--img: var(--tk-img-3)"><div class="blob"></div></div>
+        <div class="body">
+          <span class="meta">Édition limitée · Colombie</span>
+          <h3>Micro-lot de la fin de saison, récolte séchée au soleil sur lits africains, lot numéroté de la ferme familiale des hauts plateaux</h3>
+          <p class="note">Fruits rouges, cacao, acidité cristalline.</p>
+        </div>
+        <div class="foot">
+          <span class="price">24,00 €</span>
+          <button class="add" title="Ajouter au panier" aria-label="Ajouter ce micro-lot au panier">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="visual" style="--img: var(--tk-img-4)"><div class="blob"></div></div>
+        <div class="body">
+          <span class="meta">Espresso · Guatemala</span>
+          <h3>Antigua Volcán</h3>
+          <p class="note">Caramel, orange sanguine, épices douces.</p>
+        </div>
+        <div class="foot">
+          <span class="price">11,20 €</span>
+          <button class="add" title="Ajouter au panier" aria-label="Ajouter Antigua Volcán au panier">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+      </article>
+
+      <!-- hostile row: no image — the placeholder must stay elegant -->
+      <article class="card">
+        <div class="visual"><div class="stripes"></div></div>
+        <div class="body">
+          <span class="meta">Accessoire</span>
+          <h3>Moulin à main en noyer</h3>
+          <p class="note">Meules coniques en acier, réglage fin, garanti dix ans.</p>
+        </div>
+        <div class="foot">
+          <span class="price">79,00 €</span>
+          <button class="add" title="Ajouter au panier" aria-label="Ajouter le moulin à main au panier">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="visual" style="--img: var(--tk-img-5)"><div class="blob"></div><span class="badge badge-new">Nouveau</span></div>
+        <div class="body">
+          <span class="meta">Décaféiné · Pérou</span>
+          <h3>Agua de Paz</h3>
+          <p class="note">Décaféiné à l'eau de source : doux, rond, cacao au lait.</p>
+        </div>
+        <div class="foot">
+          <span class="price">10,80 €</span>
+          <button class="add" title="Ajouter au panier" aria-label="Ajouter Agua de Paz au panier">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="visual" style="--img: var(--tk-img-6)"><div class="blob"></div></div>
+        <div class="body">
+          <span class="meta">Filtre · Kenya</span>
+          <h3>Nyeri AA</h3>
+          <p class="note">Cassis, tomate confite, sucre roux.</p>
+        </div>
+        <div class="foot">
+          <span class="price">14,90 €</span>
+          <button class="add" title="Ajouter au panier" aria-label="Ajouter Nyeri AA au panier">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+      </article>
+
+      <!-- hostile row: a very long price label must wrap, not overflow -->
+      <article class="card">
+        <div class="visual" style="--img: var(--tk-img-2)"><div class="blob"></div></div>
+        <div class="body">
+          <span class="meta">Coffret · Découverte</span>
+          <h3>Coffret des trois continents</h3>
+          <p class="note">Trois sachets de 250 g, fiche de dégustation illustrée.</p>
+        </div>
+        <div class="foot">
+          <span class="price long">Prix sur demande — édition limitée numérotée, expédition mondiale incluse</span>
+          <button class="add" title="Nous contacter" aria-label="Nous contacter pour le coffret">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="visual" style="--img: var(--tk-img-1)"><div class="blob"></div></div>
+        <div class="body">
+          <span class="meta">Espresso · Honduras</span>
+          <h3>Marcala Noir</h3>
+          <p class="note">Mélasse, noix de pécan, pointe de tabac blond.</p>
+        </div>
+        <div class="foot">
+          <span class="price">10,50 €</span>
+          <button class="add" title="Ajouter au panier" aria-label="Ajouter Marcala Noir au panier">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── sec-best ─────────────────────────────────────────────────────────── -->
+<section class="sec-best">
+  <div class="wrap">
+    <div class="visual"><div class="blob"></div></div>
+    <div>
+      <span class="kicker">Le best-seller de la maison</span>
+      <h2>Abonnement « Le rituel »</h2>
+      <p>500 g chaque mois, choisis par notre torréfacteur selon vos goûts, avec la fiche de dégustation du lot. Modifiable, pausable, résiliable en un clic.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#">Commencer l'abonnement <span aria-hidden="true">→</span></a>
+        <span class="price">à partir de 16,90 € / mois</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── sec-faq ──────────────────────────────────────────────────────────── -->
+<section class="sec-faq">
+  <div class="wrap">
+    <h2>Questions fréquentes</h2>
+    <div class="faq">
+      <details open>
+        <summary>Quand mon café est-il torréfié ?</summary>
+        <p>La semaine de votre commande, en petits lots. La date de torréfaction est imprimée sur chaque sachet — jamais avant, jamais après.</p>
+      </details>
+      <details>
+        <summary>Comment choisir mon moulin ?</summary>
+        <p>Espresso = réglage fin, filtre = réglage moyen. Notre moulin à main couvre les deux, et sa fiche de réglage est jointe à chaque commande.</p>
+      </details>
+      <details>
+        <summary>Puis-je modifier ou annuler mon abonnement ?</summary>
+        <p>Oui, à tout moment depuis votre espace : changer le lot, sauter un mois, mettre en pause ou résilier — sans frais et sans appel téléphonique.</p>
+      </details>
+      <details>
+        <summary>Livrez-vous à l'international ?</summary>
+        <p>Oui, dans toute l'Europe et au-delà pour les coffrets numérotés. Les frais sont calculés avant paiement, sans surprise.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ── sec-footer ───────────────────────────────────────────────────────── -->
+<footer class="sec-footer">
+  <div class="wrap">
+    <div class="news">
+      <h2>La lettre du jeudi</h2>
+      <p>Les arrivages, les coulisses de la torréfaction, et une recette d'extraction par mois.</p>
+      <form onsubmit="return false">
+        <input type="email" placeholder="Votre adresse email" aria-label="Votre adresse email">
+        <button type="submit">S'inscrire</button>
+      </form>
+    </div>
+    <div class="foot-cols">
+      <div>
+        <h3>Atelier Café</h3>
+        <p class="legal">Torrefaction artisanale depuis 2011.<br>12 rue des Capucins, 69001 Lyon.</p>
+      </div>
+      <div>
+        <h3>Boutique</h3>
+        <ul><li><a href="#">Tous les cafés</a></li><li><a href="#">Abonnements</a></li><li><a href="#">Accessoires</a></li><li><a href="#">Coffrets</a></li></ul>
+      </div>
+      <div>
+        <h3>Aide</h3>
+        <ul><li><a href="#">Livraison</a></li><li><a href="#">Retours</a></li><li><a href="#">Nous contacter</a></li><li><a href="#">FAQ</a></li></ul>
+      </div>
+      <div>
+        <h3>Maison</h3>
+        <ul><li><a href="#">Notre histoire</a></li><li><a href="#">Nos producteurs</a></li><li><a href="#">Ateliers</a></li><li><a href="#">Journal</a></li></ul>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // theme toggle: data-theme on <html>, remembered in localStorage (token values do the rest)
+  document.getElementById('theme').addEventListener('click', function () {
+    var root = document.documentElement
+    var dark = root.getAttribute('data-theme') === 'dark' ||
+      (!root.getAttribute('data-theme') && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    root.setAttribute('data-theme', dark ? 'light' : 'dark')
+    try { localStorage.setItem('tk-theme', dark ? 'light' : 'dark') } catch (e) {}
+  })
+  // filter chips: single selection (demo behaviour, no data)
+  document.querySelectorAll('.chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      document.querySelectorAll('.chip').forEach(function (c) { c.setAttribute('aria-pressed', 'false') })
+      chip.setAttribute('aria-pressed', 'true')
+    })
+  })
+</script>
+</body>
+</html>

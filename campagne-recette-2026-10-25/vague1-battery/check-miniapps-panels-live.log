@@ -1,0 +1,22 @@
+# check-miniapps-panels-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=52821
+
+App button — this checkout's clients in the real GUI
+  ✗ the three clients were found in the served bundle and swapped  — [{"file":"packages/kybernos-miniapps/client.js","replaced":false},{"file":"packages/kybernos-slides/client.js","replaced":false},{"file":"packages/kybernos-modeleur/client.js","replaced":false}]
+  ✗ the Skills page opens
+  ✗ Skills › Yours: the segment opens
+  ✓ Skills › Yours: no "App" button anywhere in the page
+  ✗ Skills › Discover: the segment opens
+  ✓ Skills › Discover: no "App" button anywhere in the page
+  ✗ Skills › Team: the segment opens
+  ✓ Skills › Team: no "App" button anywhere in the page
+  ✗ Slides: its panel (.kbsd-root) gets one button, in its head  — 0
+  ✗ the Modeleur: its panel (.kbmo-root) gets one button, in its head  — 0
+  ✗ Bricks: its panel still gets one button, in its head  — 0
+  ✓ AI provider and models (.kbm-root.kbmp) gets none
+  ✓ the core's own Models page (a bare .kbm-root) gets none
+  ✓ a page that only looks like Skills (.kbs-root with a .kbs-head) gets none
+  ✓ no script error was thrown during the run
+
+7 checks passed, 8 FAILED
+

@@ -1,0 +1,22 @@
+# check-call-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=79944
+
+1. the bundle loaded
+  ✗ the seam window.__KB_CALL__.open exists (the bundle loaded and applied)
+  ✗ the old core routes are gone (404)
+  ✗ the SDK is served by this bundle
+2. a call against the real host (the sandbox has no call secrets)
+  ✗ with no call secrets on this machine the panel says calls are not ready and offers to open Settings › Calls — null
+  ✓ nothing was asked of the host but its status
+  ✓ the panel closes again
+3. a call against fake host answers (a room nobody can reach)
+  ✗ the real SDK was fetched from this bundle and tried: the panel says the room cannot be joined — null
+  ✗ the token request carried who is called: the session, the team, the member, the mode and the voice (not the language: the host takes it from the settings) — []
+  ✗ window.LivekitClient is the real SDK
+  ✓ the microphone was never asked for by this call: the room could not be joined, so it was never published
+  ✓ the panel closes again
+4. French
+  ✗ the panel speaks French when the language is French — null
+
+✗ kybernos-call live: 4 passed, 8 failed
+

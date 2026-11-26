@@ -1,0 +1,23 @@
+{
+  "id": "e-commerce",
+  "v": 1,
+  "name": "E-commerce",
+  "author": "Kybernos",
+  "description": {
+    "fr": "L’orange chaud d’une boutique en ligne, sur fond clair.",
+    "en": "An online shop’s warm orange, on a light ground."
+  },
+  "settings": {
+    "mode": "light",
+    "acc": "#c25e0a",
+    "ov": {
+      "light:base": "#fdf7f1",
+      "light:l1": "#ffffff",
+      "light:l2": "#f9ecdf",
+      "light:side": "#fbf1e6",
+      "light:input": "#ffffff"
+    },
+    "fontText": "inter",
+    "radius": "soft"
+  }
+}

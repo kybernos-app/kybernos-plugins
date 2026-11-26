@@ -1,0 +1,73 @@
+{
+  "name": "text-automation-1",
+  "type": "automation",
+  "note": "Six prompts that start the automation-creator interview (what starts it, numbered steps, approvals, notification, a yes before saving, an offer to run it once): two for business, two for education, two for research. All are read-only or draft-only: nothing is sent, changed or deleted.",
+  "cells": [
+    {
+      "id": "auto_sales_monday",
+      "card": "prompt",
+      "entry": {
+        "name": "Weekly sales summary",
+        "tag": "Business",
+        "line": "Every Monday, summarise last week's sales in one page",
+        "meta": "Prompt"
+      },
+      "request": "Create an automation that summarises last week's sales every Monday at 8:00. First ask me where the numbers live (a file in my workspace or a connected app), who should get the summary and which figures matter. Steps: read last week's figures, compare them with the week before, write one page with the three biggest changes and a short explanation of each, save it as a file and notify me. Read-only: it never sends, changes or deletes anything. Show me the draft, wait for my yes, save it, then offer to run it once now."
+    },
+    {
+      "id": "auto_invoice_chase",
+      "card": "prompt",
+      "entry": {
+        "name": "Overdue invoice drafts",
+        "tag": "Business",
+        "line": "Draft a reminder for every overdue invoice, once a week",
+        "meta": "Prompt"
+      },
+      "request": "Create an automation that drafts payment reminders every Monday at 9:00. First ask me where my invoices are listed (a file or a connected app), how many days late counts as overdue and the tone I want. Steps: find the overdue invoices, write one polite reminder per client with the amount and the due date, and save them as drafts in one file. It must never send anything: approval stays on 'ask me first'. Show me the draft, wait for my yes, save it, then offer to run it once now."
+    },
+    {
+      "id": "auto_study_sunday",
+      "card": "prompt",
+      "entry": {
+        "name": "Weekly study plan",
+        "tag": "Education",
+        "line": "Every Sunday evening, plan my study week from my deadlines",
+        "meta": "Prompt"
+      },
+      "request": "Create an automation that plans my study week every Sunday at 18:00. First ask me where my deadlines and exams are listed (a file or my calendar), how many hours I can study each day and which evenings are free. Steps: read the deadlines for the next 14 days, rank what is most urgent, write a day-by-day plan that fits my hours, save it as a file and notify me. Read-only: it never changes my calendar. Show me the draft, wait for my yes, save it, then offer to run it once now."
+    },
+    {
+      "id": "auto_quiz_morning",
+      "card": "prompt",
+      "entry": {
+        "name": "Morning quiz",
+        "tag": "Education",
+        "line": "Every weekday morning, quiz me on my notes",
+        "meta": "Prompt"
+      },
+      "request": "Create an automation that quizzes me every weekday at 7:30. First ask me which folder holds my notes and how many questions I want. Steps: pick the topics I was quizzed on least recently (keep a small log file), write 5 questions of mixed difficulty from my notes only, save the questions and the answers in separate files and notify me with the questions. Never state a fact that is not in my notes. Show me the draft, wait for my yes, save it, then offer to run it once now."
+    },
+    {
+      "id": "auto_papers_friday",
+      "card": "prompt",
+      "entry": {
+        "name": "New papers digest",
+        "tag": "Research",
+        "line": "Every Friday, list new papers on my topic with a two-line summary",
+        "meta": "Prompt"
+      },
+      "request": "Create an automation that lists new papers on my topic every Friday at 16:00. First ask me for the topic, a few keywords, how far back to look and where to look (for example public preprint servers and journal pages). Steps: search the web, keep only items from the last 7 days, give each a title, link, date and a two-line summary of what its abstract says, mark any you could not open, save the list as a file and notify me. Read-only: it downloads and installs nothing. Show me the draft, wait for my yes, save it, then offer to run it once now."
+    },
+    {
+      "id": "auto_page_watch",
+      "card": "prompt",
+      "entry": {
+        "name": "Page change watch",
+        "tag": "Research",
+        "line": "Check a web page every day and tell me when it changes",
+        "meta": "Prompt"
+      },
+      "request": "Create an automation that watches a web page and tells me when it changes. First ask me for the page address, what counts as a change that matters (a new date, a new row, a number) and when to check (by default every day at 9:00). Steps: read the page, compare it with the copy saved last time in a file and, if something that matters changed, write what changed in two lines with the old and new values and notify me. Otherwise stay silent. Read-only. Show me the draft, wait for my yes, save it, then offer to run it once now."
+    }
+  ]
+}

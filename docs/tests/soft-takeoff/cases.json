@@ -1,0 +1,1350 @@
+{
+  "comment": "The case matrix of the soft-takeoff recette. runner: script = deterministic command that decides; agent = a cheap-model walkthrough that must return evidence; owner = a person (real money, real machines, a decision). status: ready | to-verify (a fact to confirm before the first run) | needs-build (something must exist first) | blocked (waits for an owner decision or a paid resource). Evidence never goes in git. light: true = part of the first, cheap wave. watch: the in-flight work whose delivery should make this case run again (cloud-budget = the session on Cloud budget and billing, slides = the session on slide creation and editing). expect: a canary, the verdict it must get. timeout: seconds, for a long case.",
+  "waves": {
+    "W0": "Gates and environment",
+    "W1": "What a person sees",
+    "W2": "Model consumption",
+    "W3": "Cloud computer (account B)",
+    "W4": "Subscription, billing, team",
+    "W5": "Regression, rollback, go / no-go"
+  },
+  "cases": [
+    {
+      "id": "W0-01",
+      "wave": "W0",
+      "prio": "P0",
+      "area": "gate",
+      "title": "Repository guard: no media, no secrets, no personal paths",
+      "runner": "script",
+      "cmd": "node scripts/garde-depot.mjs",
+      "env": "none",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "light": true
+    },
+    {
+      "id": "W0-02",
+      "wave": "W0",
+      "prio": "P0",
+      "area": "gate",
+      "title": "Lifecycle engine (install, upgrade, rollback logic)",
+      "runner": "script",
+      "cmd": "node scripts/test-lifecycle-engine.mjs",
+      "env": "none",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "light": true
+    },
+    {
+      "id": "W0-03",
+      "wave": "W0",
+      "prio": "P0",
+      "area": "gate",
+      "title": "Package gate",
+      "runner": "script",
+      "cmd": "node scripts/test-paquet.mjs",
+      "env": "none",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "light": true
+    },
+    {
+      "id": "W0-04",
+      "wave": "W0",
+      "prio": "P0",
+      "area": "gate",
+      "title": "Whole unit suite: no new red compared with the baseline taken at go",
+      "runner": "script",
+      "cmd": "node scripts/run-all-tests.mjs",
+      "env": "none",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "timeout": 1800,
+      "note": "Baseline = the red set measured on the first run of the recette, kept in the ledger. « No new red », never « zero red ».",
+      "light": true
+    },
+    {
+      "id": "W0-05",
+      "wave": "W0",
+      "prio": "P0",
+      "area": "gate",
+      "title": "Sandbox DSH boots with the frozen bundle set: the hub answers and the boot guard sees a normal boot",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-freeze-live.mjs --boot-only",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "Apply the freeze first: node scripts/soft-takeoff-freeze.mjs --profile <sandbox profile>, then restart the sandbox."
+    },
+    {
+      "id": "W0-06",
+      "wave": "W0",
+      "prio": "P0",
+      "area": "gate",
+      "title": "Two accounts and the local server replica are up; the preflight proves an agent request reaches the replica for both",
+      "runner": "script",
+      "cmd": "bash scripts/e2e-teams-run.sh preflight",
+      "env": "replica",
+      "personas": [
+        "A",
+        "B"
+      ],
+      "status": "ready",
+      "note": "Needs KB_E2E_DIR and KB_SERVER_DIR. Refuses ports 3080, 8791, 8792."
+    },
+    {
+      "id": "W0-08",
+      "wave": "W0",
+      "prio": "P0",
+      "area": "tester integrity",
+      "title": "Canary good: a fixture that must come back pass",
+      "runner": "script",
+      "cmd": "node scripts/soft-takeoff-canary.mjs pass",
+      "env": "none",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "expect": "pass",
+      "light": true
+    },
+    {
+      "id": "W0-09",
+      "wave": "W0",
+      "prio": "P0",
+      "area": "tester integrity",
+      "title": "Canary bad: a fixture that must come back fail",
+      "runner": "script",
+      "cmd": "node scripts/soft-takeoff-canary.mjs fail",
+      "env": "none",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "expect": "fail",
+      "light": true
+    },
+    {
+      "id": "W0-07",
+      "wave": "W0",
+      "prio": "P0",
+      "area": "tester integrity",
+      "title": "Tester canaries: one known-good and one known-bad fixture get the expected verdicts",
+      "runner": "agent",
+      "brief": "Run the two canary fixtures; the verdicts must be pass and fail. Any other result voids the whole Haiku run.",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "needs-build",
+      "note": "Fixtures are tiny pages like the one scripts/test-dead-clicks.mjs uses."
+    },
+    {
+      "id": "W1-01",
+      "wave": "W1",
+      "prio": "P0",
+      "area": "first run",
+      "title": "First-run wizard: display mode, model choice, free-account offer, finish; and the phone app's variant",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-onboarding-live.mjs && node scripts/check-onboarding-phone-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "C"
+      ],
+      "status": "ready",
+      "note": "Runs on sandbox C only: the wizard opens only on a profile that was never paired and whose kybernos/onboarding.json says completed:false. On A (signed in) it does not open, and the phone variant fails at « the wizard opens » (T-010: a wrong persona, the check itself is current). Both scripts write the sandbox's settings and put them back."
+    },
+    {
+      "id": "W1-02",
+      "wave": "W1",
+      "prio": "P0",
+      "area": "new chat",
+      "title": "New-chat page: shelf, composer, environment menu, nothing sent",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-newchat-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "light": true,
+      "watch": [
+        "cloud-budget"
+      ]
+    },
+    {
+      "id": "W1-03",
+      "wave": "W1",
+      "prio": "P0",
+      "area": "sidebar",
+      "title": "Creations, Agent Teams and Skills pages, and the skeleton screens",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-pages-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "Refuses :3080. Writes only to the sandbox (Skills source and Featured list, put back). That every sidebar page opens is covered by W1-04 and the walkthrough W1-21."
+    },
+    {
+      "id": "W1-04",
+      "wave": "W1",
+      "prio": "P0",
+      "area": "dead clicks",
+      "title": "Nothing a person can press does nothing (sidebar pages and Settings)",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-dead-clicks-live.mjs --settings",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready"
+    },
+    {
+      "id": "W1-05",
+      "wave": "W1",
+      "prio": "P1",
+      "area": "settings",
+      "title": "Settings menu, search, titles and « ? » help are consistent",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-settings-nav-live.mjs && node scripts/check-settings-search-live.mjs --frozen && node scripts/check-page-titles-live.mjs && node scripts/check-help-live.mjs --frozen",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "The search and help checks run with --frozen: pages of switched-off bundles (Calls, Atlas, Servers, Kaby…) are not in the menu and are listed as skipped, not red. The three index rows that drifted (Activity log › Family and Live, Templates › From a catalogue) were retargeted to the labels the pages show (T-009)."
+    },
+    {
+      "id": "W1-06",
+      "wave": "W1",
+      "prio": "P1",
+      "area": "help",
+      "title": "First-visit animations and the article links",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-help-intro-live.mjs --frozen",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "--frozen: a page that is not in the menu of the frozen build (Calls, Atlas) is skipped, not red."
+    },
+    {
+      "id": "W1-07",
+      "wave": "W1",
+      "prio": "P1",
+      "area": "theme",
+      "title": "Theme page end to end",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-theme-studio-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready"
+    },
+    {
+      "id": "W1-08",
+      "wave": "W1",
+      "prio": "P0",
+      "area": "language",
+      "title": "English and French read as English and French; no French literal in English",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-language-creation-live.mjs --frozen && node scripts/audit-i18n-live.mjs --baseline",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "--frozen: the surfaces of switched-off plugins (Bricks, 3D modeller, Motion, Atlas, the Computers menu) are skipped and listed, not red (T-016)."
+    },
+    {
+      "id": "W1-09",
+      "wave": "W1",
+      "prio": "P0",
+      "area": "phone",
+      "title": "Phone-width layout of the shell and Settings",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-mobile-live.mjs && node scripts/check-phone-width-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "The first-run wizard on a phone is part of W1-01 (it needs the never-paired sandbox C)."
+    },
+    {
+      "id": "W1-10",
+      "wave": "W1",
+      "prio": "P0",
+      "area": "account",
+      "title": "Account menu of a connected account: plan, spaces, rows, sizes",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-account-menu-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "watch": [
+        "cloud-budget"
+      ],
+      "note": "Needs a connected account (A): signed out, the card opens the off menu and the check exits 3. The signed-out footer is W1-18."
+    },
+    {
+      "id": "W1-11",
+      "wave": "W1",
+      "prio": "P1",
+      "area": "suite",
+      "title": "Plugins page: install, switch, remove through the manager",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-plugins-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "blocked",
+      "note": "The Plugins page needs kybernos-registry, which the freeze switches off. Owner question: do people manage plugins in the takeoff? If yes, switch it on in plugins.json and run this case."
+    },
+    {
+      "id": "W1-12",
+      "wave": "W1",
+      "prio": "P1",
+      "area": "a11y",
+      "title": "Contrast, icons and hit targets",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/audit-contrast-live.mjs && node scripts/check-icons-live.mjs && node scripts/check-hit-targets-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready"
+    },
+    {
+      "id": "W1-13",
+      "wave": "W1",
+      "prio": "P1",
+      "area": "skills",
+      "title": "Skills: Featured, Yours, details, install confirmation",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-skills-featured-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready"
+    },
+    {
+      "id": "W1-14",
+      "wave": "W1",
+      "prio": "P1",
+      "area": "connectors",
+      "title": "Connectors: whole catalogue visible, Connect gated by account",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-connectors-gate-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "to-verify",
+      "note": "Needs the replica on a server line that serves the public connectors catalogue route; the replica line asked for it is not decided yet."
+    },
+    {
+      "id": "W1-15",
+      "wave": "W1",
+      "prio": "P0",
+      "area": "freeze",
+      "title": "A bundle that is off is not loaded: every host route it has answers 404 on the frozen sandbox",
+      "runner": "script",
+      "cmd": "node scripts/test-soft-takeoff-plan.mjs && node scripts/test-soft-takeoff-freeze.mjs && source scripts/sandbox/env.sh && node scripts/check-freeze-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "Menu entries and Settings pages of the off bundles are compared with the list in the walkthrough W1-21."
+    },
+    {
+      "id": "W1-16",
+      "wave": "W1",
+      "prio": "P1",
+      "area": "documents",
+      "title": "Slides: unit tests of the plugin (client, host, write guard)",
+      "runner": "script",
+      "cmd": "node scripts/run-all-tests.mjs --only packages/kybernos-slides",
+      "env": "none",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "light": true,
+      "watch": [
+        "slides"
+      ]
+    },
+    {
+      "id": "W1-17",
+      "wave": "W1",
+      "prio": "P1",
+      "area": "documents",
+      "title": "Slides panel in the real GUI: thumbnails, text editor, tool bar",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-slides-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "light": true,
+      "watch": [
+        "slides"
+      ]
+    },
+    {
+      "id": "W1-18",
+      "wave": "W1",
+      "prio": "P0",
+      "area": "account",
+      "title": "Sidebar footer signed out and signed in: one button, its menus, the Upgrade dialog, refusals of Subscribe",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-footer-live.mjs --frozen",
+      "env": "sandbox",
+      "personas": [
+        "C"
+      ],
+      "status": "ready",
+      "watch": [
+        "cloud-budget"
+      ],
+      "note": "Runs on C (never paired): the signed-out footer must be there; the connected scenes are answered inside the page, nothing leaves the machine. On a connected sandbox it exits 3."
+    },
+    {
+      "id": "W1-20",
+      "wave": "W1",
+      "prio": "P0",
+      "area": "walkthrough",
+      "title": "Newcomer, day one: first-run wizard, new-chat page, find the plan",
+      "runner": "agent",
+      "brief": "Persona newcomer on an UNPAIRED sandbox (the wizard shows only when onboarding is not completed). Walk the first-run wizard to its end, then the new-chat page, then Settings to find the plan. Record, for every screen, the visible title, any error text, any empty state, and anything that reads « undefined », « NaN » or untranslated. Press every button with a real click; read the buttons of a look before clicking.",
+      "env": "replica",
+      "personas": [
+        "A"
+      ],
+      "status": "ready"
+    },
+    {
+      "id": "W1-21",
+      "wave": "W1",
+      "prio": "P0",
+      "area": "walkthrough",
+      "title": "Settings explorer: open every Settings page once",
+      "runner": "agent",
+      "brief": "Persona settings explorer. Open each page of the Settings menu; per page record title, console errors, dead controls found by clicking the first three buttons, and French words in English.",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready"
+    },
+    {
+      "id": "W1-22",
+      "wave": "W1",
+      "prio": "P1",
+      "area": "walkthrough",
+      "title": "Creator: ask for a skill, a command, a dashboard and a team in the chat",
+      "runner": "agent",
+      "brief": "Persona creator. Use the new-chat shelf cards. For each creation, check it exists where the product says it will (Skills, Commands, Dashboards, Agent Teams).",
+      "env": "replica",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "watch": [
+        "slides"
+      ]
+    },
+    {
+      "id": "W1-23",
+      "wave": "W1",
+      "prio": "P1",
+      "area": "walkthrough",
+      "title": "Phone user: the same first-day journey at 390 px",
+      "runner": "agent",
+      "brief": "Persona phone user. Emulate 390x844 with touch. Repeat W1-20 and add: every control can be pressed with a thumb, nothing scrolls sideways.",
+      "env": "replica",
+      "personas": [
+        "A"
+      ],
+      "status": "ready"
+    },
+    {
+      "id": "W1-24",
+      "wave": "W1",
+      "prio": "P1",
+      "area": "walkthrough",
+      "title": "French speaker: the first-day journey in French",
+      "runner": "agent",
+      "brief": "Persona French speaker. Set French in the page only. Repeat W1-20; record every English string and every French string that is cut or wrong.",
+      "env": "replica",
+      "personas": [
+        "A"
+      ],
+      "status": "ready"
+    },
+    {
+      "id": "W2-01",
+      "wave": "W2",
+      "prio": "P0",
+      "area": "kybernos model",
+      "title": "A chat turn on the Kybernos model reaches the server and is billed to the right space",
+      "runner": "script",
+      "cmd": "source \"$KB_E2E_DIR/env.sh\" && bash scripts/e2e-teams-run.sh run j1",
+      "env": "replica",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "watch": [
+        "cloud-budget"
+      ],
+      "note": "Replica only. The stand-in model bills the tokens it is told to (POST :8822/__/engine/reply), so the amounts are exact. Needs the replica up and account A paired (see README § 7b)."
+    },
+    {
+      "id": "W2-02",
+      "wave": "W2",
+      "prio": "P0",
+      "area": "usage",
+      "title": "Usage ledger and chip agree with what the server booked",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-usage-live.mjs && source \"$KB_E2E_DIR/env.sh\" && bash scripts/e2e-teams-run.sh run j5",
+      "env": "replica",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "watch": [
+        "cloud-budget"
+      ],
+      "note": "Replica only. The first half (check-usage-live) needs no replica. J5 needs account B to be a member of T1, which only J4 (W4-09) does: run W4-09 first, once per replica. J5 spends the member's 5-hour allowance for good, so it cannot be replayed in the same team for five hours: after a spent replica use `replica-reset` (README § 7c). Run on 2026-11-03: 26 of 31 (T-020), then 31 of 31 on a fresh replica once the journey sized its turns on what a turn really costs.",
+      "timeout": 900
+    },
+    {
+      "id": "W2-03",
+      "wave": "W2",
+      "prio": "P0",
+      "area": "own key",
+      "title": "Own key: the provider sheet and the Add provider form (key checked on paste, saved by name, every model listed)",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-provider-sheet-live.mjs && node scripts/check-models-provider-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "Starts a fake OpenAI-compatible provider on the loopback and adds then deletes one custom provider in the sandbox. No real key, nothing leaves the machine.",
+      "timeout": 360
+    },
+    {
+      "id": "W2-13",
+      "wave": "W2",
+      "prio": "P1",
+      "area": "own key",
+      "title": "The AI provider and models page: a short first view, the providers with no key folded under one line, the sheet of a model",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-models-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "C"
+      ],
+      "status": "to-verify",
+      "note": "Split from W2-03 on 2026-11-03. Needs C (the first view asserts « Kybernos Cloud not connected »). Three assertions (the fold under one line, \"7 in view\", the fold opens) are red there for want of ONE provider with a key: the page folds only when some providers have a key and some do not (kbPvFold), and a sandbox holds no key, so all seven wait and nothing folds. Test assumption, not a product defect (T-018): the check should add a made-up key first, as check-provider-sheet-live does for its own provider."
+    },
+    {
+      "id": "W2-04",
+      "wave": "W2",
+      "prio": "P0",
+      "area": "accounts",
+      "title": "Several accounts on one DSH: with the owner switch OFF a second Kybernos account (or a second key on the same provider) is refused with a clear message; ON it is allowed",
+      "runner": "agent",
+      "brief": "Sign in with account A, then try to connect account A2 and, separately, add a second key for the same provider. Record exactly what the screen says and what the server answered.",
+      "env": "replica",
+      "personas": [
+        "A"
+      ],
+      "status": "blocked",
+      "note": "Dropped from the takeoff by the owner on 2026-11-03 (question 13, default taken). A product gap, not a failure: no owner switch for several accounts exists (searched docs, READMEs and server modules). Stays in the ledger as a gap."
+    },
+    {
+      "id": "W2-05",
+      "wave": "W2",
+      "prio": "P0",
+      "area": "local models",
+      "title": "Local models: the page searches for new models and says where the list comes from",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-ollama-search-live.mjs",
+      "env": "machine",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "Read-only, nothing is installed. The real turn on a small model is W2-12."
+    },
+    {
+      "id": "W2-12",
+      "wave": "W2",
+      "prio": "P0",
+      "area": "local models",
+      "title": "A small local model answers a one-line request through Ollama (engine up, model installed, under 60 s)",
+      "runner": "script",
+      "env": "machine",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "Engine level only: it does not prove DSH has the model in its picker (W2-14). Loopback only, pulls nothing, never loads the 9 GB models.",
+      "cmd": "node scripts/check-ollama-turn.mjs"
+    },
+    {
+      "id": "W2-14",
+      "wave": "W2",
+      "prio": "P1",
+      "area": "local models",
+      "title": "A turn from the composer on a local model wired in DSH",
+      "runner": "agent",
+      "brief": "On sandbox A, pick the wired local model in the composer's model menu, send « Say hello in one short sentence », record the model name shown, the answer, the time, and whether anything says it costs money.",
+      "env": "machine",
+      "personas": [
+        "A"
+      ],
+      "status": "blocked",
+      "note": "Blocked on 2026-11-03: the only model wired in DSH is the owner's qwen3.5:9b (8.3 GB loaded on a 16 GB machine that also runs the sandboxes), and the model menu of A shows only Kybernos Cloud. tev1:0.8b is not in the signed catalogue, so the page cannot wire it. Owner decision: README § 9, question 16."
+    },
+    {
+      "id": "W2-06",
+      "wave": "W2",
+      "prio": "P1",
+      "area": "free models",
+      "title": "Free LLMs page with the free tier locked: it says so in one sentence, draws no green dot, keeps Connect off",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-free-llms-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "to-verify",
+      "note": "The old title promised « free models work with no account and no key ». The script proves the honest locked state with answers it fakes itself (OpenCode Zen answered 403 free_tier_locked on 2026-10-16). Whether a real free model answers a real turn today is NOT tested by any script: owner decision 2026-11-03: not promised, only the locked state is checked (README § 9, question 14)."
+    },
+    {
+      "id": "W2-07",
+      "wave": "W2",
+      "prio": "P1",
+      "area": "auto routing",
+      "title": "Auto Routing picks from the person's list; the fallback never loops",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-auto-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready"
+    },
+    {
+      "id": "W2-08",
+      "wave": "W2",
+      "prio": "P0",
+      "area": "failures",
+      "title": "The Kybernos model fails (503, 429, 401, one failure): a plain card tells the person what happened, and the chat stays usable",
+      "runner": "script",
+      "env": "replica",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "Turned into a script on 2026-11-03 (scripts/check-model-failures-live.mjs): the replica's control port makes the stand-in provider fail, the script reads the sentence on the page and prints it. The script decides the mechanical part (something is said, no raw JSON/undefined/stack, composer still there, next turn answers); whether the sentence tells the person the right thing is for the owner to read (every sentence is printed). The own-key half (a wrong key on a real provider, a 429 or a timeout on an own key) is not covered: no stand-in provider answers those (README § 8 item 11). Red on its first run (the person read the server's raw JSON, T-021), green since the plain card; the engine's own red row keeps the raw body.",
+      "cmd": "source \"$KB_E2E_DIR/env.sh\" && node scripts/check-model-failures-live.mjs"
+    },
+    {
+      "id": "W2-09",
+      "wave": "W2",
+      "prio": "P0",
+      "area": "credit",
+      "title": "Free person with the welcome credit spent: the composer says what to do (top up or upgrade), not a technical error",
+      "runner": "agent",
+      "brief": "On the replica, use a person who has only the welcome credit (a new account, not A: the credit is given once per mailbox). Spend it with POST http://127.0.0.1:8822/__/engine/reply {\"completion\": <enough tokens to pass the credit>} and one message, then send another. Record the sentence in the composer, the buttons, and where each leads (top up, upgrade). Put the stand-in back to {\"completion\":1}.",
+      "env": "replica",
+      "personas": [
+        "A"
+      ],
+      "status": "to-verify",
+      "watch": [
+        "cloud-budget"
+      ],
+      "note": "To confirm before the first run: the size of welcome_credit_cents on the replica (owner setting), and that a fresh test account can be made without re-running `up` (it re-clones both sandboxes). Until then, a weaker version can play on account A by spending its 5-hour allowance (W2-02 does that)."
+    },
+    {
+      "id": "W2-10",
+      "wave": "W2",
+      "prio": "P2",
+      "area": "web search",
+      "title": "Web search works with and without a key",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-websearch-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "Makes REAL requests to the free search engines (an engine test and one search through DSH's seam) and stores then removes a made-up key. It undoes its writes. Outbound traffic allowed by the owner on 2026-11-03 (README § 9, question 15)."
+    },
+    {
+      "id": "W2-11",
+      "wave": "W2",
+      "prio": "P2",
+      "area": "workers",
+      "title": "Workers page: detect, install, check",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-workers-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "Reads and checks only: never installs, never types a key."
+    },
+    {
+      "id": "W3-01",
+      "wave": "W3",
+      "prio": "P0",
+      "area": "image",
+      "title": "Computer image unit tests (claim, reporter, runner, egress, wake)",
+      "runner": "script",
+      "cmd": "(cd services/computer-image && node --test *.test.mjs)",
+      "env": "none",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "light": true,
+      "watch": [
+        "cloud-budget"
+      ]
+    },
+    {
+      "id": "W3-02",
+      "wave": "W3",
+      "prio": "P1",
+      "area": "approvals",
+      "title": "Computer turn approvals",
+      "runner": "script",
+      "cmd": "node scripts/test-computer-approvals.mjs",
+      "env": "none",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "light": true,
+      "watch": [
+        "cloud-budget"
+      ]
+    },
+    {
+      "id": "W3-03",
+      "wave": "W3",
+      "prio": "P0",
+      "area": "computer",
+      "title": "Account B: create a Cloud Computer, wake it, open its page by ticket; it is signed in and shows no first-run wizard",
+      "runner": "owner",
+      "note": "Played by hand on real Fly machines, 2026-11-03 (evidence and replay kit: ~/kybernos-archive/soft-takeoff-2026-11-03/w3-fly/, kit/README.md; ledger section « Wave W3, real machines »). PASS. A computer was made on the image p20, said ready in 55 to 64 s, « Open » gave a link the machine's gate accepted once (the second use is refused), the DSH on it is signed in to its owner (not the sign-in wizard, no first-run wizard) and its connection survives the platform's profile and workspace reads. Server side: the play server of the server repo (`computers-play.ts` + `computers-play-check.ts`), with `computers.always_on` added to its plan.",
+      "env": "machine",
+      "personas": [
+        "B"
+      ],
+      "status": "played"
+    },
+    {
+      "id": "W3-04",
+      "wave": "W3",
+      "prio": "P0",
+      "area": "computer",
+      "title": "Account B: a chat turn on the computer is billed to the Cloud budget of the right workspace",
+      "runner": "owner",
+      "note": "Played by hand on real Fly machines, 2026-11-03 (evidence and replay kit: ~/kybernos-archive/soft-takeoff-2026-11-03/w3-fly/, kit/README.md; ledger section « Wave W3, real machines »). PASS, with a local model. One run and its model use were counted for the computer and its workspace (read from the ledger by the computer's own token: 1 run, 3.72 million nano-USD at the play's list price). The z.ai coding plan and the other keys of `.env.keys` were out of balance, so the model behind the route was a local Ollama `qwen3.5:9b`. Not read: which pot of the workspace moved (the hourly pass billed 4 completed hours).",
+      "env": "machine",
+      "personas": [
+        "B"
+      ],
+      "status": "played",
+      "watch": [
+        "cloud-budget"
+      ]
+    },
+    {
+      "id": "W3-05",
+      "wave": "W3",
+      "prio": "P0",
+      "area": "computer",
+      "title": "Sleep and wake keep sessions, memory, skills (the volume)",
+      "runner": "owner",
+      "note": "Played by hand on real Fly machines, 2026-11-03 (evidence and replay kit: ~/kybernos-archive/soft-takeoff-2026-11-03/w3-fly/, kit/README.md; ledger section « Wave W3, real machines »). PASS. Files written in the workspace and the DSH home, a session, and the automation store are identical after sleep then wake (platform suspend/resume) and after a cold restart of the machine (`fly machine restart`); the DSH on it still lists the automation. The volume is ext4 on /data, 2 GB.",
+      "env": "machine",
+      "personas": [
+        "B"
+      ],
+      "status": "played"
+    },
+    {
+      "id": "W3-06",
+      "wave": "W3",
+      "prio": "P0",
+      "area": "security",
+      "title": "Egress policy really holds on a Linux machine: closed, list, public",
+      "runner": "owner",
+      "note": "Played by hand on real Fly machines, 2026-11-03 (evidence and replay kit: ~/kybernos-archive/soft-takeoff-2026-11-03/w3-fly/, kit/README.md; ledger section « Wave W3, real machines »). PASS on a real Linux machine. nftables rules are loaded in all three modes. Closed: only the platform answers (example.com, example.org and a raw public address are refused). List (example.com): only example.com answers. Public: all three answer. The link-local metadata address is refused in all three. Not checked: a hostile process, IPv6, DNS tricks.",
+      "env": "machine",
+      "personas": [
+        "B"
+      ],
+      "status": "played"
+    },
+    {
+      "id": "W3-07",
+      "wave": "W3",
+      "prio": "P0",
+      "area": "security",
+      "title": "Only the owner (and whoever the access setting allows) can open a computer; a removed member cannot",
+      "runner": "owner",
+      "note": "Played by hand on real Fly machines, 2026-11-03 (evidence and replay kit: ~/kybernos-archive/soft-takeoff-2026-11-03/w3-fly/, kit/README.md; ledger section « Wave W3, real machines »). PASS. Ticket and gate across the three `access` settings with an owner, a member, an admin, a removed member and a stranger. `me`: only the owner opens (the admin gets 403, the rest 404). `admins`: owner and admin open. `all`: everybody in the team opens, and the member removed afterwards is refused (404) at once; the stranger is refused in every case.",
+      "env": "machine",
+      "personas": [
+        "A",
+        "B"
+      ],
+      "status": "played"
+    },
+    {
+      "id": "W3-08",
+      "wave": "W3",
+      "prio": "P0",
+      "area": "two accounts",
+      "title": "Account A on the desktop and account B on the cloud computer in one team: a skill A creates reaches B, a lesson B learns reaches A",
+      "runner": "owner",
+      "note": "Played by hand on real Fly machines, 2026-11-03 (evidence and replay kit: ~/kybernos-archive/soft-takeoff-2026-11-03/w3-fly/, kit/README.md; ledger section « Wave W3, real machines »). PASS. Account A on a desktop DSH (sandbox C paired to the play server, role admin) and account B on a cloud computer (owner) are in the SAME team space. A's skill reaches B: it is in the approved list on the computer, installs as a real folder on its volume, and is in the skills list of the computer's next agent request. B's lesson reaches A: it is in A's approved list, and the computer's own agent request carries it under « KYBERNOS TEAM LESSONS ». A's DSH on the personal space sees neither. The weak local model did not answer the code word (model, not product).",
+      "env": "machine",
+      "personas": [
+        "A",
+        "B"
+      ],
+      "status": "played"
+    },
+    {
+      "id": "W3-09",
+      "wave": "W3",
+      "prio": "P1",
+      "area": "computer",
+      "title": "A sleeping Free computer with no credit left is deleted after free_idle_delete_days",
+      "runner": "owner",
+      "note": "Played by hand on real Fly machines, 2026-11-03 (evidence and replay kit: ~/kybernos-archive/soft-takeoff-2026-11-03/w3-fly/, kit/README.md; ledger section « Wave W3, real machines »). PASS. With `free_idle_delete_days` 7: a sleeping computer of a FREE workspace that still has credit is kept; once the credit is used up the hourly pass deletes it and its Fly app is gone; the idle computer of a PAID workspace of the same age is kept. The pass also wants the computer to be older than the delay (created_at), as a really idle one is; and a free workspace with no credit cannot make a computer at all (409 budget_exhausted).",
+      "env": "machine",
+      "personas": [
+        "B"
+      ],
+      "status": "played"
+    },
+    {
+      "id": "W3-11",
+      "wave": "W3",
+      "prio": "P0",
+      "area": "budget",
+      "title": "Kybernos Cloud plugin unit tests: account, plan, budget gauge, computers, teams",
+      "runner": "script",
+      "cmd": "node scripts/run-all-tests.mjs --only packages/kybernos-cloud",
+      "env": "none",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "light": true,
+      "watch": [
+        "cloud-budget"
+      ]
+    },
+    {
+      "id": "W3-12",
+      "wave": "W3",
+      "prio": "P1",
+      "area": "computer",
+      "title": "Sending an automation to a computer (task link)",
+      "runner": "script",
+      "cmd": "node scripts/test-tasks-cloud-link.mjs",
+      "env": "none",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "light": true,
+      "watch": [
+        "cloud-budget"
+      ]
+    },
+    {
+      "id": "W3-13",
+      "wave": "W3",
+      "prio": "P1",
+      "area": "budget",
+      "title": "Account menu of the Cloud card on a signed-in account (Cloud Computer line, plan, budget)",
+      "runner": "script",
+      "cmd": "source \"$KB_E2E_DIR/env.sh\" && DSH_HOME=\"$KB_E2E_HOME_A/.dsh\" KB_HOST=\"$KB_E2E_HOST_A\" node scripts/check-cloud-menu-live.mjs",
+      "env": "replica",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "Run on account A of the replica (a sandbox with no signed-in account exits 3). The check signs in through DSH_HOME, so the command sets it to the sandbox's own: without it the page says « dsh web authentication required » and the check reports « not connected ». Run on 2026-11-03: 6 checks pass.",
+      "watch": [
+        "cloud-budget"
+      ]
+    },
+    {
+      "id": "W3-10",
+      "wave": "W3",
+      "prio": "P2",
+      "area": "phone",
+      "title": "Remote control from the phone",
+      "runner": "script",
+      "cmd": "(export KB_SANDBOX_ROOT=\"$HOME/.kybernos-sandbox/$(basename \"$PWD\")-c\" KB_SANDBOX_PORT=3120; unset KYBERNOS_CLOUD_API KB_HOST; bash scripts/sandbox/stop.sh >/dev/null 2>&1; bash scripts/sandbox/start.sh >/dev/null 2>&1; sleep 3; source scripts/sandbox/env.sh && node scripts/check-mobile-remote-live.mjs)",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "Persona C's sandbox (3120), restarted here WITHOUT KYBERNOS_CLOUD_API. The check points the sandbox at its own stand-in relay through `servers.json`; a sandbox started with the replica's address (the recette default of `soft-takeoff-sandbox-up.sh`), or one that is paired with the replica (A, B), sends the stand-in's token to the replica, which refuses it: « Sign in needed », no « Add a phone » button, 14 reds. A killed run leaves `kybernos/servers.json` and `kybernos-cloud-live-mobile.json*` in the sandbox's `.dsh`: delete them before a rerun. Run on 2026-11-03: 37 checks pass."
+    },
+    {
+      "id": "W4-01",
+      "wave": "W4",
+      "prio": "P0",
+      "area": "subscription",
+      "title": "Free signup: the welcome credit is granted once per verified address",
+      "runner": "owner",
+      "note": "Staging, a made-up address on the test mail domain.",
+      "env": "staging",
+      "personas": [
+        "A"
+      ],
+      "status": "blocked"
+    },
+    {
+      "id": "W4-02",
+      "wave": "W4",
+      "prio": "P0",
+      "area": "subscription",
+      "title": "Free to Solo checkout in Stripe test mode (4242 and a 3DS card); the app shows the new plan within 30 s of returning",
+      "runner": "owner",
+      "note": "Stripe test mode only. The host must be named by the owner at go.",
+      "env": "staging",
+      "personas": [
+        "A"
+      ],
+      "status": "blocked"
+    },
+    {
+      "id": "W4-03",
+      "wave": "W4",
+      "prio": "P0",
+      "area": "subscription",
+      "title": "Declined card and insufficient funds: clear message, plan unchanged",
+      "runner": "owner",
+      "note": "Stripe test cards.",
+      "env": "staging",
+      "personas": [
+        "A"
+      ],
+      "status": "blocked"
+    },
+    {
+      "id": "W4-04",
+      "wave": "W4",
+      "prio": "P1",
+      "area": "subscription",
+      "title": "Top-up purchase; the pots are spent in the documented order",
+      "runner": "owner",
+      "note": "ADR 0059.",
+      "env": "staging",
+      "personas": [
+        "A"
+      ],
+      "status": "blocked"
+    },
+    {
+      "id": "W4-05",
+      "wave": "W4",
+      "prio": "P0",
+      "area": "subscription",
+      "title": "Solo to Team: seats added and removed, proration shown, invoice issued",
+      "runner": "owner",
+      "note": "Stripe test mode.",
+      "env": "staging",
+      "personas": [
+        "A"
+      ],
+      "status": "blocked"
+    },
+    {
+      "id": "W4-06",
+      "wave": "W4",
+      "prio": "P0",
+      "area": "subscription",
+      "title": "Cancel at period end keeps access to the end, then falls back to Free (computers included)",
+      "runner": "owner",
+      "note": "Use a Stripe test clock.",
+      "env": "staging",
+      "personas": [
+        "A"
+      ],
+      "status": "blocked"
+    },
+    {
+      "id": "W4-07",
+      "wave": "W4",
+      "prio": "P1",
+      "area": "subscription",
+      "title": "Failed renewal: grace period, banner, recovery by a new card",
+      "runner": "owner",
+      "note": "Stripe test clock.",
+      "env": "staging",
+      "personas": [
+        "A"
+      ],
+      "status": "blocked"
+    },
+    {
+      "id": "W4-08",
+      "wave": "W4",
+      "prio": "P0",
+      "area": "subscription",
+      "title": "Server acceptance plan against a replica: webhooks, idempotency, plan data",
+      "runner": "script",
+      "cmd": "(server repo) node scripts/acceptance/run.ts --api $KB_E2E_API --control $KB_E2E_CONTROL --state $KB_E2E_DIR/replica-state.json",
+      "env": "replica",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "Runs from the kybernos-server checkout. NOT on the harness replica (8821): it lacks features the plan expects and its accounts are spent by the journeys. Start a dedicated one on other ports (`REPLICA_PORT=9810 REPLICA_STATE=<private file> REPLICA_SEED=catalogue REPLICA_COMPOSIO=1 REPLICA_INBOUND=1 REPLICA_COMPUTERS=1 REPLICA_WEBHOOK=1 node scripts/replica.ts`, never `REPLICA_STRIPE=cli`) and give the plan `--api http://localhost:9810 --control http://127.0.0.1:9811`. Run on 2026-11-03: 459 ok, 30 fail, 0 skipped (see T-027: read by code, 0 product defects, 14 stale tests, 15 replica gaps, 1 not pinned down, the fixes are in the server repo); about five minutes."
+    },
+    {
+      "id": "W4-09",
+      "wave": "W4",
+      "prio": "P0",
+      "area": "invitation",
+      "title": "Invitation, acceptance and joining a team",
+      "runner": "script",
+      "cmd": "source \"$KB_E2E_DIR/env.sh\" && bash scripts/e2e-teams-run.sh run j4",
+      "env": "replica",
+      "personas": [
+        "A",
+        "B"
+      ],
+      "status": "ready",
+      "note": "Run on 2026-11-03: 27 of 27, twice (before and after the harness changes)."
+    },
+    {
+      "id": "W4-10",
+      "wave": "W4",
+      "prio": "P0",
+      "area": "roles",
+      "title": "Roles: « Manage » and « Add credits » follow the role (member, admin, owner)",
+      "runner": "script",
+      "cmd": "source \"$KB_E2E_DIR/env.sh\" && bash scripts/e2e-teams-run.sh run j6",
+      "env": "replica",
+      "personas": [
+        "A",
+        "B"
+      ],
+      "status": "ready",
+      "watch": [
+        "cloud-budget"
+      ],
+      "note": "J6 fills T3's pool with one big call; after that the replica's pool and A's 7-day allowance are spent for good (use `replica-reset`, README § 7c). Run on 2026-11-03: 8 of 8 once the journey refreshed the page of the team's own DSH after a role change (T-024)."
+    },
+    {
+      "id": "W4-11",
+      "wave": "W4",
+      "prio": "P0",
+      "area": "sharing",
+      "title": "Memory isolation: a personal memory never reaches a team DSH; an approved team lesson reaches the team DSH and never the personal one",
+      "runner": "script",
+      "cmd": "source \"$KB_E2E_DIR/env.sh\" && bash scripts/e2e-teams-run.sh run j2",
+      "env": "replica",
+      "personas": [
+        "A",
+        "B"
+      ],
+      "status": "ready",
+      "note": "Run on 2026-11-03: 13 of 16 on the owner's cloned profile (default agent preset « minimal », whose prompt has no plugin sections: the canary, the memory-off marker and the team lesson are never in a request); 15 of 15 on the `standard` preset, which the harness and `soft-takeoff-repair.sh` now pin (`pin-model.mjs --preset`). J2's lesson step starts B's team DSH again after the approval, because a running team DSH re-reads the approved lessons every 5 minutes at most (T-025)."
+    },
+    {
+      "id": "W4-12",
+      "wave": "W4",
+      "prio": "P0",
+      "area": "sharing",
+      "title": "Team skills and team automations pages",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-skills-team-live.mjs && node scripts/check-automations-team-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "Both checks fake the team routes on a sandbox: no server is involved. Run on 2026-11-03: the skills check passes; the automations check passes after the test was brought in line with the page (203 checks; T-029)."
+    },
+    {
+      "id": "W4-13",
+      "wave": "W4",
+      "prio": "P0",
+      "area": "team DSH",
+      "title": "One DSH per team: switching opens the team's own window and keeps personal keys personal",
+      "runner": "script",
+      "cmd": "source \"$KB_E2E_DIR/env.sh\" && bash scripts/e2e-teams-run.sh run j9 && source scripts/sandbox/env.sh && node scripts/check-team-switch-live.mjs && node scripts/check-team-dsh-live.mjs",
+      "env": "replica",
+      "personas": [
+        "A",
+        "B"
+      ],
+      "status": "ready",
+      "note": "Run on 2026-11-03: J9 21 of 21 (T-026: a request of another workspace's DSH inside its window once made it red)."
+    },
+    {
+      "id": "W4-14",
+      "wave": "W4",
+      "prio": "P0",
+      "area": "billing",
+      "title": "Per-workspace billing and usage: personal, T1, T2 never mix",
+      "runner": "script",
+      "cmd": "source \"$KB_E2E_DIR/env.sh\" && bash scripts/e2e-teams-run.sh run j1 j5",
+      "env": "replica",
+      "personas": [
+        "A",
+        "B"
+      ],
+      "status": "ready",
+      "watch": [
+        "cloud-budget"
+      ],
+      "note": "J1 15 of 15 and J5 31 of 31 on 2026-11-03 (J5 needs W4-09 first and a fresh replica)."
+    },
+    {
+      "id": "W4-18",
+      "wave": "W4",
+      "prio": "P1",
+      "area": "account menu",
+      "title": "Account menu with 1, 3, 4 and 5 spaces, phone width, light and dark, English and French",
+      "runner": "script",
+      "cmd": "source \"$KB_E2E_DIR/env.sh\" && bash scripts/e2e-teams-run.sh run j7",
+      "env": "replica",
+      "personas": [
+        "A",
+        "B"
+      ],
+      "status": "ready",
+      "note": "Run on 2026-11-03: J7 42 of 43 (the removed-team step was a product defect, T-028), then 47 of 47 on a fresh replica after the cloud client fix: a team's own DSH the person has left says « Team you left », tells them to open Personal and offers the button. J7's removal step can only be replayed on a fresh pairing (`replica-reset`, README § 7c)."
+    },
+    {
+      "id": "W4-19",
+      "wave": "W4",
+      "prio": "P1",
+      "area": "web",
+      "title": "The server's team page: pool line and « Add credits » for owner, admin and member",
+      "runner": "script",
+      "cmd": "source \"$KB_E2E_DIR/env.sh\" && bash scripts/e2e-teams-run.sh run j8",
+      "env": "replica",
+      "personas": [
+        "A",
+        "B"
+      ],
+      "status": "ready",
+      "watch": [
+        "cloud-budget"
+      ],
+      "note": "Run on 2026-11-03: 7 of 7 once the check accepted « Add budget » (the button was renamed from « Add credits »)."
+    },
+    {
+      "id": "W4-20",
+      "wave": "W4",
+      "prio": "P0",
+      "area": "sharing",
+      "title": "Two desktops in one team on the replica: a skill and a lesson A shares reach B, and only B's team space",
+      "runner": "agent",
+      "brief": "A shares a skill and approves a lesson in team T1; B (second sandbox) must see them in T1 and not in B's personal space. Record where each appears.",
+      "env": "replica",
+      "personas": [
+        "A",
+        "B"
+      ],
+      "status": "to-verify",
+      "note": "W3-08 is the same scenario with B on the cloud computer. Do this one first: it needs no Fly machine."
+    },
+    {
+      "id": "W4-15",
+      "wave": "W4",
+      "prio": "P1",
+      "area": "join",
+      "title": "Join by link",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-join-live.mjs",
+      "env": "replica",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "Run on 2026-11-03: pass (24 s)."
+    },
+    {
+      "id": "W4-16",
+      "wave": "W4",
+      "prio": "P0",
+      "area": "revocation",
+      "title": "A removed member loses the desktop team, the shared links and the computer at once",
+      "runner": "agent",
+      "brief": "Remove member B from the team on the replica, then try each door B had: team switch, a shared page, the computer page, a team skill. Record the answers.",
+      "env": "replica",
+      "personas": [
+        "A",
+        "B"
+      ],
+      "status": "to-verify",
+      "note": "Check which of J4/J6 already cover each door. J7 covers the desktop team door (the removed member's window: T-028, fixed)."
+    },
+    {
+      "id": "W4-17",
+      "wave": "W4",
+      "prio": "P1",
+      "area": "limits",
+      "title": "Plan limits read the same on the desktop and on the computer",
+      "runner": "agent",
+      "brief": "Compare the plan card, the gauge and the model list for the same account on both.",
+      "env": "staging",
+      "personas": [
+        "A",
+        "B"
+      ],
+      "status": "blocked"
+    },
+    {
+      "id": "W5-01",
+      "wave": "W5",
+      "prio": "P0",
+      "area": "regression",
+      "title": "Whole unit suite again: no new red",
+      "runner": "script",
+      "cmd": "node scripts/run-all-tests.mjs",
+      "env": "none",
+      "personas": [
+        "A"
+      ],
+      "status": "played",
+      "note": "Played 2026-11-03 on the tip of dev: 646 test files, 646 green, 0 red in 138 s. The runner lists 27 kinds of skip (GUI suites that need playwright, react or jsdom, the Python call-agent tests, the real server); a skip is not a pass, and the live battery (W5-02) covers the GUI part."
+    },
+    {
+      "id": "W5-02",
+      "wave": "W5",
+      "prio": "P0",
+      "area": "regression",
+      "title": "Whole live battery on the sandbox",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-all-live.mjs --out \"$KB_E2E_DIR/live\"",
+      "env": "sandbox",
+      "personas": [
+        "A"
+      ],
+      "status": "played",
+      "note": "Played 2026-11-03 on sandbox A, 107 minutes: of 129 checks 55 pass, 74 are red (40 fail, 19 time out, 15 not run). NOT green. The 50 reds of bundles that are on were replayed alone on a quiet machine with A paired again: 2 pass (usage, workers), 48 stay red, so the load of the first run is not the cause. 17 more reds are checks of bundles the freeze switches off (Tables, Front desk, Kaby customisation, Mockups, Office, Modeleur, Motion, Pulse, Registry, Servers, Session messages, Mini-apps): the log says so (« db_off », 404, « not loaded »), not replayed. 7 not replayed because they restart the sandbox or rewrite settings (join, five language checks, settings-nav-i18n). Grouped causes and what is still undiagnosed: ledger section « Wave W5 », T-035, T-036. Evidence: ~/kybernos-archive/soft-takeoff-2026-11-03/w5/ (W5-02.log, live/, live3/)."
+    },
+    {
+      "id": "W5-03",
+      "wave": "W5",
+      "prio": "P0",
+      "area": "regression",
+      "title": "All team journeys on the replica",
+      "runner": "script",
+      "cmd": "bash scripts/e2e-teams-run.sh run",
+      "env": "replica",
+      "personas": [
+        "A",
+        "B"
+      ],
+      "status": "played",
+      "note": "Played 2026-11-03 on a fresh replica (accounts A and B): the preflight passed on its own (an agent request answered 200 for both), then all 8 journeys passed, 173 of 173 checks (J1 15, J2 17, J4 27, J5 31, J6 8, J7 47, J8 7, J9 21); the journeys ran with the preflight skipped because it had just passed. The first attempt stopped at the preflight: the leftovers sweeper had stopped the two sandboxes during the repair, and `soft-takeoff-repair.sh` needs them UP first (ledger finding 38)."
+    },
+    {
+      "id": "W5-04",
+      "wave": "W5",
+      "prio": "P0",
+      "area": "rollback",
+      "title": "Upgrade from the previous release on a clean instance, then roll back",
+      "runner": "script",
+      "cmd": "node scripts/test-lifecycle-engine.mjs && node scripts/check-suite-update-tls.mjs",
+      "env": "machine",
+      "personas": [
+        "A"
+      ],
+      "status": "to-verify",
+      "note": "Run 2026-11-03: `test-lifecycle-engine.mjs` and `check-suite-update-tls.mjs` pass (16/16 on the second: TLS verified, a signed catalogue accepted, a document changed by one byte refused, a flipped bit / truncated / over-long / plain-http archive refused, robot never run). They play the update and the rollback against local fixtures, not a real previous release on a clean instance: that stays to verify, and is the same machine as W5-06 (owner)."
+    },
+    {
+      "id": "W5-05",
+      "wave": "W5",
+      "prio": "P0",
+      "area": "resilience",
+      "title": "A failing bundle never stops DSH from starting (safe mode, bundle faults)",
+      "runner": "script",
+      "cmd": "node scripts/test-safe-mode.mjs && node scripts/check-bundle-faults.mjs",
+      "env": "none",
+      "personas": [
+        "A"
+      ],
+      "status": "played",
+      "note": "Played 2026-11-03: `test-safe-mode.mjs` passes; `check-bundle-faults.mjs` broke each of 57 bundles in 8 ways (456 injections) in a throw-away copy of the sandbox profile. The guarantee of AGENTS.md rule 2 held: DSH started every time (the hanging top-level `await` leaves the banner unprinted, as the script documents, and the server still answers), no other bundle lost a boot line, no other bundle lost a route. The first run printed 74 reds, all « the failure is not visible in the log »: 66 of them were bundles the lab's profile does not load (it is a copy of the owner's profile, which switches 9 bundles off and does not declare kybernos-gate, kybernos-no-process and kybernos-relance), so there is nothing to name; the script now skips that assertion for a bundle its profile does not load (ledger T-033). The 8 left are real but minor: a broken package.json of the 4 maison sub-agent providers leaves no line in the log (T-034, P3)."
+    },
+    {
+      "id": "W5-06",
+      "wave": "W5",
+      "prio": "P0",
+      "area": "install",
+      "title": "Fresh install on a machine that has never seen Kybernos (macOS; Windows and Linux if offered)",
+      "runner": "owner",
+      "note": "By the owner or on a spare machine; follows docs/install.md.",
+      "env": "machine",
+      "personas": [
+        "A"
+      ],
+      "status": "blocked"
+    },
+    {
+      "id": "W5-07",
+      "wave": "W5",
+      "prio": "P0",
+      "area": "decision",
+      "title": "Go / no-go review of the ledger and the exit criteria",
+      "runner": "owner",
+      "note": "Owner only.",
+      "env": "none",
+      "personas": [
+        "A"
+      ],
+      "status": "blocked"
+    }
+  ]
+}

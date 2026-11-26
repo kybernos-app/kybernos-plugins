@@ -1,0 +1,72 @@
+{
+  "contract": 1,
+  "id": "kybernos-themes/recruitment",
+  "kind": "data",
+  "version": "1.0.0",
+  "name": {
+    "en": "Recruitment firm",
+    "fr": "Cabinet de recrutement"
+  },
+  "description": {
+    "en": "A recruitment firm: ready Tables (Contacts, Jobs, Candidates, Client missions) with sample data, a dark indigo style, a recruiting desk team, two skills and four automations that start switched off.",
+    "fr": "Un cabinet de recrutement : des Tables prêtes (Contacts, Offres, Candidats, Missions clients) avec des données d’exemple, un style sombre indigo, un bureau de recrutement, deux compétences et quatre automatisations créées désactivées."
+  },
+  "keywords": [
+    "people",
+    "recruitment",
+    "hiring"
+  ],
+  "author": {
+    "id": "kybernos-themes",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "requires": {
+    "kybernos": "^0.1",
+    "plugins": {
+      "kybernos/core": "^1.0",
+      "kybernos/theme": "^1.0",
+      "kybernos/skills": "^1.0",
+      "kybernos/db": "^0.1"
+    }
+  },
+  "extends": [
+    {
+      "point": "kybernos/core#domain-pack",
+      "range": "^1.0",
+      "dir": "domains"
+    },
+    {
+      "point": "kybernos/theme#theme",
+      "range": "^1.0",
+      "dir": "themes"
+    },
+    {
+      "point": "kybernos/skills#skill",
+      "range": "^1.0",
+      "dir": "skills"
+    },
+    {
+      "point": "kybernos/core#team-template",
+      "range": "^1.0",
+      "dir": "teams"
+    },
+    {
+      "point": "kybernos/core#automation-template",
+      "range": "^1.0",
+      "dir": "automations"
+    },
+    {
+      "point": "kybernos/dashboards#preset",
+      "range": "^1.0",
+      "dir": "dashboards",
+      "optional": true
+    },
+    {
+      "point": "kybernos/db#template",
+      "range": "^1.0",
+      "dir": "db"
+    }
+  ]
+}

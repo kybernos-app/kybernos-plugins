@@ -1,0 +1,54 @@
+/* Slide kit: the only stylesheet an agent-written slide may rely on. One slide = one 1600x900 scene.
+   Themes are CSS variables, so a theme switch re-colours every slide without touching its HTML. */
+:root {
+  --bg: #0f172a; --fg: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; --card: #1e293b; --line: #334155;
+  /* The PPTX export keeps only the first family name, so it must be a font PowerPoint has on every machine. */
+  --font: Arial, "Helvetica Neue", Helvetica, sans-serif;
+}
+body[data-theme="paper"] { --bg: #fbf7ef; --fg: #1f2937; --muted: #6b7280; --accent: #c2410c; --card: #ffffff; --line: #e5e0d4; }
+body[data-theme="light"] { --bg: #ffffff; --fg: #0f172a; --muted: #64748b; --accent: #2563eb; --card: #f1f5f9; --line: #e2e8f0; }
+
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 1600px; height: 900px; background: var(--bg); overflow: hidden; }
+body { font-family: var(--font); color: var(--fg); -webkit-font-smoothing: antialiased; }
+
+.slide { position: relative; width: 1600px; height: 900px; padding: 88px 112px; background: var(--bg); color: var(--fg); overflow: hidden; display: flex; flex-direction: column; }
+.slide.center { justify-content: center; }
+.kicker { font-size: 24px; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin-bottom: 28px; }
+h1 { font-size: 104px; line-height: 1.04; font-weight: 800; letter-spacing: -.02em; }
+h2 { font-size: 54px; line-height: 1.12; font-weight: 800; letter-spacing: -.01em; max-width: 1280px; }
+h3 { font-size: 30px; line-height: 1.2; font-weight: 700; }
+.lead { font-size: 36px; line-height: 1.4; color: var(--muted); max-width: 1100px; margin-top: 36px; }
+p, li { font-size: 28px; line-height: 1.45; }
+.muted { color: var(--muted); }
+.rule { width: 96px; height: 6px; background: var(--accent); margin: 36px 0; border-radius: 3px; }
+.cols { display: flex; gap: 48px; margin-top: 56px; flex: 1; }
+.col { flex: 1; display: flex; flex-direction: column; gap: 18px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 36px; }
+.stats { display: flex; gap: 40px; margin-top: 72px; }
+.stat { flex: 1; border-top: 4px solid var(--accent); padding-top: 24px; }
+.num { font-size: 96px; font-weight: 800; color: var(--accent); line-height: 1; letter-spacing: -.02em; }
+.label { font-size: 26px; font-weight: 700; margin-top: 16px; }
+/* Real list markers (not ::before): the PPTX export turns list-style into native PowerPoint bullets, it ignores pseudo-elements. */
+.bullets { list-style: disc; padding: 0 0 0 44px; margin-top: 12px; }
+.bullets li { margin-bottom: 22px; }
+.bullets li::marker { color: var(--accent); }
+.chart-box { position: relative; flex: 1; margin-top: 32px; min-height: 0; }
+.chart-box canvas { max-width: 100%; max-height: 100%; }
+.timeline { display: flex; gap: 0; margin-top: 88px; position: relative; }
+.timeline::before { content: ""; position: absolute; left: 0; right: 0; top: 20px; height: 4px; background: var(--line); }
+.step { flex: 1; position: relative; padding-right: 24px; }
+.step .dot { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: var(--bg); font-weight: 800; font-size: 24px; display: flex; align-items: center; justify-content: center; position: relative; }
+.step h3 { margin-top: 28px; }
+.step p { margin-top: 10px; font-size: 24px; color: var(--muted); }
+.strip { display: flex; gap: 24px; margin-top: 48px; height: 260px; }
+.strip .ph { flex: 1; border-radius: 20px; background: linear-gradient(135deg, var(--accent), var(--card)); display: flex; align-items: flex-end; padding: 20px; font-size: 22px; font-weight: 700; }
+blockquote { font-size: 56px; line-height: 1.25; font-weight: 700; max-width: 1200px; }
+.source { position: absolute; left: 112px; right: 112px; bottom: 40px; font-size: 20px; color: var(--muted); }
+table { border-collapse: collapse; width: 100%; margin-top: 40px; font-size: 26px; }
+th, td { text-align: left; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-size: 22px; text-transform: uppercase; letter-spacing: .08em; }
+
+/* edit mode (set by the bridge, never exported) */
+body.kb-edit [data-kb]:hover { outline: 2px dashed var(--accent); outline-offset: 6px; cursor: text; }
+body.kb-edit [data-kb]:focus { outline: 3px solid var(--accent); outline-offset: 6px; }

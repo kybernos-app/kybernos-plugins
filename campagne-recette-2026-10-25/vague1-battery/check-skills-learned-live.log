@@ -1,0 +1,47 @@
+# check-skills-learned-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=43607
+
+the host (what the page must agree with)
+  ✓ the learned routes answer on this instance (is it a sandbox that serves this checkout? restart it after host changes)
+  ✓ nothing waits and nothing was learned yet
+three lessons that share a tag
+  ✓ the lessons were added through the real route
+settings → Memory & Lessons → Lessons learned
+  ✓ the Memory & Lessons page opens
+  ✓ the lessons list shows the grouping hint, with the topic and the count
+  ✓ the status line does not mention skills before there is one
+  ✓ « Make a skill from them » says it was suggested and waits in Skills
+  ✓ the host holds one suggestion and the skills folder holds nothing
+  ✓ it is a checklist of pitfalls in the lessons' own words
+  ✓ the same lessons are not suggested twice
+a lesson, one by one
+  ✓ the lesson sheet has « Make a skill »
+the Skills page
+  ✓ the Skills row of the menu has a dot
+  ✓ and the dot says how many wait
+  ✓ Yours shows the two suggestions as dashed cards that pulse, no banner above them, each saying nothing is active before Accept
+  ✓ two dashed cards and a chip
+  ✓ the journal button is there
+Review, then Discard one
+  ✓ the panel says why, shows the text and the standard rules, and the checks
+  ✓ opening it activated nothing
+  ✓ there are two suggestions, in the order of the page
+  ✓ Discard says it is kept 30 days, with Undo
+  ✓ the host lists it as discarded
+  ✓ Undo brings it back
+Accept
+  ✓ the answers sit in a sticky footer and stay on screen while the panel scrolls (Accept, Edit, Discard)
+  ✓ the skill was written to the skills folder, as a normal skill with the standard rules
+  ✓ the page says it is active, with Undo
+  ✗ the installed card has the Learned badge and says where it came from  — null
+  ✓ the dot counts one suggestion now
+the journal
+  ✓ the journal says the chain holds, and lists what happened
+  ✓ the file on disk is a chain: each line carries the hash of the one before
+Undo the acceptance
+  ✓ Undo takes the skill back (it is still the text that was written)
+  ✓ and the suggestion is back in the list
+  ✓ the page raised no error
+
+31 ✓, 1 ✗
+

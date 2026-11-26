@@ -1,0 +1,61 @@
+{
+  "contract": 1,
+  "id": "kybernos/websearch",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Web Search",
+    "fr": "Recherche web"
+  },
+  "description": {
+    "en": "Lets the agents search the web, with or without a key: free engines right away, keyed engines when you add one, and the next one takes over when one fails.",
+    "fr": "Les agents cherchent sur le web, avec ou sans clé : des moteurs gratuits tout de suite, des moteurs à clé quand tu en ajoutes une, et le suivant prend le relais si l’un échoue."
+  },
+  "icon": "search",
+  "family": "connect",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-websearch",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:settings.section",
+    "host.routes:/kybernos-websearch:write",
+    "fs.write:dsh-home",
+    "net:*.wikipedia.org",
+    "net:api.deepseek.com",
+    "net:api.exa.ai",
+    "net:api.perplexity.ai",
+    "net:api.search.brave.com",
+    "net:api.tavily.com",
+    "net:google.serper.dev",
+    "net:html.duckduckgo.com",
+    "net:kagi.com",
+    "net:lite.duckduckgo.com",
+    "net:localhost",
+    "net:mcp.exa.ai",
+    "net:s.jina.ai",
+    "net:search.brave.com",
+    "net:www.googleapis.com",
+    "secrets.own",
+    "secrets.read"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-websearch"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "on"
+  }
+}

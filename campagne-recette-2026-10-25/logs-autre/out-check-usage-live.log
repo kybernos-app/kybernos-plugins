@@ -1,0 +1,34 @@
+── 1. the host, through the page ──
+  ✓ summary answers on the page's own origin, seven days, oldest first
+  ✓ six reports are accepted
+  ✓ a first sight is a baseline, the next one is a delta on today
+  ✓ the plan model is booked apart from the own keys (same ledger, its own key)
+  ✓ what a session had used before the first report is kept undated
+  ✓ a body that is not JSON is refused
+  ○ models.dev price for deepseek/deepseek-chat: found
+
+── 2. Settings › Usage ──
+  ✓ Settings open
+  ✓ the Usage entry is in the Settings menu and opens
+  ✓ the page mounts
+  ✓ the plan block says so when no account is signed in (and does not break)
+  ✓ the by-model list has the three seeded models
+  ✓ the plan model is shown as being on the plan, never priced
+  ✓ the local model is shown as free
+  ✓ the priced model shows an amount ($1.23 for the interface language en)
+  ✓ switching to 30 days redraws without a request error
+  ✓ today still shows the seeded day
+  ✓ the by-session list names the sessions it saw
+
+── budget ──
+  ✓ the budget is saved through the real route
+  ✓ a negative budget is refused
+
+── 3. a narrow window ──
+  ✓ the page does not overflow at 390 px
+
+── 4. the chip ──
+  ✓ with no counters yet the chip stays absent instead of showing an empty pill
+  ✓ no console error from the plugin
+
+22 passed, 0 failed

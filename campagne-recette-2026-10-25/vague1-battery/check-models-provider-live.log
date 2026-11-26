@@ -1,0 +1,35 @@
+# check-models-provider-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=21164
+
+  ✓ Settings open
+  ✓ the AI provider and models entry is in the Settings menu
+  ✓ the provider list mounts
+
+── A3-01 · Add provider › Custom API ──
+  ✓ Add provider opens the drawer
+  ✓ the Custom API tab opens
+  ✓ Create provider is off while no model is listed
+  ✓ ...and the Models block says why (not « No models will be shown »)
+  ✓ ...the disabled button carries the same reason as its tooltip
+  ✓ Add model adds an empty row
+  ✓ with a row but no model ID Create is still off, and the reason is still on screen
+  ✓ a model ID enables Create, and the reason goes away
+  ✓ Create provider creates it
+
+── A3-07 · the drawer's enable row ──
+  ✓ the pencil of the provider opens its drawer
+  ✓ the row is labelled « Enabled » and its switch is on while the provider is enabled
+  ✓ the switch is named after the provider, not after the action (« Disable audit-test, switch, on » was wrong)
+
+── A3-09 · Escape in the delete confirmation ──
+  ✓ Delete… opens the confirmation
+  ✓ the confirmation of a provider with ONE model says « its model », not « its 1 models » (A3-08)
+  ✓ one Escape closes the confirmation
+  ✓ ...and the drawer behind it stays open
+  ✓ a second Escape closes the drawer
+
+── clean up: delete the provider this check made ──
+  ✓ the provider of this check is deleted again (card menu › Delete… › its id typed)
+
+ALL PASS, 21 passed
+

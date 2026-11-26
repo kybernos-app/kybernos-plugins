@@ -1,0 +1,324 @@
+{
+  "what": {
+    "fr": "Le cœur de Kybernos : des Agent Teams (des équipes d’agents sur une mission) que tu lances depuis un chat, leurs créations, des automatisations, la voix et le choix des outils.",
+    "en": "The heart of Kybernos: Agent Teams (teams of agents on a mission) you start from a chat, what they create, automations, voice and tool choices."
+  },
+  "steps": [
+    {
+      "fr": "« New chat » ouvre une conversation (la flèche choisit l’Agent Team) ; « Agent Teams » et « Workspaces » gardent équipes et projets.",
+      "en": "“New chat” opens a conversation (the arrow picks the Agent Team); “Agent Teams” and “Workspaces” hold your teams and projects."
+    },
+    {
+      "fr": "« Créations » garde les fichiers produits ; « Automatisations » lance une Agent Team seule, à l’heure choisie ou quand un message arrive.",
+      "en": "“Creations” keeps the files produced; “Automations” starts an Agent Team on its own, at a chosen time or when a message arrives."
+    },
+    {
+      "fr": "Dans Automatisations, « Équipe » liste ce que ton équipe a approuvé : installe une copie, ou envoie la tienne avec « Proposer à l’équipe… ».",
+      "en": "In Automations, “Team” lists what your team approved: install a copy, or send yours with “Propose to team…”."
+    },
+    {
+      "fr": "Dans un chat, l’onglet « Journal » retrace ce que l’Agent Team a exécuté. Les pages « Outils » et « Voix » sont dans les Réglages.",
+      "en": "In a chat, the “Journal” tab traces what the Agent Team ran. The “Tools” and “Voice” pages are in Settings."
+    }
+  ],
+  "where": {
+    "fr": "Barre latérale › Agent Teams",
+    "en": "Sidebar › Agent Teams",
+    "page": true
+  },
+  "good": {
+    "fr": "Une automatisation ne part que si DSH est lancé, sur cet ordinateur. Réglée sur « Me demander d’abord » (le choix par défaut), elle attend ton accord avant une action qui modifie quelque chose.",
+    "en": "An automation only starts while DSH is running, on this computer. Set to “Ask me first” (the default), it waits for your approval before an action that changes something."
+  },
+  "pages": {
+    "voice": {
+      "title": {
+        "fr": "Voix",
+        "en": "Voice"
+      },
+      "what": {
+        "fr": "Fais lire les réponses de l’assistant à voix haute et dicte tes messages au micro. Pour une conversation orale en direct, utilise Appels.",
+        "en": "Have the assistant’s replies read aloud and dictate your messages with the microphone. For a live spoken conversation, use Calls."
+      },
+      "steps": [
+        {
+          "fr": "Choisis un moteur : « Local » reste sur ta machine, « Cloud » envoie le texte à un service.",
+          "en": "Pick an engine: “Local” stays on your machine, “Cloud” sends the text to a service."
+        },
+        {
+          "fr": "Règle la langue et la voix, puis essaie avec « Tester la voix ».",
+          "en": "Set the language and the voice, then try it with “Test voice”."
+        },
+        {
+          "fr": "Dans le chat, l’icône haut-parleur sous une réponse la lit ; le micro avant Envoyer dicte ton message.",
+          "en": "In the chat, the speaker icon under a reply reads it; the microphone before Send dictates your message."
+        }
+      ],
+      "where": {
+        "fr": "Réglages › Voix · sous chaque réponse du chat",
+        "en": "Settings › Voice · under each reply in the chat",
+        "page": true
+      },
+      "good": {
+        "fr": "Les moteurs « Local » ne font rien sortir de ton ordinateur ; edge-tts et « Tes modèles » envoient le texte à un service en ligne. Le micro est demandé à la première dictée.",
+        "en": "“Local” engines send nothing off your computer; edge-tts and “Your models” send the text to an online service. The microphone is asked for the first time you dictate."
+      }
+    },
+    "presets": {
+      "title": {
+        "fr": "Presets d’agent",
+        "en": "Agent presets"
+      },
+      "what": {
+        "fr": "Un preset est une façon de travailler de l’agent : ses outils et ses habitudes. Choisis-en un pour une nouvelle tâche, ou crée le tien.",
+        "en": "A preset is a way for the agent to work: its tools and its habits. Pick one for a new task, or create your own."
+      },
+      "steps": [
+        {
+          "fr": "Lis les modes livrés : Standard pour le quotidien ; PTC, Minimal et Creator pour d’autres besoins.",
+          "en": "Read the built-in modes: Standard for everyday tasks; PTC, Minimal and Creator for other needs."
+        },
+        {
+          "fr": "Pour créer le tien, demande de l’aide à l’agent (bouton en bas de la page) : il t’interroge, puis écrit le preset.",
+          "en": "To create your own, ask the agent for help (the button at the bottom of the page): it asks you questions, then writes the preset."
+        },
+        {
+          "fr": "À chaque nouvelle tâche tu peux changer de preset. Celui marqué « New task default » sert quand tu ne choisis pas.",
+          "en": "You can change the preset for each new task. The one marked “New task default” is used when you do not choose."
+        }
+      ],
+      "where": {
+        "fr": "Réglages › Agent presets",
+        "en": "Settings › Agent presets",
+        "page": true
+      }
+    },
+    "creations": {
+      "title": {
+        "fr": "Créations",
+        "en": "Creations"
+      },
+      "what": {
+        "fr": "Tout ce que tes Agent Teams ont produit — pages, documents, présentations, images — au même endroit, pour l’ouvrir, le chercher et le filtrer.",
+        "en": "Everything your Agent Teams made — pages, documents, decks, images — in one place, to open, search and filter."
+      },
+      "steps": [
+        {
+          "fr": "Choisis un ou plusieurs types au-dessus de la liste : ils se combinent, et « Tous » ramène tout.",
+          "en": "Pick one or more types above the list: they combine, and “All” brings everything back."
+        },
+        {
+          "fr": "Cherche une création par son nom, trie la liste, ou passe des cartes à la vue en liste.",
+          "en": "Search a creation by name, sort the list, or switch from cards to a list."
+        },
+        {
+          "fr": "Ouvre une création pour la voir. « Créer avec l’IA » demande la suivante dans un chat.",
+          "en": "Open a creation to see it. “Create with AI” asks for the next one in a chat."
+        }
+      ],
+      "where": {
+        "fr": "Barre latérale › Créations",
+        "en": "Sidebar › Creations",
+        "page": true
+      }
+    },
+    "workspaces": {
+      "title": {
+        "fr": "Workspaces",
+        "en": "Workspaces"
+      },
+      "what": {
+        "fr": "Un workspace est un dossier de projet avec ses propres chats, documents, objectifs et créations. Ouvre-en un pour voir ce que les Agent Teams y ont produit.",
+        "en": "A workspace is a project folder with its own chats, documents, goals and creations. Open one to see what the Agent Teams produced there."
+      },
+      "steps": [
+        {
+          "fr": "Crée un workspace à partir d’un dossier de ton ordinateur.",
+          "en": "Create a workspace from a folder of your computer."
+        },
+        {
+          "fr": "Ouvre-le pour voir ses chats, ses documents, ses objectifs et ses créations.",
+          "en": "Open it to see its chats, documents, goals and creations."
+        },
+        {
+          "fr": "Lance un chat dedans : les agents travaillent dans ce dossier.",
+          "en": "Start a chat inside it: the agents work in that folder."
+        }
+      ],
+      "where": {
+        "fr": "Barre latérale › Workspaces",
+        "en": "Sidebar › Workspaces",
+        "page": true
+      }
+    },
+    "tools": {
+      "title": {
+        "fr": "Outils",
+        "en": "Tools"
+      },
+      "what": {
+        "fr": "Les outils ajoutent des capacités à un profil DSH : des fonctions expérimentales et des liens vers des outils extérieurs, écrits dans le fichier de config du profil.",
+        "en": "Tools add abilities to a DSH profile: experimental features and links to outside tools, written to the profile’s config file."
+      },
+      "steps": [
+        {
+          "fr": "Lis l’état du profil : ce qui est monté, et ce qui est connu mais pas encore installé.",
+          "en": "Read the profile’s state: what is mounted, and what is known but not installed yet."
+        },
+        {
+          "fr": "Fais d’abord un essai à blanc : il montre ce qui serait écrit, sans rien écrire.",
+          "en": "Do a dry run first: it shows what would be written, without writing anything."
+        },
+        {
+          "fr": "Installe et configure : une sauvegarde datée est faite avant, et Retirer la restaure.",
+          "en": "Install and configure: a dated backup is made first, and Remove restores it."
+        },
+        {
+          "fr": "DSH applique le changement tout seul, quelques secondes après l’écriture : pas de redémarrage.",
+          "en": "DSH applies the change by itself a few seconds after it is written: no restart."
+        }
+      ],
+      "where": {
+        "fr": "Réglages › Outils",
+        "en": "Settings › Tools",
+        "page": true
+      },
+      "good": {
+        "fr": "Les assistants de code (Codex, Claude Code, ZCode) se gèrent uniquement dans Workers.",
+        "en": "The coding assistants (Codex, Claude Code, ZCode) are managed only in Workers."
+      }
+    },
+    "automation-settings": {
+      "title": {
+        "fr": "Réglages des automatisations",
+        "en": "Automation settings"
+      },
+      "what": {
+        "fr": "Où vivent tes automatisations, et leurs réglages : tout mettre en pause, réafficher la liste de tâches de DSH, ou écrire en skill les automatisations qui tournent sans échec.",
+        "en": "Where your automations live, and their settings: pause everything, show DSH’s own task list again, or write down as skills the automations that run without failing."
+      },
+      "steps": [
+        {
+          "fr": "Elles tournent sur cet ordinateur, tant que DSH est ouvert. S’il est chargé, elles attendent leur tour et lancent moins de subagents.",
+          "en": "They run on this computer, while DSH is open. When it is busy, they wait their turn and start fewer sub-agents."
+        },
+        {
+          "fr": "Active la pause pour que rien ne se déclenche ; ce qui est arrivé à échéance se déclenche une fois à la reprise.",
+          "en": "Turn the pause on so nothing fires; what came due fires once after you resume."
+        },
+        {
+          "fr": "Réaffiche la liste « Automation tasks » de DSH si tu la veux de nouveau dans le menu.",
+          "en": "Show DSH’s “Automation tasks” list if you want it back in the menu."
+        },
+        {
+          "fr": "« Suggérer des skills depuis les automatisations stables » propose un skill après 3, 5, 10 ou 20 runs sans échec. Sinon : bouton Sessions.",
+          "en": "“Suggest skills from stable automations” offers a skill after 3, 5, 10 or 20 runs without a failure. Otherwise: a button in Sessions."
+        }
+      ],
+      "where": {
+        "fr": "Réglages › Automatisations",
+        "en": "Settings › Automations",
+        "page": true
+      }
+    },
+    "models": {
+      "title": {
+        "fr": "Modèles",
+        "en": "Models"
+      },
+      "what": {
+        "fr": "Le modèle par défaut de DSH et les modèles proposés : chaque fournisseur, son état, et ce que les nouvelles tâches utilisent.",
+        "en": "DSH’s default model and the models on offer: each provider, its state, and what new tasks use."
+      },
+      "steps": [
+        {
+          "fr": "« Modèle par défaut » décide de ce que les nouvelles tâches utilisent ; un changement s’applique au tour suivant.",
+          "en": "“Default model” decides what new tasks use; a change applies from the next turn."
+        },
+        {
+          "fr": "Chaque ligne est un fournisseur ; un modèle sans clé ou hors ligne est marqué, et se corrige dans Fournisseur IA et modèles.",
+          "en": "Each row is a provider; a model without a key or offline is marked, and is fixed in AI provider and models."
+        },
+        {
+          "fr": "Le menu du chat change le modèle d’une seule tâche, sans toucher au défaut.",
+          "en": "The chat menu changes the model for one task only, without touching the default."
+        }
+      ],
+      "where": {
+        "fr": "Réglages › Models",
+        "en": "Settings › Models",
+        "page": true
+      },
+      "good": {
+        "fr": "Un modèle local ne quitte pas ton ordinateur ; un modèle distant reçoit le texte de la conversation.",
+        "en": "A local model never leaves your computer; a remote model receives the text of the conversation."
+      }
+    },
+    "plugins": {
+      "title": {
+        "fr": "Plugins intégrés",
+        "en": "Built-in plugins"
+      },
+      "what": {
+        "fr": "Les modules installés sur ce poste : ce qui est activé, la version, et ce que DSH charge au démarrage. Kybernos en ajoute quelques-uns.",
+        "en": "The modules installed on this machine: what is on, the version, and what DSH loads at start-up. Kybernos adds a few."
+      },
+      "steps": [
+        {
+          "fr": "Un interrupteur désactive un module sans le désinstaller : il quitte l’interface au rechargement.",
+          "en": "A switch turns a module off without uninstalling it: it leaves the interface on reload."
+        },
+        {
+          "fr": "La version et la source disent d’où vient le module ; une mise à jour se fait depuis sa propre page.",
+          "en": "The version and the source say where the module comes from; an update is done from its own page."
+        },
+        {
+          "fr": "Les modules Kybernos (Atlas, Compétences, Connecteurs…) ont chacun leur page ; la Suite les liste tous.",
+          "en": "The Kybernos modules (Atlas, Skills, Connectors…) each have their own page; the Suite lists them all."
+        }
+      ],
+      "where": {
+        "fr": "Réglages › Built-in plugins",
+        "en": "Settings › Built-in plugins",
+        "page": true
+      },
+      "good": {
+        "fr": "Désactiver n’efface rien : les fichiers, réglages et données du module restent sur ce poste.",
+        "en": "Turning off erases nothing: the module’s files, settings and data stay on this machine."
+      }
+    },
+    "templates": {
+      "title": {
+        "fr": "Modèles",
+        "en": "Templates"
+      },
+      "what": {
+        "fr": "Un modèle règle l’apparence de Kybernos, ou démarre une app depuis un point de départ. Ici tu en ajoutes de nouveaux, depuis un dossier de cet ordinateur ou depuis un catalogue.",
+        "en": "A template sets how Kybernos looks, or starts an app from a ready-made starting point. Here you add new ones, from a folder on this computer or from a catalogue."
+      },
+      "steps": [
+        {
+          "fr": "Choisis d’où vient le modèle : « Depuis un dossier » (il est sur cet ordinateur) ou « Depuis un catalogue » (il est proposé en ligne).",
+          "en": "Pick where the template comes from: “From a folder” (it is on this computer) or “From a catalogue” (it is offered online)."
+        },
+        {
+          "fr": "Lis ce que le modèle contient avant de l’ajouter : un modèle refusé indique pourquoi.",
+          "en": "Read what the template holds before adding it: a refused template says why."
+        },
+        {
+          "fr": "Pour en choisir un pour ton travail, appuie sur « Ouvrir les modèles », ou crée une app depuis la page Apps.",
+          "en": "To pick one for your work, press “Open Templates”, or start an app from the Apps page."
+        }
+      ],
+      "where": {
+        "fr": "Réglages › Modèles",
+        "en": "Settings › Templates",
+        "page": true
+      },
+      "good": {
+        "fr": "Ajouter un modèle ne change rien tant que tu ne l’as pas choisi.",
+        "en": "Adding a template changes nothing until you choose it."
+      }
+    }
+  }
+}

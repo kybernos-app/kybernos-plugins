@@ -1,0 +1,17 @@
+{
+  "id": "ecommerce",
+  "name": "E-commerce shop",
+  "settings": {
+    "mode": "light",
+    "acc": "#c25e0a",
+    "ov": {
+      "light:base": "#fdf7f1",
+      "light:l1": "#ffffff",
+      "light:l2": "#f9ecdf",
+      "light:side": "#fbf1e6",
+      "light:input": "#ffffff"
+    },
+    "fontText": "inter",
+    "radius": "soft"
+  }
+}

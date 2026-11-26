@@ -1,0 +1,41 @@
+{
+  "contract": 1,
+  "id": "kybernos/relance",
+  "kind": "code",
+  "version": "0.2.0",
+  "name": {
+    "en": "Relaunch",
+    "fr": "Relance"
+  },
+  "description": {
+    "en": "Restart DSH without cutting the working agent.",
+    "fr": "Relancer DSH sans couper l’agent qui travaille."
+  },
+  "icon": "refresh",
+  "family": "base",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-relance",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "fs.write:dsh-home",
+    "net:localhost",
+    "exec:node",
+    "secrets.read",
+    "agent.tools"
+  ],
+  "help": "help.json",
+  "suite": {
+    "default": "off"
+  }
+}

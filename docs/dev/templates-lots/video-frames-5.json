@@ -1,0 +1,13 @@
+{
+ "name": "video-frames-5",
+ "style": "Photographic, natural faces, no text, no lettering, no watermark",
+ "ask": { "width": 1344, "height": 768, "steps": 4 },
+ "keep": { "width": 1344, "quality": 88, "maxKb": 900 },
+ "cells": [
+  {
+   "name": "picnic-source",
+   "seed": 6203,
+   "prompt": "Antique black and white photograph from 1952 of a family picnic on a lakeside meadow in summer, wide shot with plenty of open grass around them: a grandfather and a grandmother seated on a checkered blanket, a mother kneeling beside a wicker basket, a father standing in a straw hat, a girl of six and a boy of nine standing next to the blanket, a small dog lying in the grass, a calm lake and tall poplars behind, everyone looking at the camera with soft closed-lip smiles, shot on a box camera"
+  }
+ ]
+}

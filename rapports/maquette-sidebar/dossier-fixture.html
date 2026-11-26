@@ -1,0 +1,23 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+:root{--dsw-alias-label-tertiary:#9aa0a6;--dsw-alias-label-secondary:#b6bcc4;--dsw-alias-label-primary:#e7e9ee;
+--dsw-alias-interactive-bg-hover:rgba(255,255,255,.08);--ds-ease-in-out:cubic-bezier(.4,0,.2,1);--dsw-font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif}
+body{margin:0;background:#1b1c1f;color:#e7e9ee;font-family:var(--dsw-font-family);font-size:13px}
+.rangee{display:flex;align-items:center;height:36px;padding-left:4px;gap:4px;color:var(--dsw-alias-label-tertiary)}
+.sectionLabel{color:var(--dsw-alias-label-tertiary);font-size:13px}
+h4{margin:22px 18px 6px;font-size:12px;font-weight:600;color:#8a9099;letter-spacing:.04em;text-transform:uppercase}
+[class*="_sectionLabel"]{cursor:pointer}
+/* Une icône de dossier juste avant « Workspaces » (demande du 28/10), toujours visible : dessinée en `::before`, donc sans
+   toucher au DOM de l'hôte, et masquée en `currentColor` pour prendre la couleur du libellé dans les deux thèmes. C'est le
+   dossier ouvert du jeu d'icônes du thème (même tracé, même épaisseur). */
+[class*="_sectionLabel"]::before{content:'';display:inline-block;flex:none;width:15px;height:15px;margin-right:7px;vertical-align:-2px;
+  background-color:currentColor;
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3C/svg%3E");
+  mask-size:contain;mask-repeat:no-repeat;mask-position:center;
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3C/svg%3E");
+  -webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;-webkit-mask-position:center}
+</style></head><body>
+<h4>au repos</h4>
+<div class="bhn1Oq_sectionHeader"><span class="bhn1Oq_sectionLabel">Workspaces</span></div>
+<h4>clair (mêmes règles, couleur du thème)</h4>
+<div style="background:#fff;color:#5b6068;padding:0 0 1px"><div class="bhn1Oq_sectionHeader"><span class="bhn1Oq_sectionLabel" style="color:#5b6068">Workspaces</span></div></div>
+</body></html>

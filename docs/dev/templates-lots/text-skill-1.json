@@ -1,0 +1,73 @@
+{
+  "name": "text-skill-1",
+  "type": "skill",
+  "note": "Six prompts that make a skill (a SKILL.md in the person's skills folder, with a small script when something must be computed, tested on invented input before it is saved): two for business, two for education, two for research.",
+  "cells": [
+    {
+      "id": "skill_minutes",
+      "card": "prompt",
+      "entry": {
+        "name": "Meeting minutes skill",
+        "tag": "Business",
+        "line": "A skill that turns meeting notes into decisions and owners",
+        "meta": "Prompt"
+      },
+      "request": "Create a skill called meeting-minutes. First ask me what good minutes look like for my team (sections, length, language). The skill takes pasted notes or a transcript and returns the decisions, the action items (owner, due date) and the open questions as a table, and writes 'owner missing' instead of guessing a name. Write SKILL.md with a clear description and when to use it, test it on an invented meeting, show me the result, then save it in my skills folder."
+    },
+    {
+      "id": "skill_invoice_check",
+      "card": "prompt",
+      "entry": {
+        "name": "Invoice check skill",
+        "tag": "Business",
+        "line": "A skill that checks an invoice against its purchase order",
+        "meta": "Prompt"
+      },
+      "request": "Create a skill called invoice-check. First ask me which fields matter (supplier, lines, quantities, unit prices, tax rate) and what gap is acceptable. The skill compares an invoice with its purchase order (CSV or pasted lines) using a small script and lists every difference: missing line, wrong price, wrong total, wrong tax. It never approves a payment. Write SKILL.md and the script, test them on two invented documents with one planted error, show me the output, then save it in my skills folder."
+    },
+    {
+      "id": "skill_rubric",
+      "card": "prompt",
+      "entry": {
+        "name": "Rubric marking skill",
+        "tag": "Education",
+        "line": "A skill that marks short answers against my rubric",
+        "meta": "Prompt"
+      },
+      "request": "Create a skill called rubric-marking. First ask me for my rubric (criteria, points, what earns each level) and the question. The skill reads a student's answer and returns, for each criterion, the points and one sentence quoting the answer that justifies them, plus one comment for the student. It flags uncertain cases for me to decide and never gives a final grade alone. Write SKILL.md, test it on three invented answers (strong, average, weak), show me the output, then save it in my skills folder."
+    },
+    {
+      "id": "skill_vocab",
+      "card": "prompt",
+      "entry": {
+        "name": "Vocabulary drill skill",
+        "tag": "Education",
+        "line": "A skill that drills a word list with spaced repetition",
+        "meta": "Prompt"
+      },
+      "request": "Create a skill called vocab-drill. First ask me which language I am learning, my level and where to keep my word list. The skill reads the list, picks the next 10 words with a small script that follows spaced-repetition boxes (a wrong answer comes back tomorrow, a right one in 2, 4, then 8 days), asks them one at a time and saves the results in a JSON file. Write SKILL.md and the script, test two sessions on an invented list of 15 words, show me the file, then save it in my skills folder."
+    },
+    {
+      "id": "skill_paper_card",
+      "card": "prompt",
+      "entry": {
+        "name": "Paper card skill",
+        "tag": "Research",
+        "line": "A skill that turns a paper into a one-page summary card",
+        "meta": "Prompt"
+      },
+      "request": "Create a skill called paper-card. First ask me what I want on the card (for example question, method, sample, result, limits, relevance). The skill reads a paper (a PDF or pasted text) and fills the card, quoting a short passage and its page for each result, and writes 'not stated' rather than guessing a number. Write SKILL.md with a clear description and when to use it, test it on a short invented abstract, show me the card, then save it in my skills folder."
+    },
+    {
+      "id": "skill_citations",
+      "card": "prompt",
+      "entry": {
+        "name": "Citation check skill",
+        "tag": "Research",
+        "line": "A skill that finds citations missing from a draft's references",
+        "meta": "Prompt"
+      },
+      "request": "Create a skill called citation-check. First ask me for my citation style (author-year or numbered). The skill takes a draft and its reference list, matches them with a small script, and lists citations with no reference, references never cited and inconsistent years or spellings. It reports; it never edits my text. Write SKILL.md and the script, test them on an invented draft with three planted errors, show me the report, then save it in my skills folder."
+    }
+  ]
+}

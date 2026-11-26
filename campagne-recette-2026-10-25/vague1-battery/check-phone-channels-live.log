@@ -1,0 +1,72 @@
+# check-phone-channels-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=28364
+
+o be careful about
+  ✓ right: Kaby, tagged « Always asks first », with its messaging apps (what they do, what they never do) and its computer
+  ✓ on a desktop width the cards sit side by side
+  ✓ nothing asks for a code just by opening the window
+── 2b. the « ? How it works » card ──
+  ✓ the pill opens the card of help.json
+  ✓ the card has its text (what it is, the steps, where to find it)
+  ✓ it is wholly on screen, and nothing cuts or covers it
+  ✓ its cross closes the card and leaves the window
+── 3. the phone link, state by state ──
+  ✓ nothing linked: the chip says it is ready to pair, the card says nothing can reach this computer, one button adds a phone
+  ✓ « Add a phone » asks the host for a code (one POST) and shows the QR
+  ✓ the chip says it is waiting for the phone
+  ✓ three steps, the check of the 4 digits among them
+  ✓ Refresh, Copy and Stop are offered
+  ✓ the QR is black on white whatever the theme
+  ✓ Stop withdraws the code
+  ✓ a phone asks for the check: the 4 digits, Refuse, Allow
+  ✓ Allow links the phone: the chip says it is connected, the phone is in the list with a way to disconnect it
+  ✓ Disconnect asks to confirm, then the phone is gone
+  ✓ the switch is on by default, and named
+  ✓ turning it off asks the host (on: false) and the card says no phone can connect, with a button to turn it on and no way to pair
+  ✓ « Turn on » brings the pairing button back
+  ✓ a code that runs out says so, and offers a new one
+  ✓ a plan without the phone link: the left column says so, the right one is still there
+  ✓ a server without the phone link: the card says so honestly, in the same box as the other states (a chip, one sentence)
+  ✓ the switch still works there: it is this computer's own
+  ✓ pressing it switches the remote control off, even then
+  ✓ and « Turn on » brings the not-offered state back
+── 4. Kaby's messaging apps, state by state ──
+  ✓ four rows in this order: Telegram, WhatsApp, WeChat, iMessage
+  ✓ Telegram: not linked, its switch is off and works
+  ✓ WhatsApp: a beta that says it is not available on this server
+  ✓ WhatsApp, WeChat and iMessage have a switch that is off and cannot be pressed
+  ✓ WeChat and iMessage say « Soon »; iMessage says it is for Macs
+  ✓ the Telegram switch asks the host for a code (one POST)
+  ✓ the code (QR, three steps, Open Telegram) shows under the Telegram row, above WhatsApp
+  ✓ scanned: the panel names who Telegram says it is, and waits
+  ✓ connected: the row says who it is, the switch is on, the code is gone
+  ✓ turning it off asks first
+  ✓ Kybernos Cloud without a Telegram bot says it is not switched on yet, on the row, and the switch is greyed
+  ✓ another server without a Telegram bot says it has none, and where to find one
+── 5. dark, and a phone width ──
+  ✓ dark: the window is dark
+  ✓ dark: the cards are not the colour of the window (they read as cards)
+  ✓ at 390 px the window opens from the account menu in the drawer
+  ✓ at 390 px the cards are stacked and fit the screen
+  ✓ at 390 px the title row keeps its close button on screen
+  ✓ at 390 px the QR code is not cropped
+── 5f. right to left (Arabic) ──
+  ✓ right to left: the window does not overflow, the cross moves to the left of the title, the two cards swap sides
+── 5g. a phone with its drawer closed: Kaby's strip can still open the window ──
+  ✓ the drawer is closed: the account card is off the screen
+  ✓ window.__KB_MOBILE__.open() (what the strip's button calls) opens it anyway
+  ✓ it is on screen, whole
+  ✓ and a second call does not make a second window
+  ✓ closing takes its node out of the page
+── 6. closing ──
+  ✓ Escape closes the window
+  ✓ a click on the dim closes it
+  ✓ the close button closes it
+  ✓ closing withdraws a code nobody scanned
+── 7. Settings › Phone and channels ──
+  ✓ the Settings nav has « Phone and channels » and no « Remote Control »
+  ✓ the page is the same screen: title, two cards, no close button
+  ✓ on the page the cards sit side by side when there is room
+
+67 ✓  0 ✗
+

@@ -1,0 +1,43 @@
+Settings pages at 390 px: switches, radios, sideways scroll
+  ✓ General: every switch is a pill (wider than high, 40 px wide at most, 24 px high at most)
+  ✓ General: the page does not scroll sideways
+  ✓ About: every switch is a pill (wider than high, 40 px wide at most, 24 px high at most)
+  ✓ About: the page does not scroll sideways
+  ✓ Web Search: every switch is a pill (wider than high, 40 px wide at most, 24 px high at most)
+  ✓ Web Search: the page does not scroll sideways
+  ✓ Auto Routing: every switch is a pill (wider than high, 40 px wide at most, 24 px high at most)
+  ✓ Auto Routing: the page does not scroll sideways
+  ✓ Kybernos Suite: every switch is a pill (wider than high, 40 px wide at most, 24 px high at most)
+  ✓ Kybernos Suite: the page does not scroll sideways
+  ✓ Usage: every switch is a pill (wider than high, 40 px wide at most, 24 px high at most)
+  ✓ Usage: the page does not scroll sideways
+  ✓ Auto Routing: the segmented options (they have a label) keep their 40 px
+  ✓ Connectors: the provider radios are round dots (18 x 18, not 40 px squares)
+  ✓ Workers: the page does not scroll sideways
+  ✓ Workers: the chevron of every row is on screen (it ended at 409)
+  ✓ Tools: the page does not scroll sideways
+  ✓ AI provider and models: the page does not scroll sideways
+  ✓ AI provider and models: the Cloud card is one card tall, 110 px or less (the banner it replaces was ~390)
+  ✓ Commands: the page does not scroll sideways
+Commands & actions at 390 px
+  ✓ Commands: the command's name keeps 100 px or more (it kept ~25)
+  ✓ Commands: the search field is at least 150 px wide and inside the page (it was cut at 220 px)
+  ✓ Commands: the two tabs share one line
+Skills, Creations, the drawer's search at 390 px
+  ✓ Skills: every tab is on screen (« Team » ended at 400)
+  ✓ Creations: the type tiles are one strip, 110 px high at most (they took 368-460 px)
+  ✓ Creations: the first card starts above 700 px (it started at 976)
+  ✓ Creations: the page does not scroll sideways
+  ✓ the drawer's session search opens with a field of 80 px or more (it was 4 px)
+Briques at 390 px
+  ○ the Briques panel could not be opened here
+1400 px: Atlas, Creations tiles
+  ✓ Atlas › Around: the four columns are inside their card and the card does not scroll sideways
+  ✓ ten type tiles are equal in width, take at most two rows at 1400 px, and no label is cut
+  ✓ Creations at 1100 px: every type tile shows its whole label (« Spreadsheets », « Audio & Video » were cut)
+  ✓ Creations at 1280 px: every type tile shows its whole label (« Spreadsheets », « Audio & Video » were cut)
+The 44 px icon rail (800 px)
+  ✓ every page icon has a name, and they are all different (the tooltip was « Kybernos » for the eight)
+  ✓ the goal-progress card is not drawn in the rail (display: none)
+
+34 passed, 0 failed

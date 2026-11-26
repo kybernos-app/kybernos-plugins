@@ -1,0 +1,116 @@
+{
+ "size": [
+  1280,
+  720
+ ],
+ "fade": 0.3,
+ "shots": [
+  {
+   "file": "prop-1.mp4",
+   "trim": [
+    0,
+    4.6
+   ]
+  },
+  {
+   "file": "prop-2.mp4",
+   "trim": [
+    0,
+    5.26
+   ],
+   "speed": 1.3
+  },
+  {
+   "file": "prop-kitchen.mp4",
+   "trim": [
+    0,
+    5.26
+   ],
+   "speed": 1.35
+  },
+  {
+   "file": "prop-bedroom.mp4",
+   "trim": [
+    0,
+    5.26
+   ],
+   "speed": 1.35
+  },
+  {
+   "file": "prop-bath.mp4",
+   "trim": [
+    0,
+    5.26
+   ],
+   "speed": 1.35
+  },
+  {
+   "file": "prop-terrace.mp4",
+   "trim": [
+    0,
+    5.26
+   ],
+   "speed": 1.35
+  }
+ ],
+ "grade": "eq=contrast=1.04:saturation=1.06",
+ "texts": [
+  {
+   "at": 0.8,
+   "to": 4.4,
+   "text": "VILLA MIRADOR",
+   "style": "title",
+   "y": 0.3,
+   "anim": "pop",
+   "size": 0.09
+  },
+  {
+   "at": 1.5,
+   "to": 4.4,
+   "text": "CALA VERDE",
+   "style": "sub",
+   "y": 0.395,
+   "anim": "rise"
+  },
+  {
+   "at": 19.6,
+   "to": 22.5,
+   "text": "€ 2,450,000",
+   "style": "title",
+   "y": 0.42,
+   "anim": "pop",
+   "size": 0.09
+  },
+  {
+   "at": 20.2,
+   "to": 22.5,
+   "text": "PRIVATE VIEWINGS ON REQUEST",
+   "style": "sub",
+   "y": 0.52,
+   "anim": "rise"
+  }
+ ],
+ "overlays": [
+  {
+   "file": "../overlays/property-minimap.mov",
+   "anchor": "tl",
+   "dx": 22,
+   "dy": 22
+  },
+  {
+   "file": "../overlays/property-legend.mov",
+   "anchor": "br",
+   "dx": 22,
+   "dy": 56
+  }
+ ],
+ "ambient": 0,
+ "music": {
+  "file": "music-prop.mp3",
+  "start": 0,
+  "gain": 0.8,
+  "fadeIn": 0.8,
+  "fadeOut": 1.8
+ },
+ "crf": 27
+}

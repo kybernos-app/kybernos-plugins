@@ -1,0 +1,88 @@
+{
+  "id": "agency-desk",
+  "name": {
+    "en": "Agency desk",
+    "fr": "Accueil de l’agence"
+  },
+  "desc": {
+    "en": "Reads the enquiries and the viewing list, drafts the replies and the follow-ups, and stops before anything is sent or published.",
+    "fr": "Lit les demandes et la liste des visites, rédige les réponses et les relances, et s’arrête avant tout envoi ou toute publication."
+  },
+  "mission": {
+    "en": "Take the writing and the chasing off the agent, never a decision on a price or a viewing.",
+    "fr": "Retirer l’écriture et les relances à l’agent, jamais une décision sur un prix ou une visite."
+  },
+  "topology": "pipeline",
+  "tags": [
+    "real estate",
+    "drafts"
+  ],
+  "roles": [
+    {
+      "id": "reader",
+      "kind": "scout",
+      "prompt": {
+        "en": "Read the enquiries, the property facts and the viewing list the agent provides. Quote each fact.",
+        "fr": "Lis les demandes, les faits du bien et la liste des visites fournis par l’agent. Cite chaque fait."
+      }
+    },
+    {
+      "id": "writer",
+      "kind": "doer",
+      "prompt": {
+        "en": "Draft the reply, the listing or the follow-up from the facts only, in the agency's tone.",
+        "fr": "Rédige la réponse, l’annonce ou la relance à partir des seuls faits, dans le ton de l’agence."
+      }
+    },
+    {
+      "id": "checker",
+      "kind": "checker",
+      "prompt": {
+        "en": "Check each draft against the facts: a room that does not exist, a price that was not given.",
+        "fr": "Vérifie chaque brouillon par rapport aux faits : une pièce qui n’existe pas, un prix qui n’a pas été donné."
+      }
+    }
+  ],
+  "stages": [
+    {
+      "id": "read",
+      "roles": [
+        "reader"
+      ],
+      "mode": "once",
+      "cap": 3,
+      "gate": false,
+      "inputs": []
+    },
+    {
+      "id": "draft",
+      "roles": [
+        "writer"
+      ],
+      "mode": "once",
+      "cap": 2,
+      "gate": false,
+      "inputs": [
+        "read"
+      ]
+    },
+    {
+      "id": "review",
+      "roles": [
+        "checker"
+      ],
+      "mode": "once",
+      "cap": 1,
+      "gate": true,
+      "inputs": [
+        "draft"
+      ]
+    }
+  ],
+  "skills": [
+    "viewing-followups",
+    "lease-checklist"
+  ],
+  "icon": "house",
+  "category": "agency"
+}

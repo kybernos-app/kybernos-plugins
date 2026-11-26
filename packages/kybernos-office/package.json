@@ -1,0 +1,42 @@
+{
+  "name": "@local/kybernos-office",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Office: edit the Word documents and Excel workbooks of your Creations in a light editor, with a check of what it would lose before the file opens, a save that never overwrites a file Kaby changed, and an Undo.",
+  "license": "Apache-2.0",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "routes.mjs",
+    "office-host.mjs",
+    "office-guard.mjs",
+    "zip-lite.mjs",
+    "session-guard.mjs",
+    "client.js",
+    "cordis.patch.yml",
+    "editor-src",
+    "editors/package.json",
+    "editors/package-lock.json",
+    "README.md"
+  ],
+  "scripts": {
+    "check": "node --check index.js && node --check client.js && node --check routes.mjs",
+    "test": "node test-guard.mjs && node test-disk.mjs && node test-host.mjs && node test-write-guard.mjs && node test-client.mjs && node test-editor-src.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}

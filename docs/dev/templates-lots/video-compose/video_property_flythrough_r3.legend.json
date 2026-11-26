@@ -1,0 +1,31 @@
+{
+ "kind": "legend",
+ "width": 232,
+ "fps": 24,
+ "delay": 2.6,
+ "duration": 22.8,
+ "fadeOutAt": 22.2,
+ "title": "THE HOUSE",
+ "items": [
+  {
+   "icon": "bed",
+   "text": "5 bedrooms"
+  },
+  {
+   "icon": "bath",
+   "text": "4 bathrooms"
+  },
+  {
+   "icon": "area",
+   "text": "420 m²"
+  },
+  {
+   "icon": "pool",
+   "text": "Infinity pool"
+  },
+  {
+   "icon": "sea",
+   "text": "Sea view"
+  }
+ ]
+}

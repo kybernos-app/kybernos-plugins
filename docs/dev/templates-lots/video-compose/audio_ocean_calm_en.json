@@ -1,0 +1,85 @@
+{
+  "id": "audio_ocean_calm_en",
+  "size": [
+    1280,
+    800
+  ],
+  "fade": 0.4,
+  "shots": [
+    {
+      "file": "cover-ocean.mp4",
+      "trim": [
+        0,
+        20.2
+      ]
+    }
+  ],
+  "texts": [
+    {
+      "at": 0.4,
+      "to": 19.8,
+      "text": "AI VOICE · GUIDED BREATHING",
+      "style": "label",
+      "y": 0.14,
+      "anim": "fade"
+    },
+    {
+      "at": 0.9,
+      "to": 2.3,
+      "text": "Close your eyes.",
+      "style": "caption",
+      "y": 0.78,
+      "anim": "fade"
+    },
+    {
+      "at": 2.4,
+      "to": 6.3,
+      "text": "Take a slow breath in\\Nand let it go.",
+      "style": "caption",
+      "y": 0.78,
+      "anim": "fade"
+    },
+    {
+      "at": 6.9,
+      "to": 11.1,
+      "text": "Listen to the waves rolling in\\Nand rolling out.",
+      "style": "caption",
+      "y": 0.78,
+      "anim": "fade"
+    },
+    {
+      "at": 11.4,
+      "to": 14.8,
+      "text": "With every wave,\\Nlet one worry drift away.",
+      "style": "caption",
+      "y": 0.78,
+      "anim": "fade"
+    },
+    {
+      "at": 15.2,
+      "to": 19.2,
+      "text": "You're safe, and there is\\Nnowhere else to be.",
+      "style": "caption",
+      "y": 0.78,
+      "anim": "fade"
+    }
+  ],
+  "voice": [
+    {
+      "file": "voice-ocean-en.mp3",
+      "at": 0.8
+    }
+  ],
+  "music": {
+    "file": "music-ocean.mp3",
+    "start": 0,
+    "gain": 0.5,
+    "fadeIn": 1.0,
+    "fadeOut": 2.4,
+    "duck": true
+  },
+  "ambient": 0,
+  "shade": 0.3,
+  "watermark": true,
+  "crf": 23
+}

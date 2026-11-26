@@ -1,0 +1,111 @@
+# `@local/kybernos-slash`
+
+Saved prompts as **slash commands** and **message actions**. Type `/` in the composer to insert (or send) a saved
+prompt template, optionally through an inline form; actions sit under assistant messages; both are managed in
+Settings → *Commands*.
+
+## What the user sees
+
+- **`/` menu:** the entries are a source of DSH's native trigger menu (`name: 'kybernos'`, listed after the native
+  commands). When the typed text matches nothing, a `Create "/xyz" with AI` row appears.
+- **Composer:** a slash button opens a palette (browse, run, edit, create); a bookmark button, *Save as command*,
+  shows up once the composer has text.
+- **Form sheet** for entries that declare fields (text, long text, number, choice, yes/no, date). Fields can have one
+  show condition (the editor writes `showIf`; the runtime also honours `hideIf` and `requireIf` when an entry carries
+  them). The result is inserted at the caret, or sent at once when the entry's delivery is `send`.
+- **Message actions** under assistant messages: icon buttons, right-click to edit or delete, a *More actions* menu
+  for entries hidden from the toolbar, and a `+` to build one or start *Create with AI*. A template may use
+  `{message}`, the text of the message acted on.
+- **Settings → *Commands*/*Commandes*** (slot order 27): one toolbar (two tabs, search, *Create with AI*, *New command*) over
+  one list, a line each. *Edit*, *Duplicate* and *Delete* show on hover or focus (always on a touch screen); the delete asks
+  in the row and has a 5 s *Undo* toast. The sentence that says what each tab is for is the tab's tooltip and the text of an
+  empty list. The stored JSON is a link in the footer.
+- **The editor** is four sections, no numbered steps: *Identity* (icon picker with search, name, `/command`, description),
+  *Prompt* (a field that grows with its text, `{blanks}` coloured, *Insert a blank* drops the token at the cursor),
+  *Questions* (one compact row each, expandable) and *When it runs*. The window takes its content's height. The **preview**
+  is a panel opened with the button of the header (closed by default, the choice is kept in
+  `localStorage` `kybernos.slash.preview`). The footer names what blocks a save and goes to it; Ctrl/Cmd + S saves, Esc
+  closes a picker first and the editor next.
+- *Create with AI* starts a new chat pre-filled with `/skill-slash-msgaction-creator <text>`. That skill **is** shipped here
+  (`skills/slash-msgaction-creator/SKILL.md`) and seeded into `<dsh home>/skills` at host start by `seed-skills.mjs` (the same
+  rule as the other bundles: a skill the user edited is never overwritten). It is versioned because it carries the agent's
+  write path — the `enregistrer_entree` tool, not the route.
+
+## Host routes
+
+| Route | Behaviour |
+| --- | --- |
+| `GET /kybernos/slash/entries` | `{ok, version, path, total, slash, action, entries}`, sorted by `order` then name. If the file is present but unusable: HTTP 500 `{ok: false, state: 'corrupt'\|'unreadable', error, path}` and no `entries` (see *Corrupt store* below) |
+| `POST /kybernos/slash/entries` | upsert (`{entry}`, `{entries}`, one entry or an array), `{delete: id\|[ids]}` (or `remove`), `{replace: [...]}`; validation refusals are 400; the reply is the store re-read from disk; an unusable file or a failed write is HTTP 500 with the reason and nothing written |
+| `GET /kybernos/slash/status` | path, exists, bytes, mtime, counts; plus `state` and `error` when the file is present but unusable (the counts are then 0, which does not mean empty) |
+| `GET /kybernos/slash/message?sessionId=&messageId=` | `{ok, text}` of an assistant message, read from the session log |
+
+Body ≤ 256 KiB, ≤ 500 entries. A POST is a guarded write (A-16): it needs **both** this listener's `Origin` and DSH's
+signed session cookie (`session-guard.mjs`, the repo's rule) — no header at all is a 403, a missing, forged or expired
+cookie a 401, and a refused request writes nothing. Its caller is a page (Settings ▸ Commands, and the core plugin's
+`/widget` upsert): a same-origin `fetch` sends both by itself. **The agent does not write through this route**: the
+`slash-msgaction-creator` skill calls the host tool `enregistrer_entree` (`tool.mjs`), which applies the same mutation
+and the same validation in process — a route that accepted "a cookie, or no Origin at all" would be bypassed by
+omitting a header. GET routes have no origin check.
+
+## Files and settings
+
+- `$DSH_HOME/kybernos-slash/entries.json` (default `~/.dsh/kybernos-slash/entries.json`): one JSON array merged by
+  `id`. `KYBERNOS_SLASH_STORE` overrides the path for test harnesses.
+- **Write:** atomic. A temp file `.entries.json.tmp-<pid>-<ms>` in the same directory, `chmod` to the existing
+  file's mode (0600 for a new file), then `rename`; the temp file is removed if anything fails. A symlinked
+  `entries.json` is followed (`realpath`): the target is replaced, the link stays.
+- **Corrupt store:** a missing file, or one that is empty or only whitespace, is an empty list. A file that is
+  present but is not a JSON array (truncated, hand-edited, valid JSON of another type) or cannot be read
+  (permissions, a directory) is never read as empty. GET and `/status` report it, and every POST (upsert, delete,
+  replace) is refused with a 500 and the reason, so the file stays byte for byte as it was until it is fixed or
+  removed. A refused POST first keeps a copy of a corrupt file as `entries.json.corrupt-<ms>` (mode 0600, created
+  with the exclusive flag, a `-1`, `-2`... suffix if the name is taken): one copy per distinct content, at most
+  five, so repeated attempts do not pile up files. A GET never writes, so no copy exists until a save is tried; an
+  unreadable file gets no copy. Once the file is valid again, saving works and the copies stay for the user to delete.
+  The design is copied from `kybernos-sessions` (`KB-SETTINGS-FILE-BEGIN` block): bundles ship one by one, so there
+  is no shared import and no test keeps the copies in step.
+- Browser `localStorage` `kybernos-slash-delivery`: `{id: 'send'}`, a local copy of the *send right away* choice for
+  a host that has not been restarted onto the code that stores `delivery`.
+- `model.js` is the shared semantics (conditions, `render`, `normalize` for the two legacy shapes). `client.js`
+  embeds a copy between `KB-MODEL-BEGIN` / `KB-MODEL-END`.
+- `kybernos-plugin`'s client seeds a built-in `/widget` entry (`id: widget`, order 40) through the POST route when
+  this bundle answers.
+
+## DSH seams and network
+
+- Host: `ctx.inject(['webServer'])` then `webServer.register({kind: 'exact'})` inside `ctx.effect`, one registration
+  per path (DSH's exact table throws on duplicates, so `entries` dispatches on the method itself);
+  `ctx.get('sessionPersistence')` for `/message`.
+- Client: `inject: ['slots']`; slots `conversation.input.left`, `conversation.input.overlay`,
+  `conversation.chat.assistant-actions`, `shell.overlay`, `settings.section`; `inputTriggers.registerSource` through
+  `ctx.inject`. Read opportunistically (each in a try/catch): `conversation.input.shell(sid)` (the source says it is
+  runtime-only, not in the public type; fallback `sessions.scope(sid)`), `uiWorkspace`, `sessions`, `timer`, and the
+  DOM node `[data-composer-input]`. It also publishes `window.__kybernosSlash` as a diagnostic object.
+- `package.json` lists eight `@deepseek-ai/*` client packages in `dsh.client.inject`, including `dsh-api-remotes`.
+  `remote.*` is never called in the code (checked).
+- Network: same-origin `fetch` to the routes above only.
+
+## Tests
+
+`node packages/kybernos-slash/test-host.mjs` (also run by CI's `packages/*/test*.mjs` loop): the store and the routes
+through the real `apply(ctx)` on a fake web server, in a temporary directory only. It covers a missing file, a valid
+file (the happy path), a corrupt file (copy kept, file untouched, GET and `/status` report it, every POST refused, a
+repaired file works again), an unreadable file, copies capped at five and deduplicated (including the same
+millisecond), the atomic write (no temp file, failure cleanup, replaced rather than rewritten in place), permissions,
+and a symlinked store. The read-only-folder and `chmod 000` cases are skipped when run as root.
+
+`model.js` (normalize, validate, render) runs through the routes of that test and through `test-tool.mjs`. The client has its own tests:
+`test-client.mjs` (every `L({fr, en})` call has both sides, `kbslLang`), `test-lang.mjs`, `test-narrow-row.mjs`, `test-prompt-draft.mjs`
+(the pre-filled prompt) and `test-write-guard.mjs` (the signed session on the POST routes); no test renders the page in a browser.
+The comments in `client.js` cite `scripts/test-kybernos-slash-parity.mjs` and
+`docs/handoff/slash-actions/REFERENCE.md`; neither exists in this repository. Syntax check only for the client:
+`node --check packages/kybernos-slash/client.js`.
+
+## Known limits
+
+- Nothing checks that the embedded model copy still equals `model.js`.
+- No lock between processes: the route's read-merge-replace is synchronous inside one process, but a write by another process (the creator skill's file fallback when the route is absent) can be overwritten by it.
+- An array that holds entries without an id keeps them on disk until the next upsert, which drops them (`mergeEntries` only keeps entries that have an id).
+- Labels can be `{fr, en, ar}`, but the client only picks `fr` or `en` (from `navigator.language`); `ar` is never shown.
+- Many strings in the editor and the settings page are hard-coded French or English.

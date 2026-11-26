@@ -1,0 +1,51 @@
+# check-dashboards-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=34813
+
+── 1. the host, through the page ──
+  ✓ list answers on the page's own origin
+  ✓ the presets are listed with their shape
+  ✓ a write from the page itself is accepted (the browser puts the page's own Origin on it)
+  ✓ a write that is not JSON is refused
+  ✓ the preset became a dashboard file
+
+── 2. the right-pane tab (first: it needs the chat the page opens on) ──
+  ✗ the plugin knows the chat on screen — ""
+
+── 3. the menu ──
+  ✓ the Kybernos menu shows Dashboards
+  ✓ it sits right before Agent Teams
+  ✓ the other rows are all still there
+  ✓ other bundles can open the page (window.__KB_OPEN__ lists it)
+  ✓ the row opens the page the bundle provides
+  ✓ with several dashboards and no default it opens the gallery, with one it opens it
+
+── 4. the gallery, a preset, real data ──
+  ✓ the gallery lists the presets and my dashboards
+  ✓ the gallery hints (section notes and counts) read at 4.5:1 or better
+  ✓ a preset is used from the gallery
+  ✓ every widget leaves its skeleton (real routes of this DSH answered)
+  ✓ no source failed
+  ✓ the entrance animations are there
+  ✓ and they finish
+  ✓ the widgets use the theme (a real background, not transparent)
+
+── 4b. a note typed on a real keyboard, and a flow with live numbers ──
+  ✓ a preset with a note is used
+  ✓ the lines of the note are saved as lines
+  ✓ opened again, the note still shows its lines
+  ✓ the flow preset is used
+  ✓ every node of the flow shows a live number read in this DSH
+  ✓ the nodes of the flow sit where the file places them, not stacked
+  ✓ the sankey of the flow preset is on the page
+  ✓ the gallery sketches every preset in colour (a picture per widget)
+  ✓ the usage overview preset is used
+  ✓ its heatmap has a square per day of the 120
+  ✗ the favorite model is named from this ledger — "deepseek-chat"
+  ✗ the day with tokens is lit on the heatmap — 3
+  ✓ its six tiles read the ledger of this DSH
+
+── 5. leaving things as they were ──
+  ✓ a narrow window does not scroll sideways
+
+31 passed, 3 failed
+

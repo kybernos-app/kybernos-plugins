@@ -1,0 +1,18 @@
+# check-model-scores-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=13426
+
+before any click
+  ✓ the Models tab asked the host for the scores it already holds (one read, nothing more)
+  ✓ no score badge, no Score filter, no Score sort yet
+  ✓ a visible « Load model scores » button is in the results bar
+  ✓ it says what it reads, and that nothing is read before the click
+the click
+  ✓ one sync was asked, forced (the person clicked), by POST
+  ✓ the page looked at the job status before reading the column again
+  ✓ the Score badges show (« II 31.2 »), and the button is gone
+  ✓ the Score filter is in the bar now
+nothing else happened
+  ✓ no request to the scores routes went anywhere else than the interceptor (no unknown path)
+
+9 ✓  0 ✗
+

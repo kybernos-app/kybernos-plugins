@@ -1,0 +1,67 @@
+# check-help-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=38072
+
+nos-models, kybernos-skills, kybernos-composio, kybernos-cloud, kybernos-slides, kybernos-motion, kybernos-computers, kybernos-modeles-locaux, kybernos-mobile, kybernos-changes, kybernos-call, kybernos-multi-device, kybernos-kyber (a card of those modules can only turn green after the next signed release)
+  ○ text compared with: the help the host serves from the signed catalogue (suite 0.1.1), which is behind packages/*/help.json for kybernos-plugin, kybernos-hub, kybernos-theme, kybernos-language, kybernos-models, kybernos-skills, kybernos-composio, kybernos-cloud, kybernos-slides, kybernos-motion, kybernos-computers, kybernos-modeles-locaux, kybernos-mobile, kybernos-changes, kybernos-call, kybernos-multi-device, kybernos-kyber
+  ✓ the host serves a help for the modules this check opens
+
+── the button on each page ──
+  ✓ Theme — the page opens and carries the « ? How it works » button
+  ✓ Theme — it opens a card with what the plugin does, every step, where to find it
+  ✓ Theme — … and the thing worth knowing
+  ✓ Theme — Escape closes the card
+  ✓ AI provider and models — the page opens and carries the « ? How it works » button
+  ✓ AI provider and models — it opens a card with what the plugin does, every step, where to find it
+  ✓ AI provider and models — … and the thing worth knowing
+  ✓ AI provider and models — Escape closes the card
+  ✓ Commands — the page opens and carries the « ? How it works » button
+  ✓ Commands — it opens a card with what the plugin does, every step, where to find it
+  ✓ Commands — … and the thing worth knowing
+  ✓ Commands — Escape closes the card
+  ✓ Workers — the page opens and carries the « ? How it works » button
+  ✓ Workers — it opens a card with what the plugin does, every step, where to find it
+  ✓ Workers — … and the thing worth knowing
+  ✓ Workers — Escape closes the card
+  ✓ About — the page opens and carries the « ? How it works » button
+  ✓ About — it opens a card with what the plugin does, every step, where to find it
+  ✓ About — … and the thing worth knowing
+  ✓ About — Escape closes the card
+  ✓ Ollama local models — the page opens and carries the « ? How it works » button
+  ✓ Ollama local models — it opens a card with what the plugin does, every step, where to find it
+  ✓ Ollama local models — … and the thing worth knowing
+  ✓ Ollama local models — Escape closes the card
+  ✓ Memory & Lessons — the page opens and carries the « ? How it works » button
+  ✓ Memory & Lessons — it opens a card with what the plugin does, every step, where to find it
+  ✓ Memory & Lessons — … and the thing worth knowing
+  ✓ Memory & Lessons — Escape closes the card
+  ✓ General — the page opens and carries the « ? How it works » button
+  ✓ General — it opens a card with what the plugin does, every step, where to find it
+  ✓ General — … and the thing worth knowing
+  ✓ General — Escape closes the card
+  ✓ Kybernos Suite — the page opens and carries the « ? How it works » button
+  ✓ Kybernos Suite — it opens a card with what the plugin does, every step, where to find it
+  ✓ Kybernos Suite — … and the thing worth knowing
+  ✓ Kybernos Suite — Escape closes the card
+
+── a page of a bundle that owns several pages (Voice) ──
+  ✓ Voice — the page opens and carries its own « ? How it works » button
+  ✓ Voice — the card is the page’s own: what it does, every step, where, the thing worth knowing
+  ✓ Voice — …and not the core bundle’s general help (Agent Teams)
+  ✓ Voice — Escape closes the card
+
+── pages that already had a help ──
+  ✓ Atlas — keeps its own help, no second button
+  ✓ Language — keeps its own help, no second button
+  ✓ Auto Routing — one shared help button, in its own header, not doubled
+
+── French ──
+  ✓ the card is in French: the French text, not the English one
+
+── the module’s page in the Suite ──
+  ✓ a module’s page shows how to use it, where to find it, and the thing worth knowing
+
+── the Skills page (not in Settings) ──
+  ✓ the Skills page carries the button and its card is the skills help
+
+48 ✓  0 ✗
+

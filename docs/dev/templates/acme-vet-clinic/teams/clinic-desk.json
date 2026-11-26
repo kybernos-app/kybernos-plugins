@@ -1,0 +1,87 @@
+{
+  "id": "clinic-desk",
+  "name": {
+    "en": "Clinic desk",
+    "fr": "Accueil du cabinet"
+  },
+  "desc": {
+    "en": "Reads what the clinic provides, drafts the notes and the reminders, and stops before anything is written or sent.",
+    "fr": "Lit ce que le cabinet fournit, rédige les notes et les rappels, et s'arrête avant toute écriture ou tout envoi."
+  },
+  "mission": {
+    "en": "Take the paperwork off the desk without taking a decision the vet should make.",
+    "fr": "Retirer la paperasse de l'accueil sans prendre une décision qui revient au vétérinaire."
+  },
+  "topology": "pipeline",
+  "tags": [
+    "veterinary",
+    "front desk"
+  ],
+  "roles": [
+    {
+      "id": "reader",
+      "kind": "scout",
+      "prompt": {
+        "en": "Read the consultation material or the appointment list the person provides. Quote each fact with its line; never fill a gap.",
+        "fr": "Lire le matériel de consultation ou la liste de rendez-vous fournie. Citer chaque fait avec sa ligne ; ne jamais combler un manque."
+      }
+    },
+    {
+      "id": "writer",
+      "kind": "doer",
+      "prompt": {
+        "en": "Draft the record or the reminder from the facts only. Plain sentences, the clinic's words, one draft.",
+        "fr": "Rédiger le compte rendu ou le rappel à partir des seuls faits. Des phrases simples, les mots du cabinet, un seul brouillon."
+      }
+    },
+    {
+      "id": "checker",
+      "kind": "checker",
+      "prompt": {
+        "en": "Check the draft against the quoted facts: every measurement exact, nothing invented, nothing addressed to an owner without the clinic's approval.",
+        "fr": "Vérifier le brouillon contre les faits cités : chaque mesure exacte, rien d'inventé, rien adressé à un propriétaire sans l'accord du cabinet."
+      }
+    }
+  ],
+  "stages": [
+    {
+      "id": "read",
+      "roles": [
+        "reader"
+      ],
+      "mode": "once",
+      "cap": 3,
+      "gate": false,
+      "inputs": []
+    },
+    {
+      "id": "draft",
+      "roles": [
+        "writer"
+      ],
+      "mode": "once",
+      "cap": 2,
+      "gate": false,
+      "inputs": [
+        "read"
+      ]
+    },
+    {
+      "id": "review",
+      "roles": [
+        "checker"
+      ],
+      "mode": "once",
+      "cap": 1,
+      "gate": true,
+      "inputs": [
+        "draft"
+      ]
+    }
+  ],
+  "skills": [
+    "consult-notes"
+  ],
+  "icon": "heart",
+  "category": "clinic"
+}

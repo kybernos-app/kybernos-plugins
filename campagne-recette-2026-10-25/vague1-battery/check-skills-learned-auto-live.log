@@ -1,0 +1,39 @@
+# check-skills-learned-auto-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=95165
+
+the host (what the page must agree with)
+  ✓ the settings route answers on this instance (restart the sandbox after host changes)
+  ✓ a fresh instance asks the person every time, with a line of 90 and 3 changes a week
+  ✓ a bad value is refused as a whole
+Kaby only suggests while the level is « Ask me »
+  ✓ a stable automation waits as a suggestion: nothing is written to the skills folder
+  ✓ the suggestion carries a score and says why it waits (« asks »)
+the person lets Kaby create skills above a line of 70
+  ✓ the level and the line are saved
+  ✓ the same automation is now applied by Kaby: the skill is written, as a normal skill with the standard rules
+  ✓ the journal says « created », by Kaby, automatic, with its score and the parts of it
+the pages
+  ✓ the Skills row of the menu has a dot that says one skill waits for the person
+  ✗ Yours says Kaby changed one skill on its own, which one, the score and that it is not reviewed  — ""
+  ✗ its card says « applied by Kaby · not reviewed » and wears the Learned badge  — null
+the journal, and Keep
+  ✗ the journal says the chain holds, lists « Created by Kaby » with its score, and offers Undo on it  — ""
+  ✗ Keep: the banner goes, the host says reviewed, the skill stays active  — {"name":"live-auto-collector","kind":"auto","acceptedAt":"2026-10-25T00:58:56.461Z","ver":1,"from":{"automation":{"id":"t-live-auto-collector","name":"Nightly collector","runs":5}},"by":"kaby","mode":"auto","uses":0,"lastUsed":null,"legacy":false,"score":90,"reviewed":false,"unusedDays":0,"improved"
+  ✗ and the dot goes with it
+Settings › Learned skills
+  ✓ the page opens from the Settings menu
+  ✓ three levels, and « Create and improve » is the one in force
+  ✓ the line shows 70 and the hard stops are listed
+  ✓ moving the slider saves the line once the person stops
+  ✓ choosing « Ask me every time » saves it
+  ✓ and « Create and improve » again
+  ✓ every change of the settings is in the journal
+the kill switch
+  ✓ a second skill was applied by Kaby
+  ✓ the first press only asks again, nothing was undone
+  ✓ Stop undid the changes of the week that still stand, and the level is « Ask me » again
+  ✓ the journal still verifies after all of it, and says the person stopped it
+  ✓ the page raised no error
+
+21 ✓, 5 ✗
+

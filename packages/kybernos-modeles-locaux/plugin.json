@@ -1,0 +1,50 @@
+{
+  "contract": 1,
+  "id": "kybernos/modeles-locaux",
+  "kind": "code",
+  "version": "1.0.0",
+  "name": {
+    "en": "Ollama local models",
+    "fr": "Modèles locaux Ollama"
+  },
+  "description": {
+    "en": "Local models detected and installed from Settings.",
+    "fr": "Modèles locaux détectés et installés depuis les Réglages."
+  },
+  "icon": "home",
+  "family": "models",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-modeles-locaux",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:settings.section",
+    "host.routes:/modeles-locaux:write",
+    "fs.write:dsh-home",
+    "net:localhost",
+    "net:raw.githubusercontent.com",
+    "exec:brew",
+    "exec:ollama",
+    "exec:sh",
+    "exec:sysctl"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/modeles-locaux"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "on"
+  }
+}

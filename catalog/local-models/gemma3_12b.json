@@ -1,0 +1,21 @@
+{
+  "id": "gemma3:12b",
+  "famille": "g",
+  "initiale": "Gm",
+  "tailleGo": 8.2,
+  "ramMin": 16,
+  "score": "Ollama library · 8.2 GB · 128K ctx",
+  "input": [
+    "text",
+    "image"
+  ],
+  "badges": [
+    "Vision"
+  ],
+  "desc": {
+    "fr": "Gemma 3 (Google), version 12B : vision, contexte 128K. Génération précédente.",
+    "en": "Gemma 3 (Google), 12B version: vision, 128K context. Previous generation."
+  },
+  "ajoute": "2026-10-15",
+  "ordre": 88
+}

@@ -1,0 +1,37 @@
+{
+  "contract": 1,
+  "id": "kybernos/dsh-media-player",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Media player",
+    "fr": "Lecteur multimédia"
+  },
+  "description": {
+    "en": "Audio and video player in the sidebar.",
+    "fr": "Lecteur audio et vidéo dans la barre latérale."
+  },
+  "icon": "play",
+  "family": "create",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/dsh-media-player",
+  "entry": {
+    "host": "index.js",
+    "client": "client/client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:sidebar.right.tab.document"
+  ],
+  "help": "help.json",
+  "suite": {
+    "default": "off"
+  }
+}

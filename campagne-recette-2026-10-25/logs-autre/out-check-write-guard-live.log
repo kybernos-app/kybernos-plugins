@@ -1,0 +1,125 @@
+every covered write: refused to a local program, answered to the page
+  ✓ POST /kybernos/composio/connecteurs: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos/composio/connecteurs: the signed-in page is answered (400)
+  ✓ DELETE /kybernos/composio/connecteurs?nom=zz-guard-live: no header 403, foreign Origin 403, no cookie 401
+  ✓ DELETE /kybernos/composio/connecteurs?nom=zz-guard-live: the signed-in page is answered (200)
+  ✓ POST /kybernos/composio/connecteurs/test: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos/composio/connecteurs/test: the signed-in page is answered (404)
+  ✓ POST /kybernos/composio/connecteurs/commande: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos/composio/connecteurs/commande: the signed-in page is answered (400)
+  ✓ DELETE /kybernos/composio/connecteurs/commande?dir=/nowhere: no header 403, foreign Origin 403, no cookie 401
+  ✓ DELETE /kybernos/composio/connecteurs/commande?dir=/nowhere: the signed-in page is answered (200)
+  ✓ POST /kybernos/composio/key: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos/composio/key: the signed-in page is answered (400)
+  ✓ POST /kybernos/composio/accounts: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos/composio/accounts: the signed-in page is answered (400)
+  ✓ POST /kybernos/composio/provider: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos/composio/provider: the signed-in page is answered (400)
+  ✓ POST /kybernos/composio/openapi: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos/composio/openapi: the signed-in page is answered (200)
+  ✓ POST /kybernos-memory/lessons/add: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-memory/lessons/add: the signed-in page is answered (200)
+  ✓ POST /kybernos-memory/lessons/update: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-memory/lessons/update: the signed-in page is answered (200)
+  ✓ POST /kybernos-memory/lessons/delete: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-memory/lessons/delete: the signed-in page is answered (200)
+  ✓ POST /kybernos-memory/tidy/scan: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-memory/tidy/scan: the signed-in page is answered (200)
+  ✓ POST /kybernos-memory/tidy/apply: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-memory/tidy/apply: the signed-in page is answered (200)
+  ✓ POST /kybernos-memory/tidy/dismiss: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-memory/tidy/dismiss: the signed-in page is answered (200)
+  ✓ POST /kybernos-memory/tidy/undo: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-memory/tidy/undo: the signed-in page is answered (200)
+  ✓ POST /kybernos-memory/tidy/settings: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-memory/tidy/settings: the signed-in page is answered (200)
+  ✓ POST /kybernos-memory/settings/set: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-memory/settings/set: the signed-in page is answered (200)
+  ✓ POST /kybernos-auto/session: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-auto/session: the signed-in page is answered (400)
+  ✓ POST /kybernos-auto/settings: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-auto/settings: the signed-in page is answered (200)
+  ✓ POST /kybernos-auto/probe: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-auto/probe: the signed-in page is answered (200)
+  ✓ POST /modeles-locaux/installer: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /modeles-locaux/installer: the signed-in page is answered (400)
+  ✓ POST /modeles-locaux/annuler: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /modeles-locaux/annuler: the signed-in page is answered (200)
+  ✓ POST /kybernos-models/annotations/save: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-models/annotations/save: the signed-in page is answered (400)
+  ✓ POST /kybernos-models/journal: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-models/journal: the signed-in page is answered (400)
+  ✓ POST /kybernos-models/key/check: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-models/key/check: the signed-in page is answered (400)
+  ✓ POST /kybernos-models/providers/park: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-models/providers/park: the signed-in page is answered (400)
+  ✓ POST /kybernos-models/providers/take: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-models/providers/take: the signed-in page is answered (400)
+  ✓ POST /kybernos-models/providers/forget: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-models/providers/forget: the signed-in page is answered (400)
+  ✓ POST /kybernos-models/scores/list: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-models/scores/list: the signed-in page is answered (400)
+  ✓ POST /kybernos-computers/key/set: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-computers/key/set: the signed-in page is answered (200)
+  ✓ POST /kybernos-computers/key/clear: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-computers/key/clear: the signed-in page is answered (200)
+  ✓ POST /kybernos-computers/sandboxes/start: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-computers/sandboxes/start: the signed-in page is answered (200)
+  ✓ POST /kybernos-computers/sandboxes/exec: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-computers/sandboxes/exec: the signed-in page is answered (200)
+  ✓ POST /kybernos-computers/sandboxes/write: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-computers/sandboxes/write: the signed-in page is answered (200)
+  ✓ POST /kybernos-computers/sandboxes/stop: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-computers/sandboxes/stop: the signed-in page is answered (200)
+  ✓ POST /kybernos-computers/sandboxes/pause: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-computers/sandboxes/pause: the signed-in page is answered (200)
+  ✓ POST /kybernos-computers/sandboxes/resume: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-computers/sandboxes/resume: the signed-in page is answered (200)
+  ✓ POST /kybernos-computers/env/set: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-computers/env/set: the signed-in page is answered (200)
+  ✓ POST /kybernos-cloud/memory/delete: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-cloud/memory/delete: the signed-in page is answered (200)
+  ✓ POST /kybernos-cloud/members/remove: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-cloud/members/remove: the signed-in page is answered (200)
+  ✓ POST /kybernos-cloud/team/lessons/delete: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-cloud/team/lessons/delete: the signed-in page is answered (200)
+  ✓ POST /kybernos-cloud/team/skills/delete: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-cloud/team/skills/delete: the signed-in page is answered (200)
+  ✓ POST /kybernos-cloud/team/automations/delete: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-cloud/team/automations/delete: the signed-in page is answered (200)
+  ✓ POST /kybernos-cloud/connections/delete: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-cloud/connections/delete: the signed-in page is answered (200)
+  ✓ POST /kybernos-miniapps/install: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-miniapps/install: the signed-in page is answered (200)
+  ✓ POST /kybernos-miniapps/uninstall: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos-miniapps/uninstall: the signed-in page is answered (200)
+  ✓ POST /kybernos/slash/entries: no header 403, foreign Origin 403, no cookie 401
+  ✓ POST /kybernos/slash/entries: the signed-in page is answered (400)
+what the browser itself puts on the wire (the free-models gateway keys on it)
+  ✓ a same-origin GET from the page carries Sec-Fetch-Site: same-origin and no Origin
+  ✓ a same-origin POST from the page carries the right Origin and DSH's session cookie
+left open on purpose, still answered to the caller that has no browser
+  ✓ /kybernos-auto/router: the Auto CLI sends no header and is answered (200)
+  ✓ /kybernos-auto/report: the Auto CLI sends no header and is answered (200)
+  ✓ /kybernos-auto/router: a foreign Origin is still refused
+the free-models gateway refuses a browser page of another site, nothing sent upstream
+  ✓ POST /free-llms/v1/chat/completions: a foreign Origin, Sec-Fetch-Site cross-site and same-site are all 403
+  ✓ GET /free-llms/v1/models: a foreign Origin, Sec-Fetch-Site cross-site and same-site are all 403
+  ✓ GET /free-llms/status: a foreign Origin, Sec-Fetch-Site cross-site and same-site are all 403
+  ✓ GET /free-llms/health: a foreign Origin, Sec-Fetch-Site cross-site and same-site are all 403
+the pages' own writes, clicked in the real GUI (the browser adds the Origin and the cookie itself)
+  ✓ Auto Routing: the « Free models » choice is there and is clicked
+  ✓ Auto Routing: the browser's own POST to /kybernos-auto/settings was answered 200
+  ✓ Auto Routing: the host stored the scope the page sent
+  ✓ Memory & Lessons: the "Lessons system context" row is on the Customize page
+  ✓ Memory & Lessons: clicking No is sent to the host
+  ✓ Memory & Lessons: the browser's own POST to /kybernos-memory/settings/set was answered 200
+  ✓ Memory & Lessons: the host stored context = false
+  ✓ Memory & Lessons: clicking Yes is sent to the host
+  ✓ Memory & Lessons: the host stored context = true again
+  ✓ Code sandbox (E2B): the key field is there
+  ✓ Code sandbox (E2B): "Save" is clicked
+  ✓ Code sandbox (E2B): the browser's own POST to /kybernos-computers/key/set was answered 200 (the route ran, and said no on its own rule)
+  ✓ Code sandbox (E2B): the host refused the key on its own rule (keyPresent stays false), not the guard's
+
+✓ all 118 checks passed

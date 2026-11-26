@@ -1,0 +1,20 @@
+# check-call-voice-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=2467
+
+the engines the app has
+    ready: say (186 voices), models (2 voices)
+  ✓ the app lists its voice engines
+    using say, voice "Amélie (French (Canada))" (fr), then a es voice exists
+a member's voice, in the member's language
+  ✓ the worker's request reached the app's engine and came back as audio
+  ✓ the engine used is the one asked for, with the member's voice
+  ✓ the audio decodes to a sentence's worth of speech (> 1 s)
+  ✓ and it is a real signal, not silence
+the same member, a reply in another language (es)
+  ✓ the engine answered
+  ✓ the worker asked for the other language, on the same engine, without forcing the member's voice
+  ✓ the engine picked a voice of that language
+  ✓ and it speaks (> 1 s, a real signal)
+
+✓ kybernos-call voice live: 9 passed, 0 failed
+

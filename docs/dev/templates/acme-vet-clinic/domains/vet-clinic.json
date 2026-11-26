@@ -1,0 +1,109 @@
+{
+  "v": 1,
+  "id": "vet-clinic",
+  "order": 60,
+  "theme": "vet-clinic",
+  "accent": "#7C5CBF",
+  "icon": "heart",
+  "name": {
+    "en": "Veterinary clinic",
+    "fr": "Clinique vétérinaire"
+  },
+  "tagline": {
+    "en": "Notes after a consultation, and the recalls nobody has time to chase.",
+    "fr": "Les notes après une consultation, et les rappels que personne n'a le temps de courir."
+  },
+  "keywords": [
+    "veterinary clinic",
+    "pet care"
+  ],
+  "home": [
+    "dashboard",
+    "team"
+  ],
+  "menu": {
+    "labels": {
+      "aiteams": {
+        "en": "Clinic team",
+        "fr": "Équipe du cabinet"
+      },
+      "tasks": {
+        "en": "Recalls",
+        "fr": "Rappels"
+      }
+    }
+  },
+  "mode": "bureau",
+  "agents": {
+    "preset": "balanced",
+    "why": {
+      "en": "The desk reads and drafts; nothing is written to a patient file or sent to an owner without the clinic's approval.",
+      "fr": "L'accueil lit et rédige ; rien n'est écrit dans un dossier ni envoyé à un propriétaire sans l'accord du cabinet."
+    }
+  },
+  "goals": [
+    {
+      "id": "consult-notes",
+      "name": {
+        "en": "Consultation notes",
+        "fr": "Notes de consultation"
+      },
+      "title": {
+        "en": "Write the notes of a consultation",
+        "fr": "Rédiger les notes d'une consultation"
+      },
+      "desc": {
+        "en": "The skill turns what was said during the visit into structured notes, quoting the file it was given.",
+        "fr": "La compétence transforme ce qui a été dit pendant la visite en notes structurées, en citant le fichier fourni."
+      },
+      "skills": [
+        {
+          "source": "kybernos",
+          "name": "consult-notes",
+          "d": {
+            "en": "Turns a consultation into structured clinical notes; drafts only.",
+            "fr": "Transforme une consultation en notes cliniques structurées ; rédige seulement."
+          }
+        }
+      ],
+      "teams": [
+        "clinic-desk"
+      ]
+    },
+    {
+      "id": "recalls",
+      "name": {
+        "en": "Recalls",
+        "fr": "Rappels"
+      },
+      "title": {
+        "en": "Chase the vaccinations and the check-ups",
+        "fr": "Relancer les vaccinations et les contrôles"
+      },
+      "desc": {
+        "en": "A weekday list of the owners to remind, drafted the morning before; the clinic sends it or not.",
+        "fr": "Une liste de jours ouvrés des propriétaires à relancer, rédigée le matin même ; le cabinet l'envoie ou non."
+      },
+      "automations": [
+        {
+          "id": "morning-reminders",
+          "name": {
+            "en": "Morning reminder drafts",
+            "fr": "Brouillons de rappels du matin"
+          },
+          "prompt": {
+            "en": "From the appointments and vaccinations list the clinic provides, draft one short reminder per due owner, quoting the date and the reason.",
+            "fr": "À partir de la liste de rendez-vous et de vaccinations fournie par le cabinet, rédiger un rappel court par propriétaire concerné, en citant la date et le motif."
+          },
+          "cron": "0 7 * * 1-5"
+        }
+      ],
+      "soon": [
+        {
+          "en": "A stock alert for the treatments that run out",
+          "fr": "Une alerte de stock pour les traitements qui s'épuisent"
+        }
+      ]
+    }
+  ]
+}

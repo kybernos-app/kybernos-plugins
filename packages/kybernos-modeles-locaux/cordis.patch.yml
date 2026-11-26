@@ -1,0 +1,14 @@
+# dsh bundle patch — insère le plugin dans la pile de calques du profil.
+# Le profil doit aussi lister le paquet dans `dsh.profile.bundles`
+# (~/.dsh/profiles/web/package.json).
+#
+# Le bundle n'ajoute AUCUNE rangée de configuration : le panneau « Modèles
+# locaux » écrit la route `ollama-local` dans le namespace `llm-pi-ai` PAR LA
+# GUI (remote.settings.mutate), comme le fait la page Models native — le patch
+# du profil reste la seule trace, lisible et réversible.
+#
+# (Mesuré le 27/09 : un patch vide `[]` fait sauter le bundle au boot —
+# routes jamais montées. L'insertion ci-dessous est le minimum vital.)
+- insert:
+    - id: kybernos-modeles-locaux
+      name: '@local/kybernos-modeles-locaux'

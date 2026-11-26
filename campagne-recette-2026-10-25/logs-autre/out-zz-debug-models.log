@@ -1,0 +1,22 @@
+before: cards deepseek-account
+wait fold toggle Providers with no key or switched off (12)
+presets mistral
+clicked preset true
+ok click true
+after: cards deepseek-account
+wait fold toggle Providers with no key or switched off (12)
+drawer? true Add model provider
+Catalog provider
+Custom API
+
+Pick OpenAI, Anthropic, Kimi… from the catalog and paste your API key.
+
+Provider
+Choose a provider…
+1 result
+Mistral
+Already added
+213 providers · models.dev · ↑↓ to browse, Enter to pick
+Cancel
+Apply
+mistral anywhere deepseek-account:prov-card

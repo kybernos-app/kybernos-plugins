@@ -1,0 +1,31 @@
+{
+  "name": "model3d-1",
+  "type": "model3d",
+  "note": "The 3D model examples of the shelf. A STILL lot: every picture is a real screenshot of the page the skill `model-3d` builds from the example of the same name (`node scripts/model3d-stills.mjs <pages> chair stool:700 grinder:800:Explode engine:1000`), nothing is generated, so no `made` and no Remix. The request of each one starts that skill (packages/kybernos-plugin/skills/model-3d/SKILL.md).",
+  "cells": [
+    {
+      "id": "model3d_chair",
+      "still": "chair.jpg",
+      "request": "Make an interactive 3D armchair configurator for my online shop: the customer turns it around, picks the fabric, the frame wood and the size, and the price follows. Ask me for my real options and prices first, or use sample ones labelled as sample.",
+      "entry": { "name": "Armchair configurator", "tag": "Shop", "line": "Pick the fabric, the frame and the size: the price follows.", "meta": "Interactive page + .glb", "alt": "A 3D armchair with a fabric, frame and size picker and a live price" }
+    },
+    {
+      "id": "model3d_grinder",
+      "still": "grinder.jpg",
+      "request": "Make an interactive 3D exploded view of a hand coffee grinder with a bill of materials: real CAD solids, the mass of each part from its volume, and the cost by batch from assumptions shown on the page. Ask me for my own product and dimensions first, or use sample ones labelled as sample.",
+      "entry": { "name": "Hand grinder, exploded", "tag": "Product", "line": "Twelve CAD solids, a bill of materials and a cost by batch.", "meta": "Interactive page + .glb", "alt": "An exploded 3D coffee grinder next to its bill of materials with mass and cost" }
+    },
+    {
+      "id": "model3d_engine",
+      "still": "engine.jpg",
+      "request": "Make a 3D cutaway of a four-stroke engine with a cycle that is computed, not animated by hand: the valves, the pressure curve and the power follow the throttle and the spark. Tell me what you checked and what is an assumption.",
+      "entry": { "name": "Four-stroke engine", "tag": "Mechanics", "line": "A cutaway with a computed cycle: valves, pressure and power.", "meta": "Interactive page + .glb", "alt": "A cutaway 3D engine beside its computed pressure curve and figures" }
+    },
+    {
+      "id": "model3d_stool",
+      "still": "stool.jpg",
+      "request": "Make a 3D product page for a three-legged wooden stool: turn it around, explode it, click a part for its material and mass, and export the .glb. Ask me for my real dimensions and wood first, or use sample ones labelled as sample.",
+      "entry": { "name": "Wooden stool", "tag": "Furniture", "line": "Four solids, checked to fit, with the mass of each part.", "meta": "Interactive page + .glb", "alt": "A three-legged wooden stool in 3D with its list of parts and masses" }
+    }
+  ]
+}

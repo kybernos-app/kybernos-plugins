@@ -1,0 +1,57 @@
+{
+  "contract": 1,
+  "id": "kybernos/models",
+  "kind": "code",
+  "version": "1.0.0",
+  "name": {
+    "en": "AI provider and models",
+    "fr": "Fournisseurs IA et modèles"
+  },
+  "description": {
+    "en": "Model catalogue: search, compare, prices.",
+    "fr": "Catalogue de modèles : recherche, comparaison, prix."
+  },
+  "icon": "cpu",
+  "family": "models",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-models",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:settings.models.footer",
+    "ui.slot:settings.models.header",
+    "ui.slot:settings.models.provider-card",
+    "ui.slot:settings.section",
+    "ui.dom",
+    "host.routes:/kybernos-models:write",
+    "fs.write:dsh-home",
+    "net:api.anthropic.com",
+    "net:api.deepseek.com",
+    "net:api.openai.com",
+    "net:artificialanalysis.ai",
+    "net:benchlm.ai",
+    "net:generativelanguage.googleapis.com",
+    "net:localhost",
+    "net:models.dev",
+    "secrets.read"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-models"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "off"
+  }
+}

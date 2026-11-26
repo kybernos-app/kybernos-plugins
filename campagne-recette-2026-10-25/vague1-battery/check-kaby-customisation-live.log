@@ -1,0 +1,57 @@
+# check-kaby-customisation-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=57224
+
+── the seam and the page ──
+  ✓ the bundle published its seam
+  ✓ the profile was read by the seam before the page opened
+  ✓ open() reaches Settings › Kaby
+  ✓ the three blocks are drawn
+  ✓ « Kaby » is in the Settings menu, next to the agents
+  ✓ its menu entry has an icon of its own, not the shell’s gear
+  ✓ the help card of the Suite is in the header when the Suite is there
+── identity ──
+  ✓ the default name is Kaby
+  ✓ a reserved name is refused on the page, with a sentence
+  ✓ and nothing was kept
+  ✓ a valid name is kept by the host
+  ✓ and the seam tells everyone
+  ✓ « Generate » is off while there are no words about the look
+  ✓ the look is kept by the host
+  ✓ « Generate » is on once there are words
+  ✓ no portrait yet
+  ✓ Generate shows the portrait the host kept
+  ✓ the host kept it as generated, with the model
+  ✓ the portrait is served back as a PNG, not cached
+  ✓ the page asked the image route exactly once
+── wired into the sidebar row and the strip of Kaby’s chat ──
+  ✓ Settings closed
+  ✓ the sidebar row of Kaby shows the portrait the host serves
+  ✓ and the name the person gave, not the product’s
+  ✓ the row is not a second button: the portrait sits inside the row’s own button
+  ✗ Kaby’s chat opens from that row’s hook
+  ✗ the strip above its composer heads with the portrait and the name
+  ✗ a click on it opens Settings › Kaby
+  ✗ removing the portrait removes it from the page and from the host
+  ✗ Import asks for the consent before it takes a file
+  ✗ and takes the file once it is ticked
+── voice ──
+  ✗ the app voice pill is there and pressed — []
+  ✗ the core’s voices are offered as pills (the machine has at least one ready engine) — []
+  ✓ the app voice can be picked back
+  ✗ the custom voice window opens, with Save off
+  ✓ and closes
+  ✓ a voice sample with consent is kept by the host
+  ✗ the page then shows it as a pill
+  ✗ picked, it says no engine speaks it yet
+  ✓ removing the sample puts the voice back to the app’s
+── face ──
+  ✗ six face providers are listed — []
+  ✗ « No face » is in use, and its button says so
+  ✗ a provider that no call can use yet says « soon » and cannot be chosen
+  ✓ and the host refuses it too, as « soon »
+── the host guards ──
+  ✓ a body that is not JSON is 400 (the origin guard itself is played by test-host.mjs: a page cannot forge an Origin)
+  ✓ the profile survives a reload (the file is on disk)
+
+31 passed, 14 failed
+

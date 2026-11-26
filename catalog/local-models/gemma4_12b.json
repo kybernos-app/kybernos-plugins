@@ -1,0 +1,23 @@
+{
+  "id": "gemma4:12b",
+  "famille": "g",
+  "initiale": "Gm",
+  "tailleGo": 7.7,
+  "ramMin": 16,
+  "score": "Ollama library · 7.7–8 GB · 256K ctx",
+  "input": [
+    "text",
+    "image"
+  ],
+  "badges": [
+    "Vision",
+    "Tools",
+    "Thinking"
+  ],
+  "desc": {
+    "fr": "Gemma 4 (Google), version 12B : vision, outils et réflexion, contexte 256K. Tient dans 16 Go.",
+    "en": "Gemma 4 (Google), 12B version: vision, tools and thinking, 256K context. Fits 16 GB."
+  },
+  "ajoute": "2026-10-15",
+  "ordre": 84
+}

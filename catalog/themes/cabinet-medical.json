@@ -1,0 +1,23 @@
+{
+  "id": "cabinet-medical",
+  "v": 1,
+  "name": "Cabinet médical",
+  "author": "Kybernos",
+  "description": {
+    "fr": "Le vert profond d’un cabinet : sobre, lisible en pleine journée.",
+    "en": "The deep teal of a practice: sober, legible in full daylight."
+  },
+  "settings": {
+    "mode": "light",
+    "acc": "#1b7f76",
+    "ov": {
+      "light:base": "#f3f6f5",
+      "light:l1": "#ffffff",
+      "light:l2": "#e8efed",
+      "light:side": "#edf3f1",
+      "light:input": "#ffffff"
+    },
+    "fontText": "inter",
+    "radius": "standard"
+  }
+}

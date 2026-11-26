@@ -1,0 +1,28 @@
+{
+  "name": "@local/kybernos-front-desk",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Front desk: the public assistant of a shop, run apart from Kaby. This bundle starts and watches the service, shows its Atelier and Inbox pages, and gives Kaby the tools to edit its draft.",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "test": "node test-config.mjs && node test-supervisor.mjs && node test-proxy.mjs && node test-routes.mjs && node test-tools.mjs && node test-host.mjs && node test-client.mjs && node test-service-drift.mjs && node test-integration.mjs"
+  },
+  "engines": {
+    "node": ">=22.19"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}

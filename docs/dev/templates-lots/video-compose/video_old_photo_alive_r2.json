@@ -1,0 +1,90 @@
+{
+  "size": [
+    1280,
+    720
+  ],
+  "fade": 0.4,
+  "shots": [
+    {
+      "file": "old-1.mp4",
+      "trim": [
+        0,
+        5.26
+      ]
+    },
+    {
+      "file": "old-2.mp4",
+      "trim": [
+        0,
+        5.26
+      ]
+    },
+    {
+      "file": "old-3.mp4",
+      "trim": [
+        0,
+        5.26
+      ]
+    }
+  ],
+  "grade": "eq=contrast=1.04",
+  "texts": [
+    {
+      "at": 0.6,
+      "to": 4.2,
+      "text": "PORT ALDER  ·  1926",
+      "style": "label",
+      "y": 0.08,
+      "anim": "fade",
+      "color": "#4a3b2c"
+    },
+    {
+      "at": 0.6,
+      "to": 5.0,
+      "text": "Port Alder, 1926.\\NA Saturday like any other.",
+      "style": "caption",
+      "y": 0.84,
+      "anim": "rise"
+    },
+    {
+      "at": 5.3,
+      "to": 9.6,
+      "text": "The photograph holds still.\\NUntil you look closer.",
+      "style": "caption",
+      "y": 0.84,
+      "anim": "rise"
+    },
+    {
+      "at": 10.2,
+      "to": 14.4,
+      "text": "A child runs.\\NAnd a hundred years fall away.",
+      "style": "caption",
+      "y": 0.84,
+      "anim": "rise"
+    }
+  ],
+  "voice": [
+    {
+      "file": "voice-old-1.mp3",
+      "at": 0.6
+    },
+    {
+      "file": "voice-old-2.mp3",
+      "at": 5.3
+    },
+    {
+      "file": "voice-old-3.mp3",
+      "at": 10.2
+    }
+  ],
+  "music": {
+    "file": "music-old.mp3",
+    "start": 0,
+    "gain": 0.5,
+    "fadeIn": 0.6,
+    "fadeOut": 2.0
+  },
+  "ambient": 0.55,
+  "id": "video_old_photo_alive",
+  "crf": 25
+}

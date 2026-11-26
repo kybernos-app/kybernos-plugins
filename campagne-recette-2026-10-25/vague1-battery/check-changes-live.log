@@ -1,0 +1,59 @@
+# check-changes-live.mjs
+# host=127.0.0.1:3098 status=timeout code=null ms=150008
+
+tts-voicedesign","xiaomi-token-plan-ams/mimo-v2.6-flash","xiaomi-token-plan-ams/mimo-v2.6-pro","zai-coding-cn/glm-5.3","zai-coding-cn/glm-5.3-flash","zai-coding-cn/glm-5.3-flashx","zai-coding-cn/glm-5.3-highspeed","zai-coding-cn/glm-5v-turbo"],"force":false}}]
+
+── 2. every state, through the seam ──
+  ✗ everything saved — state "ok", tone ok, chip "Everything is saved" — {"w":null,"c":null}
+  ✗ everything saved — steps done/done/done/done — []
+  ✓ everything saved — primary none
+  ✗ a clean isolated copy — state "ok", tone ok, chip "Everything is saved" — {"w":null,"c":null}
+  ✗ a clean isolated copy — steps done/done/done/done — []
+  ✗ a clean isolated copy — primary closeCopy — {"primary":[],"second":[]}
+  ✗ unsaved work — state "unsaved", tone warn, chip "2 files to save" — {"w":null,"c":null}
+  ✗ unsaved work — steps now/todo/todo/todo — []
+  ✗ unsaved work — primary save, also saveLocal — {"primary":[],"second":[]}
+  ✗ unsaved — the files are listed, with their kind and the one that is another chat’s — ""
+  ✗ unsaved — the card says the folder is shared, and what will be saved — ""
+  ✗ unsaved — the main button uses no git word in Simple — []
+  ✗ ahead of GitHub — state "toSend", tone info, chip "Saved · not online" — {"w":null,"c":null}
+  ✗ ahead of GitHub — steps done/now/todo/todo — []
+  ✗ ahead of GitHub — primary push — {"primary":[],"second":[]}
+  ✗ ahead and behind — state "sync", tone warn, chip "Needs syncing" — {"w":null,"c":null}
+  ✗ ahead and behind — steps done/now/todo/todo — []
+  ✗ ahead and behind — primary sync — {"primary":[],"second":[]}
+  ✗ a copy not in the project — state "notInProject", tone info, chip "Saved · not in the project" — {"w":null,"c":null}
+  ✗ a copy not in the project — steps done/now/todo/todo — []
+  ✗ a copy not in the project — primary addToProject, also askReview — {"primary":[],"second":[]}
+  ✗ ready for a review — state "readyReview", tone info, chip "Ready for review" — {"w":null,"c":null}
+  ✗ ready for a review — steps done/done/now/todo — []
+  ✗ ready for a review — primary askReview — {"primary":[],"second":[]}
+  ✗ checks running — state "prChecks", tone info, chip "GitHub is checking your work" — {"w":null,"c":null}
+  ✗ checks running — steps done/done/wait/todo — []
+  ✓ checks running — primary none
+  ✗ waiting for a teammate — state "prWaiting", tone info, chip "Waiting for review" — {"w":null,"c":null}
+  ✗ waiting for a teammate — steps done/done/wait/todo — []
+  ✓ waiting for a teammate — primary none
+  ✗ changes asked — state "prChanges", tone warn, chip "Changes were asked" — {"w":null,"c":null}
+  ✗ changes asked — steps done/done/bad/todo — []
+  ✓ changes asked — primary none
+  ✗ a check failed — state "prFail", tone err, chip "A check failed" — {"w":null,"c":null}
+  ✗ a check failed — steps done/done/bad/todo — []
+  ✓ a check failed — primary none
+  ✗ approved, ready to merge — state "prReady", tone ok, chip "Approved" — {"w":null,"c":null}
+  ✗ approved, ready to merge — steps done/done/now/todo — []
+  ✗ approved, ready to merge — primary merge — {"primary":[],"second":[]}
+  ✗ the request on GitHub is a link that opens outside (new tab, no opener)
+  ✗ merged — state "prMerged", tone ok, chip "In the project" — {"w":null,"c":null}
+  ✗ merged — steps done/done/done/done — []
+  ✗ merged — primary fetch — {"primary":[],"second":[]}
+  ✗ GitHub has news — state "toFetch", tone info, chip "GitHub has news" — {"w":null,"c":null}
+  ✗ GitHub has news — steps done/done/done/done — []
+  ✗ GitHub has news — primary fetch — {"primary":[],"second":[]}
+  ✗ a conflict — state "conflict", tone err, chip "A conflict blocks" — {"w":null,"c":null}
+  ✗ a conflict — steps done/bad/todo/todo — []
+  ✓ a conflict — primary none
+  ✗ files from other chats only — state "elsewhere", tone info, chip "Nothing to save here" — {"w":null,"c":null}
+  ✗ files from other chats only — steps done/done/done/done — []
+  ✗ files from other chats only — primary none, also isolate — {"primary":[],"second":[]}
+

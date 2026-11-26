@@ -1,0 +1,641 @@
+{
+  "kind": "motion",
+  "renderer": "motion",
+  "title": "UX audit 2 — maquette des points B",
+  "meta": {
+    "rev": 4,
+    "history": [
+      {
+        "r": 1,
+        "by": "agent",
+        "at": "2026-10-20T11:37:03.254Z",
+        "what": "Maquette privée pour les 3 sujets B de l'audit UX 2 : états vides, barre de filtres, rangées constantes."
+      },
+      {
+        "r": 2,
+        "by": "agent",
+        "at": "2026-10-20T11:38:01.362Z",
+        "what": "Params: note"
+      },
+      {
+        "r": 3,
+        "by": "agent",
+        "at": "2026-10-20T11:38:31.823Z",
+        "what": "Params: note"
+      },
+      {
+        "r": 4,
+        "by": "agent",
+        "at": "2026-10-20T11:38:59.403Z",
+        "what": "Params: note"
+      }
+    ]
+  },
+  "data": [
+    {
+      "v": 1,
+      "format": {
+        "width": 1280,
+        "height": 2400,
+        "fps": 30,
+        "duration": 26
+      },
+      "background": "#12141a",
+      "params": {
+        "note": "La phrase de l'état vide proposé est ramenée dans sa carte."
+      },
+      "layers": [
+        {
+          "type": "text",
+          "name": "titre",
+          "x": 640,
+          "y": 60,
+          "text": "UX audit 2 — les 3 sujets B, en maquette",
+          "size": 34,
+          "weight": 700,
+          "fill": "#f4f6fa"
+        },
+        {
+          "type": "text",
+          "name": "soustitre",
+          "x": 640,
+          "y": 110,
+          "text": "Mesures faites sur la vraie GUI (:3098, bac à sable). Rien n'est construit : voici ce que je propose.",
+          "size": 19,
+          "fill": "#9aa3b2"
+        },
+        {
+          "type": "rect",
+          "name": "cadre1",
+          "x": 640,
+          "y": 430,
+          "w": 1140,
+          "h": 620,
+          "r": 18,
+          "fill": "#1a1e27",
+          "stroke": "#2a3040",
+          "lw": 1
+        },
+        {
+          "type": "text",
+          "name": "t1",
+          "x": 640,
+          "y": 175,
+          "text": "B1 · Les états vides parlent à vide",
+          "size": 24,
+          "weight": 700,
+          "fill": "#ffd166"
+        },
+        {
+          "type": "text",
+          "name": "t1m",
+          "x": 640,
+          "y": 215,
+          "text": "Mesuré : 5 états vides sans illustration ni geste de premier item (Pinned, Agent Teams, Usage, Ollama, Tools). Une phrase dans une boîte en pointillés.",
+          "size": 17,
+          "fill": "#c7cede",
+          "maxW": 1000
+        },
+        {
+          "type": "rect",
+          "name": "av1",
+          "x": 335,
+          "y": 300,
+          "w": 470,
+          "h": 280,
+          "r": 12,
+          "fill": "#262c38",
+          "stroke": "#3a4152",
+          "lw": 1
+        },
+        {
+          "type": "text",
+          "name": "av1t",
+          "x": 570,
+          "y": 268,
+          "text": "AUJOURD'HUI",
+          "size": 15,
+          "weight": 700,
+          "fill": "#ff6b6b"
+        },
+        {
+          "type": "rect",
+          "name": "av1b",
+          "x": 375,
+          "y": 350,
+          "w": 390,
+          "h": 180,
+          "r": 10,
+          "fill": "transparent",
+          "stroke": "#5a6274",
+          "lw": 2
+        },
+        {
+          "type": "text",
+          "name": "av1x",
+          "x": 570,
+          "y": 425,
+          "text": "Rien d'épinglé pour l'instant.",
+          "size": 17,
+          "fill": "#e8ecf4"
+        },
+        {
+          "type": "rect",
+          "name": "ap1",
+          "x": 945,
+          "y": 300,
+          "w": 470,
+          "h": 280,
+          "r": 12,
+          "fill": "#262c38",
+          "stroke": "#4d7cfe",
+          "lw": 2
+        },
+        {
+          "type": "text",
+          "name": "ap1t",
+          "x": 1180,
+          "y": 268,
+          "text": "PROPOSÉ",
+          "size": 15,
+          "weight": 700,
+          "fill": "#8fb0ff"
+        },
+        {
+          "type": "text",
+          "name": "ap1ico",
+          "x": 1180,
+          "y": 352,
+          "text": "☆",
+          "size": 52,
+          "fill": "#6e8cff"
+        },
+        {
+          "type": "text",
+          "name": "ap1x",
+          "x": 1180,
+          "y": 412,
+          "text": "Rien d'épinglé pour l'instant.\nÉpingle une conversation depuis son menu « … ».",
+          "size": 14,
+          "fill": "#dfe5f0",
+          "maxW": 300,
+          "lineHeight": 4
+        },
+        {
+          "type": "rect",
+          "name": "ap1b",
+          "x": 1090,
+          "y": 505,
+          "w": 180,
+          "h": 40,
+          "r": 20,
+          "fill": "#4d7cfe"
+        },
+        {
+          "type": "text",
+          "name": "ap1bt",
+          "x": 1180,
+          "y": 526,
+          "text": "Nouvelle discussion",
+          "size": 15,
+          "fill": "#ffffff"
+        },
+        {
+          "type": "rect",
+          "name": "cadre2",
+          "x": 640,
+          "y": 1090,
+          "w": 1140,
+          "h": 560,
+          "r": 18,
+          "fill": "#1a1e27",
+          "stroke": "#2a3040",
+          "lw": 1
+        },
+        {
+          "type": "text",
+          "name": "t2",
+          "x": 640,
+          "y": 790,
+          "text": "B2 · La barre de filtres flotte au milieu",
+          "size": 24,
+          "weight": 700,
+          "fill": "#ffd166"
+        },
+        {
+          "type": "text",
+          "name": "t2m",
+          "x": 640,
+          "y": 830,
+          "text": "Mesuré : les pastilles All / Fits / Recommended / Light de la page Ollama sont à 146 px du bord gauche et 338 px du bord droit — ni collées à la recherche, ni à droite. Même constat sur la Suite, les Tools et la liste des skills.",
+          "size": 17,
+          "fill": "#c7cede",
+          "maxW": 1000
+        },
+        {
+          "type": "rect",
+          "name": "av2",
+          "x": 335,
+          "y": 890,
+          "w": 470,
+          "h": 220,
+          "r": 12,
+          "fill": "#262c38",
+          "stroke": "#3a4152",
+          "lw": 1
+        },
+        {
+          "type": "text",
+          "name": "av2t",
+          "x": 570,
+          "y": 862,
+          "text": "AUJOURD'HUI",
+          "size": 15,
+          "weight": 700,
+          "fill": "#ff6b6b"
+        },
+        {
+          "type": "text",
+          "name": "av2p1",
+          "x": 425,
+          "y": 935,
+          "text": "Sélection pour cette machine",
+          "size": 13,
+          "fill": "#8b93a5",
+          "align": "left"
+        },
+        {
+          "type": "rect",
+          "name": "av2p2",
+          "x": 430,
+          "y": 975,
+          "w": 70,
+          "h": 28,
+          "r": 14,
+          "fill": "#2c3240"
+        },
+        {
+          "type": "text",
+          "name": "av2p2t",
+          "x": 465,
+          "y": 990,
+          "text": "All",
+          "size": 12,
+          "fill": "#c7cede"
+        },
+        {
+          "type": "rect",
+          "name": "av2p3",
+          "x": 510,
+          "y": 975,
+          "w": 70,
+          "h": 28,
+          "r": 14,
+          "fill": "#2c3240"
+        },
+        {
+          "type": "text",
+          "name": "av2p3t",
+          "x": 545,
+          "y": 990,
+          "text": "Fits",
+          "size": 12,
+          "fill": "#c7cede"
+        },
+        {
+          "type": "rect",
+          "name": "av2p4",
+          "x": 590,
+          "y": 975,
+          "w": 95,
+          "h": 28,
+          "r": 14,
+          "fill": "#2c3240"
+        },
+        {
+          "type": "text",
+          "name": "av2p4t",
+          "x": 637,
+          "y": 990,
+          "text": "Recommended",
+          "size": 11,
+          "fill": "#c7cede"
+        },
+        {
+          "type": "rect",
+          "name": "av2s",
+          "x": 430,
+          "y": 1030,
+          "w": 310,
+          "h": 30,
+          "r": 8,
+          "fill": "#12151c",
+          "stroke": "#3a4152",
+          "lw": 1
+        },
+        {
+          "type": "text",
+          "name": "av2st",
+          "x": 450,
+          "y": 1045,
+          "text": "🔍  Rechercher un modèle…",
+          "size": 12,
+          "fill": "#6b7385",
+          "align": "left"
+        },
+        {
+          "type": "rect",
+          "name": "ap2",
+          "x": 945,
+          "y": 890,
+          "w": 470,
+          "h": 220,
+          "r": 12,
+          "fill": "#262c38",
+          "stroke": "#4d7cfe",
+          "lw": 2
+        },
+        {
+          "type": "text",
+          "name": "ap2t",
+          "x": 1180,
+          "y": 862,
+          "text": "PROPOSÉ",
+          "size": 15,
+          "weight": 700,
+          "fill": "#4d7cfe"
+        },
+        {
+          "type": "rect",
+          "name": "ap2bar",
+          "x": 1010,
+          "y": 930,
+          "w": 340,
+          "h": 38,
+          "r": 10,
+          "fill": "#12151c",
+          "stroke": "#3a4152",
+          "lw": 1
+        },
+        {
+          "type": "text",
+          "name": "ap2bar1",
+          "x": 1030,
+          "y": 950,
+          "text": "🔍  Rechercher…",
+          "size": 15,
+          "fill": "#6b7385",
+          "align": "left"
+        },
+        {
+          "type": "text",
+          "name": "ap2bar2",
+          "x": 1330,
+          "y": 950,
+          "text": "All · Fits · Reco · Light",
+          "size": 12,
+          "fill": "#9aa3b2",
+          "align": "right"
+        },
+        {
+          "type": "text",
+          "name": "ap2n",
+          "x": 1180,
+          "y": 1010,
+          "text": "Une seule ligne d'outils : la recherche à gauche, les filtres à sa suite, alignés sur la même ligne — comme partout ailleurs.",
+          "size": 15,
+          "fill": "#c7cede",
+          "maxW": 400,
+          "lineHeight": 4
+        },
+        {
+          "type": "rect",
+          "name": "cadre3",
+          "x": 640,
+          "y": 1720,
+          "w": 1140,
+          "h": 560,
+          "r": 18,
+          "fill": "#1a1e27",
+          "stroke": "#2a3040",
+          "lw": 1
+        },
+        {
+          "type": "text",
+          "name": "t3",
+          "x": 640,
+          "y": 1420,
+          "text": "B3 · Les rangées qui disent toutes la même chose",
+          "size": 24,
+          "weight": 700,
+          "fill": "#ffd166"
+        },
+        {
+          "type": "text",
+          "name": "t3m",
+          "x": 640,
+          "y": 1460,
+          "text": "Mesuré : « Sent » sur 25 lignes de 25 dans Mémoire, « fits » sur 8 de 8 dans Ollama (les deux corrigés en A pendant l'audit). Reste ouvert : les tuiles de type de Créations sans marque (1 sur 7), et deux cartes du tableau de bord sans logo (7 des 9 en ont un).",
+          "size": 17,
+          "fill": "#c7cede",
+          "maxW": 1000
+        },
+        {
+          "type": "rect",
+          "name": "av3",
+          "x": 335,
+          "y": 1520,
+          "w": 470,
+          "h": 240,
+          "r": 12,
+          "fill": "#262c38",
+          "stroke": "#3a4152",
+          "lw": 1
+        },
+        {
+          "type": "text",
+          "name": "av3t",
+          "x": 570,
+          "y": 1492,
+          "text": "AUJOURD'HUI",
+          "size": 15,
+          "weight": 700,
+          "fill": "#ff6b6b"
+        },
+        {
+          "type": "rect",
+          "name": "av3r1",
+          "x": 365,
+          "y": 1560,
+          "w": 410,
+          "h": 40,
+          "r": 8,
+          "fill": "#262b36"
+        },
+        {
+          "type": "text",
+          "name": "av3r1t",
+          "x": 385,
+          "y": 1580,
+          "text": "●  All          ◇            ▪▪▪",
+          "size": 13,
+          "fill": "#aab2c2",
+          "align": "left"
+        },
+        {
+          "type": "rect",
+          "name": "av3r2",
+          "x": 365,
+          "y": 1610,
+          "w": 410,
+          "h": 40,
+          "r": 8,
+          "fill": "#262b36"
+        },
+        {
+          "type": "text",
+          "name": "av3r2t",
+          "x": 385,
+          "y": 1630,
+          "text": "●  Tools        ◇            ▪▪▪",
+          "size": 13,
+          "fill": "#aab2c2",
+          "align": "left"
+        },
+        {
+          "type": "rect",
+          "name": "av3r3",
+          "x": 365,
+          "y": 1660,
+          "w": 410,
+          "h": 40,
+          "r": 8,
+          "fill": "#262b36"
+        },
+        {
+          "type": "text",
+          "name": "av3r3t",
+          "x": 385,
+          "y": 1680,
+          "text": "●  Code         ◇            ▪▪▪",
+          "size": 13,
+          "fill": "#aab2c2",
+          "align": "left"
+        },
+        {
+          "type": "text",
+          "name": "av3n",
+          "x": 570,
+          "y": 1735,
+          "text": "1 rangée sur 7 n'a pas de marque : l'œil la lit comme cassée.",
+          "size": 15,
+          "fill": "#ffb3b3"
+        },
+        {
+          "type": "rect",
+          "name": "ap3",
+          "x": 945,
+          "y": 1520,
+          "w": 470,
+          "h": 240,
+          "r": 12,
+          "fill": "#262c38",
+          "stroke": "#4d7cfe",
+          "lw": 2
+        },
+        {
+          "type": "text",
+          "name": "ap3t",
+          "x": 1180,
+          "y": 1492,
+          "text": "PROPOSÉ",
+          "size": 15,
+          "weight": 700,
+          "fill": "#4d7cfe"
+        },
+        {
+          "type": "rect",
+          "name": "ap3r1",
+          "x": 975,
+          "y": 1560,
+          "w": 410,
+          "h": 40,
+          "r": 8,
+          "fill": "#262b36"
+        },
+        {
+          "type": "text",
+          "name": "ap3r1t",
+          "x": 995,
+          "y": 1580,
+          "text": "◎  All          ◇            ▪▪▪",
+          "size": 13,
+          "fill": "#dfe5f0",
+          "align": "left"
+        },
+        {
+          "type": "rect",
+          "name": "ap3r2",
+          "x": 975,
+          "y": 1610,
+          "w": 410,
+          "h": 40,
+          "r": 8,
+          "fill": "#262b36"
+        },
+        {
+          "type": "text",
+          "name": "ap3r2t",
+          "x": 995,
+          "y": 1630,
+          "text": "◈  Tools        ◇            ▪▪▪",
+          "size": 13,
+          "fill": "#dfe5f0",
+          "align": "left"
+        },
+        {
+          "type": "rect",
+          "name": "ap3r3",
+          "x": 975,
+          "y": 1660,
+          "w": 410,
+          "h": 40,
+          "r": 8,
+          "fill": "#262b36"
+        },
+        {
+          "type": "text",
+          "name": "ap3r3t",
+          "x": 995,
+          "y": 1680,
+          "text": "◈  Code         ◇            ▪▪▪",
+          "size": 13,
+          "fill": "#dfe5f0",
+          "align": "left"
+        },
+        {
+          "type": "text",
+          "name": "ap3n",
+          "x": 1180,
+          "y": 1735,
+          "text": "Une seule famille d'icônes, une taille, une arête de départ commune : la rangée sans marque devient visible parce que tout le reste l'est.",
+          "size": 15,
+          "fill": "#c7cede",
+          "maxW": 420,
+          "lineHeight": 4
+        },
+        {
+          "type": "text",
+          "name": "dec",
+          "x": 640,
+          "y": 2330,
+          "text": "Ma recommandation : traiter B1 (états vides) en premier — c'est ce qu'on voit le plus souvent. B2 et B3 viennent ensuite, dans cet ordre.",
+          "size": 19,
+          "fill": "#8ec7ff",
+          "maxW": 1000,
+          "lineHeight": 4
+        }
+      ]
+    }
+  ]
+}

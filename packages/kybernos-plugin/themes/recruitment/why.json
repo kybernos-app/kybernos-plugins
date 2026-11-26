@@ -1,0 +1,10 @@
+{
+  "kybernos/db": {
+    "en": "Candidates, client companies, jobs and missions, as ready Tables.",
+    "fr": "Candidats, entreprises clientes, offres et missions, en Tables prêtes."
+  },
+  "kybernos/dashboards": {
+    "en": "Open jobs, candidates by stage and placements at a glance.",
+    "fr": "Offres ouvertes, candidats par étape et placements d’un coup d’œil."
+  }
+}

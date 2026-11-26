@@ -1,0 +1,27 @@
+
+── empty disk ──
+  ✓ the page says where the translations are kept (disk), with the folder
+  ✓ … with a tooltip explaining what this folder is for
+  ✓ the browser did query the host (read-only, no write)
+
+── translating writes the file ──
+  ✓ the translation did produce texts in the browser
+  ✓ the es.json file appeared on the disk, complete (Kybernos + DSH)
+  ✓ … with the native name of the language and the "finished" record
+  ✓ … the texts are the browser ones (⟦…⟧ from the test stub)
+  ✓ sent in small chunks during the translation, not for every text
+  ✓ no write refused by the route
+
+── a new browser gets the language back from the disk ──
+  ✓ the texts came back from the disk into the browser (Kybernos + DSH)
+  ✓ … with the registry, the native name and the record
+  ✓ DSH, which remembers "es", switches back to the language by itself (a single reload)
+  ✓ … and the interface is really translated (⟦…⟧ texts on screen)
+  ✓ nothing was written back to the disk by this browser (it only read)
+  ✓ the language is in the DSH selector (Settings › General)
+  ✓ DSH is back on English (nothing left over)
+
+── removing a language removes the file ──
+  ✓ the file disappeared from the disk
+  ✓ … and the removal is remembered (tombstone) for the other browsers
+  ✓ … the browser keeps nothing of it

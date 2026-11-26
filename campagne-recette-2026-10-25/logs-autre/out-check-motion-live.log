@@ -1,0 +1,82 @@
+
+── 1. the host, a scene file, the tab ──
+  ✓ the host answers on /kybernos-motion/state
+  ✓ a scene is saved through the real route, inside the allowed folder
+  ✓ the file on disk is a motion doc with its first revision
+  ✓ the Motion tab opens by itself when a scene arrives
+
+── 2. the panel: pixels, play, scrub, edit ──
+  ✓ the canvas holds a real picture (title, counter, chart: many pixels differ from the background)
+  ✓ a scene that arrives starts playing by itself
+  ✓ pause stops the clock
+  ✓ the play button's glyph is readable (its colour differs from its background)
+  ✓ play makes the clock run again
+  ✓ the arrow keys move the cursor on the timeline
+  ✓ the timeline has one row per layer
+  ✓ the settings form is built from the scene's controls
+  ✓ an edit reaches the file as a new revision made by the user
+  ✓ the file stays lean (defaults are not written back)
+  ✓ the status says it was sent to the agent
+  ✓ the revisions list opens with the revisions
+  ✓ the transport row is Start, Play, End, then 0.5× 1× 2× 4×, with 1× on
+  ✓ End stops at the end of the scene and the pill says Done / Fini
+  ✓ Start goes back to 0:00.0 and holds there
+  ✓ 2× runs the clock about twice as fast as 1× (the sound follows through playbackRate)
+
+── 3. a frame for the agent ──
+  ✓ the panel answers a frame request with a PNG
+  ✓ the request carried the id the agent is waiting for
+  ✓ the PNG has the scene's size (1280 wide, 16:9)
+
+── 4. the MP4 export ──
+  ✓ the export dialog opens
+  ✓ the export finishes in the browser
+  ✓ the video is written next to the scene, inside artifacts/
+    (the browser reads it as 4.074667 s)
+    (ffmpeg: duration 4.07 s, 854x480)
+  ✓ ffmpeg reads H.264 video in 16:9, about the scene's 4 seconds
+  ✓ ffmpeg reads the sound track (AAC)
+  ✓ the whole file decodes without a single error
+
+── 5. the Livrables page ──
+  ✓ the Livrables page opens
+  ✓ the scene is listed
+  ✓ its card draws a live thumbnail (the motion player, compact)
+  ✓ opening it shows the motion player (not the raw JSON)
+  ✓ the exporter gives miniapps a live page with the runtime inside
+  ✓ miniapps says whether it can install here (a boolean, true on macOS)
+  ✓ that page plays by itself: the bar moves and the canvas is painted
+  ✓ "Edit" from Livrables (no chat on screen) says to open a chat instead of failing silently
+  ✓ back in the chat, the Motion panel opens by itself on that scene
+
+── 6. 3D, a glTF model and a Lottie ──
+  ✓ a 3D + Lottie scene is saved
+  ✓ the panel switches to the new scene by itself
+  ✓ the Lottie square is drawn (orange pixels appear once the library and the file are loaded)
+  ✓ lottie-web lives in its private global, nothing else is replaced
+  ✓ the 3D red box is drawn through WebGL (red pixels)
+  ✓ the green sphere is drawn too
+  ✓ three.js lives in its private global
+  ✓ the picture changes with time (the box turns, the camera orbits, the square moves)
+  ✓ the same instant paints the same picture twice (deterministic, so preview = export)
+  ✓ a scene with just the model is saved
+  ✓ the panel shows it
+  ✓ the glTF model is drawn (pixels that are neither the scene's background nor the page's)
+  ✓ the model's own animation clip plays with the playhead (its pose changes)
+  ✓ and it turns back when the playhead goes back (the clip time follows, no hidden clock)
+  ✓ the 3D scene is the open one again
+  ✓ the 3D + Lottie scene exports to MP4 in the browser
+  ✓ the video is next to its scene
+  ✓ and it decodes without an error
+  ✓ a frame of the VIDEO shows the 3D red box (WebGL pixels made it into the encoder)
+  ✓ the standalone page carries lottie-web and plays the Lottie by itself
+  ✓ and three.js, drawing the 3D scene by itself (no DSH, no network)
+
+── 7. a remembered scene whose file is gone ──
+  ✓ a scene to forget is saved
+  ✓ the chat is shown that scene while its file exists
+  ✓ once the file is gone the host drops it: the chat gets the empty state, not a path to a missing file
+  ✓ the panel shows its empty state, with no red error
+  ✓ ...and asks for no scene in 8 s (it asked on every poll)
+
+64 passed, 0 failed

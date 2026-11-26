@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shop</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   The themed storefront (stack: commerce). Sections are the theme kit's
+   composable blocks (sec-*); every value flows through --tk-* tokens, and the
+   shop's palette (shop.json -> /api/shop) overrides them at load — the same
+   layout wears any field's colours without a line of layout code changing.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  color-scheme: light;
+  --tk-paper: #f7f2e9; --tk-paper-2: #efe6d3; --tk-surface: #fffdf7;
+  --tk-ink: #241a12; --tk-ink-soft: #4e3d2e; --tk-muted: #7a6550; --tk-line: #e0d2ba;
+  --tk-accent: #b4551f; --tk-accent-ink: #fff8ef; --tk-accent-soft: #f4e2cf;
+  --tk-sale: #a32c1c; --tk-new: #4a6b2f;
+  --tk-inverse-bg: #241a12; --tk-inverse-ink: #f7f2e9; --tk-inverse-muted: #c4ae94; --tk-inverse-line: #4c3a29;
+  --tk-img-1: linear-gradient(160deg, #e8d3b4 0%, #c99a63 55%, #9a6a3a 100%);
+  --tk-img-2: linear-gradient(155deg, #dce2cf 0%, #a9b78d 60%, #77875c 100%);
+  --tk-img-3: radial-gradient(120% 90% at 35% 15%, #f3e2c5 0%, #dcb98a 55%, #b98d5c 100%);
+  --tk-img-4: linear-gradient(150deg, #e9cdb2 0%, #c98f66 55%, #a25f3c 100%);
+  --tk-img-5: linear-gradient(165deg, #e4d9c2 0%, #bfae8c 60%, #8f7c58 100%);
+  --tk-img-6: linear-gradient(145deg, #efd6c0 0%, #d59f7c 55%, #ab6f4e 100%);
+  --tk-shape-1: rgba(255, 249, 238, 0.7); --tk-shape-2: rgba(36, 26, 18, 0.18);
+  --tk-font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --tk-font-body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --tk-fs-xs: 0.75rem; --tk-fs-sm: 0.875rem; --tk-fs-base: 1rem; --tk-fs-md: 1.125rem;
+  --tk-fs-lg: clamp(1.2rem, 1.1rem + 0.5vw, 1.5rem); --tk-fs-xl: clamp(1.5rem, 1.2rem + 1vw, 2.1rem);
+  --tk-fs-2xl: clamp(1.85rem, 1.3rem + 2vw, 3.1rem); --tk-fs-3xl: clamp(2.2rem, 1.5rem + 3vw, 4.2rem);
+  --tk-space-1: 0.25rem; --tk-space-2: 0.5rem; --tk-space-3: 0.75rem; --tk-space-4: 1rem;
+  --tk-space-5: 1.5rem; --tk-space-6: 2rem; --tk-space-7: 3rem; --tk-space-8: 4.5rem;
+  --tk-container: 76rem; --tk-gutter: clamp(1rem, 4vw, 2.5rem); --tk-section-y: clamp(3rem, 7vw, 5.5rem);
+  --tk-radius-sm: 0.5rem; --tk-radius-md: 0.85rem; --tk-radius-lg: 1.4rem; --tk-radius-pill: 999px;
+  --tk-shadow-sm: 0 1px 2px rgba(36, 26, 18, 0.08); --tk-shadow-md: 0 14px 34px -18px rgba(36, 26, 18, 0.35);
+  --tk-show-sun: none; --tk-show-moon: block;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --tk-paper: #1a130d; --tk-paper-2: #241a12; --tk-surface: #2a1f16;
+    --tk-ink: #f4ead9; --tk-ink-soft: #ddcdb6; --tk-muted: #b09c83; --tk-line: #4c3a29;
+    --tk-accent: #e08a4e; --tk-accent-ink: #241509; --tk-accent-soft: #472c17;
+    --tk-sale: #ff8f7a; --tk-new: #a9c783;
+    --tk-inverse-bg: #f4ead9; --tk-inverse-ink: #241a12; --tk-inverse-muted: #6b543c; --tk-inverse-line: #d8c3a4;
+    --tk-shape-1: rgba(255, 244, 226, 0.14); --tk-shape-2: rgba(0, 0, 0, 0.3);
+    --tk-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4); --tk-shadow-md: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
+    --tk-show-sun: block; --tk-show-moon: none;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--tk-paper); color: var(--tk-ink); font-family: var(--tk-font-body); font-size: var(--tk-fs-base); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; cursor: pointer; }
+.wrap { max-width: var(--tk-container); margin: 0 auto; padding-inline: var(--tk-gutter); }
+[hidden] { display: none !important; }
+
+/* sec-announcement */
+.sec-announcement { background: var(--tk-inverse-bg); color: var(--tk-inverse-ink); font-size: var(--tk-fs-sm); text-align: center; padding: var(--tk-space-3) var(--tk-gutter); }
+
+/* sec-header */
+.sec-header { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--tk-paper) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--tk-line); }
+.sec-header .wrap { display: flex; align-items: center; gap: var(--tk-space-5); min-height: 4.25rem; }
+.brand { display: flex; align-items: baseline; gap: 0.55rem; font-family: var(--tk-font-display); font-size: var(--tk-fs-lg); font-weight: 700; }
+.brand .mark { width: 2.1rem; height: 2.1rem; border-radius: var(--tk-radius-sm); background: var(--tk-accent); color: var(--tk-accent-ink); display: grid; place-items: center; font-size: var(--tk-fs-sm); font-weight: 700; align-self: center; }
+.nav { display: flex; gap: var(--tk-space-5); margin-left: auto; font-size: var(--tk-fs-sm); font-weight: 600; }
+.tools { display: flex; align-items: center; gap: var(--tk-space-2); }
+.icon-btn { width: 2.4rem; height: 2.4rem; border-radius: var(--tk-radius-pill); border: 1px solid var(--tk-line); background: var(--tk-surface); color: var(--tk-ink); display: grid; place-items: center; position: relative; }
+.icon-btn:hover { border-color: var(--tk-accent); color: var(--tk-accent); }
+.cart-count { position: absolute; top: -0.35rem; right: -0.35rem; min-width: 1.15rem; height: 1.15rem; padding: 0 0.25rem; border-radius: var(--tk-radius-pill); background: var(--tk-accent); color: var(--tk-accent-ink); font-size: 0.68rem; font-weight: 700; display: grid; place-items: center; }
+.tk-sun { display: var(--tk-show-sun); } .tk-moon { display: var(--tk-show-moon); }
+
+/* sec-hero */
+.sec-hero { padding: var(--tk-section-y) 0 var(--tk-space-7); }
+.kicker { font-size: var(--tk-fs-xs); font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--tk-accent); }
+.sec-hero h1 { margin: 0.4rem 0 0; font-family: var(--tk-font-display); font-size: var(--tk-fs-3xl); line-height: 1.04; letter-spacing: -0.015em; max-width: 22ch; }
+.sec-hero h1 em { font-style: italic; color: var(--tk-accent); }
+.sec-hero .lede { margin: var(--tk-space-4) 0 0; max-width: 52ch; color: var(--tk-ink-soft); font-size: var(--tk-fs-md); }
+
+/* sec-chips */
+.sec-chips { padding-bottom: var(--tk-space-6); }
+.chips { display: flex; flex-wrap: wrap; gap: var(--tk-space-2); }
+.chip { padding: 0.55rem 1.05rem; border-radius: var(--tk-radius-pill); border: 1px solid var(--tk-line); background: var(--tk-surface); font-size: var(--tk-fs-sm); font-weight: 600; color: var(--tk-ink-soft); }
+.chip[aria-pressed="true"] { background: var(--tk-ink); border-color: var(--tk-ink); color: var(--tk-paper); }
+
+/* sec-products */
+.sec-products { padding-bottom: var(--tk-section-y); }
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--tk-space-5); }
+.card { background: var(--tk-surface); border: 1px solid var(--tk-line); border-radius: var(--tk-radius-md); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.18s ease, box-shadow 0.18s ease; }
+.card:hover { transform: translateY(-3px); box-shadow: var(--tk-shadow-md); }
+.card .visual { aspect-ratio: 4 / 3; background: var(--img, var(--tk-img-1)); position: relative; display: grid; place-items: center; }
+.card .visual .blob { width: 52%; aspect-ratio: 1; border-radius: 38% 62% 55% 45% / 45% 42% 58% 55%; background: var(--tk-shape-1); box-shadow: 0 18px 30px -18px var(--tk-shape-2); }
+.card .visual img { width: 100%; height: 100%; object-fit: cover; }
+.card .visual .stripes { width: 100%; height: 100%; background: repeating-linear-gradient(135deg, transparent 0 14px, var(--tk-shape-1) 14px 28px); opacity: 0.65; }
+.badge { position: absolute; top: var(--tk-space-3); left: var(--tk-space-3); padding: 0.3rem 0.75rem; border-radius: var(--tk-radius-pill); font-size: var(--tk-fs-xs); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+.badge-sale { background: var(--tk-sale); color: var(--tk-accent-ink); }
+.badge-new { background: var(--tk-new); color: var(--tk-accent-ink); }
+.card .body { padding: var(--tk-space-4); display: grid; gap: 0.35rem; flex: 1; align-content: start; }
+.card h3 { margin: 0; font-family: var(--tk-font-display); font-size: var(--tk-fs-md); line-height: 1.25; overflow-wrap: anywhere; }
+.card .note { margin: 0; font-size: var(--tk-fs-sm); color: var(--tk-muted); }
+.card .foot { margin-top: auto; padding: var(--tk-space-4); padding-top: 0; display: flex; align-items: baseline; justify-content: space-between; gap: var(--tk-space-3); }
+.price { font-family: var(--tk-font-display); font-size: var(--tk-fs-lg); font-weight: 700; }
+.add { width: 2.55rem; height: 2.55rem; flex: none; border-radius: var(--tk-radius-pill); border: 1px solid var(--tk-line); background: var(--tk-paper-2); color: var(--tk-ink); display: grid; place-items: center; }
+.add:hover { background: var(--tk-accent); border-color: var(--tk-accent); color: var(--tk-accent-ink); }
+
+/* sec-cart */
+.sec-cart { padding-bottom: var(--tk-section-y); }
+.cart-box { border: 1px solid var(--tk-line); border-radius: var(--tk-radius-lg); background: var(--tk-surface); padding: var(--tk-space-6); display: grid; gap: var(--tk-space-4); }
+.cart-box h2 { margin: 0; font-family: var(--tk-font-display); font-size: var(--tk-fs-xl); }
+.cart-line { display: flex; gap: var(--tk-space-4); align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--tk-line); padding-bottom: var(--tk-space-2); }
+.cart-line .remove { border: 0; background: none; color: var(--tk-muted); text-decoration: underline; padding: 0; }
+.cart-form { display: flex; flex-wrap: wrap; gap: var(--tk-space-2); }
+.cart-form input { flex: 1 1 12rem; min-width: 0; padding: 0.8rem 1.05rem; border-radius: var(--tk-radius-pill); border: 1px solid var(--tk-line); background: var(--tk-paper); color: var(--tk-ink); font: inherit; }
+.btn { display: inline-flex; align-items: center; gap: 0.55rem; padding: 0.85rem 1.5rem; border-radius: var(--tk-radius-pill); font-weight: 700; font-size: var(--tk-fs-sm); border: 1px solid transparent; }
+.btn-primary { background: var(--tk-accent); color: var(--tk-accent-ink); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.order-ok { border: 1px solid var(--tk-new); border-radius: var(--tk-radius-md); padding: var(--tk-space-4); color: var(--tk-ink); }
+
+/* sec-best */
+.sec-best { background: var(--tk-inverse-bg); color: var(--tk-inverse-ink); padding: var(--tk-section-y) 0; }
+.sec-best h2 { margin: 0.5rem 0 var(--tk-space-4); font-family: var(--tk-font-display); font-size: var(--tk-fs-2xl); line-height: 1.12; max-width: 18ch; }
+.sec-best p { margin: 0; color: var(--tk-inverse-muted); max-width: 46ch; }
+
+/* sec-faq */
+.sec-faq { padding: var(--tk-section-y) 0; }
+.sec-faq h2 { margin: 0 0 var(--tk-space-6); font-family: var(--tk-font-display); font-size: var(--tk-fs-2xl); }
+.faq { display: grid; gap: var(--tk-space-3); max-width: 52rem; }
+.faq details { border: 1px solid var(--tk-line); border-radius: var(--tk-radius-md); background: var(--tk-surface); padding: var(--tk-space-4) var(--tk-space-5); }
+.faq summary { cursor: pointer; font-weight: 700; list-style: none; display: flex; justify-content: space-between; gap: var(--tk-space-4); }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; color: var(--tk-accent); font-weight: 700; }
+.faq details[open] summary::after { content: "–"; }
+.faq p { margin: var(--tk-space-3) 0 0; color: var(--tk-ink-soft); }
+
+/* sec-footer */
+.sec-footer { background: var(--tk-inverse-bg); color: var(--tk-inverse-ink); padding: var(--tk-section-y) 0 var(--tk-space-6); }
+.news h2 { margin: 0 0 var(--tk-space-2); font-family: var(--tk-font-display); font-size: var(--tk-fs-xl); }
+.news p { margin: 0 0 var(--tk-space-4); color: var(--tk-inverse-muted); }
+.news form { display: flex; gap: var(--tk-space-2); flex-wrap: wrap; max-width: 30rem; }
+.news input { flex: 1 1 14rem; min-width: 0; padding: 0.85rem 1.1rem; border-radius: var(--tk-radius-pill); border: 1px solid var(--tk-inverse-line); background: transparent; color: var(--tk-inverse-ink); font: inherit; }
+.legal { color: var(--tk-inverse-muted); font-size: var(--tk-fs-xs); margin-top: var(--tk-space-7); }
+
+/* responsive gate: 480 / 768 / 1280, no h-overflow */
+@media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) {
+  .nav { display: none; }
+  .sec-hero h1 { font-size: clamp(2rem, 9vw, 2.8rem); }
+  .grid { grid-template-columns: 1fr; }
+  .chips { flex-wrap: nowrap; overflow-x: auto; }
+  .chip { flex: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- sec-announcement -->
+<section class="sec-announcement" id="annonce">Bienvenue</section>
+
+<!-- sec-header -->
+<header class="sec-header">
+  <div class="wrap">
+    <a class="brand" href="#"><span class="mark" id="mark">S</span><span id="brand">Shop</span></a>
+    <nav class="nav" aria-label="Principale"><a href="#catalogue">Boutique</a><a href="#faq">Aide</a></nav>
+    <div class="tools">
+      <button class="icon-btn" id="theme" title="Changer de thème" aria-label="Changer de thème">
+        <svg class="tk-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19"/></svg>
+        <svg class="tk-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+      </button>
+      <button class="icon-btn" id="panier-btn" title="Panier" aria-label="Panier">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 12H7L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
+        <span class="cart-count" id="cart-count">0</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- sec-hero -->
+<section class="sec-hero">
+  <div class="wrap">
+    <span class="kicker">Boutique en ligne</span>
+    <h1 id="slogan">Votre boutique.</h1>
+    <p class="lede">Chaque produit ci-dessous vit dans la mini base de l'app. Le panier passe commande par l'API : la réservation de stock s'applique aussitôt, le paiement suit par webhook.</p>
+  </div>
+</section>
+
+<!-- sec-chips -->
+<section class="sec-chips">
+  <div class="wrap"><div class="chips" role="group" aria-label="Filtres">
+    <button class="chip" aria-pressed="true">Tout</button>
+    <button class="chip" aria-pressed="false">Disponible</button>
+    <button class="chip" aria-pressed="false">Épuisé</button>
+  </div></div>
+</section>
+
+<!-- sec-products -->
+<section class="sec-products" id="catalogue">
+  <div class="wrap"><div class="grid" id="grid"></div></div>
+</section>
+
+<!-- sec-cart -->
+<section class="sec-cart">
+  <div class="wrap"><div class="cart-box">
+    <h2>Votre panier</h2>
+    <div id="cart-lines"><p class="legal" style="margin:0">Le panier est vide.</p></div>
+    <div class="cart-line" style="border:0"><strong>Total</strong><strong id="cart-total">0,00 €</strong></div>
+    <div class="cart-form">
+      <input id="nom" placeholder="Votre nom">
+      <input id="email" type="email" placeholder="Votre email">
+      <button class="btn btn-primary" id="commander" disabled>Commander</button>
+    </div>
+    <div class="order-ok" id="order-ok" hidden></div>
+  </div></div>
+</section>
+
+<!-- sec-best -->
+<section class="sec-best">
+  <div class="wrap">
+    <span class="kicker">Paiement</span>
+    <h2>Un checkout Stripe, zéro carte enregistrée chez nous.</h2>
+    <p>La commande réserve le stock ; le paiement arrive par webhook idempotent, la commande passe à « payée ». Le statut ne vient jamais d'une redirection.</p>
+  </div>
+</section>
+
+<!-- sec-faq -->
+<section class="sec-faq" id="faq">
+  <div class="wrap">
+    <h2>Questions fréquentes</h2>
+    <div class="faq">
+      <details open><summary>Combien de temps ma réservation est-elle tenue ?</summary><p>Trente minutes : si le paiement n'arrive pas, la commande est annulée et le stock libéré automatiquement.</p></details>
+      <details><summary>Que se passe-t-il si deux personnes achètent le dernier article ?</summary><p>La réservation est atomique : exactement une des deux commandes passe, l'autre est refusée proprement.</p></details>
+      <details><summary>Puis-je suivre ma commande ?</summary><p>Oui, son statut évolue : réservée, payée, expédiée, livrée — et les événements de paiement sont journalisés une seule fois.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- sec-footer -->
+<footer class="sec-footer">
+  <div class="wrap">
+    <div class="news">
+      <h2>La lettre de la boutique</h2>
+      <p>Les nouveautés et les coulisses, une fois par mois.</p>
+      <form onsubmit="return false"><input type="email" placeholder="Votre adresse email" aria-label="Votre adresse email"><button class="btn btn-primary" type="submit">S'inscrire</button></form>
+    </div>
+    <p class="legal" id="foot-name">Boutique propulsée par Webapp Creator.</p>
+  </div>
+</footer>
+
+<script>
+const api = (path, body) => fetch(path, body === undefined ? undefined : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then((r) => r.json())
+const euro = (cents) => (cents / 100).toFixed(2).replace('.', ',') + ' €'
+let produits = []
+let panier = []
+
+// shop.json drives the palette and the words — the layout never changes
+api('/api/shop').then((s) => {
+  if (s.ok !== true) return
+  const root = document.documentElement
+  for (const [k, v] of Object.entries(s.palette || {})) root.style.setProperty('--tk-' + k, v)
+  document.title = s.nom
+  document.getElementById('brand').textContent = s.nom
+  document.getElementById('mark').textContent = (s.nom || 'S').charAt(0).toUpperCase()
+  document.getElementById('annonce').textContent = s.annonce || ''
+  document.getElementById('slogan').innerHTML = '<em>' + String(s.slogan || '').split(' ').slice(1).join(' ') + '</em>'
+  document.getElementById('slogan').prepend(document.createTextNode(String(s.slogan || '').split(' ')[0] + ' '))
+  document.getElementById('foot-name').textContent = s.nom + ' — propulsé par Webapp Creator.'
+})
+
+const rendreProduits = () => {
+  const g = document.getElementById('grid')
+  g.innerHTML = ''
+  for (const p of produits) {
+    const carte = document.createElement('article')
+    carte.className = 'card'
+    const img = (p.id % 6) + 1
+    carte.innerHTML =
+      '<div class="visual" style="--img: var(--tk-img-' + img + ')">' +
+      (p.image_id ? '<img src="/api/medias/' + p.image_id + '" alt="">' : '<div class="blob"></div>') +
+      (p.dispo < 1 ? '<span class="badge badge-sale">Épuisé</span>' : (p.stock - p.dispo > 0 ? '<span class="badge badge-new">Réservé</span>' : '')) +
+      '</div>' +
+      '<div class="body"><h3></h3><p class="note"></p></div>' +
+      '<div class="foot"><span class="price"></span><button class="add" title="Ajouter au panier" aria-label="Ajouter au panier">+</button></div>'
+    carte.querySelector('h3').textContent = p.nom
+    carte.querySelector('.note').textContent = p.description || ''
+    carte.querySelector('.price').textContent = euro(p.prix_cents)
+    const bouton = carte.querySelector('.add')
+    bouton.disabled = p.dispo < 1
+    bouton.addEventListener('click', () => { panier.push(p); rendrePanier() })
+    g.appendChild(carte)
+  }
+}
+
+const rendrePanier = () => {
+  const l = document.getElementById('cart-lines')
+  if (panier.length === 0) { l.innerHTML = '<p class="legal" style="margin:0">Le panier est vide.</p>' }
+  else {
+    l.innerHTML = ''
+    const compte = new Map()
+    for (const p of panier) compte.set(p.id, (compte.get(p.id) || 0) + 1)
+    for (const [id, q] of compte) {
+      const p = produits.find((x) => x.id === id)
+      const ligne = document.createElement('div')
+      ligne.className = 'cart-line'
+      ligne.textContent = q + ' × ' + p.nom + ' — ' + euro(p.prix_cents * q)
+      const retirer = document.createElement('button')
+      retirer.className = 'remove'
+      retirer.textContent = 'Retirer'
+      retirer.addEventListener('click', () => { const i = panier.findIndex((x) => x.id === id); panier.splice(i, 1); rendrePanier() })
+      ligne.appendChild(retirer)
+      l.appendChild(ligne)
+    }
+  }
+  document.getElementById('cart-total').textContent = euro(panier.reduce((s, p) => s + p.prix_cents, 0))
+  document.getElementById('cart-count').textContent = panier.length
+  document.getElementById('commander').disabled = panier.length === 0
+}
+
+document.getElementById('commander').addEventListener('click', () => {
+  const compte = new Map()
+  for (const p of panier) compte.set(p.id, (compte.get(p.id) || 0) + 1)
+  api('/api/commandes', {
+    client_nom: document.getElementById('nom').value.trim(),
+    client_email: document.getElementById('email').value.trim(),
+    lignes: [...compte].map(([id, q]) => ({ produit_id: id, quantite: q })),
+  }).then((r) => {
+    const ok = document.getElementById('order-ok')
+    ok.hidden = false
+    ok.textContent = r.ok === true
+      ? 'Commande #' + r.id + ' enregistrée — ' + euro(r.total_cents) + ' · statut : réservée (30 min), en attente de paiement.'
+      : 'Commande refusée : ' + r.error
+    if (r.ok === true) { panier = []; rendrePanier(); chargerProduits() }
+  })
+})
+
+const chargerProduits = () => api('/api/produits').then((d) => { produits = d.produits || []; rendreProduits(); rendrePanier() })
+chargerProduits()
+
+document.getElementById('theme').addEventListener('click', () => {
+  const root = document.documentElement
+  const dark = root.getAttribute('data-theme') === 'dark' || (!root.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  root.setAttribute('data-theme', dark ? 'light' : 'dark')
+})
+</script>
+</body>
+</html>

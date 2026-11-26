@@ -1,0 +1,6 @@
+# check-language-job-live.mjs
+# host=127.0.0.1:3098 status=inconclusive code=3 ms=16821
+
+  ✗ the Language page lists Spanish
+○ inconclusive: the page offers no model to translate with (profile without models)
+

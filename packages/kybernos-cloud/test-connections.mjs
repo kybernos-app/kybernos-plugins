@@ -1,0 +1,770 @@
+// Tests of Kybernos connections on the DSH side: the routes of the connectors page (/kybernos-cloud/connections*), the three native
+// tools of the agents, and their pure half (connections.mjs).
+//   node packages/kybernos-cloud/test-connections.mjs
+//
+// The server side is docs/adr/0008-connections.md of the Kybernos server, and nothing of it is deployed: a stand-in speaks its
+// contract (REST and MCP). What matters here is what THIS side does: when anything leaves the machine (never when the server does
+// not offer connections or the account is not connected), which call each route makes (path, method, body, the token only in the
+// Authorization header, never a redirect_uri), that an API key is neither echoed nor kept, that every refusal becomes one word and
+// the server's own text never reaches the page, and that the tools exist exactly while they can work.
+import assert from 'node:assert/strict'
+import { createServer } from 'node:http'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import {
+  CONNECTION_TOOLS, MAX_RESULT_CHARS, STATUSES, asApp, asAppList, asConnection, asConnectionList, asLinked, connectionsFailure, connectionsPaths, isConnectionId, isToolkit,
+  linkBody, rpcCall, rpcOutcome, safeLogo, safeRedirect,
+} from './connections.mjs'
+
+let pass = 0
+const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
+
+const C1 = '0b1c2d3e-aaaa-4bbb-8ccc-1234567890ab'
+const C2 = '11111111-2222-4333-8444-555555555555'
+const TOKEN = 'kyd-secret-token-0123456789'
+const KEY = 'sk-live-THIS-IS-AN-API-KEY-9876543210'
+
+// ── the pure half ──
+{
+  assert.equal(connectionsPaths.list, '/v1/connections')
+  assert.equal(connectionsPaths.apps, '/v1/connections/apps')
+  assert.equal(connectionsPaths.link, '/v1/connections/link')
+  assert.equal(connectionsPaths.one(C1), '/v1/connections/' + C1)
+  assert.equal(connectionsPaths.one('a/b?c'), '/v1/connections/a%2Fb%3Fc')
+  for (const v of [C1, C2.toUpperCase()]) assert.equal(isConnectionId(v), true, v)
+  for (const v of ['', 'abc', '1', C1 + 'x', 'x' + C1, '../' + C1, C1.replace(/-/g, ''), null, undefined, 5, {}, [C1]]) assert.equal(isConnectionId(v), false, String(v))
+  for (const v of ['github', 'googlecalendar', 'google_super', 'a-b', 'x'.repeat(64)]) assert.equal(isToolkit(v), true, v)
+  for (const v of ['', 'GitHub', '-x', '_x', 'a b', 'a/b', '../x', 'x'.repeat(65), 'é', null, 5]) assert.equal(isToolkit(v), false, String(v))
+  ok('a connection id is the server\'s UUID and a toolkit a short lower-case slug; nothing else reaches a path')
+
+  const f = (status, body, named) => connectionsFailure(status, body, { named })
+  assert.equal(f(200, {}), null)
+  assert.equal(f(201, {}), null)
+  assert.deepEqual(f(401, { error: 'unauthorized' }), { error: 'reconnect_required' })
+  assert.deepEqual(f(0, null), { error: 'network' })
+  assert.deepEqual(f(403, { error: 'forbidden' }), { error: 'forbidden' })
+  assert.deepEqual(f(404, { error: 'not_found' }, true), { error: 'not_found' })
+  assert.deepEqual(f(404, { error: 'not_found', message: 'No such route.' }, false), { error: 'not_on_this_server' })
+  assert.deepEqual(f(404, null), { error: 'not_on_this_server' })
+  assert.deepEqual(f(409, { error: 'pending_exists', existing: { id: C1, toolkit: 'gmail', status: 'pending' } }), { error: 'pending_exists', existing: { id: C1, toolkit: 'gmail', status: 'pending' } })
+  assert.deepEqual(f(409, { error: 'pending_exists', existing: { id: 'nope', toolkit: 'gmail' } }), { error: 'pending_exists', existing: undefined })
+  assert.deepEqual(f(409, { error: 'connection_limit', limit: 3, count: 3 }), { error: 'connection_limit', limit: 3, count: 3 })
+  // The plan is why: the server's flat `entitled`, kept only when it is a boolean (an older server sends none, and the word stays as it always was).
+  assert.deepEqual(f(409, { error: 'connection_limit', limit: 0, count: 0, entitled: false }), { error: 'connection_limit', limit: 0, count: 0, entitled: false })
+  assert.deepEqual(f(409, { error: 'connection_limit', limit: 0, count: 0, entitled: true }), { error: 'connection_limit', limit: 0, count: 0, entitled: true })
+  assert.deepEqual(f(409, { error: 'connection_limit', limit: 3, count: 3, entitled: 'no' }), { error: 'connection_limit', limit: 3, count: 3 })
+  assert.deepEqual(f(409, { error: 'whatever' }), { error: 'conflict' })
+  assert.deepEqual(f(413, null), { error: 'too_large' })
+  assert.deepEqual(f(422, { error: 'no_managed_credentials' }), { error: 'needs_api_key' })
+  assert.deepEqual(f(422, { error: 'other' }), { error: 'bad_request' })
+  assert.deepEqual(f(422, { error: 'connection_failed', message: 'SECRET ' + KEY }), { error: 'connection_failed' })
+  assert.deepEqual(f(400, { error: 'redirect_uri_not_allowed' }), { error: 'bad_request' })
+  assert.deepEqual(f(429, { error: 'rate_limited' }), { error: 'too_many_requests' })
+  assert.deepEqual(f(503, { error: 'connections_disabled' }), { error: 'connections_disabled' })
+  assert.deepEqual(f(503, { error: 'overloaded' }), { error: 'upstream_unavailable', checkFirst: false })
+  assert.deepEqual(f(502, { error: 'upstream_unavailable', retry: 'check_first' }), { error: 'upstream_unavailable', checkFirst: true })
+  assert.deepEqual(f(504, null), { error: 'upstream_unavailable', checkFirst: false })
+  assert.deepEqual(f(500, { error: 'internal_error' }), { error: 'refused_500' })
+  assert.equal(JSON.stringify([f(500, { error: 'SECRET ' + KEY, message: KEY }), f(400, { error: KEY, message: KEY }), f(409, { error: 'pending_exists', message: KEY, existing: { id: C1, toolkit: 'gmail', status: 'pending', email: 'a@b.test' } })]).includes('SECRET'), false)
+  assert.equal(JSON.stringify(f(409, { error: 'pending_exists', existing: { id: C1, toolkit: 'gmail', status: 'pending', email: 'a@b.test' } })).includes('a@b.test'), false)
+  ok('every refusal of the contract becomes one word; the server\'s own text never passes; a 404 is "not found" only where something was named')
+
+  const row = asConnection({ id: C1, toolkit: 'gmail', status: 'active', account_type: 'oauth', alias: 'work', is_default: true, created_at: '2026-10-06T10:00:00Z', user_info: { email: 'a@b.test' }, token: 'T' })
+  assert.deepEqual(row, { id: C1, toolkit: 'gmail', status: 'active', accountType: 'oauth', alias: 'work', isDefault: true, createdAt: '2026-10-06T10:00:00Z', failure: null })
+  assert.equal(JSON.stringify(row).includes('a@b.test'), false)
+  assert.deepEqual([asConnection({ id: C1, toolkit: 'github', status: 'failed', failure: 'refused' }).failure, asConnection({ id: C1, toolkit: 'github', status: 'failed', failure: 'Composio said: boom' }).failure, asConnection({ id: C1, toolkit: 'github', status: 'failed' }).failure, asConnection({ id: C1, toolkit: 'github', status: 'active', failure: 'refused' }).failure], ['refused', 'unknown', 'unknown', null])
+  for (const s of STATUSES) assert.equal(asConnection({ id: C1, toolkit: 'x', status: s }).status, s)
+  assert.equal(asConnection({ id: C1, toolkit: 'x', status: 'a-new-word' }).status, 'unknown')
+  assert.deepEqual([asConnection({ id: C1, toolkit: 'x', status: 'pending' }).accountType, asConnection({ id: C1, toolkit: 'x', status: 'pending' }).alias, asConnection({ id: C1, toolkit: 'x', status: 'pending' }).isDefault], [null, null, false])
+  for (const bad of [null, undefined, 5, 'x', [], {}, { id: '', toolkit: 'x' }, { id: C1 }, { id: C1, toolkit: '' }]) assert.equal(asConnection(bad), null, JSON.stringify(bad))
+  ok('a connection row keeps its seven fields and nothing of the third party; an unknown status is "unknown"; a failure code only on a failed one')
+
+  const list = asConnectionList({ configured: true, connections: [{ id: C1, toolkit: 'gmail', status: 'active' }, { nope: 1 }, { id: C2, toolkit: 'github', status: 'pending' }], limit: 3, count: 2, stale: true })
+  assert.deepEqual([list.configured, list.connections.length, list.limit, list.count, list.stale], [true, 2, 3, 2, true])
+  const bare = asConnectionList({ connections: [] })
+  assert.deepEqual([bare.configured, bare.limit, bare.count, bare.stale], [true, null, 0, false])
+  assert.equal(bare.entitled, null, 'an older server says nothing: unknown, never a "yes" or a "no"')
+  for (const [given, kept] of [[false, false], [true, true], ['false', null], [0, null], [null, null]]) assert.equal(asConnectionList({ connections: [], limit: 0, entitled: given }).entitled, kept, JSON.stringify(given))
+  assert.equal(asConnectionList({ configured: false, connections: [] }).configured, false)
+  for (const bad of [null, {}, { connections: 'x' }, []]) assert.equal(asConnectionList(bad), null)
+  assert.equal(asConnectionList({ connections: [{ id: C1, toolkit: 'a', status: 'active' }, { id: C2, toolkit: 'b', status: 'pending' }] }).count, 2, 'without its number, what was read')
+  ok('the list maps its rows, quietly drops what is no row, and keeps "2 of 3" and the stale flag')
+
+  assert.deepEqual(asApp({ slug: 'gmail', name: 'Gmail', categories: ['email', 5], description: 'Mail', logo: 'https://logos.example/x.svg', needs_api_key: false }), { slug: 'gmail', name: 'Gmail', categories: ['email'], description: 'Mail', logo: true, needsApiKey: false })
+  assert.equal(asApp({ slug: 'x', name: 'X', needs_api_key: true }).needsApiKey, true)
+  assert.equal(asApp({ slug: 'x' }).name, 'x')
+  assert.equal(asApp({ slug: 'BAD SLUG', name: 'x' }), null)
+  assert.equal(JSON.stringify(asApp({ slug: 'gmail', name: 'Gmail', logo: 'https://logos.example/x.svg' })).includes('logos.example'), false)
+  assert.equal(asAppList({ configured: false, apps: [] }).configured, false)
+  assert.equal(asAppList({ apps: [{ slug: 'a', name: 'A' }, { slug: 'B B' }] }).apps.length, 1)
+  assert.equal(asAppList({}), null)
+  ok('the catalogue maps its apps and never carries a third-party address the page would load by itself')
+
+  assert.deepEqual(linkBody({ toolkit: ' GitHub ' }), { body: { toolkit: 'github' } })
+  assert.deepEqual(linkBody({ toolkit: 'x', api_key: '  ' + KEY + '  ', alias: '  work  ', user_id: 'kyb_other', redirect_uri: 'https://evil.test', ignored: 1 }), { body: { toolkit: 'x', api_key: KEY, alias: 'work' } })
+  assert.deepEqual(linkBody({ toolkit: 'x', api_key: '', alias: '   ' }), { body: { toolkit: 'x' } })
+  assert.deepEqual(linkBody({ toolkit: 'x', alias: 'a'.repeat(200) }).body.alias.length, 64)
+  for (const bad of [null, {}, { toolkit: '' }, { toolkit: 'A B' }, { toolkit: '../x' }, { toolkit: 5 }, { toolkit: 'x', api_key: 5 }, { toolkit: 'x', api_key: 'k'.repeat(4097) }, { toolkit: 'x', api_key: '   ' }]) assert.deepEqual(linkBody(bad), { error: 'bad_request' }, JSON.stringify(bad).slice(0, 60))
+  assert.equal(linkBody({ toolkit: 'x', api_key: 'k'.repeat(4096) }).body.api_key.length, 4096)
+  ok('a link body carries the toolkit, the key and the label and nothing else: never a redirect_uri, never a user id')
+
+  assert.equal(safeRedirect('https://backend.composio.dev/api/v3/s/abc'), 'https://backend.composio.dev/api/v3/s/abc')
+  assert.equal(safeRedirect('http://127.0.0.1:8080/x'), 'http://127.0.0.1:8080/x')
+  for (const v of ['javascript:alert(1)', 'data:text/html,x', 'http://evil.test/x', 'ftp://a.test/x', 'https://u:p@a.test/x', 'not a url', '', null, 5]) assert.equal(safeRedirect(v), null, String(v))
+  assert.deepEqual(asLinked({ id: C1, status: 'pending', redirect_url: 'https://a.test/go' }), { id: C1, status: 'pending', redirectUrl: 'https://a.test/go' })
+  assert.deepEqual(asLinked({ id: C1, status: 'active', redirect_url: null }), { id: C1, status: 'active', redirectUrl: null })
+  assert.equal(asLinked({ id: C1, status: 'pending', redirect_url: 'javascript:alert(1)' }).redirectUrl, null)
+  assert.equal(asLinked({ id: C1, status: 'mystery' }), null)
+  assert.equal(asLinked({ status: 'pending' }), null)
+  ok('the address the person is sent to is https (or loopback for a test double): a page never opens a script, a data or a plain-http address')
+
+  assert.deepEqual(CONNECTION_TOOLS, ['connections_list', 'connections_search_tools', 'connections_execute'])
+  assert.deepEqual(rpcCall('connections_list', undefined, 7), { jsonrpc: '2.0', id: 7, method: 'tools/call', params: { name: 'connections_list', arguments: {} } })
+  const r = rpcOutcome
+  assert.deepEqual(r(200, { jsonrpc: '2.0', id: 1, result: { content: [{ type: 'text', text: 'a' }, { type: 'image', data: 'x' }, { type: 'text', text: 'b' }] } }), { ok: true, text: 'a\nb' })
+  assert.deepEqual(r(200, { result: { content: [] } }), { ok: true, text: '' })
+  assert.deepEqual(r(200, { result: { isError: true, content: [{ type: 'text', text: '{"code":"not_connected","message":"Connect gmail first"}' }] } }), { ok: false, error: 'not_connected', text: '{"code":"not_connected","message":"Connect gmail first"}' })
+  assert.deepEqual(r(200, { result: { isError: true, structuredContent: { code: 'action_failed', retryable: true }, content: [{ type: 'text', text: 'It failed' }] } }), { ok: false, error: 'action_failed', text: 'It failed' })
+  assert.equal(r(200, { result: { isError: true, content: [{ type: 'text', text: 'plain words' }] } }).error, 'tool_error')
+  assert.equal(r(200, { result: { isError: true, structuredContent: { code: 'Not A Code!' }, content: [] } }).error, 'tool_error')
+  assert.deepEqual(r(200, { error: { code: -32602, message: 'SECRET ' + KEY } }), { ok: false, error: 'invalid_params' })
+  assert.deepEqual(r(200, { error: { code: -32601 } }), { ok: false, error: 'not_on_this_server' })
+  assert.deepEqual(r(200, { error: { code: -32603, message: 'x' } }), { ok: false, error: 'refused_rpc' })
+  assert.deepEqual(r(200, { result: {} }), { ok: false, error: 'invalid_response' })
+  assert.deepEqual(r(200, null), { ok: false, error: 'invalid_response' })
+  assert.deepEqual([r(0, null).error, r(401, {}).error, r(403, {}).error, r(429, {}).error, r(413, {}).error, r(405, {}).error, r(415, {}).error, r(500, {}).error], ['network', 'reconnect_required', 'forbidden', 'too_many_requests', 'refused_413', 'refused_405', 'refused_415', 'refused_500'])
+  assert.equal(JSON.stringify(r(200, { error: { code: -32602, message: 'SECRET ' + KEY } })).includes('SECRET'), false)
+  const huge = r(200, { result: { content: [{ type: 'text', text: 'x'.repeat(MAX_RESULT_CHARS + 500) }] } })
+  assert.ok(huge.ok === true && huge.text.length < MAX_RESULT_CHARS + 200 && huge.text.endsWith(']'), 'a result past the bound is cut with a marker')
+  ok('a JSON-RPC answer becomes a result or one word: the door\'s statuses, protocol errors, a tool\'s own failure with its text, an oversized result cut')
+}
+
+// ── the host, against a stand-in server ──
+const seen = []
+let answer = () => ({ status: 200, body: {} })
+const api = createServer((req, res) => {
+  let raw = ''
+  req.on('data', (c) => { raw += c })
+  req.on('end', () => {
+    let body = null
+    try { body = raw === '' ? null : JSON.parse(raw) } catch (e) { body = '<<not json>>' }
+    seen.push({ method: req.method, url: req.url, auth: req.headers.authorization || null, body, raw })
+    const a = answer(req, body)
+    // `raw`: a text answer as it is (a logo), not JSON.
+    res.writeHead(a.status, { 'content-type': a.raw === undefined ? 'application/json' : 'image/svg+xml' })
+    res.end(a.raw === undefined ? JSON.stringify(a.body) : a.raw)
+  })
+})
+await new Promise((resolve) => api.listen(0, '127.0.0.1', resolve))
+const ORIGIN = 'http://127.0.0.1:' + api.address().port
+const dir = mkdtempSync(join(tmpdir(), 'kb-connections-'))
+const SERVERS = join(dir, 'servers.json')
+const STATE = join(dir, 'state.json')
+const writeState = (state) => writeFileSync(STATE, JSON.stringify(state))
+const registry = (connections) => writeFileSync(SERVERS, JSON.stringify({ active: 'local', servers: [{ id: 'local', name: 'Local', api: ORIGIN, services: connections === undefined ? {} : { connections } }] }))
+delete process.env.KYBERNOS_CLOUD_API
+process.env.KYBERNOS_SERVERS_FILE = SERVERS
+process.env.KYBERNOS_CLOUD_STATE = STATE
+process.env.KYBERNOS_CLOUD_KYBERS = join(dir, 'kybers')
+// The catalogue and its logos are kept under DSH's home: here a folder of this run, never the real one.
+process.env.DSH_HOME = join(dir, 'dsh-home')
+const CACHE = join(dir, 'dsh-home', 'kybernos', 'connections-catalogue')
+const connected = { token: TOKEN, user: { id: 'u-me', name: 'Sara M.', plan: 'studio' }, workspaces: [] }
+const MCP = ORIGIN + '/v1/mcp/connections'
+
+try {
+  const mod = await import('./index.js')
+  const route = (path) => mod.ROUTES.find((r) => r.path === path)
+  const BASE = '/kybernos-cloud/connections'
+  const call = async (path, query, body) => route(path).run({ url: path + (query === undefined ? '' : '?' + query) }, body)
+  const reset = () => { seen.length = 0; answer = () => ({ status: 200, body: {} }); rmSync(CACHE, { recursive: true, force: true }) }
+  const leaks = (v, needle = TOKEN) => JSON.stringify(v).includes(needle)
+
+  // route table
+  const paths = [BASE, BASE + '/apps', BASE + '/item', BASE + '/link', BASE + '/delete']
+  for (const p of paths) {
+    const r = route(p)
+    assert.ok(r !== undefined, p)
+    assert.equal(r.guarded, true, p + ' needs the same-origin guard')
+  }
+  assert.deepEqual(paths.map((p) => route(p).method), ['GET', 'GET', 'GET', 'POST', 'POST'])
+  for (const p of [BASE + '/link', BASE + '/delete']) assert.ok(route(p).cap <= 16384, p + ' takes a small body')
+  assert.equal(new Set(mod.ROUTES.map((r) => r.path)).size, mod.ROUTES.length, 'no two routes share a path')
+  assert.deepEqual([route(BASE + '/logo').method, route(BASE + '/logo').guarded, route(BASE + '/logo').raw], ['GET', true, true], 'the logo route is the one raw (non-JSON) answer, behind the same guard')
+  ok('five routes and a raw logo route, all behind the same-origin guard, small bodies, no path shared')
+
+  // a server that does not offer connections, and an account that is not connected: nothing leaves the machine
+  writeState(connected)
+  for (const connections of [undefined, false]) {
+    registry(connections)
+    reset()
+    assert.deepEqual(await call(BASE), { ok: true, offered: false, connected: true })
+    assert.deepEqual(await call(BASE + '/apps'), { ok: true, offered: false, connected: true })
+    assert.deepEqual((await call(BASE + '/link', undefined, { toolkit: 'gmail' })).offered, false)
+    assert.deepEqual((await call(BASE + '/delete', undefined, { id: C1 })).offered, false)
+    assert.deepEqual((await call(BASE + '/item', 'id=' + C1)).offered, false)
+    assert.equal(seen.length, 0, 'a server without connections is never asked')
+  }
+  registry(MCP)
+  rmSync(STATE, { force: true })
+  reset()
+  for (const [p, q, b] of [[BASE], [BASE + '/item', 'id=' + C1], [BASE + '/link', undefined, { toolkit: 'gmail' }], [BASE + '/delete', undefined, { id: C1 }]]) {
+    assert.deepEqual(await call(p, q, b), { ok: false, offered: true, connected: false, error: 'non connecte' }, p)
+  }
+  assert.equal(seen.length, 0, 'not connected: not one call to the server')
+  ok('not offered (absent or false) or not connected: answered with a word and not one call leaves the machine')
+
+  // the list
+  writeState(connected)
+  reset()
+  answer = () => ({ status: 200, body: { configured: true, limit: 3, count: 2, connections: [
+    { id: C1, toolkit: 'gmail', status: 'active', account_type: 'oauth', alias: 'work', is_default: true, created_at: 't1', user_info: { email: 'leak@x.test' } },
+    { id: C2, toolkit: 'github', status: 'pending', account_type: 'oauth', alias: null, is_default: false, created_at: 't2' }] } })
+  const listed = await call(BASE)
+  assert.deepEqual([listed.ok, listed.offered, listed.connected, listed.limit, listed.count, listed.connections.length, listed.connections[0].alias, listed.connections[1].status, listed.stale], [true, true, true, 3, 2, 2, 'work', 'pending', false])
+  assert.deepEqual([seen[0].method, seen[0].url, seen[0].auth, seen[0].body], ['GET', '/v1/connections', 'Bearer ' + TOKEN, null])
+  assert.equal(leaks(listed), false, 'the token never goes back to the page')
+  assert.equal(leaks(listed, 'leak@x.test'), false, 'nothing of the third-party account goes back either')
+  await call(BASE, 'refresh=1')
+  await call(BASE, 'refresh=yes&x=1')
+  assert.deepEqual(seen.map((c) => c.url), ['/v1/connections', '/v1/connections?refresh=1', '/v1/connections'])
+  // A plan without the feature: the page is told so, and told where the plans are (the active server's web app: https only, never a string it made up).
+  answer = () => ({ status: 200, body: { configured: true, limit: 0, entitled: false, count: 0, connections: [] } })
+  const gated = await call(BASE)
+  assert.deepEqual([gated.ok, gated.limit, gated.entitled, gated.count, typeof gated.web], [true, 0, false, 0, 'string'])
+  assert.equal(leaks(gated), false, 'the token does not go back with the plan')
+  answer = () => ({ status: 200, body: { configured: true, connections: [], stale: true } })
+  assert.equal((await call(BASE)).stale, true)
+  answer = () => ({ status: 200, body: { nope: 1 } })
+  assert.equal((await call(BASE)).error, 'invalid_response')
+  ok('list: the account\'s own token in the header only, ?refresh=1 passed on only when it is exactly that, "2 of 3" and stale kept, nothing of the third party')
+
+  // the catalogue: the public route first, with no token, so a person who is not signed in sees all of it
+  const APPS = [{ slug: 'gmail', name: 'Gmail', categories: ['email'], logo: '/v1/connections/catalogue/logo?slug=gmail', description: 'Mail' }, { slug: 'notion', name: 'Notion', needs_api_key: true }]
+  reset()
+  answer = () => ({ status: 200, body: { configured: true, apps: APPS } })
+  const apps = await call(BASE + '/apps')
+  assert.deepEqual([apps.ok, apps.apps.map((a) => a.slug), apps.apps[1].needsApiKey, apps.apps.map((a) => a.logo), apps.source, apps.connected], [true, ['gmail', 'notion'], true, [true, false], 'public', true])
+  assert.deepEqual([seen.length, seen[0].method, seen[0].url, seen[0].auth], [1, 'GET', '/v1/connections/catalogue', null], 'the public route, and the token does not go with it')
+  assert.equal(leaks(apps), false)
+  assert.equal(leaks(apps, '/v1/connections/catalogue/logo'), false, 'a logo address of the server never reaches the page: it asks this host')
+  reset()
+  answer = () => ({ status: 200, body: { configured: false, apps: [] } })
+  assert.deepEqual([(await call(BASE + '/apps')).configured, (await call(BASE + '/apps')).apps], [false, []])
+  // not signed in: the same, and still no token
+  rmSync(STATE, { force: true })
+  reset()
+  answer = () => ({ status: 200, body: { configured: true, apps: APPS } })
+  const anon = await call(BASE + '/apps')
+  assert.deepEqual([anon.ok, anon.connected, anon.apps.length, anon.source, seen.length, seen[0].auth], [true, false, 2, 'public', 1, null], 'not signed in: the whole catalogue, from the public route')
+  // a server with no public route yet: a signed-in person still gets the account's route, a person who is not is told to sign in
+  reset()
+  answer = (req) => (req.url === '/v1/connections/catalogue' ? { status: 404, body: { error: 'not_found' } } : { status: 200, body: { configured: true, apps: APPS } })
+  assert.deepEqual(await call(BASE + '/apps'), { ok: false, offered: true, connected: false, error: 'non connecte' })
+  writeState(connected)
+  seen.length = 0
+  const older = await call(BASE + '/apps')
+  assert.deepEqual([older.ok, older.source, older.apps.length, seen.map((c) => c.url), seen.map((c) => c.auth)], [true, 'account', 2, ['/v1/connections/catalogue', '/v1/connections/apps'], [null, 'Bearer ' + TOKEN]])
+  ok('catalogue: the public route first and with no token (signed in or not), an older server falls back to the account\'s route, a module that is switched off says configured:false')
+
+  // the logos: always the public route, a plain SVG only, a day in memory, one raw answer
+  const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><defs><linearGradient id="a"/></defs><path fill="url(#a)" d="M0 0h8v8z"/></svg>'
+  const logo = (slug) => route(BASE + '/logo').run({ url: BASE + '/logo?slug=' + encodeURIComponent(slug) })
+  // the catalogue came from the public route, so the logos do too
+  reset()
+  answer = () => ({ status: 200, body: { configured: true, apps: APPS } })
+  await call(BASE + '/apps')
+  reset()
+  answer = () => ({ status: 200, raw: SVG })
+  const got = await logo('gmail')
+  assert.deepEqual([got.status, got.type, got.body, got.maxAge], [200, 'image/svg+xml', SVG, 86400])
+  assert.deepEqual([seen.length, seen[0].url, seen[0].auth], [1, '/v1/connections/catalogue/logo?slug=gmail', null], 'the public logo route, no token')
+  await logo('gmail')
+  assert.equal(seen.length, 1, 'a logo is kept in memory: the second ask makes no call')
+  const both = await Promise.all([logo('slack'), logo('slack')])
+  assert.deepEqual([both[0].status, both[1].status, seen.length], [200, 200, 2], 'two asks for one logo at once make one call')
+  for (const evil of ['<svg><script>alert(1)</script></svg>', '<svg onload="x()"/>', '<svg><image href="https://evil.test/p.png"/></svg>', '<svg><path style="fill:url(https://evil.test/x)"/></svg>', '<html><body>hi</body></html>', '<svg><foreignObject><iframe/></foreignObject></svg>']) {
+    answer = () => ({ status: 200, raw: evil })
+    const r = await logo('evil' + Math.abs(evil.length))
+    assert.equal(r.status, 404, evil)
+    assert.equal(r.body, undefined, 'nothing of a refused picture is passed on')
+  }
+  assert.equal(safeLogo(SVG), true)
+  answer = () => ({ status: 404, body: { error: 'not_found' } })
+  assert.equal((await logo('nothere')).status, 404)
+  seen.length = 0
+  for (const bad of ['', 'GitHub', '../x', 'a b', 'x'.repeat(65), 'a/b']) assert.equal((await logo(bad)).status, 404, String(bad))
+  assert.equal((await route(BASE + '/logo').run({ url: BASE + '/logo' })).status, 404)
+  assert.equal(seen.length, 0, 'a slug that is no toolkit is refused before any call')
+  // an older server (its catalogue came from the account route): its logos come from the account's own logo route, with the token, asked by this host and never by the page
+  reset()
+  answer = (req) => (req.url.startsWith('/v1/connections/catalogue') ? { status: 404, body: { error: 'not_found' } } : (req.url.startsWith('/v1/connections/apps') ? { status: 200, body: { configured: true, apps: APPS } } : { status: 200, raw: SVG }))
+  await call(BASE + '/apps')
+  seen.length = 0
+  const old = await logo('older1')
+  assert.deepEqual([old.status, old.body, seen.length, seen[0].url, seen[0].auth], [200, SVG, 1, '/v1/connections/logo?slug=older1', 'Bearer ' + TOKEN], 'the account\'s logo route, with the token')
+  writeState({ token: '' })
+  seen.length = 0
+  assert.equal((await logo('older2')).status, 404)
+  assert.equal(seen.length, 0, 'signed out, an older server is not asked for a logo (there is no token to ask with)')
+  writeState(connected)
+  reset()
+  answer = () => ({ status: 200, body: { configured: true, apps: APPS } })
+  await call(BASE + '/apps')
+  reset()
+  registry(false)
+  assert.equal((await logo('gmail2')).status, 404)
+  assert.equal(seen.length, 0, 'a server without connections is never asked for a logo')
+  registry(MCP)
+  ok('logos: the public route with no token (an older server: the account\'s logo route, from this host only), a plain SVG only (script, handler, outside reference, HTML refused), a day in memory, one call for two asks, no call for a bad slug or a server without connections')
+
+  // one connection, polled
+  reset()
+  answer = () => ({ status: 200, body: { id: C2, toolkit: 'github', status: 'active', account_type: 'oauth', alias: null, is_default: true, created_at: 't' } })
+  const one = await call(BASE + '/item', 'id=' + C2)
+  assert.deepEqual([one.ok, one.connection.id, one.connection.status], [true, C2, 'active'])
+  assert.deepEqual([seen[0].method, seen[0].url], ['GET', '/v1/connections/' + C2])
+  answer = () => ({ status: 200, body: { connection: { id: C2, toolkit: 'github', status: 'failed', failure: 'upstream' } } })
+  assert.deepEqual([(await call(BASE + '/item', 'id=' + C2)).connection.failure], ['upstream'])
+  seen.length = 0
+  for (const id of ['abc', '', '../' + C1, C1 + '/x', C1 + '?x=1', '1; DROP', undefined]) {
+    const r = await call(BASE + '/item', id === undefined ? undefined : 'id=' + encodeURIComponent(id))
+    assert.deepEqual([r.ok, r.error], [false, 'not_found'], String(id))
+  }
+  assert.equal(seen.length, 0, 'an id that is no UUID is refused before any call')
+  answer = () => ({ status: 404, body: { error: 'not_found' } })
+  assert.equal((await call(BASE + '/item', 'id=' + C1)).error, 'not_found')
+  answer = () => ({ status: 200, body: { id: C1 } })
+  assert.equal((await call(BASE + '/item', 'id=' + C1)).error, 'invalid_response')
+  ok('one connection: only a UUID reaches the path, someone else\'s or a missing one is "not_found", an answer that is no connection is "invalid_response"')
+
+  // link: OAuth
+  reset()
+  answer = () => ({ status: 201, body: { id: C1, status: 'pending', redirect_url: 'https://backend.composio.dev/api/v3/s/xyz' } })
+  const linked = await call(BASE + '/link', undefined, { toolkit: 'Gmail', alias: ' work ', user_id: 'kyb_someone_else', redirect_uri: 'https://evil.test/cb', extra: 1 })
+  assert.deepEqual([linked.ok, linked.connection, linked.redirectUrl], [true, { id: C1, status: 'pending' }, 'https://backend.composio.dev/api/v3/s/xyz'])
+  assert.deepEqual([seen[0].method, seen[0].url, seen[0].auth, seen[0].body], ['POST', '/v1/connections/link', 'Bearer ' + TOKEN, { toolkit: 'gmail', alias: 'work' }])
+  assert.equal(seen[0].raw.includes('redirect_uri'), false, 'DSH never sends a redirect_uri')
+  assert.equal(seen[0].raw.includes('kyb_'), false, 'DSH never sends a user id')
+  // link: API key
+  seen.length = 0
+  answer = () => ({ status: 201, body: { id: C2, status: 'active', redirect_url: null } })
+  const keyed = await call(BASE + '/link', undefined, { toolkit: 'notion', api_key: KEY })
+  assert.deepEqual([keyed.ok, keyed.connection, keyed.redirectUrl], [true, { id: C2, status: 'active' }, null])
+  assert.deepEqual(seen[0].body, { toolkit: 'notion', api_key: KEY })
+  assert.equal(leaks(keyed, KEY), false, 'the key is not echoed')
+  assert.equal(seen.filter((c) => c.url.includes(KEY)).length, 0, 'the key is never in a path or a query')
+  assert.equal(seen.filter((c) => c.auth !== null && c.auth.includes(KEY)).length, 0)
+  // link: a redirect that is not safe is not handed over
+  answer = () => ({ status: 201, body: { id: C1, status: 'pending', redirect_url: 'javascript:alert(1)' } })
+  assert.equal((await call(BASE + '/link', undefined, { toolkit: 'gmail' })).redirectUrl, null)
+  // link: malformed bodies cost no call
+  seen.length = 0
+  for (const bad of [null, {}, { toolkit: '' }, { toolkit: 'a b' }, { toolkit: 'x', api_key: 5 }, { toolkit: 'x', api_key: 'k'.repeat(5000) }]) assert.deepEqual([(await call(BASE + '/link', undefined, bad)).ok, (await call(BASE + '/link', undefined, bad)).error], [false, 'bad_request'])
+  assert.equal(seen.length, 0)
+  // link: what the server may answer
+  const refusals = [
+    [409, { error: 'pending_exists', existing: { id: C1, toolkit: 'gmail', status: 'pending' } }, { error: 'pending_exists', existing: { id: C1, toolkit: 'gmail', status: 'pending' } }],
+    [409, { error: 'connection_limit', limit: 3, count: 3 }, { error: 'connection_limit', limit: 3, count: 3 }],
+    [422, { error: 'no_managed_credentials' }, { error: 'needs_api_key' }],
+    [502, { error: 'upstream_unavailable', retry: 'check_first', message: KEY }, { error: 'upstream_unavailable', checkFirst: true }],
+    [503, { error: 'connections_disabled' }, { error: 'connections_disabled' }],
+    [404, { error: 'not_found' }, { error: 'not_found' }],
+    [401, { error: 'unauthorized' }, { error: 'reconnect_required' }],
+    [429, { error: 'rate_limited' }, { error: 'too_many_requests' }],
+    [500, { error: 'SECRET internals ' + KEY, message: KEY }, { error: 'refused_500' }],
+  ]
+  for (const [status, body, want] of refusals) {
+    answer = () => ({ status, body })
+    const r = await call(BASE + '/link', undefined, { toolkit: 'notion', api_key: KEY })
+    assert.deepEqual({ ...r, offered: undefined, connected: undefined }, { ok: false, ...want, offered: undefined, connected: undefined }, status + ' ' + JSON.stringify(body))
+    assert.equal(leaks(r, KEY), false, 'the key never comes back in a refusal')
+    assert.equal(leaks(r), false)
+  }
+  ok('link: toolkit, key and label only, never a redirect_uri or a user id; the key is sent once and never echoed; every refusal is its word; an unsafe redirect is dropped')
+
+  // A server that says « no connections here » (Composio not configured: 503 connections_disabled; an older server: 404 on a route that names nothing) is NOT offered, so the page does not make the
+  // Kybernos mode the default of a person with no key of their own (T2-07, 2026-10-24). A plain upstream failure is not that: it stays an error of an offered server.
+  for (const [status, body] of [[503, { error: 'connections_disabled' }], [404, { error: 'not_found', message: 'No such route.' }], [404, null]]) {
+    answer = () => ({ status, body })
+    assert.deepEqual(await call(BASE), { ok: true, offered: false, connected: true }, 'list ' + status)
+    assert.deepEqual(await call(BASE + '/apps'), { ok: true, offered: false, connected: true }, 'apps ' + status)
+  }
+  for (const [status, body, error] of [[503, { error: 'upstream_unavailable' }, 'upstream_unavailable'], [502, null, 'upstream_unavailable'], [401, { error: 'unauthorized' }, 'reconnect_required'], [429, null, 'too_many_requests']]) {
+    answer = () => ({ status, body })
+    const r = await call(BASE)
+    assert.deepEqual([r.ok, r.offered, r.error], [false, true, error], 'list ' + status)
+  }
+  ok('list and apps: 503 connections_disabled or a 404 route means « this server offers no connections »; an upstream failure, an expired session and a rate limit stay errors of an offered server')
+
+  // an add is never retried by this side
+  seen.length = 0
+  answer = () => ({ status: 502, body: { error: 'upstream_unavailable', retry: 'check_first' } })
+  await call(BASE + '/link', undefined, { toolkit: 'gmail' })
+  assert.equal(seen.length, 1, 'a failed add is not sent twice: it may have gone through')
+  ok('a link that fails is sent once: the page lists the connections before it offers another try')
+
+  // delete
+  reset()
+  answer = () => ({ status: 200, body: { ok: true } })
+  const del = await call(BASE + '/delete', undefined, { id: C1 })
+  assert.deepEqual([del.ok, seen[0].method, seen[0].url, seen[0].auth], [true, 'DELETE', '/v1/connections/' + C1, 'Bearer ' + TOKEN])
+  answer = () => ({ status: 204, body: null })
+  assert.equal((await call(BASE + '/delete', undefined, { id: C1 })).ok, true)
+  seen.length = 0
+  for (const body of [{}, { id: 'x' }, { id: '../' + C1 }, null]) assert.deepEqual([(await call(BASE + '/delete', undefined, body)).ok, (await call(BASE + '/delete', undefined, body)).error], [false, 'not_found'])
+  assert.equal(seen.length, 0)
+  answer = () => ({ status: 404, body: { error: 'not_found' } })
+  assert.equal((await call(BASE + '/delete', undefined, { id: C1 })).error, 'not_found')
+  ok('delete: a UUID or nothing, someone else\'s connection is "not_found"')
+
+  // the server is unreachable
+  writeFileSync(SERVERS, JSON.stringify({ active: 'local', servers: [{ id: 'local', name: 'Local', api: 'http://127.0.0.1:1', services: { connections: 'http://127.0.0.1:1/v1/mcp/connections' } }] }))
+  const down = await call(BASE)
+  assert.deepEqual([down.ok, down.error], [false, 'network'])
+  registry(MCP)
+  ok('an unreachable server is "network", not a crash')
+
+  // ── the tools ──
+  const conn = mod.connections
+  const defs = conn.toolDefs()
+  assert.deepEqual(defs.map((d) => d.name), CONNECTION_TOOLS)
+  for (const d of defs) {
+    assert.equal(typeof d.description, 'string')
+    assert.ok(d.description.length > 40 && d.description.length < 500, d.name + ' says what it is for, briefly')
+    assert.equal(d.parameters.type, 'object')
+    assert.equal(d.parameters.additionalProperties, false)
+    assert.equal(typeof d.execute, 'function')
+    assert.equal(typeof d.output.render, 'function')
+    assert.equal(d.output.schema.type, 'object')
+    assert.deepEqual(d.output.schema.required, ['ok'])
+    assert.equal(/[éèàçôù]/.test(d.description), false, 'English, like all new code')
+  }
+  assert.deepEqual(defs[1].parameters.required, ['toolkit'])
+  assert.deepEqual(defs[2].parameters.required, ['tool_slug'])
+  ok('three tools, each with a description, a closed parameter schema, an output schema and a render')
+
+  // the real engine accepts them (every engine installed here: where DSH is absent, or NO_DSH_ENGINE=1, this is said and not counted)
+  const toolsPaths = []
+  if (typeof process.env.DSH_TOOLS_PATH === 'string' && existsSync(process.env.DSH_TOOLS_PATH)) toolsPaths.push(process.env.DSH_TOOLS_PATH)
+  const engines = join(process.env.HOME ?? '', '.dsh', 'kybernos', 'moteur')
+  if (existsSync(engines)) for (const v of readdirSync(engines)) { const p = join(engines, v, 'node_modules', '@deepseek-ai', 'dsh-tools', 'lib', 'index.js'); if (existsSync(p)) toolsPaths.push(p) }
+  if (process.env.NO_DSH_ENGINE === '1' || toolsPaths.length === 0) console.log('SKIPPED: the connection tool schemas against the DSH engine\'s rules — no DSH engine on this machine (or NO_DSH_ENGINE=1)')
+  else {
+    for (const path of toolsPaths) {
+      const { assertSupportedJsonSchema } = await import(path)
+      for (const d of defs) {
+        assert.doesNotThrow(() => assertSupportedJsonSchema(d.parameters), d.name + ' parameters ' + path)
+        assert.doesNotThrow(() => assertSupportedJsonSchema(d.output.schema), d.name + ' output ' + path)
+      }
+    }
+    ok('the engine\'s own JSON-schema rules accept every parameter and output schema (' + String(toolsPaths.length) + ' engine(s) installed here)')
+  }
+
+  // the model-facing text
+  assert.equal(defs[0].output.render({}, { ok: true, text: 'two apps' })[0].text, 'two apps')
+  assert.equal(defs[0].output.render({}, { ok: true, text: '' })[0].text, '(nothing)')
+  assert.match(defs[0].output.render({}, { ok: false, error: 'not_connected' })[0].text, /not connected/)
+  assert.equal(defs[0].output.render({}, { ok: false, error: 'action_failed', text: '{"code":"action_failed","retryable":true}' })[0].text, '{"code":"action_failed","retryable":true}')
+  assert.match(defs[0].output.render({}, { ok: false, error: 'something_new' })[0].text, /something_new/)
+  ok('what the model reads: the result, "(nothing)", or a sentence it can act on; a tool\'s own failure keeps its text')
+
+  // each tool posts one JSON-RPC message with the live token and nothing else
+  const rpc = (name) => seen.filter((c) => c.url === '/v1/mcp/connections' && c.body !== null && c.body.params !== undefined && c.body.params.name === name)
+  const okAnswer = (text) => () => ({ status: 200, body: { jsonrpc: '2.0', id: 1, result: { content: [{ type: 'text', text }] } } })
+  reset()
+  answer = okAnswer('[{"id":"' + C1 + '","toolkit":"gmail"}]')
+  const l = await defs[0].execute({})
+  assert.deepEqual(l, { ok: true, text: '[{"id":"' + C1 + '","toolkit":"gmail"}]' })
+  assert.deepEqual([seen[0].method, seen[0].url, seen[0].auth], ['POST', '/v1/mcp/connections', 'Bearer ' + TOKEN])
+  assert.deepEqual([seen[0].body.jsonrpc, seen[0].body.method, seen[0].body.params], ['2.0', 'tools/call', { name: 'connections_list', arguments: {} }])
+  assert.equal(seen.filter((c) => c.body !== null && c.body.method === 'initialize').length, 0, 'stateless: no handshake first')
+  assert.equal(leaks(l), false)
+  seen.length = 0
+  await defs[1].execute({ toolkit: ' GitHub ', query: '  open issues  ', limit: 500, extra: 'dropped' })
+  assert.deepEqual(seen[0].body.params, { name: 'connections_search_tools', arguments: { toolkit: 'github', query: 'open issues', limit: 50 } })
+  seen.length = 0
+  await defs[1].execute({ toolkit: 'github' })
+  assert.deepEqual(seen[0].body.params.arguments, { toolkit: 'github' })
+  seen.length = 0
+  await defs[2].execute({ tool_slug: 'GITHUB_CREATE_AN_ISSUE', params: { title: 'x', body: 'y' }, connection_id: C1, user_id: 'kyb_other', extra: 1 })
+  assert.deepEqual(seen[0].body.params, { name: 'connections_execute', arguments: { tool_slug: 'GITHUB_CREATE_AN_ISSUE', params: { title: 'x', body: 'y' }, connection_id: C1 } })
+  assert.equal(seen[0].raw.includes('kyb_'), false, 'the person is named by the token alone, never by an argument')
+  seen.length = 0
+  await defs[2].execute({ tool_slug: 'GMAIL_FETCH_EMAILS' })
+  assert.deepEqual(seen[0].body.params.arguments, { tool_slug: 'GMAIL_FETCH_EMAILS', params: {} })
+  const ids = []
+  seen.length = 0
+  await defs[0].execute({}); await defs[0].execute({})
+  seen.forEach((c) => ids.push(c.body.id))
+  assert.equal(new Set(ids).size, 2, 'each call has its own JSON-RPC id')
+  ok('each tool posts one tools/call with the live token and no handshake, forwards only its own arguments, names the person by the token alone')
+
+  // bad arguments cost no call
+  seen.length = 0
+  for (const [d, args] of [
+    [defs[1], {}], [defs[1], { toolkit: '' }], [defs[1], { toolkit: '../x' }], [defs[1], { toolkit: 5 }],
+    [defs[2], {}], [defs[2], { tool_slug: '' }], [defs[2], { tool_slug: 'a b' }], [defs[2], { tool_slug: 'X', params: [] }], [defs[2], { tool_slug: 'X', params: 'x' }], [defs[2], { tool_slug: 'X', params: null }],
+    [defs[2], { tool_slug: 'X', connection_id: 'nope' }], [defs[2], { tool_slug: 'X', connection_id: '../' + C1 }],
+  ]) assert.deepEqual(await d.execute(args), { ok: false, error: 'invalid_params' }, d.name + ' ' + JSON.stringify(args))
+  assert.deepEqual(await defs[2].execute({ tool_slug: 'X', params: { blob: 'x'.repeat(300 * 1024) } }), { ok: false, error: 'params_too_large' })
+  assert.equal(seen.length, 0)
+  ok('arguments that cannot be right (a toolkit, an action slug, params that are no object, a connection id that is no UUID, params past 256 KiB) cost no call')
+
+  // what the endpoint may answer
+  reset()
+  answer = () => ({ status: 200, body: { result: { isError: true, content: [{ type: 'text', text: '{"code":"connection_not_active","retryable":false}' }] } } })
+  assert.deepEqual(await defs[2].execute({ tool_slug: 'X' }), { ok: false, error: 'connection_not_active', text: '{"code":"connection_not_active","retryable":false}' })
+  answer = () => ({ status: 200, body: { error: { code: -32602, message: 'SECRET ' + KEY } } })
+  assert.deepEqual(await defs[2].execute({ tool_slug: 'X' }), { ok: false, error: 'invalid_params' })
+  answer = () => ({ status: 401, body: { error: 'unauthorized' } })
+  assert.equal((await defs[0].execute({})).error, 'reconnect_required')
+  answer = () => ({ status: 429, body: { error: 'busy' } })
+  assert.equal((await defs[0].execute({})).error, 'too_many_requests')
+  answer = () => ({ status: 200, body: 'not an object' })
+  assert.equal((await defs[0].execute({})).error, 'invalid_response')
+  ok('a tool\'s own failure keeps its code and text, a protocol error and a door refusal are one word, and the server\'s message never reaches the model')
+
+  // the tools exist exactly while they can work
+  const registered = new Map()
+  let registerThrows = false
+  const fakeTools = { register: (def) => { if (registerThrows) throw new Error('tool "' + def.name + '" is already registered'); registered.set(def.name, def); return () => registered.delete(def.name) } }
+  const logs = []
+  const { createConnections } = await import('./connections-host.mjs')
+  const apiCallLike = async () => ({ status: 200, body: {} })
+  const profileWith = (connections) => ({ id: 'local', api: ORIGIN, services: { llm: null, gateway: 'https://g.test', connections } })
+  let state = null
+  let profile = profileWith(MCP)
+  const mk = () => createConnections({ apiCall: apiCallLike, readState: () => state, isConnected: (s) => s !== null && typeof s.token === 'string' && s.token !== '', server: () => ({ profile }), log: (m) => logs.push(m) })
+  const tc = mk()
+  tc.sync()
+  assert.deepEqual([...registered.keys()], [], 'nothing before DSH has the tools service')
+  tc.attach(fakeTools)
+  assert.deepEqual([...registered.keys()], [], 'offered but not connected: no tools')
+  state = { token: TOKEN }
+  tc.sync()
+  assert.deepEqual([...registered.keys()], CONNECTION_TOOLS)
+  tc.sync(); tc.sync()
+  assert.deepEqual([...registered.keys()], CONNECTION_TOOLS, 'syncing again never registers twice')
+  state = null
+  tc.sync()
+  assert.deepEqual([...registered.keys()], [], 'disconnected: the tools go')
+  state = { token: TOKEN }
+  tc.sync()
+  assert.equal(registered.size, 3, 'connected again: the tools come back')
+  profile = profileWith(undefined)
+  tc.sync()
+  assert.equal(registered.size, 0, 'a server that does not offer connections: no tools')
+  profile = profileWith(false)
+  tc.sync()
+  assert.equal(registered.size, 0)
+  profile = profileWith(MCP)
+  tc.sync()
+  assert.equal(registered.size, 3)
+  profile = { ...profileWith(MCP), api: 'http://127.0.0.1:2' }
+  tc.sync()
+  assert.equal(registered.size, 0, 'an endpoint that is not on the server\'s own origin is not offered: the token stays with its server')
+  profile = profileWith(MCP)
+  tc.sync()
+  tc.detach()
+  assert.equal(registered.size, 3, 'detaching forgets the scope without calling into a scope that is gone')
+  registered.clear()
+  const tc2 = mk()
+  registerThrows = true
+  tc2.attach(fakeTools)
+  tc2.sync(); tc2.sync(); tc2.sync()
+  assert.equal(registered.size, 0)
+  assert.equal(logs.length, 3, 'a name that is already taken is logged once per tool, not every tick')
+  registerThrows = false
+  tc2.sync()
+  assert.equal(registered.size, 3, 'and it registers as soon as the name is free')
+  ok('the tools exist exactly while the server offers connections and the account is connected: they come and go with no restart, never twice, never a throw')
+
+  // the choice of Settings › Connectors: with Composio selected the agents are not offered these tools
+  let choice = null
+  const tcChoice = createConnections({ apiCall: apiCallLike, readState: () => state, isConnected: (s) => s !== null && typeof s.token === 'string' && s.token !== '', server: () => ({ profile }), providerChoice: () => choice, log: () => {} })
+  registered.clear()
+  state = { token: TOKEN }
+  profile = profileWith(MCP)
+  tcChoice.attach(fakeTools)
+  assert.equal(registered.size, 3, 'nothing chosen: as before')
+  choice = 'composio'
+  tcChoice.sync()
+  assert.equal(registered.size, 0, 'Composio chosen: the tools go, with no restart')
+  choice = 'kybernos'
+  tcChoice.sync()
+  assert.equal(registered.size, 3, 'Kybernos Cloud chosen: they are back')
+  tcChoice.detach()
+  registered.clear()
+  ok('the Settings › Connectors choice: Composio takes the tools away, Kybernos Cloud or nothing chosen keeps them')
+
+  // mounting: the real thing, with a fake ctx
+  const mounted = { injected: null, effects: [] }
+  const ctx = { inject: (deps, cb) => { mounted.injected = { deps, cb } }, effect: (fn, label) => { mounted.effects.push({ fn, label }) } }
+  registered.clear()
+  const tc3 = mk()
+  tc3.mount(ctx)
+  assert.deepEqual(mounted.injected.deps, ['tools'])
+  assert.equal(mounted.effects.length, 1)
+  mounted.injected.cb({ tools: fakeTools })
+  assert.equal(registered.size, 3, 'when DSH hands over the tools service, they are registered at once')
+  const realSetInterval = globalThis.setInterval
+  let timer = null
+  globalThis.setInterval = (...a) => { timer = realSetInterval(...a); return timer }
+  const stop = mounted.effects[0].fn()
+  globalThis.setInterval = realSetInterval
+  assert.equal(typeof stop, 'function')
+  assert.ok(timer !== null && timer.hasRef() === false, 'the timer does not keep the process alive')
+  stop()
+  assert.equal(registered.size, 0, 'when the plugin goes, so do its tools and its timer')
+  ok('mounted on the plugin: registered when the tools service arrives, removed with the plugin, the timer never keeps the process alive')
+
+
+  // the background load: the whole catalogue and every logo kept on disk, renewed once a day
+  {
+    const root = join(dir, 'cache-load')
+    const calls = []
+    let serve = null
+    const stub = async (path, opts = {}) => { calls.push({ path, token: opts.token === undefined ? null : opts.token }); return serve(path, opts) }
+    const SVG2 = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><path d="M0 0h8v8z"/></svg>'
+    const SLUGS = ['gmail', 'notion', 'slack', 'github', 'figma', 'zoom', 'asana']
+    const LAPPS = [...SLUGS.map((slug) => ({ slug, name: slug, logo: '/x' })), { slug: 'nologo', name: 'No logo' }]
+    const isCat = (path) => path === '/v1/connections/catalogue'
+    const isPubLogo = (path) => path.startsWith('/v1/connections/catalogue/logo?slug=')
+    const healthy = (path) => (isCat(path) ? { status: 200, body: { configured: true, apps: LAPPS } } : (isPubLogo(path) && !path.endsWith('slug=nologo') ? { status: 200, text: SVG2 } : { status: 404, body: {} }))
+    const mkLoad = (extra = {}) => createConnections({ apiCall: stub, readState: () => state, isConnected: (st) => st !== null && typeof st.token === 'string' && st.token !== '', server: () => ({ profile }), cacheDir: () => root, pace: { batch: 3, everyMs: 0 }, log: (m) => logs.push(m), ...extra })
+    const here = () => join(root, readdirSync(root)[0])
+    const files = () => readdirSync(join(here(), 'logos')).sort()
+    const age = (file, days) => { const t = new Date(Date.now() - days * 86400000); utimesSync(file, t, t) }
+    const ageAll = (days) => { for (const f of files()) age(join(here(), 'logos', f), days); const j = JSON.parse(readFileSync(join(here(), 'catalogue.json'), 'utf8')); j.at -= days * 86400000; writeFileSync(join(here(), 'catalogue.json'), JSON.stringify(j)) }
+    const asked = () => calls.splice(0).map((c) => c.path)
+    state = null
+    profile = profileWith(MCP)
+    serve = healthy
+
+    // first load, signed out: one list and every logo (not the app with no logo), no token anywhere, everything on disk
+    const c1 = mkLoad()
+    await c1.load()
+    const first = calls.splice(0)
+    assert.deepEqual([first.length, first[0].path, first.slice(1).every((c) => isPubLogo(c.path)), first.every((c) => c.token === null)], [8, '/v1/connections/catalogue', true, true], 'the list, then the 7 logos, with no token')
+    assert.deepEqual(files(), SLUGS.map((x) => x + '.svg').sort())
+    assert.equal(statSync(join(here(), 'catalogue.json')).isFile(), true)
+    // the page reads what is kept: no call
+    const kept1 = await c1.appsRoute({ url: BASE + '/apps' })
+    assert.deepEqual([kept1.ok, kept1.apps.length, kept1.source, kept1.connected, asked().length], [true, 8, 'public', false, 0], 'a list under a day old is served from disk')
+    // another run of DSH (a new instance): list and logos from disk, no call; a logo that was never loaded is asked at the server
+    const c2 = mkLoad()
+    const kept2 = await c2.appsRoute({ url: BASE + '/apps' })
+    const lg = await c2.logoRoute({ url: BASE + '/logo?slug=gmail' })
+    assert.deepEqual([kept2.apps.length, lg.status, lg.body, asked().length], [8, 200, SVG2, 0])
+    const none = await c2.logoRoute({ url: BASE + '/logo?slug=nologo' })
+    assert.deepEqual([none.status, asked().length], [404, 1], 'a logo not on disk is asked once, and a 404 is a 404')
+    // nothing due: a second load makes no call at all
+    await c2.load()
+    assert.equal(asked().length, 0, 'everything is under a day old: the load asks nothing')
+    // ?refresh=1 asks the server anyway
+    await c2.appsRoute({ url: BASE + '/apps?refresh=1' })
+    assert.deepEqual(asked(), ['/v1/connections/catalogue'])
+    ok('the background load: the list and every logo kept on disk with no token, read from disk by the page and by the next run, nothing asked again within the day, ?refresh=1 asks anyway')
+
+    // a day later: the list and every logo are renewed
+    ageAll(2)
+    const c3 = mkLoad()
+    await c3.load()
+    const again = asked()
+    assert.deepEqual([again.length, again[0]], [8, '/v1/connections/catalogue'], 'a day on: the list and the 7 logos again')
+    assert.ok(statSync(join(here(), 'logos', 'gmail.svg')).mtimeMs > Date.now() - 60000, 'the file is new')
+    // a logo the server does not have is skipped, the others go on
+    ageAll(2)
+    serve = (path) => (path.endsWith('slug=slack') ? { status: 404, body: {} } : healthy(path))
+    await mkLoad().load()
+    assert.equal(asked().length, 8)
+    assert.ok(statSync(join(here(), 'logos', 'slack.svg')).mtimeMs < Date.now() - 86400000, 'the logo the server lacked keeps its old file')
+    assert.ok(statSync(join(here(), 'logos', 'zoom.svg')).mtimeMs > Date.now() - 60000, 'the others were renewed')
+    ok('a day later everything is renewed, a logo the server lacks is skipped without stopping the rest')
+
+    // a server that does not answer: the copy on disk is served, the load stops after three failed batches instead of asking every logo
+    ageAll(2)
+    rmSync(join(root), { recursive: true, force: true })
+    serve = healthy
+    const big = Array.from({ length: 30 }, (_, i) => ({ slug: 'app' + i, name: 'App ' + i, logo: '/x' }))
+    serve = (path) => (isCat(path) ? { status: 200, body: { configured: true, apps: big } } : healthy(path))
+    await mkLoad().load()
+    assert.equal(files().length, 30)
+    ageAll(2)
+    asked()
+    serve = () => ({ status: 0, body: null })
+    const down = mkLoad()
+    await down.load()
+    const sent = asked()
+    assert.ok(sent.length <= 3 + 9 + 1, 'at most the list (public + account) and three batches of logos: ' + sent.length)
+    const stale = await down.appsRoute({ url: BASE + '/apps' })
+    assert.deepEqual([stale.ok, stale.apps.length, stale.stale], [true, 30, true], 'the server is down: the copy on disk is shown')
+    const empty = mkLoad({ cacheDir: () => join(dir, 'cache-empty') })
+    asked()
+    assert.equal((await empty.appsRoute({ url: BASE + '/apps' })).ok, false, 'no copy and no server: the error, as before')
+    ok('a silent server: the load stops after three failed batches, the page keeps the copy on disk, with no copy the error is the same as before')
+
+    // what is read back is checked again as if it came from outside
+    rmSync(join(root), { recursive: true, force: true })
+    serve = healthy
+    const c4 = mkLoad()
+    await c4.load()
+    asked()
+    writeFileSync(join(here(), 'logos', 'gmail.svg'), '<svg><script>alert(1)</script></svg>')
+    writeFileSync(join(here(), 'logos', 'notion.svg'), 'not a picture')
+    const bad = await mkLoad().logoRoute({ url: BASE + '/logo?slug=gmail' })
+    assert.deepEqual([bad.status, bad.body, asked().length], [200, SVG2, 1], 'a tampered file is not served: the server is asked again and the file is replaced')
+    assert.equal(readFileSync(join(here(), 'logos', 'gmail.svg'), 'utf8'), SVG2)
+    writeFileSync(join(here(), 'catalogue.json'), '{"at": "x"')
+    assert.equal((await mkLoad().appsRoute({ url: BASE + '/apps' })).apps.length, 8, 'an unreadable list is asked again')
+    for (const slug of ['../x', 'a/b', 'GitHub', '']) assert.equal((await c4.logoRoute({ url: BASE + '/logo?slug=' + encodeURIComponent(slug) })).status, 404, slug)
+    assert.ok(files().every((f) => /^[a-z0-9][a-z0-9_-]*\.svg$/.test(f)), 'only toolkit names become file names')
+    ok('what is read back is checked again: a tampered logo or an unreadable list is asked at the server, only toolkit names become file names')
+
+    // an older server: the list and the logos come from the account's routes, with the token, from this host only; signed out later, the disk still serves
+    rmSync(join(root), { recursive: true, force: true })
+    asked()
+    state = { token: TOKEN }
+    serve = (path) => (isCat(path) ? { status: 404, body: { error: 'not_found' } } : (path === '/v1/connections/apps' ? { status: 200, body: { configured: true, apps: LAPPS } } : (path.startsWith('/v1/connections/logo?slug=') ? { status: 200, text: SVG2 } : { status: 404, body: {} })))
+    await mkLoad().load()
+    const olderCalls = calls.splice(0)
+    assert.deepEqual([olderCalls.length, olderCalls.slice(2).every((c) => c.path.startsWith('/v1/connections/logo?slug=') && c.token === TOKEN), olderCalls[0].token, olderCalls[1].token], [9, true, null, TOKEN], 'public list first (no token), then the account\'s list and logos with the token')
+    state = null
+    serve = () => ({ status: 0, body: null })
+    const offline = mkLoad()
+    const fromDisk = await offline.appsRoute({ url: BASE + '/apps' })
+    const logoDisk = await offline.logoRoute({ url: BASE + '/logo?slug=figma' })
+    assert.deepEqual([fromDisk.ok, fromDisk.source, fromDisk.connected, fromDisk.apps.length, logoDisk.status, asked().length], [true, 'account', false, 8, 200, 0], 'signed out, offline: the copy still shows')
+    ok('an older server: the list and the logos come from the account\'s routes with the token (this host only), and the disk keeps serving once signed out')
+
+    // without a folder nothing is kept and the load asks nothing; the timers never keep the process alive and stop with the plugin
+    const memoryOnly = createConnections({ apiCall: stub, readState: () => state, isConnected: () => false, server: () => ({ profile }), log: () => {} })
+    serve = healthy
+    await memoryOnly.load()
+    assert.equal(asked().length, 0, 'no folder: no background load')
+    const fx = []
+    const realTimeout = globalThis.setTimeout
+    const realInterval = globalThis.setInterval
+    const made = []
+    globalThis.setTimeout = (...a) => { const t = realTimeout(...a); made.push(t); return t }
+    globalThis.setInterval = (...a) => { const t = realInterval(...a); made.push(t); return t }
+    const cm = mkLoad()
+    cm.mount({ inject: () => {}, effect: (fn) => fx.push(fn) })
+    const undo = fx[0]()
+    globalThis.setTimeout = realTimeout
+    globalThis.setInterval = realInterval
+    assert.ok(made.length >= 3 && made.every((t) => t.hasRef() === false), 'the sync, the first load and the hourly check never keep the process alive')
+    undo()
+    ok('no folder, no background load; the load\'s timers are unref\'d and cleared with the plugin')
+  }
+
+  assert.equal(mod.server().profile.services.connections, MCP)
+  ok('the active server\'s endpoint is what the routes and the tools use')
+
+  console.log('\n' + pass + ' verifications OK')
+} finally {
+  api.close()
+  rmSync(dir, { recursive: true, force: true })
+}

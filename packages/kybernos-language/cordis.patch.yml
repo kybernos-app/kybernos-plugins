@@ -1,0 +1,3 @@
+- insert:
+    - id: kybernos-language
+      name: '@local/kybernos-language'

@@ -1,0 +1,25 @@
+
+478 test files in 331 s: 476 green, 2 RED, 1 flaky (red in the parallel run, green alone)
+  flaky  packages/kybernos-cloud/test-cloud-host.mjs
+  RED    packages/kybernos-call/test-agent-process.mjs  (exit 1)
+             expected: true,
+             operator: 'strictEqual',
+             diff: 'simple'
+           }
+           Node.js v26.7.0
+  RED    packages/kybernos-call/test-dsh-home.mjs  (exit 1)
+             expected: false,
+             operator: 'strictEqual',
+             diff: 'simple'
+           }
+           Node.js v26.7.0
+14 kind(s) of skip (a skip is not a pass):
+  1 × SKIPPED: the Suite page GUI suite — needs playwright, react@18 and react-dom@18 (Cannot find module 'playwright')
+  1 × SKIPPED: the Workers page GUI suite — needs playwright, react@18 and react-dom@18 (Cannot find module 'playwright')
+  1 × SKIPPED: the source-release GUI check of dsh-mermaid — needs playwright and a Chromium (Cannot find module 'playwright')
+  1 × SKIPPED: the open-menu pass — jsdom not found (KYBERNOS_JSDOM=<path of its entry> plays it)
+  1 × SKIPPED: 28 python tests of the kybernos-call agent — livekit-agents is not installed here
+  1 × SKIPPED: the rendered part of the cloud client (footer chip, team switcher) — react / react-dom not found. Re-run with:
+  1 × SKIPPED: the DOM pass of the queue gesture — jsdom not found (KYBERNOS_JSDOM=<path of its entry> plays it)
+  1 × SKIPPED: the About page through the real React — react and react-dom are not on NODE_PATH
+RC=1

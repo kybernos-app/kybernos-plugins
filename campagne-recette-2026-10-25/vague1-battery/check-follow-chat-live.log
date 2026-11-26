@@ -1,0 +1,18 @@
+# check-follow-chat-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=45515
+
+  ✓ the sandbox restarts, pointed at the fake Kybernos (which also plays the model) and connected
+  ✓ the sandbox opens signed in to the fake, Personal active
+
+0. three real chats (the folders of the teams are made by a switch, step 6)
+file:///Users/miled/kybernos-plugins/scripts/lib-e2e-gui.mjs:128
+    if (!c) throw new Error('no composer on the page')
+                  ^
+
+Error: no composer on the page
+    at g.send (file:///Users/miled/kybernos-plugins/scripts/lib-e2e-gui.mjs:128:19)
+    at async say (file:///Users/miled/kybernos-plugins/scripts/check-follow-chat-live.mjs:122:5)
+    at async file:///Users/miled/kybernos-plugins/scripts/check-follow-chat-live.mjs:149:14
+
+Node.js v26.7.0
+

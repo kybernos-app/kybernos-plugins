@@ -1,0 +1,73 @@
+{
+  "name": "text-plugin-1",
+  "type": "plugin",
+  "note": "Six prompts that start the plugin-creator interview. A plugin made that way is DATA: a field of work for the setup wizard (goals, and the skills, teams and connectors that really exist), nothing runs and no code is written; a goal with nothing real behind it gets a 'soon' line. Two for business, two for education, two for research.",
+  "cells": [
+    {
+      "id": "plugin_cafe",
+      "card": "prompt",
+      "entry": {
+        "name": "Café field pack",
+        "tag": "Business",
+        "line": "A plugin for a small café: stock, rota and customer messages",
+        "meta": "Prompt"
+      },
+      "request": "Create a plugin for a small café owner: a field of work for the setup wizard, with nothing to run. First ask me for two to five goals (for example keeping stock right, planning the weekly rota, answering customers) and the languages to add. For each goal propose, from what really exists, the skills, teams and connectors that fit, and let me cut. A goal with nothing real behind it gets a 'soon' line, never an invented skill. Show me the pack in plain words, wait for my yes, write the draft, then tell me where to install it."
+    },
+    {
+      "id": "plugin_freelance",
+      "card": "prompt",
+      "entry": {
+        "name": "Freelance field pack",
+        "tag": "Business",
+        "line": "A plugin for a freelance consultant: proposals, invoices, follow-ups",
+        "meta": "Prompt"
+      },
+      "request": "Create a plugin for a freelance consultant: a field of work for the setup wizard, with nothing to run. First ask me for two to five goals (for example writing proposals, chasing invoices, following up with leads) and the languages to add. For each goal propose, from what really exists, the skills, teams and connectors that fit, and let me cut. A goal with nothing real behind it gets a 'soon' line, never an invented skill. Show me the pack in plain words, wait for my yes, write the draft, then tell me where to install it."
+    },
+    {
+      "id": "plugin_teacher",
+      "card": "prompt",
+      "entry": {
+        "name": "Teacher field pack",
+        "tag": "Education",
+        "line": "A plugin for a secondary-school teacher: lessons, quizzes, feedback",
+        "meta": "Prompt"
+      },
+      "request": "Create a plugin for a secondary-school teacher: a field of work for the setup wizard, with nothing to run. First ask me for two to five goals (for example preparing lessons, making quizzes, giving feedback on work) and the languages to add. For each goal propose, from what really exists, the skills, teams and connectors that fit, and let me cut. A goal with nothing real behind it gets a 'soon' line, never an invented skill. Show me the pack in plain words, wait for my yes, write the draft, then tell me where to install it."
+    },
+    {
+      "id": "plugin_student",
+      "card": "prompt",
+      "entry": {
+        "name": "Student field pack",
+        "tag": "Education",
+        "line": "A plugin for a university student: revision, deadlines, notes",
+        "meta": "Prompt"
+      },
+      "request": "Create a plugin for a university student: a field of work for the setup wizard, with nothing to run. First ask me for two to five goals (for example revising for exams, tracking deadlines, turning lectures into notes) and the languages to add. For each goal propose, from what really exists, the skills, teams and connectors that fit, and let me cut. A goal with nothing real behind it gets a 'soon' line, never an invented skill. Show me the pack in plain words, wait for my yes, write the draft, then tell me where to install it."
+    },
+    {
+      "id": "plugin_lab",
+      "card": "prompt",
+      "entry": {
+        "name": "Lab group field pack",
+        "tag": "Research",
+        "line": "A plugin for a lab group: papers, data checks, write-ups",
+        "meta": "Prompt"
+      },
+      "request": "Create a plugin for a research lab group: a field of work for the setup wizard, with nothing to run. First ask me for two to five goals (for example keeping up with papers, checking data and statistics, writing up results) and the languages to add. For each goal propose, from what really exists, the skills, teams and connectors that fit, and let me cut. A goal with nothing real behind it gets a 'soon' line, never an invented skill. Show me the pack in plain words, wait for my yes, write the draft, then tell me where to install it."
+    },
+    {
+      "id": "plugin_market_research",
+      "card": "prompt",
+      "entry": {
+        "name": "Market research field pack",
+        "tag": "Research",
+        "line": "A plugin for a market-research analyst: sources, surveys, reports",
+        "meta": "Prompt"
+      },
+      "request": "Create a plugin for a market-research analyst: a field of work for the setup wizard, with nothing to run. First ask me for two to five goals (for example gathering sources, analysing survey data, writing the report) and the languages to add. For each goal propose, from what really exists, the skills, teams and connectors that fit, and let me cut. A goal with nothing real behind it gets a 'soon' line, never an invented skill. Show me the pack in plain words, wait for my yes, write the draft, then tell me where to install it."
+    }
+  ]
+}

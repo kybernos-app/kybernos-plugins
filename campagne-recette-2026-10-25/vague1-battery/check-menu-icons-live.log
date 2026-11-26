@@ -1,0 +1,61 @@
+# check-menu-icons-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=25714
+
+  ✓ the theme and plugin clients were found in the served bundle and swapped
+Menu icon sets — this checkout in the real GUI
+  ✓ the sidebar menu has its rows (8)
+  ✓ the registry is published, on « classic », with twenty-one sets
+  ✓ classic: the rows keep the line icons (no set drawing)
+  ✓ the line icons are lent to the theme page
+  ✓ aplat: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ aplat: the open page (Skills) is in its colour, the others are not coloured
+  ✓ duotone: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ duotone: the open page (Skills) is in its colour, the others are not coloured
+  ✓ bauhaus: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ bauhaus: the open page (Skills) is in its colour, the others are not coloured
+  ✓ doux: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ doux: the open page (Skills) is in its colour, the others are not coloured
+  ✓ pastille: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ pastille: the open page (Skills) is in its colour, the others are not coloured
+  ✓ matrice: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ matrice: the open page (Skills) is in its colour, the others are not coloured
+  ✓ mondrian: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ mondrian: the open page (Skills) is in its colour, the others are not coloured
+  ✓ anneaux: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ anneaux: the open page (Skills) is in its colour, the others are not coloured
+  ✓ iso: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ iso: the open page (Skills) is in its colour, the others are not coloured
+  ✓ kawaii: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ kawaii: the open page (Skills) is in its colour, the others are not coloured
+  ✓ barres: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ barres: the open page (Skills) is in its colour, the others are not coloured
+  ✓ facettes: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ facettes: the open page (Skills) is in its colour, the others are not coloured
+  ✓ ombre: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ ombre: the open page (Skills) is in its colour, the others are not coloured
+  ✓ trame: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ trame: the open page (Skills) is in its colour, the others are not coloured
+  ✓ bulles: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ bulles: the open page (Skills) is in its colour, the others are not coloured
+  ✓ alveoles: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ alveoles: the open page (Skills) is in its colour, the others are not coloured
+  ✓ constellation: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ constellation: the open page (Skills) is in its colour, the others are not coloured
+  ✓ biton: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ biton: the open page (Skills) is in its colour, the others are not coloured
+  ✓ tampon: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ tampon: the open page (Skills) is in its colour, the others are not coloured
+  ✓ nature: every row that has an entry is redrawn (8 of 8), 16 px
+  ✓ nature: the open page (Skills) is in its colour, the others are not coloured
+  ✓ back on classic the line icons are back
+  ✓ Settings open
+  ✓ Essentiel has the icons summary, with a button to the tab
+  ✓ the Icons tab opens
+  ✓ the Icons tab lists twenty-one sets (classic + twenty)
+  ✓ every card shows nine drawings in two rows (rest, then colour)
+  ✓ the current set (classic) is the pressed one
+  ✓ the Gallery tab opens
+  ✓ the gallery has the six new themes, each showing its icon set
+
+✓ 54 checks passed
+

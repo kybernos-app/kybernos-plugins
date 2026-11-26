@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Webapps pane — Webapp Creator mockup</title>
+<!-- dsh.css: --dsw-* tokens + the real DSH primitive controls (kbm-*), copied from the
+     maquette-dsh skill example. Local file, no network request of any kind. -->
+<link rel="stylesheet" href="dsh.css">
+<style>
+/* ══════════════════════════════════════════════════════════════════════════
+   Two layers of styles:
+   - mk-*  the presentation shell (title, explanation, demo aids) — NOT product
+   - wc-*  the layout of the "Webapps" pane — this is what would ship in the plugin
+   Colours: only var(--dsw-alias-*) tokens. Sizes: only the product font scale.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Font-scale bridge. dsh.css exports no font-size tokens (only --dsw-font-family), so
+   each step reads the product token and falls back to the product scale value
+   (scale: 11 / 12 / 13 / 14 / 16 / 18 / 19 / 20 / 21 / 24). */
+body{
+  --wc-fs-11:var(--dsw-font-xxxs-11-font-size,11px);
+  --wc-fs-12:var(--dsw-font-xxs-12-font-size,12px);
+  --wc-fs-13:var(--dsw-font-xs-13-font-size,13px);
+  --wc-fs-14:var(--dsw-font-s-14-font-size,14px);
+  --wc-fs-18:var(--dsw-font-m-18-font-size,18px);
+  --wc-fs-24:24px;
+}
+
+body{margin:0;padding:20px 28px 28px;background-color:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font-family:var(--dsw-font-family);font-size:var(--wc-fs-14);line-height:1.45;-webkit-font-smoothing:antialiased}
+*,*::before,*::after{box-sizing:border-box}
+
+/* ── mk-* : the presentation shell ───────────────────────────────────────── */
+.mk-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:10px}
+.mk-head h1{margin:0;font-size:var(--wc-fs-24);font-weight:700;letter-spacing:-.01em;line-height:1.2;color:var(--dsw-alias-label-primary)}
+.mk-note{display:block;margin-top:4px;font-size:var(--wc-fs-12);color:var(--dsw-alias-label-tertiary);overflow-wrap:anywhere}
+.mk-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mk-explication{margin:0 0 16px;font-size:var(--wc-fs-14);line-height:1.5;color:var(--dsw-alias-label-secondary);max-width:72ch}
+/* A window frame hugs its content: a frame wider than its scene is a defect, not margin. */
+.mk-frame{width:fit-content;max-width:100%;margin:0 auto;background:var(--dsw-alias-bg-module-platform);border-radius:24px;padding:18px;display:flex;justify-content:center}
+.mk-legend{display:block;margin:0 0 8px;font-size:var(--wc-fs-11);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.mk-aids{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:14px;font-size:var(--wc-fs-12);color:var(--dsw-alias-label-tertiary)}
+/* demo aids: discrete text links, never primary buttons */
+.mk-aid{padding:0;border:0;background:none;font:inherit;color:var(--dsw-alias-link);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.mk-aid:hover{color:var(--dsw-alias-label-primary)}
+
+/* ── wc-* : the Webapps pane ─────────────────────────────────────────────── */
+.wc-scope button:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.wc-pane{width:100%;max-width:420px;background:var(--dsw-alias-bg-layer-1);border:0.5px solid var(--dsw-alias-border-l3);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.wc-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.wc-title{margin:0;font-size:var(--wc-fs-18);font-weight:600;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
+
+.wc-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.wc-row{display:flex;align-items:flex-start;gap:10px;padding:12px;border:0.5px solid var(--dsw-alias-border-l3);border-radius:14px;background:var(--dsw-alias-bg-layer-2)}
+/* kbm-dot has no default size: pin it locally, and align it on the first text line */
+.wc-row .kbm-dot{width:10px;height:10px;flex:none;margin-top:5px}
+/* dsh.css paints idle / done / warning / error on the dot but nothing for "ongoing"
+   (in the app it is a spinner): this local rule gives the live state the success colour. */
+.wc-row .kbm-dot[data-state="ongoing"]{color:var(--dsw-alias-state-success-primary)}
+
+.wc-main{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:2px}
+.wc-name-line{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px}
+.wc-name{margin:0;font-size:var(--wc-fs-14);font-weight:600;line-height:1.35;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}
+/* display-only slug: looks like a link, is not one (publishing on *.kaby.app comes later) */
+.wc-slug{font-family:var(--ds-font-family-code);font-size:var(--wc-fs-12);color:var(--dsw-alias-link);overflow-wrap:anywhere;cursor:default}
+.wc-count{display:flex;flex-wrap:wrap;gap:0 6px;margin-top:2px;font-size:var(--wc-fs-13);color:var(--dsw-alias-label-secondary)}
+.wc-frag{white-space:nowrap}
+.wc-sep{color:var(--dsw-alias-label-tertiary)}
+.wc-actions{flex:none;display:flex;align-items:center;gap:6px}
+
+.wc-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:28px 16px;border:0.5px dashed var(--dsw-alias-border-l4);border-radius:14px;color:var(--dsw-alias-label-secondary)}
+.wc-empty-icon{display:inline-flex;width:32px;height:32px;align-items:center;justify-content:center;color:var(--dsw-alias-label-tertiary)}
+.wc-empty-title{margin:0;font-size:var(--wc-fs-14);font-weight:600;color:var(--dsw-alias-label-primary)}
+.wc-empty-sub{margin:0;font-size:var(--wc-fs-13);color:var(--dsw-alias-label-tertiary)}
+.wc-status{margin:0;min-height:1.45em;font-size:var(--wc-fs-12);color:var(--dsw-alias-label-tertiary)}
+
+/* ── fluid: the row folds when the place is short ────────────────────────── */
+@media (max-width:720px){
+  .mk-frame{padding:12px;border-radius:18px}
+}
+@media (max-width:480px){
+  body{padding:14px 12px 20px}
+  .mk-head h1{font-size:var(--wc-fs-18)}
+  .mk-frame{padding:8px;border-radius:16px}
+  .wc-pane{padding:12px;border-radius:16px}
+  .wc-row{padding:10px;gap:8px}
+  /* the count line wraps fragment by fragment; the actions stay on the row */
+  .wc-count{gap:0 4px}
+  .wc-actions{gap:4px}
+  .wc-actions .kbm-btn{padding:0 8px}
+}
+
+/* DSH controls set display:flex — the hidden attribute alone hides nothing */
+[hidden]{display:none !important}
+</style>
+</head>
+<body class="wc-scope">
+
+<header class="mk-head">
+  <div>
+    <h1>Webapps pane</h1>
+    <span class="mk-note">Webapp Creator · mockup, simple fidelity · data: ~/.dsh/kybers/rdv-demo/export.json</span>
+  </div>
+  <div class="mk-tools">
+    <button type="button" id="dark" class="kbm-pill kbm-pill-interactive" data-act="dark" aria-pressed="false">Dark mode</button>
+  </div>
+</header>
+
+<p class="mk-explication">Click Start on a webapp: its dot goes live, Start becomes Stop and Open unlocks. The pane lists, starts, stops and opens — it refuses to create, edit or publish an app: those stay in the chat.</p>
+
+<main class="mk-frame">
+  <section class="wc-pane" id="wc-pane" aria-labelledby="wc-title">
+    <div class="wc-head">
+      <h2 class="wc-title" id="wc-title">Webapps</h2>
+      <span class="kbm-tag" data-tone="neutral" id="wc-total">1 webapp</span>
+    </div>
+
+    <ul class="wc-list" id="wc-list" aria-label="Your webapps"></ul>
+
+    <div class="wc-empty" id="wc-empty" hidden>
+      <span class="wc-empty-icon" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/><path d="M7 6.5h.01M10 6.5h.01"/></svg>
+      </span>
+      <p class="wc-empty-title">No webapp yet — create one from the chat</p>
+      <p class="wc-empty-sub">Describe the app you need in the conversation and it will appear here.</p>
+    </div>
+
+    <p class="wc-status" id="wc-status" role="status" aria-live="polite"></p>
+  </section>
+</main>
+
+<div class="mk-aids">
+  <span>Demo aids:</span>
+  <button type="button" class="mk-aid" id="aid-clear" data-act="clear">empty the list</button>
+  <button type="button" class="mk-aid" id="aid-restore" data-act="restore" hidden>restore the demo list</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* The data is the real mini base ~/.dsh/kybers/rdv-demo/export.json:
+       table rendezvous -> "compte": 8   (bookings)
+       table contacts   -> "compte": 5   (clients)
+     The app name is the English form of the pack name ("Démo — Prise de rendez-vous").
+     The slug is a display value only — export.json carries none, publishing comes later. */
+  var APPS = [
+    { id: 'rdv-demo', name: 'Demo — Appointment booking', slug: 'rdv-cabinet.kaby.app', bookings: 8, clients: 5 }
+  ];
+
+  var ICON_PLAY = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5l12 7-12 7z"/></svg>';
+  var ICON_STOP = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+  var ICON_OPEN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></svg>';
+
+  /* one state object: the apps on screen, and which of them are running */
+  var state = { apps: APPS.slice(), running: {} };
+
+  function $(sel) { return document.querySelector(sel); }
+  function find(id) { for (var i = 0; i < APPS.length; i++) { if (APPS[i].id === id) return APPS[i]; } return null; }
+
+  /* the row skeleton: static content only, the state is applied by paintRow */
+  function buildRow(app) {
+    var li = document.createElement('li');
+    li.className = 'wc-row';
+    li.setAttribute('data-app', app.id);
+    li.innerHTML =
+      '<span class="kbm-dot" data-state="idle" aria-hidden="true"></span>' +
+      '<div class="wc-main">' +
+        '<div class="wc-name-line"><h3 class="wc-name"></h3><span class="kbm-tag" data-role="tag" data-tone="neutral">Stopped</span></div>' +
+        '<a class="wc-slug"></a>' +
+        '<p class="wc-count"><span class="wc-frag" data-role="bookings"></span><span class="wc-sep" aria-hidden="true">·</span><span class="wc-frag" data-role="clients"></span></p>' +
+      '</div>' +
+      '<div class="wc-actions">' +
+        '<button type="button" class="kbm-btn kbm-btn-sm kbm-btn-primary" data-act="toggle"><span class="kbm-btn-icon"></span><span data-role="toggle-label">Start</span></button>' +
+        '<button type="button" class="kbm-btn kbm-btn-sm kbm-btn-ghost" data-act="open"><span class="kbm-btn-icon">' + ICON_OPEN + '</span><span>Open</span></button>' +
+      '</div>';
+    li.querySelector('.wc-name').textContent = app.name;
+    li.querySelector('.wc-slug').textContent = app.slug;
+    li.querySelector('[data-role="bookings"]').textContent = app.bookings + ' bookings';
+    li.querySelector('[data-role="clients"]').textContent = app.clients + ' clients';
+    paintRow(li);
+    return li;
+  }
+
+  /* applies the running / stopped state to ONE row, in place (focus stays on the button) */
+  function paintRow(li) {
+    var app = find(li.getAttribute('data-app'));
+    var on = !!state.running[app.id];
+    var dot = li.querySelector('.kbm-dot');
+    var tag = li.querySelector('[data-role="tag"]');
+    var toggle = li.querySelector('[data-act="toggle"]');
+    var open = li.querySelector('[data-act="open"]');
+
+    dot.setAttribute('data-state', on ? 'ongoing' : 'idle');
+    tag.setAttribute('data-tone', on ? 'success' : 'neutral');
+    tag.textContent = on ? 'Running' : 'Stopped';
+
+    toggle.className = 'kbm-btn kbm-btn-sm ' + (on ? 'kbm-btn-outline' : 'kbm-btn-primary');
+    toggle.setAttribute('data-next', on ? 'stop' : 'start');
+    toggle.setAttribute('aria-label', (on ? 'Stop ' : 'Start ') + app.name);
+    toggle.querySelector('.kbm-btn-icon').innerHTML = on ? ICON_STOP : ICON_PLAY;
+    toggle.querySelector('[data-role="toggle-label"]').textContent = on ? 'Stop' : 'Start';
+
+    open.disabled = !on;
+    open.setAttribute('aria-label', 'Open ' + app.name);
+    open.title = on ? 'Open ' + app.name : 'Start the app to open it';
+  }
+
+  /* the list itself: rows, count tag, empty state, demo aids */
+  function render() {
+    var list = $('#wc-list');
+    var n = state.apps.length;
+    list.innerHTML = '';
+    for (var i = 0; i < n; i++) list.appendChild(buildRow(state.apps[i]));
+    list.hidden = n === 0;
+    $('#wc-empty').hidden = n !== 0;
+    $('#wc-total').textContent = n + (n === 1 ? ' webapp' : ' webapps');
+    $('#aid-clear').hidden = n === 0;
+    $('#aid-restore').hidden = n !== 0;
+    $('#wc-status').textContent = '';
+  }
+
+  function say(text) { $('#wc-status').textContent = text; }
+
+  /* delegated listeners: one click handler for the whole page */
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest ? e.target.closest('[data-act]') : null;
+    if (!el || el.disabled) return;
+    var act = el.getAttribute('data-act');
+    var row = el.closest('.wc-row');
+    var app = row ? find(row.getAttribute('data-app')) : null;
+
+    if (act === 'toggle' && app) {
+      var start = el.getAttribute('data-next') === 'start';
+      state.running[app.id] = start;
+      paintRow(row);
+      say(app.name + (start ? ' is running.' : ' is stopped.'));
+    } else if (act === 'open' && app) {
+      say('Opens ' + app.name + ' in your browser (not drawn in this mockup).');
+    } else if (act === 'clear') {
+      state.apps = [];
+      render();
+    } else if (act === 'restore') {
+      state.apps = APPS.slice();
+      render();
+    } else if (act === 'dark') {
+      var dark = document.body.toggleAttribute('data-ds-dark-theme');
+      el.setAttribute('aria-pressed', dark ? 'true' : 'false');
+      el.classList.toggle('kbm-pill-active', dark);
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

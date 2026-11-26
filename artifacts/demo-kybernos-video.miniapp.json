@@ -1,0 +1,420 @@
+{
+  "kind": "motion",
+  "renderer": "motion",
+  "title": "Démo Kybernos — la mission en vidéo",
+  "meta": {
+    "rev": 4,
+    "history": [
+      {
+        "r": 1,
+        "by": "agent",
+        "at": "2026-10-18T00:04:32.564Z",
+        "what": "Created"
+      },
+      {
+        "r": 2,
+        "by": "agent",
+        "at": "2026-10-18T00:04:54.110Z",
+        "what": "Scene rewritten"
+      },
+      {
+        "r": 3,
+        "by": "agent",
+        "at": "2026-10-18T00:05:15.250Z",
+        "what": "Scene rewritten"
+      },
+      {
+        "r": 4,
+        "by": "agent",
+        "at": "2026-10-18T00:05:36.173Z",
+        "what": "Scene rewritten"
+      }
+    ]
+  },
+  "data": [
+    {
+      "v": 1,
+      "format": {
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "duration": 16
+      },
+      "background": "#0e1116",
+      "layers": [
+        {
+          "type": "rect",
+          "name": "cadre",
+          "x": 960,
+          "y": 540,
+          "w": 1560,
+          "h": 900,
+          "r": 20,
+          "fill": "#151a22",
+          "stroke": "#2a3444"
+        },
+        {
+          "type": "rect",
+          "name": "logo",
+          "x": 170,
+          "y": 125,
+          "w": 52,
+          "h": 52,
+          "r": 10,
+          "fill": "#5eead4"
+        },
+        {
+          "type": "text",
+          "name": "logoK",
+          "x": 170,
+          "y": 125,
+          "text": "K",
+          "size": 38,
+          "weight": 800,
+          "fill": "#0a0d12"
+        },
+        {
+          "type": "text",
+          "name": "marque",
+          "x": 680,
+          "y": 125,
+          "text": "Kybernos — sur DeepSeek Harness",
+          "size": 34,
+          "weight": 700,
+          "fill": "#e8edf4"
+        },
+        {
+          "type": "text",
+          "name": "titre",
+          "x": 960,
+          "y": 210,
+          "text": "Une équipe d'agents, lancée en une mission",
+          "size": 62,
+          "weight": 800,
+          "fill": "#e8edf4"
+        },
+        {
+          "type": "rect",
+          "name": "souligne",
+          "x": 960,
+          "y": 262,
+          "w": {
+            "k": [
+              [
+                1.2,
+                0
+              ],
+              [
+                2.2,
+                700,
+                "io"
+              ]
+            ]
+          },
+          "h": 6,
+          "fill": "#5eead4"
+        },
+        {
+          "type": "rect",
+          "name": "bulle1",
+          "x": 700,
+          "y": 350,
+          "w": {
+            "k": [
+              [
+                1.4,
+                0
+              ],
+              [
+                2.1,
+                1240,
+                "out"
+              ]
+            ]
+          },
+          "h": 90,
+          "r": 12,
+          "fill": "#212a37"
+        },
+        {
+          "type": "text",
+          "name": "bulle1t",
+          "x": 700,
+          "y": 350,
+          "text": "Mission : étude concurrentielle des outils de veille IA…",
+          "size": 40,
+          "fill": "#e8edf4",
+          "reveal": {
+            "k": [
+              [
+                1.8,
+                0
+              ],
+              [
+                2.6,
+                1,
+                "out"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "text",
+          "name": "role1",
+          "x": 480,
+          "y": 460,
+          "text": "🔍 Researcher — sources trouvées et synthétisées",
+          "size": 36,
+          "weight": 700,
+          "fill": "#a78bfa",
+          "reveal": {
+            "k": [
+              [
+                3.6,
+                0
+              ],
+              [
+                4,
+                1,
+                "out"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "text",
+          "name": "role2",
+          "x": 480,
+          "y": 530,
+          "text": "📐 Analyste — grille de score prix / couverture / API",
+          "size": 36,
+          "weight": 700,
+          "fill": "#fbbf24",
+          "reveal": {
+            "k": [
+              [
+                4.8,
+                0
+              ],
+              [
+                5.2,
+                1,
+                "out"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "text",
+          "name": "role3",
+          "x": 480,
+          "y": 600,
+          "text": "✍️ Rédacteur — note de synthèse en cours d'écriture",
+          "size": 36,
+          "weight": 700,
+          "fill": "#e8edf4",
+          "reveal": {
+            "k": [
+              [
+                6,
+                0
+              ],
+              [
+                6.4,
+                1,
+                "out"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "text",
+          "name": "role4",
+          "x": 480,
+          "y": 670,
+          "text": "🛡️ Relecteur — cohérence et sources vérifiées",
+          "size": 36,
+          "weight": 700,
+          "fill": "#5eead4",
+          "reveal": {
+            "k": [
+              [
+                7.2,
+                0
+              ],
+              [
+                7.6,
+                1,
+                "out"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "rect",
+          "name": "barbg",
+          "x": 960,
+          "y": 760,
+          "w": 1240,
+          "h": 22,
+          "r": 11,
+          "fill": "#1a212c"
+        },
+        {
+          "type": "rect",
+          "name": "bar",
+          "x": 960,
+          "y": 760,
+          "w": {
+            "k": [
+              [
+                3.5,
+                0
+              ],
+              [
+                10,
+                1240,
+                "io"
+              ]
+            ]
+          },
+          "h": 22,
+          "r": 11,
+          "fill": "#5eead4"
+        },
+        {
+          "type": "number",
+          "name": "pct",
+          "x": 960,
+          "y": 835,
+          "value": {
+            "k": [
+              [
+                3.5,
+                0
+              ],
+              [
+                10,
+                100,
+                "io"
+              ]
+            ]
+          },
+          "prefix": "Avancement : ",
+          "suffix": " %",
+          "size": 36,
+          "weight": 700,
+          "fill": "#9aa7b8"
+        },
+        {
+          "type": "text",
+          "name": "done",
+          "x": 960,
+          "y": 925,
+          "text": "✓ Livrable prêt — note de 2 pages + grille comparative",
+          "size": 46,
+          "weight": 800,
+          "fill": "#34d399",
+          "reveal": {
+            "k": [
+              [
+                10.4,
+                0
+              ],
+              [
+                11.2,
+                1,
+                "out"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "text",
+          "name": "fin",
+          "x": 960,
+          "y": 1010,
+          "text": "Kybernos — équipes, skills, automations, tableau de bord",
+          "size": 38,
+          "weight": 500,
+          "fill": "#9aa7b8",
+          "reveal": {
+            "k": [
+              [
+                12,
+                0
+              ],
+              [
+                12.8,
+                1,
+                "out"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "particles",
+          "name": "confetti",
+          "x": 960,
+          "y": 925,
+          "shape": "square",
+          "count": 70,
+          "t0": 10.4,
+          "t1": 10.5,
+          "speed": 750,
+          "angle": 270,
+          "spread": 80,
+          "size0": 10,
+          "size1": 4,
+          "colors": [
+            "#5eead4",
+            "#a78bfa",
+            "#fbbf24"
+          ]
+        }
+      ],
+      "audio": [
+        {
+          "at": 0.2,
+          "volume": 0.5,
+          "synth": "riser"
+        },
+        {
+          "at": 2.2,
+          "volume": 0.6,
+          "synth": "click"
+        },
+        {
+          "at": 4.6,
+          "volume": 0.6,
+          "synth": "click"
+        },
+        {
+          "at": 6.4,
+          "volume": 0.4,
+          "synth": "tick"
+        },
+        {
+          "at": 7.4,
+          "volume": 0.4,
+          "synth": "tick"
+        },
+        {
+          "at": 8.4,
+          "volume": 0.5,
+          "synth": "whoosh"
+        },
+        {
+          "at": 10.2,
+          "volume": 0.7,
+          "synth": "pop"
+        },
+        {
+          "at": 11.2,
+          "volume": 0.6,
+          "synth": "ding"
+        }
+      ]
+    }
+  ]
+}

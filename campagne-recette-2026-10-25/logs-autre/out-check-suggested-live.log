@@ -1,0 +1,21 @@
+ok   the host stores two suggestions switched off
+ok   the suggestions sit in a dashed card, two rows
+ok   the card is dashed
+ok   the list holds the real automations only (the ones already there and the one made here), no suggestion
+ok   a row says where the suggestion comes from and its proof
+ok   each row has Add, Edit and Discard
+ok   the menu count does not include the suggestions
+ok   the menu row pulses while suggestions wait
+ok   the ping animates (or is static under reduced motion)
+ok   Run now is refused on a suggestion
+ok   Add clears the flag and keeps it switched off
+ok   ...it is now in the list and one suggestion is left
+ok   Discard deletes the suggestion and the card goes
+ok   the pulse stops when nothing waits
+ok   the Connectors row pulses with the number of apps to connect
+ok   on Yours the two apps come first, in dashed cards that say who needs them
+ok   the old « For your field » strip is gone
+ok   « Not now » silences one pulse and keeps the app listed
+ok   on Discover the same two apps head one flat list, with no section titles
+
+all checks passed

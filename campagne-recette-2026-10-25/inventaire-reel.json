@@ -1,0 +1,205 @@
+[
+  {
+    "s": "accueil",
+    "b": 57624
+  },
+  {
+    "s": "Kaby",
+    "c": "clicked",
+    "heads": "[\"Your assistant, in your pocket.\"]",
+    "b": 114519
+  },
+  {
+    "s": "Workspaces",
+    "c": "clicked",
+    "heads": "[\"Workspaces\"]",
+    "b": 65105
+  },
+  {
+    "s": "Creations",
+    "heads": "[]",
+    "b": 9880
+  },
+  {
+    "s": "Automations",
+    "c": "absent",
+    "heads": "[]",
+    "b": 9826
+  },
+  {
+    "s": "Skills",
+    "c": "absent",
+    "heads": "[]",
+    "b": 9785
+  },
+  {
+    "s": "Connectors",
+    "c": "absent",
+    "heads": "[]",
+    "b": 10096
+  },
+  {
+    "s": "settings",
+    "ok": true,
+    "b": 108102
+  },
+  {
+    "s": "settings:General",
+    "ok": true,
+    "b": 123154
+  },
+  {
+    "s": "settings:Theme",
+    "ok": true,
+    "b": 150066
+  },
+  {
+    "s": "settings:Language",
+    "ok": true,
+    "b": 116351
+  },
+  {
+    "s": "settings:Memory & Lessons",
+    "ok": true,
+    "b": 118327
+  },
+  {
+    "s": "settings:Models",
+    "ok": true,
+    "b": 79977
+  },
+  {
+    "s": "settings:Kybernos",
+    "ok": true,
+    "b": 102814
+  },
+  {
+    "s": "settings:About",
+    "ok": true,
+    "b": 108748
+  },
+  {
+    "s": "settings:Servers",
+    "ok": true,
+    "b": 127554
+  },
+  {
+    "s": "settings:Auto Routing",
+    "ok": true,
+    "b": 80100
+  },
+  {
+    "s": "settings:Web Search",
+    "ok": true,
+    "b": 102016
+  },
+  {
+    "s": "settings:Built-in plugins",
+    "ok": true,
+    "b": 129742
+  },
+  {
+    "s": "settings:Atlas",
+    "ok": true,
+    "b": 70289
+  },
+  {
+    "s": "settings:AI provider and models",
+    "ok": true,
+    "b": 73105
+  },
+  {
+    "s": "settings:Agent presets",
+    "ok": true,
+    "b": 151794
+  },
+  {
+    "s": "settings:Voice",
+    "ok": true,
+    "b": 77145
+  },
+  {
+    "s": "settings:Skills",
+    "ok": true,
+    "b": 94102
+  },
+  {
+    "s": "settings:Learned skills",
+    "ok": true,
+    "b": 116442
+  },
+  {
+    "s": "settings:Commands",
+    "ok": true,
+    "b": 108835
+  },
+  {
+    "s": "settings:Ollama local models",
+    "ok": true,
+    "b": 153101
+  },
+  {
+    "s": "settings:Automations",
+    "ok": true,
+    "b": 116111
+  },
+  {
+    "s": "settings:Free LLMs",
+    "ok": true,
+    "b": 90060
+  },
+  {
+    "s": "settings:Kybernos Suite",
+    "ok": true,
+    "b": 143209
+  },
+  {
+    "s": "settings:Tools",
+    "ok": true,
+    "b": 116415
+  },
+  {
+    "s": "settings:Workers",
+    "ok": true,
+    "b": 117974
+  },
+  {
+    "s": "settings:Connectors",
+    "ok": true,
+    "b": 118265
+  },
+  {
+    "s": "settings:Calls",
+    "ok": true,
+    "b": 99517
+  },
+  {
+    "s": "settings:Kaby",
+    "ok": true,
+    "b": 102667
+  },
+  {
+    "s": "settings:Usage",
+    "ok": true,
+    "b": 114023
+  },
+  {
+    "s": "settings:Code sandbox (E2B)",
+    "ok": true,
+    "b": 70502
+  },
+  {
+    "s": "settings:Phone and channels",
+    "ok": true,
+    "b": 149080
+  },
+  {
+    "s": "volet-droit",
+    "rail": "[\"Send message\"]",
+    "b": 149080
+  },
+  {
+    "s": "console-erreurs",
+    "errors": []
+  }
+]

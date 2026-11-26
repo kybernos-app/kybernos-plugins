@@ -1,0 +1,9 @@
+{
+  "name": "@acme/kybernos-vet-clinic",
+  "version": "1.0.0",
+  "description": "Sample Kybernos theme data for a fictional veterinary clinic (author acme). Nothing to load: no dsh key, no patch, no script.",
+  "license": "CC-BY-4.0",
+  "scripts": {
+    "postinstall": "node setup.js"
+  }
+}

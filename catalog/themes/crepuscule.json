@@ -1,0 +1,22 @@
+{
+  "id": "crepuscule",
+  "v": 1,
+  "name": "Crépuscule",
+  "author": "Kybernos",
+  "description": {
+    "fr": "Prune profond et orange doux, coins arrondis.",
+    "en": "Deep plum and soft orange, rounded corners."
+  },
+  "settings": {
+    "mode": "dark",
+    "acc": "#fb923c",
+    "ov": {
+      "dark:base": "#1a1220",
+      "dark:l1": "#241a2c",
+      "dark:l2": "#2e2238",
+      "dark:side": "#1e1626",
+      "dark:input": "#2e2238"
+    },
+    "radius": "soft"
+  }
+}

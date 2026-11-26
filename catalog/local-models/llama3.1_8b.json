@@ -1,0 +1,20 @@
+{
+  "id": "llama3.1:8b",
+  "famille": "l",
+  "initiale": "Ll",
+  "tailleGo": 4.9,
+  "ramMin": 16,
+  "score": "Ollama library · 4.9 GB · 128K ctx",
+  "input": [
+    "text"
+  ],
+  "badges": [
+    "Tools"
+  ],
+  "desc": {
+    "fr": "Llama 3.1 (Meta), version 8B : outils, contexte 128K. Le plus répandu, plus ancien.",
+    "en": "Llama 3.1 (Meta), 8B version: tools, 128K context. The most widespread, and older."
+  },
+  "ajoute": "2026-10-15",
+  "ordre": 96
+}

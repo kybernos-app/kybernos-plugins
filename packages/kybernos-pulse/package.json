@@ -1,0 +1,22 @@
+{
+  "name": "@local/kybernos-pulse",
+  "version": "0.1.0",
+  "description": "Kybernos Pulse: tells you when an automation finished, failed or waits for you, in a floating window, a banner and a badge, with a link back to Kybernos.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}

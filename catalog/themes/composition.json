@@ -1,0 +1,23 @@
+{
+  "id": "composition",
+  "v": 1,
+  "name": "Composition",
+  "author": "Kybernos",
+  "description": {
+    "fr": "Blocs francs et un seul rouge, coins nets, icônes en blocs.",
+    "en": "Plain blocks and a single red, sharp corners, block icons."
+  },
+  "settings": {
+    "mode": "light",
+    "acc": "#d7263d",
+    "ov": {
+      "light:base": "#f7f6f1",
+      "light:l1": "#ffffff",
+      "light:l2": "#efeee7",
+      "light:side": "#f1f0e9",
+      "light:input": "#ffffff"
+    },
+    "radius": "sharp",
+    "iconSet": "mondrian"
+  }
+}

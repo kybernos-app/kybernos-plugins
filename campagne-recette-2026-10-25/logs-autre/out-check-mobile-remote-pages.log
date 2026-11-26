@@ -1,0 +1,53 @@
+the account menu's Phone and channels window
+  ✓ the profile menu has the « Phone and channels » entry (the account card is there: the stand-in server signed this DSH in)
+  ✓ the window opens with « Add a phone » and has asked for no code by itself
+  ✓ « Add a phone » shows a real QR code
+the window's « ? How it works » card
+  ✓ the title row carries the button
+  ✓ it opens the card
+  ✓ the card has its text (what it is, the steps, where to find it)
+  ✓ the card is wholly inside the window
+  ✓ and none of it is cut or covered (its top-left, right edge and bottom-right corner answer to it)
+  ✓ its ✕ closes the card and the QR code stays
+  ✓ Chrome decodes the QR code into the pairing link
+  ✓ the server was asked for exactly one pairing
+Settings › Phone and channels
+  ✓ the cross closes the window
+  ✓ Settings › Phone and channels opens
+  ✓ the page has both columns and asks for no code by itself
+  ✓ « Add a phone » on the page shows a QR code
+  ✓ and it is a pairing link of its own, which Chrome decodes
+  ✓ the server was asked for a second pairing, not more
+the phone
+  ✓ the phone page reaches the 4-digit check
+  ✓ the address bar no longer carries the secrets
+  ✓ the computer shows the same 4 digits
+  ✓ nothing is served to the phone before approval
+  ✓ after approval the phone offers to install the apps first
+  ✓ after approval the phone runs the computer's page
+  . a small route asked for while the page loads: {"status":200,"ms":8} (relay uplink limit: none B/s)
+  ✓ it is DSH, at phone width, with the phone layout
+  ✓ its composer is there
+  ✓ requests and the streaming socket went through the tunnel
+  ✓ the relay saw only ciphertext after the handshake
+the pages, on the phone
+  ✓ on this phone DSH draws no keyboard shortcut (the drawer must not depend on one)
+  . iframe at {"x":0,"y":0,"w":390,"h":844}
+  ✓ the Skills data routes answer through the tunnel
+  ✓ the menu button opens the drawer
+  . element under (378, 420): div(FRAME) pI_x6G_frame | class=pI_x6G_frame data-rightbar-collapsed=true style=grid-template-column | parent=DIV pos=relative z=auto pe=auto rect={"x":0,"y":0,"width":390,"height":844,"top":0,"right":390,"bottom":844,"left":0}
+  ✓ a tap on the dimmed chat closes it
+  ✓ a swipe to the left closes it
+  ✓ the drawer lists Skills
+  ✓ picking Skills closes the drawer by itself
+  ✓ the Skills page loads
+  . requests of the page: {"n":231,"by":{"200":229,"403":1,"404":1},"slow":[]}
+  ✓ no request was refused for being too many (429)
+  ✓ and it lists its skills
+the computer restarts DSH while the phone is open
+  . up after ~4s, bundles mounted (HTTP 401 without a session is expected)
+  ✓ the phone resumes by itself after the computer's DSH restarted
+  ✓ a request of the page that was open goes through the resumed tunnel
+  ✓ and the Skills page loads after it
+
+40 passed, 0 failed

@@ -1,0 +1,22 @@
+{
+  "suite": "query",
+  "doc": "queryRecords: search, then filter, then sort, over the task fixture; deleted records never show (08 is deleted). The filter and the sorts are prepared first, so a half-edited view still shows something. Search covers every field except a secret one (notes).",
+  "cases": [
+    { "name": "no search, filter or sort: the live records in id order", "expect": ["01", "02", "03", "04", "05", "06", "07"] },
+    { "name": "a search looks in the title, the labels of linked records and people", "q": "launch", "expect": ["01", "02", "03"] },
+    { "name": "a search ignores case and accents both ways", "q": "ECLAIR", "expect": ["05"] },
+    { "name": "a search with an accent finds the plain letters", "q": "écran", "expect": ["07"] },
+    { "name": "a secret field is never searched", "q": "camille", "expect": [] },
+    { "name": "a field that is only personal is searched", "q": "ines@example", "expect": ["02"] },
+    { "name": "a search reads a person's name", "q": "ines", "expect": ["02", "04"] },
+    { "name": "a search reads an option's label", "q": "bug", "expect": ["02", "05"] },
+    { "name": "a search reads a date", "q": "2026-10-31", "expect": ["01"] },
+    { "name": "a search reads an attachment's name", "q": "brief.pdf", "expect": ["01"] },
+    { "name": "a search of spaces searches nothing", "q": "   ", "expect": ["01", "02", "03", "04", "05", "06", "07"] },
+    { "name": "a filter and a sort", "flt": { "conj": "and", "items": [{ "k": "status", "op": "nin", "v": ["done"] }] }, "sorts": [{ "k": "due", "dir": "asc" }], "expect": ["06", "02", "01", "03", "05"] },
+    { "name": "a search, a filter and a sort together", "q": "launch", "flt": { "conj": "and", "items": [{ "k": "status", "op": "is", "v": "todo" }] }, "sorts": [{ "k": "due", "dir": "desc" }], "expect": ["03", "02"] },
+    { "name": "an unfinished filter and an unknown sort are ignored", "flt": { "conj": "and", "items": [{ "k": "title", "op": "contains", "v": "" }, { "k": "nope", "op": "is", "v": "x" }] }, "sorts": [{ "k": "estimate", "dir": "desc" }, { "k": "nope", "dir": "asc" }], "expect": ["07", "04", "01", "03", "02", "06", "05"] },
+    { "name": "mine, by due date", "flt": { "conj": "and", "items": [{ "k": "assignee", "op": "is", "v": "@me" }] }, "sorts": [{ "k": "due", "dir": "asc" }], "expect": ["06", "01", "03", "07"] },
+    { "name": "an object without records", "object": "note", "expect": [] }
+  ]
+}

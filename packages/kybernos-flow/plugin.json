@@ -1,0 +1,44 @@
+{
+  "contract": 1,
+  "id": "kybernos/flow",
+  "kind": "code",
+  "version": "1.0.0",
+  "name": {
+    "en": "Flow",
+    "fr": "Flow"
+  },
+  "description": {
+    "en": "Resume cut turns and a reorderable queue.",
+    "fr": "Reprise des tours coupés et file d’attente réordonnable."
+  },
+  "icon": "flow",
+  "family": "teams",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-flow",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.dom",
+    "host.routes:/kybernos/queue-move:write",
+    "sessions.read"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos/queue-move"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "on"
+  }
+}

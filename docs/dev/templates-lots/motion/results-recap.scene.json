@@ -1,0 +1,437 @@
+{
+ "format": {
+  "width": 1280,
+  "height": 720,
+  "fps": 30,
+  "duration": 10
+ },
+ "background": "#0f1726",
+ "params": {
+  "accent": "#4fd1a5",
+  "revenue": 482300,
+  "customers": 1284,
+  "growth": 18
+ },
+ "controls": [
+  {
+   "id": "revenue",
+   "label": "Revenue",
+   "type": "number"
+  },
+  {
+   "id": "customers",
+   "label": "Customers",
+   "type": "number"
+  },
+  {
+   "id": "growth",
+   "label": "Growth",
+   "type": "number"
+  },
+  {
+   "id": "accent",
+   "label": "Accent",
+   "type": "color"
+  }
+ ],
+ "layers": [
+  {
+   "type": "text",
+   "name": "Title",
+   "text": "Fjord Studio \u00b7 Q3 results",
+   "x": 640,
+   "y": 70,
+   "size": 56,
+   "weight": 700,
+   "alpha": {
+    "k": [
+     [
+      0,
+      0
+     ],
+     [
+      0.7,
+      1,
+      "out"
+     ]
+    ]
+   }
+  },
+  {
+   "type": "rect",
+   "name": "Revenue card",
+   "x": 240,
+   "y": 215,
+   "w": 340,
+   "h": 170,
+   "r": 24,
+   "fill": "#1b2740",
+   "alpha": {
+    "k": [
+     [
+      0.6,
+      0
+     ],
+     [
+      1.2,
+      1,
+      "out"
+     ]
+    ]
+   }
+  },
+  {
+   "type": "text",
+   "name": "Revenue label",
+   "text": "Revenue",
+   "x": 240,
+   "y": 165,
+   "size": 30,
+   "weight": 400,
+   "fill": "#9fb0d0",
+   "alpha": {
+    "k": [
+     [
+      0.6,
+      0
+     ],
+     [
+      1.2,
+      1,
+      "out"
+     ]
+    ]
+   }
+  },
+  {
+   "type": "rect",
+   "name": "Customers card",
+   "x": 640,
+   "y": 215,
+   "w": 340,
+   "h": 170,
+   "r": 24,
+   "fill": "#1b2740",
+   "alpha": {
+    "k": [
+     [
+      0.9,
+      0
+     ],
+     [
+      1.5,
+      1,
+      "out"
+     ]
+    ]
+   }
+  },
+  {
+   "type": "text",
+   "name": "Customers label",
+   "text": "Customers",
+   "x": 640,
+   "y": 165,
+   "size": 30,
+   "weight": 400,
+   "fill": "#9fb0d0",
+   "alpha": {
+    "k": [
+     [
+      0.9,
+      0
+     ],
+     [
+      1.5,
+      1,
+      "out"
+     ]
+    ]
+   }
+  },
+  {
+   "type": "rect",
+   "name": "Growth card",
+   "x": 1040,
+   "y": 215,
+   "w": 340,
+   "h": 170,
+   "r": 24,
+   "fill": "#1b2740",
+   "alpha": {
+    "k": [
+     [
+      1.2,
+      0
+     ],
+     [
+      1.7999999999999998,
+      1,
+      "out"
+     ]
+    ]
+   }
+  },
+  {
+   "type": "text",
+   "name": "Growth label",
+   "text": "Growth",
+   "x": 1040,
+   "y": 165,
+   "size": 30,
+   "weight": 400,
+   "fill": "#9fb0d0",
+   "alpha": {
+    "k": [
+     [
+      1.2,
+      0
+     ],
+     [
+      1.7999999999999998,
+      1,
+      "out"
+     ]
+    ]
+   }
+  },
+  {
+   "type": "number",
+   "name": "Revenue figure",
+   "x": 240,
+   "y": 240,
+   "value": {
+    "k": [
+     [
+      1.2,
+      0
+     ],
+     [
+      3.0,
+      "$revenue",
+      "out"
+     ]
+    ]
+   },
+   "prefix": "\u20ac",
+   "group": true,
+   "locale": "en",
+   "size": 60,
+   "weight": 700,
+   "alpha": {
+    "k": [
+     [
+      1.0,
+      0
+     ],
+     [
+      1.4,
+      1,
+      "out"
+     ]
+    ]
+   }
+  },
+  {
+   "type": "number",
+   "name": "Customers figure",
+   "x": 640,
+   "y": 240,
+   "value": {
+    "k": [
+     [
+      1.5,
+      0
+     ],
+     [
+      3.2,
+      "$customers",
+      "out"
+     ]
+    ]
+   },
+   "group": true,
+   "locale": "en",
+   "size": 60,
+   "weight": 700,
+   "alpha": {
+    "k": [
+     [
+      1.3,
+      0
+     ],
+     [
+      1.7,
+      1,
+      "out"
+     ]
+    ]
+   }
+  },
+  {
+   "type": "number",
+   "name": "Growth figure",
+   "x": 1040,
+   "y": 240,
+   "value": {
+    "k": [
+     [
+      1.8,
+      0
+     ],
+     [
+      3.4,
+      "$growth",
+      "out"
+     ]
+    ]
+   },
+   "prefix": "+",
+   "suffix": "%",
+   "size": 60,
+   "weight": 700,
+   "fill": "$accent",
+   "alpha": {
+    "k": [
+     [
+      1.6,
+      0
+     ],
+     [
+      2.0,
+      1,
+      "out"
+     ]
+    ]
+   }
+  },
+  {
+   "type": "chart",
+   "name": "Revenue by quarter",
+   "kind": "bar",
+   "x": 640,
+   "y": 485,
+   "w": 820,
+   "h": 240,
+   "data": [
+    {
+     "label": "Q4",
+     "value": 340
+    },
+    {
+     "label": "Q1",
+     "value": 372
+    },
+    {
+     "label": "Q2",
+     "value": 409
+    },
+    {
+     "label": "Q3",
+     "value": 482,
+     "color": "$accent"
+    }
+   ],
+   "p": {
+    "k": [
+     [
+      3.6,
+      0
+     ],
+     [
+      6.0,
+      1,
+      "out"
+     ]
+    ]
+   },
+   "labelSize": 30,
+   "colors": [
+    "#3b4d73",
+    "#3b4d73",
+    "#3b4d73",
+    "#3b4d73"
+   ]
+  },
+  {
+   "type": "rect",
+   "name": "Highlight",
+   "x": 1040,
+   "y": 215,
+   "w": 360,
+   "h": 190,
+   "r": 30,
+   "stroke": "$accent",
+   "lw": 6,
+   "alpha": {
+    "k": [
+     [
+      6.4,
+      0
+     ],
+     [
+      6.9,
+      1,
+      "out"
+     ],
+     [
+      7.6,
+      0.35,
+      "sine"
+     ],
+     [
+      8.3,
+      1,
+      "sine"
+     ]
+    ]
+   },
+   "fill": "transparent"
+  },
+  {
+   "type": "text",
+   "name": "Caption",
+   "text": "Best quarter of the year",
+   "x": 640,
+   "y": 655,
+   "size": 44,
+   "weight": 700,
+   "fill": "$accent",
+   "alpha": {
+    "k": [
+     [
+      7.0,
+      0
+     ],
+     [
+      7.8,
+      1,
+      "out"
+     ]
+    ]
+   }
+  }
+ ],
+ "audio": [
+  {
+   "synth": "tick",
+   "at": 1.2
+  },
+  {
+   "synth": "tick",
+   "at": 1.5
+  },
+  {
+   "synth": "tick",
+   "at": 1.8
+  },
+  {
+   "synth": "pop",
+   "at": 3.6
+  },
+  {
+   "synth": "ding",
+   "at": 6.4
+  }
+ ]
+}

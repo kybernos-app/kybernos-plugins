@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Ouvre les Word, Excel, Markdown, PDF et présentations (.deck.html) de tes Créations et change-les sur place. Avant d’ouvrir, on te dit ce que l’éditeur ne saurait pas garder.",
+    "en": "Open the Word, Excel, Markdown, PDF and slide deck (.deck.html) files of your Creations and change them in place. Before it opens, you are told what the editor could not keep."
+  },
+  "steps": [
+    {
+      "fr": "Ouvre un .docx, .xlsx, .md, .pdf ou .deck.html dans Créations ou l’onglet de droite du chat : lecture seule, puis Modifier.",
+      "en": "Open a .docx, .xlsx, .md, .pdf or .deck.html in Creations or the chat’s right-hand tab: read-only, then click Edit."
+    },
+    {
+      "fr": "Change ce que tu veux ; Enregistrer écrit le fichier sur ton ordinateur, Enregistrer une copie le laisse tel quel.",
+      "en": "Change what you like; Save writes the file on your computer, Save a copy leaves it as it is."
+    },
+    {
+      "fr": "Annuler l’enregistrement remet le fichier comme avant le dernier enregistrement.",
+      "en": "Undo last save puts the file back as it was before your last save."
+    }
+  ],
+  "where": {
+    "fr": "Créations ou onglet de droite du chat › un fichier Word, Excel, Markdown, PDF ou une présentation",
+    "en": "Creations or the chat’s right-hand tab › a Word, Excel, Markdown, PDF or slide deck file",
+    "page": false
+  },
+  "good": {
+    "fr": "Si Kaby change le fichier pendant que tu le modifies, rien n’est écrasé : tu recharges ou tu enregistres une copie. Une présentation demandée à un chat arrive en carte, modifiable ici.",
+    "en": "If Kaby changes the file while you edit it, nothing is overwritten: you reload or save a copy. A presentation asked of a chat arrives as a card, editable here."
+  }
+}

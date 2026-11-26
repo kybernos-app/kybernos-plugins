@@ -1,0 +1,3 @@
+- insert:
+    - id: kybernos-theme
+      name: '@local/kybernos-theme'

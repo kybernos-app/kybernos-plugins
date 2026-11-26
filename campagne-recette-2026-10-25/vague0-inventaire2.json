@@ -1,0 +1,254 @@
+[
+  {
+    "surface": "accueil",
+    "dom": "{\"title\":\"Kybernos\",\"sidebar\":[\"ybernos\",\"Search everywhere\",\"Collapse sidebar\",\"New Session⌥⌘N\",\"Plugins\",\"New chat\\nwith your Agent Teams\\nKaby\\nSales and stock\\nShop team\\nWorkspaces\\n12\\nCreations\\nAutomations\\n11\\nSkills\\nConnectors\",\"New chat\\nwith your Agent Teams\",\"Start this chat with\",\"Kaby\",\"Sales and stock\",\"Shop team\",\"Workspaces\\n12\",\"Creations\",\"Automations\\n11\",\"Skills\",\"Connectors\",\"Automation tasks\",\"Search sessions\",\"Search everywhere\",\"View options\",\"Add workspace\",\"Pinned\",\"Session actions · 60b93877…\",\"Archive session\",\"Unpin session\",\"Session actions · a64864a3…\",\"Archive session\",\"Unpin session\",\"Session actions · a3964baf…\",\"Archive session\",\"Unpin session\",\"Session actions · 5e6c6fe8…\",\"Archive session\",\"Unpin session\",\"Session actions · 687f76f4…\",\"Archive session\",\"Unpin session\",\"Session actions · 84f21ec2…\",\"Archive session\",\"Unpin session\",\"Session actions · 9e4adbf5…\",\"Archive session\",\"Unpin session\",\"Session actions · b90d0f81…\",\"Archive session\",\"Unpin session\",\"Workspace actions for kybernos-plugins\",\"New session in kybernos-plugins\",\"Workspace actions for Automations\",\"New session in Automations\",\"Workspace actions for Team1\",\"New session in Team1\",\"Workspace actions for Kaby\",\"New session in Kaby\",\"Workspace actions for Samples Teting\",\"New session in Samples Teting\",\"Workspace actions for dsh-kybernos\",\"New session in dsh-kybernos\",\"Workspace actions for temp\",\"New session in temp\"],\"composer\":[\"ybernos\",\"Search everywhere\",\"Collapse sidebar\",\"New Session⌥⌘N\",\"Plugins\",\"New chat\\nwith your Agent Teams\\nKaby\\nSales and stock\\nShop team\\nWorkspaces\\n12\\nCreations\\nAutomations\\n11\\nSkills\\nConnectors\",\"New chat\\nwith your Agent Teams\",\"Start this chat with\",\"Kaby\",\"Sales and stock\",\"Shop team\",\"Workspaces\\n12\",\"Creations\",\"Automations\\n11\",\"Skills\",\"Connectors\",\"Automation tasks\",\"Search sessions\",\"Search everywhere\",\"View options\",\"Add workspace\",\"Pinned\",\"Session actions · 60b93877…\",\"Archive session\",\"Unpin session\",\"Session actions · a64864a3…\",\"Archive session\",\"Unpin session\",\"Session actions · a3964baf…\",\"Archive session\",\"Unpin session\",\"Session actions · 5e6c6fe8…\",\"Archive session\",\"Unpin session\",\"Session actions · 687f76f4…\",\"Archive session\",\"Unpin session\",\"Session actions · 84f21ec2…\",\"Archive session\",\"Unpin session\"]}",
+    "shot": 65301
+  },
+  {
+    "surface": "page:Kaby",
+    "active": true,
+    "h1": "",
+    "nav": "[{\"t\":\"ybernos\",\"on\":false},{\"t\":\"Search everywhere\",\"on\":false},{\"t\":\"Collapse sidebar\",\"on\":false},{\"t\":\"New Session⌥⌘N\",\"on\":false},{\"t\":\"Plugins\",\"on\":false},{\"t\":\"New chat\",\"on\":false},{\"t\":\"New chat\",\"on\":false},{\"t\":\"Start this chat with\",\"on\":false},{\"t\":\"Kaby\",\"on\":true},{\"t\":\"Sales and stock\",\"on\":false},{\"t\":\"Shop team\",\"on\":false},{\"t\":\"Workspaces\",\"on\":false},{\"t\":\"Creations\",\"on\":false},{\"t\":\"Automations\",\"on\":false},{\"t\":\"Skills\",\"on\":false},{\"t\":\"Connectors\",\"on\":false},{\"t\":\"Automation tasks\",\"on\":false},{\"t\":\"Search sessions\",\"on\":false},{\"t\":\"Search everywhere\",\"on\":false},{\"t\":\"View options\",\"on\":false},{\"t\":\"Add workspace\",\"on\":false},{\"t\":\"Pinned\",\"on\":false},{\"t\":\"Session actions · Audit bugs serveur Kybernos\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Audit plugins Kyneros en sous-agents\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Comparaison de deux tablettes\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Demande de crédits cloud et LLM\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Vidéo courte inspirée de TikTok\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Amélioration message compte et cartes\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false}]",
+    "shot": 93702
+  },
+  {
+    "surface": "page:Dashboards",
+    "dom": "ROW NOT FOUND",
+    "shot": 0
+  },
+  {
+    "surface": "page:Agent Teams",
+    "dom": "ROW NOT FOUND",
+    "shot": 0
+  },
+  {
+    "surface": "page:Workspaces",
+    "active": false,
+    "h1": "",
+    "nav": "[{\"t\":\"ybernos\",\"on\":false},{\"t\":\"Search everywhere\",\"on\":false},{\"t\":\"Collapse sidebar\",\"on\":false},{\"t\":\"New Session⌥⌘N\",\"on\":false},{\"t\":\"Plugins\",\"on\":false},{\"t\":\"New chat\",\"on\":false},{\"t\":\"New chat\",\"on\":false},{\"t\":\"Start this chat with\",\"on\":false},{\"t\":\"Kaby\",\"on\":true},{\"t\":\"Sales and stock\",\"on\":false},{\"t\":\"Shop team\",\"on\":false},{\"t\":\"Workspaces\",\"on\":false},{\"t\":\"Creations\",\"on\":false},{\"t\":\"Automations\",\"on\":false},{\"t\":\"Skills\",\"on\":false},{\"t\":\"Connectors\",\"on\":false},{\"t\":\"Automation tasks\",\"on\":false},{\"t\":\"Search sessions\",\"on\":false},{\"t\":\"Search everywhere\",\"on\":false},{\"t\":\"View options\",\"on\":false},{\"t\":\"Add workspace\",\"on\":false},{\"t\":\"Pinned\",\"on\":false},{\"t\":\"Session actions · Audit bugs serveur Kybernos\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Audit plugins Kyneros en sous-agents\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Comparaison de deux tablettes\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Demande de crédits cloud et LLM\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Vidéo courte inspirée de TikTok\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Amélioration message compte et cartes\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false}]",
+    "shot": 93642
+  },
+  {
+    "surface": "page:Creations",
+    "active": true,
+    "h1": "Creations\n?\nHow it works",
+    "nav": "[{\"t\":\"ybernos\",\"on\":false},{\"t\":\"Search everywhere\",\"on\":false},{\"t\":\"Collapse sidebar\",\"on\":false},{\"t\":\"New Session⌥⌘N\",\"on\":false},{\"t\":\"Plugins\",\"on\":false},{\"t\":\"New chat\",\"on\":false},{\"t\":\"New chat\",\"on\":false},{\"t\":\"Start this chat with\",\"on\":false},{\"t\":\"Kaby\",\"on\":false},{\"t\":\"Sales and stock\",\"on\":false},{\"t\":\"Shop team\",\"on\":false},{\"t\":\"Workspaces\",\"on\":false},{\"t\":\"Creations\",\"on\":true},{\"t\":\"Automations\",\"on\":false},{\"t\":\"Skills\",\"on\":false},{\"t\":\"Connectors\",\"on\":false},{\"t\":\"Automation tasks\",\"on\":false},{\"t\":\"Search sessions\",\"on\":false},{\"t\":\"Search everywhere\",\"on\":false},{\"t\":\"View options\",\"on\":false},{\"t\":\"Add workspace\",\"on\":false},{\"t\":\"Pinned\",\"on\":false},{\"t\":\"Session actions · Audit bugs serveur Kybernos\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Audit plugins Kyneros en sous-agents\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Comparaison de deux tablettes\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Demande de crédits cloud et LLM\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Vidéo courte inspirée de TikTok\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Amélioration message compte et cartes\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false}]",
+    "shot": 179789
+  },
+  {
+    "surface": "page:Automations",
+    "active": false,
+    "h1": "Creations\n?\nHow it works",
+    "nav": "[{\"t\":\"ybernos\",\"on\":false},{\"t\":\"Search everywhere\",\"on\":false},{\"t\":\"Collapse sidebar\",\"on\":false},{\"t\":\"New Session⌥⌘N\",\"on\":false},{\"t\":\"Plugins\",\"on\":false},{\"t\":\"New chat\",\"on\":false},{\"t\":\"New chat\",\"on\":false},{\"t\":\"Start this chat with\",\"on\":false},{\"t\":\"Kaby\",\"on\":false},{\"t\":\"Sales and stock\",\"on\":false},{\"t\":\"Shop team\",\"on\":false},{\"t\":\"Workspaces\",\"on\":false},{\"t\":\"Creations\",\"on\":true},{\"t\":\"Automations\",\"on\":false},{\"t\":\"Skills\",\"on\":false},{\"t\":\"Connectors\",\"on\":false},{\"t\":\"Automation tasks\",\"on\":false},{\"t\":\"Search sessions\",\"on\":false},{\"t\":\"Search everywhere\",\"on\":false},{\"t\":\"View options\",\"on\":false},{\"t\":\"Add workspace\",\"on\":false},{\"t\":\"Pinned\",\"on\":false},{\"t\":\"Session actions · Audit bugs serveur Kybernos\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Audit plugins Kyneros en sous-agents\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Comparaison de deux tablettes\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Demande de crédits cloud et LLM\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Vidéo courte inspirée de TikTok\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Amélioration message compte et cartes\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false}]",
+    "shot": 179848
+  },
+  {
+    "surface": "page:Skills",
+    "active": true,
+    "h1": "Skills\n?\nHow it works",
+    "nav": "[{\"t\":\"ybernos\",\"on\":false},{\"t\":\"Search everywhere\",\"on\":false},{\"t\":\"Collapse sidebar\",\"on\":false},{\"t\":\"New Session⌥⌘N\",\"on\":false},{\"t\":\"Plugins\",\"on\":false},{\"t\":\"New chat\",\"on\":false},{\"t\":\"New chat\",\"on\":false},{\"t\":\"Start this chat with\",\"on\":false},{\"t\":\"Kaby\",\"on\":false},{\"t\":\"Sales and stock\",\"on\":false},{\"t\":\"Shop team\",\"on\":false},{\"t\":\"Workspaces\",\"on\":false},{\"t\":\"Creations\",\"on\":false},{\"t\":\"Automations\",\"on\":false},{\"t\":\"Skills\",\"on\":true},{\"t\":\"Connectors\",\"on\":false},{\"t\":\"Automation tasks\",\"on\":false},{\"t\":\"Search sessions\",\"on\":false},{\"t\":\"Search everywhere\",\"on\":false},{\"t\":\"View options\",\"on\":false},{\"t\":\"Add workspace\",\"on\":false},{\"t\":\"Pinned\",\"on\":false},{\"t\":\"Session actions · Audit bugs serveur Kybernos\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Audit plugins Kyneros en sous-agents\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Comparaison de deux tablettes\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Demande de crédits cloud et LLM\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Vidéo courte inspirée de TikTok\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Amélioration message compte et cartes\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false}]",
+    "shot": 368884
+  },
+  {
+    "surface": "page:Connectors",
+    "active": true,
+    "h1": "Connectors\n?\nHow it works",
+    "nav": "[{\"t\":\"ybernos\",\"on\":false},{\"t\":\"Search everywhere\",\"on\":false},{\"t\":\"Collapse sidebar\",\"on\":false},{\"t\":\"New Session⌥⌘N\",\"on\":false},{\"t\":\"Plugins\",\"on\":false},{\"t\":\"New chat\",\"on\":false},{\"t\":\"New chat\",\"on\":false},{\"t\":\"Start this chat with\",\"on\":false},{\"t\":\"Kaby\",\"on\":false},{\"t\":\"Sales and stock\",\"on\":false},{\"t\":\"Shop team\",\"on\":false},{\"t\":\"Workspaces\",\"on\":false},{\"t\":\"Creations\",\"on\":false},{\"t\":\"Automations\",\"on\":false},{\"t\":\"Skills\",\"on\":false},{\"t\":\"Connectors\",\"on\":true},{\"t\":\"Automation tasks\",\"on\":false},{\"t\":\"Search sessions\",\"on\":false},{\"t\":\"Search everywhere\",\"on\":false},{\"t\":\"View options\",\"on\":false},{\"t\":\"Add workspace\",\"on\":false},{\"t\":\"Pinned\",\"on\":false},{\"t\":\"Session actions · Audit bugs serveur Kybernos\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Audit plugins Kyneros en sous-agents\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Comparaison de deux tablettes\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Demande de crédits cloud et LLM\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Vidéo courte inspirée de TikTok\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false},{\"t\":\"Session actions · Amélioration message compte et cartes\",\"on\":false},{\"t\":\"Archive session\",\"on\":false},{\"t\":\"Unpin session\",\"on\":false}]",
+    "shot": 135916
+  },
+  {
+    "surface": "menu-compte",
+    "items": "[]",
+    "shot": 139661
+  },
+  {
+    "surface": "settings-open",
+    "ok": true,
+    "shot": 117062
+  },
+  {
+    "surface": "settings:General",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 117065
+  },
+  {
+    "surface": "settings:Theme",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 118721
+  },
+  {
+    "surface": "settings:Language",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 103046
+  },
+  {
+    "surface": "settings:Memory & Lessons",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 107575
+  },
+  {
+    "surface": "settings:Models",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 44664
+  },
+  {
+    "surface": "settings:Kybernos",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 61216
+  },
+  {
+    "surface": "settings:About",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 37254
+  },
+  {
+    "surface": "settings:Servers",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 120475
+  },
+  {
+    "surface": "settings:Auto Routing",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 87744
+  },
+  {
+    "surface": "settings:Web Search",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 106950
+  },
+  {
+    "surface": "settings:Built-in plugins",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 46874
+  },
+  {
+    "surface": "settings:Atlas",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 70196
+  },
+  {
+    "surface": "settings:AI provider and models",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 111035
+  },
+  {
+    "surface": "settings:Agent presets",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 87104
+  },
+  {
+    "surface": "settings:Voice",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 72380
+  },
+  {
+    "surface": "settings:Skills",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 75715
+  },
+  {
+    "surface": "settings:Learned skills",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 37514
+  },
+  {
+    "surface": "settings:Commands",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 145426
+  },
+  {
+    "surface": "settings:Ollama local models",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 144146
+  },
+  {
+    "surface": "settings:Automations",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 105581
+  },
+  {
+    "surface": "settings:Free LLMs",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 69745
+  },
+  {
+    "surface": "settings:Kybernos Suite",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 66248
+  },
+  {
+    "surface": "settings:Tools",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 87212
+  },
+  {
+    "surface": "settings:Workers",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 73622
+  },
+  {
+    "surface": "settings:Connectors",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 113456
+  },
+  {
+    "surface": "settings:Calls",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 140826
+  },
+  {
+    "surface": "settings:Kaby",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 104200
+  },
+  {
+    "surface": "settings:Usage",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 113635
+  },
+  {
+    "surface": "settings:Code sandbox (E2B)",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 70031
+  },
+  {
+    "surface": "settings:Phone and channels",
+    "nav": true,
+    "h1": "Connectors\n?\nHow it works",
+    "shot": 150428
+  },
+  {
+    "surface": "volet-droit",
+    "tabs": "[\"100\",\"2\"]",
+    "shot": 135702
+  }
+]

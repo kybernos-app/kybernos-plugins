@@ -1,0 +1,10 @@
+{
+  "kybernos/db": {
+    "en": "Your customers, products and orders, as ready Tables.",
+    "fr": "Vos clients, produits et commandes, en Tables prêtes."
+  },
+  "kybernos/dashboards": {
+    "en": "Revenue, orders to ship and low stock at a glance.",
+    "fr": "Chiffre d’affaires, commandes à expédier et stock bas d’un coup d’œil."
+  }
+}
